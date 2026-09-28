@@ -7,7 +7,16 @@ import { monthName } from "./dates";
 import { formatNumber, ltr } from "./format";
 import { mroToMru } from "./money";
 import { qrMatrix } from "./qr";
-import { waLink } from "./whatsapp";
+import {
+  appFonts,
+  downloadPng,
+  loadImage,
+  renderPng,
+  shareImage,
+  type CanvasFonts,
+  type ShareImageOptions,
+  type ShareResult,
+} from "./canvas-share";
 
 export const FUND_NAME = "صندوق البقيع";
 export const ASSOC_NAME = "رابطة شباب قرية البقيع";
@@ -122,7 +131,7 @@ const C = {
 
 export interface DrawOptions {
   url: string;
-  fonts: { display: string; body: string };
+  fonts: CanvasFonts;
   logo?: CanvasImageSource | null;
 }
 
@@ -250,34 +259,6 @@ export function drawReceipt(x: Ctx, r: ShareableReceipt, o: DrawOptions): void {
 
 /* ─────────────── browser ─────────────── */
 
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const im = new Image();
-    im.onload = () => resolve(im);
-    im.onerror = reject;
-    im.src = src;
-  });
-}
-
-/** Arabic letters, digits and Latin code characters: all must be loaded before drawing. */
-const FONT_SAMPLE = "وصل 0123456789 BQ-№";
-
-/** App fonts (next/font CSS variables on <html>), loaded before drawing so Arabic shapes right. */
-async function appFonts(): Promise<DrawOptions["fonts"]> {
-  const cs = getComputedStyle(document.documentElement);
-  const body = cs.getPropertyValue("--font-body").trim() || "Tahoma, sans-serif";
-  const display = cs.getPropertyValue("--font-display-face").trim() || body;
-  try {
-    await Promise.all([
-      document.fonts.load(`700 30px ${display}`, FONT_SAMPLE),
-      document.fonts.load(`400 20px ${body}`, FONT_SAMPLE),
-    ]);
-  } catch {
-    /* fall back to whatever is available */
-  }
-  return { display, body };
-}
-
 /** Renders the receipt to a PNG blob (2× for sharp text on phone screens). */
 export async function renderReceiptPng(
   r: ShareableReceipt,
@@ -287,21 +268,12 @@ export async function renderReceiptPng(
     appFonts(),
     loadImage("/icons/icon-192.png").catch(() => null),
   ]);
-  const canvas = document.createElement("canvas");
-  canvas.width = RECEIPT_W * 2;
-  canvas.height = RECEIPT_H * 2;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("canvas unavailable");
-  ctx.scale(2, 2);
-  drawReceipt(ctx, r, { url: verifyUrl(r.code, origin), fonts, logo });
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"),
+  return renderPng(RECEIPT_W, RECEIPT_H, 2, (ctx) =>
+    drawReceipt(ctx, r, { url: verifyUrl(r.code, origin), fonts, logo }),
   );
 }
 
-export type ShareResult = "shared" | "whatsapp" | "cancelled";
-
-type ShareNavigator = Pick<Navigator, "share"> & { canShare?: (data: ShareData) => boolean };
+export type { ShareResult };
 
 /**
  * Share the receipt image through the phone's share sheet (WhatsApp shows up there).
@@ -310,41 +282,14 @@ type ShareNavigator = Pick<Navigator, "share"> & { canShare?: (data: ShareData) 
  */
 export async function shareReceipt(
   r: ShareableReceipt,
-  opts: {
-    phone?: string | null;
-    origin?: string;
-    nav?: ShareNavigator;
-    open?: (url: string) => void;
-  } = {},
+  opts: ShareImageOptions & { origin?: string } = {},
 ): Promise<ShareResult> {
   const origin = opts.origin ?? location.origin;
-  const nav = opts.nav ?? (navigator as ShareNavigator);
   const text = receiptShareText(r, verifyUrl(r.code, origin));
-  try {
-    if (typeof nav.share === "function" && nav.canShare) {
-      const blob = await renderReceiptPng(r, origin);
-      const file = new File([blob], receiptFileName(r.no), { type: "image/png" });
-      if (nav.canShare({ files: [file] })) {
-        await nav.share({ files: [file], text });
-        return "shared";
-      }
-    }
-  } catch (e) {
-    if (e instanceof DOMException && e.name === "AbortError") return "cancelled";
-    /* anything else: fall through to the text link */
-  }
-  const url = waLink(opts.phone, text);
-  (opts.open ?? ((u: string) => window.open(u, "_blank", "noopener")))(url);
-  return "whatsapp";
+  return shareImage(() => renderReceiptPng(r, origin), receiptFileName(r.no), text, opts);
 }
 
 /** Save the receipt image to the phone (download). */
 export async function saveReceiptPng(r: ShareableReceipt): Promise<void> {
-  const blob = await renderReceiptPng(r);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = receiptFileName(r.no);
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  downloadPng(await renderReceiptPng(r), receiptFileName(r.no));
 }
