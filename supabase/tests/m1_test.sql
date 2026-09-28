@@ -126,6 +126,7 @@ select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'cash
 select tests.throws($$select app_private.month_grid()$$, '42501', 'anon cannot call internal helpers');
 select tests.ok((select count(*) from storage.objects where bucket_id = 'proofs') = 0, 'anon sees no proof images');
 select tests.ok((select count(*) from public.member_status where number between 1001 and 1005) = 5, 'anon reads member_status');
+select tests.ok((select ok from public.keepalive), 'anon reads the keepalive view');
 select tests.ok((select count(*) from public.fund_summary) = 1, 'anon reads fund_summary');
 select tests.ok((select count(*) from public.monthly_collection) > 0, 'anon reads monthly_collection');
 select tests.ok(not exists (

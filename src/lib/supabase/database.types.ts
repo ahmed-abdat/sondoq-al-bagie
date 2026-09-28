@@ -748,6 +748,13 @@ export type Database = {
         }
         Relationships: []
       }
+      keepalive: {
+        Row: {
+          groups: number | null
+          ok: boolean | null
+        }
+        Relationships: []
+      }
       member_months: {
         Row: {
           member_id: string | null

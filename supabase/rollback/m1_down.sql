@@ -10,7 +10,7 @@ drop policy if exists "proofs: committee reads" on storage.objects;
 drop policy if exists "proofs: committee uploads" on storage.objects;
 delete from storage.buckets where id = 'proofs' and not exists (select 1 from storage.objects o where o.bucket_id = 'proofs');
 
-drop view if exists public.arrears, public.activity_feed, public.campaign_progress, public.recent_expenses,
+drop view if exists public.keepalive, public.arrears, public.activity_feed, public.campaign_progress, public.recent_expenses,
   public.expense_totals, public.monthly_collection, public.fund_summary, public.member_months, public.member_status;
 drop function if exists public.record_payment(uuid, text, public.payment_method, integer, date, jsonb, text, text, text, text),
   public.confirm_payment(uuid), public.reject_payment(uuid, text), public.cancel_payment(uuid, text),

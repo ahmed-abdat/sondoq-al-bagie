@@ -12,6 +12,7 @@ and every change lands in `audit_log`.
 | `*_m1_rls.sql` | grants, RLS, private `proofs` bucket, realtime on `payments` |
 | `*_m1_rpc.sql` | write RPCs: `record_payment`, `confirm_payment`, `reject_payment`, `cancel_payment`, `record_expense`, `cancel_expense`, `log_reminder`, admin: `add_member`, `update_member`, `change_member_status`, `set_group_price`, `set_committee_member`, `update_settings` |
 | `*_m1_groups.sql` | groups A (1000) and B (500) with 2026 prices |
+| `*_m1_keepalive.sql` | `keepalive` view for the free-tier cron: `GET /rest/v1/keepalive?select=ok` with the publishable key |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the
