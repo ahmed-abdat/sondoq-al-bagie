@@ -1,5 +1,5 @@
 "use client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { QueryObserver, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { publicQueries } from "@/lib/data/queries";
 import type { FundSummary } from "@/lib/data/types";
@@ -13,11 +13,12 @@ import type { FundSummary } from "@/lib/data/types";
  */
 export function PublicCacheSeed({ summary, fetchedAt }: { summary: FundSummary; fetchedAt: number }) {
   const qc = useQueryClient();
-  const q = publicQueries.fundSummary();
-  useQuery({ ...q, enabled: false, initialData: summary, initialDataUpdatedAt: fetchedAt });
   useEffect(() => {
+    const q = publicQueries.fundSummary();
     const prev = qc.getQueryState(q.queryKey)?.dataUpdatedAt ?? 0;
     if (fetchedAt > prev) qc.setQueryData(q.queryKey, summary, { updatedAt: fetchedAt });
-  }, [qc, q.queryKey, summary, fetchedAt]);
+    const keep = new QueryObserver(qc, { ...q, enabled: false });
+    return keep.subscribe(() => {});
+  }, [qc, summary, fetchedAt]);
   return null;
 }
