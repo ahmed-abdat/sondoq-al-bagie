@@ -10,6 +10,8 @@ import {
   fmt,
   groupLabel,
   maskTxn,
+  memberCode,
+  nextFreeNumber,
   memberState,
   monthCells,
   monthCount,
@@ -119,6 +121,18 @@ describe("search", () => {
   it("searches numbers with exact match first", () => {
     expect(searchMembers(list, "1").map((x) => x.number)).toEqual([1, 12]);
     expect(searchMembers(list, "١٢").map((x) => x.number)).toEqual([12]);
+  });
+  it("finds «A-12» in one list", () => {
+    const two = [
+      { number: 12, fullName: "س", groupCode: "A" },
+      { number: 12, fullName: "ص", groupCode: "B" },
+    ];
+    expect(searchMembers(two, "A-12").map((x) => x.fullName)).toEqual(["س"]);
+    expect(searchMembers(two, "b12").map((x) => x.fullName)).toEqual(["ص"]);
+    expect(searchMembers(two, "ب 12").map((x) => x.fullName)).toEqual(["ص"]);
+    expect(memberCode({ groupCode: "B", number: 7 })).toBe("B-7");
+    expect(nextFreeNumber([{ groupCode: "A", number: 1 }, { groupCode: "A", number: 3 }], "A")).toBe(2);
+    expect(nextFreeNumber([{ groupCode: "A", number: 1 }], "B")).toBe(1);
   });
   it("normalises Arabic", () => {
     expect(normalizeAr("أحمد")).toBe("احمد");

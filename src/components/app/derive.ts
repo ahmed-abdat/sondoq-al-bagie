@@ -131,9 +131,32 @@ export type MState = "ahead" | "ok" | "late" | "off";
 const OFF_LABEL: Record<Exclude<MembershipStatus, "active">, string> = {
   exempt: "معفى",
   away: "مسافر",
-  left: "غادر الرابطة",
-  deceased: "رحمه الله",
+  left: "غادر",
+  deceased: "متوفى، رحمه الله",
 };
+
+/** States the committee can set (no "away"/paused, owner 2026-09-28). */
+export const STATE_LABEL: Record<Exclude<MembershipStatus, "away">, string> = {
+  active: "نشط",
+  exempt: "معفى",
+  left: "غادر",
+  deceased: "متوفى",
+};
+
+/** Hidden from public lists by default. */
+export const isGone = (s: MembershipStatus) => s === "left" || s === "deceased";
+
+/** Two lists, each numbered from 1: shown as «A-12» / «B-12». */
+export const memberCode = (m: Pick<MemberStatus, "groupCode" | "number">) =>
+  `${m.groupCode.trim().toUpperCase()}-${m.number}`;
+
+/** Next free number in a list: the first gap, else max + 1. */
+export function nextFreeNumber(list: Pick<MemberStatus, "groupCode" | "number">[], group: string) {
+  const used = new Set(list.filter((m) => m.groupCode === group).map((m) => m.number));
+  let n = 1;
+  while (used.has(n)) n++;
+  return n;
+}
 
 /** ahead = paid the whole year · late = at least one due month unpaid · off = not active. */
 export function memberState(m: MemberStatus): MState {
@@ -171,13 +194,21 @@ export function normalizeAr(s: string) {
     .trim();
 }
 
-/** Digits search the member number (exact first); words search the name. */
-export function searchMembers<T extends Pick<MemberStatus, "number" | "fullName">>(
+/**
+ * Digits search the member number (exact first); «A-12» / «a12» / «أ12» search one list;
+ * words search the name.
+ */
+export function searchMembers<T extends Pick<MemberStatus, "number" | "fullName"> & { groupCode?: string }>(
   list: T[],
   q: string,
 ): T[] {
   const t = q.trim().replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   if (!t) return [];
+  const coded = /^([abأب])\s*-?\s*(\d+)$/i.exec(t);
+  if (coded) {
+    const g = { a: "A", b: "B", "أ": "A", "ب": "B" }[coded[1].toLowerCase() as "a"] ?? "";
+    return list.filter((m) => (m.groupCode ?? "").toUpperCase() === g && String(m.number) === coded[2]);
+  }
   if (/^\d+$/.test(t))
     return list
       .filter((m) => String(m.number).startsWith(t))
