@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     ".claude/**",
     // Generated service worker.
     "public/sw.js",
+    // OCR files copied from node_modules (scripts/ocr-assets.mts).
+    "public/ocr/**",
     "public/swe-worker-*.js",
     "playwright-report/**",
     "test-results/**",

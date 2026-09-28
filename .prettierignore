@@ -7,3 +7,4 @@ docs
 supabase
 *.md
 public/offline.html
+public/ocr

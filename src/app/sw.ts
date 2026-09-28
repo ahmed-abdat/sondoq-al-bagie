@@ -43,6 +43,12 @@ const runtimeCaching: RuntimeCaching[] = [
     matcher: ({ url, sameOrigin }) => sameOrigin && isPrivatePath(url.pathname),
     handler: new NetworkOnly(),
   },
+  // On-device OCR (worker, WASM core, Arabic/French models, ~8 MB): downloaded once on first use,
+  // then kept. Not precached, so members who never read a receipt never download it.
+  {
+    matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith("/ocr/"),
+    handler: new CacheFirst({ cacheName: "ocr", plugins: [ok, expire(12, 90 * DAY)] }),
+  },
   // Hashed build assets never change.
   {
     matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith("/_next/static/"),
