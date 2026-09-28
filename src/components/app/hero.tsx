@@ -10,6 +10,8 @@ export type HeroData = {
   spent: number;
   /** «آخر تحديث: …» or, for the committee, the pending count */
   note: ReactNode;
+  /** «الدورة 2 · منذ 1 يناير 2026» */
+  term?: string | null;
 };
 
 /** The one green field: brand, balance, two stats, a note. Band on mobile, panel on desktop. */
@@ -46,7 +48,15 @@ export function Hero({ data, variant }: { data: HeroData; variant: "band" | "pan
           </dd>
         </div>
       </dl>
-      <p className="bq-hero-t">{data.note}</p>
+      <p className="bq-hero-t">
+        {data.note}
+        {data.term ? (
+          <>
+            <br />
+            {data.term}
+          </>
+        ) : null}
+      </p>
     </section>
   );
 }

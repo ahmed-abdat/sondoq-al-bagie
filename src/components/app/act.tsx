@@ -9,6 +9,7 @@ import type {
   CampaignProgress,
   ExpenseAdmin,
   FundAccountAdmin,
+  Handover,
   MemberAdmin,
   PendingPayment,
 } from "@/lib/data/types";
@@ -26,6 +27,8 @@ export type DemoState = {
   accounts: FundAccountAdmin[];
   members: MemberAdmin[];
   memberPatch: Record<string, Partial<MemberAdmin>>;
+  /** the handover being prepared in the demo (null = none / use the server's) */
+  handover: Handover | null;
 };
 const EMPTY: DemoState = {
   pending: [],
@@ -35,6 +38,7 @@ const EMPTY: DemoState = {
   accounts: [],
   members: [],
   memberPatch: {},
+  handover: null,
 };
 let state = EMPTY;
 const subs = new Set<() => void>();
@@ -226,6 +230,98 @@ const demo: Partial<Actions> = {
     return ok({ userId: "demo", login: "+22236123456", password: generatePassword() });
   },
   setCommitteeActive: async () => ok(undefined),
+  async startHandover(p) {
+    const h: Handover = {
+      id: p.id,
+      fromTerm: 2,
+      toTerm: null,
+      status: "draft",
+      countedLines: [],
+      countedBalance: null,
+      computedBalance: null,
+      difference: null,
+      liveBalance: 0,
+      carryOver: [],
+      note: p.note ?? null,
+      startedAt: now(),
+      startedByName: DEMO_USER,
+      submittedAt: null,
+      submittedByName: null,
+      acceptedAt: null,
+      acceptedByName: null,
+      cancelledAt: null,
+      cancelReason: null,
+    };
+    update((s) => ({ ...s, handover: h }));
+    return ok(p.id);
+  },
+  async updateHandoverDraft(p) {
+    update((s) =>
+      s.handover
+        ? {
+            ...s,
+            handover: {
+              ...s.handover,
+              countedLines: p.countedLines.map((l) => ({ ...l })),
+              countedBalance: p.countedLines.reduce((t, l) => t + l.amount, 0),
+              carryOver: p.carryOver ?? [],
+              note: p.note ?? null,
+            },
+          }
+        : s,
+    );
+    return ok(undefined);
+  },
+  async submitHandover() {
+    update((s) =>
+      s.handover
+        ? {
+            ...s,
+            // demo: submitted by «someone else» so the accept step can be tried too
+            handover: {
+              ...s.handover,
+              status: "submitted",
+              submittedAt: now(),
+              submittedByName: "أمين الصندوق السابق",
+            },
+          }
+        : s,
+    );
+    return ok(undefined);
+  },
+  async acceptHandover() {
+    update((s) =>
+      s.handover
+        ? {
+            ...s,
+            handover: {
+              ...s.handover,
+              status: "confirmed",
+              toTerm: 3,
+              acceptedAt: now(),
+              acceptedByName: DEMO_USER,
+            },
+          }
+        : s,
+    );
+    return ok(3);
+  },
+  async cancelHandover(p) {
+    update((s) =>
+      s.handover
+        ? {
+            ...s,
+            handover: {
+              ...s.handover,
+              status: "cancelled",
+              cancelledAt: now(),
+              cancelReason: p.reason,
+            },
+          }
+        : s,
+    );
+    return ok(undefined);
+  },
   setPassword: async () => ok(undefined),
   requestPasswordReset: async () => ok(undefined),
   async addMember(p) {

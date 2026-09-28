@@ -3340,3 +3340,67 @@
     direction: rtl;
   }
 }
+@layer components {
+  /* handover («تسليم الصندوق») */
+  .bq-ho-progress {
+    display: flex;
+    gap: 6px;
+    margin-block-start: 16px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .bq-ho-progress li {
+    flex: 1;
+    padding-block-start: 8px;
+    border-block-start: 4px solid var(--n2);
+    text-align: center;
+  }
+  .bq-ho-progress li.is-on {
+    border-color: var(--g7);
+    color: var(--g8);
+    font-weight: 600;
+  }
+  .bq-ho-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bq-ho-lines li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 140px;
+    align-items: center;
+    gap: 10px;
+  }
+  .bq-ho-label {
+    font-weight: 600;
+  }
+  .bq-ho-diff {
+    margin-block-start: 8px;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .bq-ho-diff.is-ok {
+    color: var(--g8);
+  }
+  .bq-ho-person {
+    cursor: pointer;
+  }
+  .bq-ho-person input {
+    width: 24px;
+    height: 24px;
+    accent-color: var(--g8);
+    flex: none;
+  }
+  .bq-textarea {
+    min-height: 96px;
+    padding-block: 12px;
+    resize: vertical;
+  }
+  .bq-ho-sum {
+    width: 100%;
+    margin-block: 16px;
+    text-align: start;
+  }
+}
