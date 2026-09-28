@@ -33,9 +33,7 @@ export function MemberRow({
         <Avatar code={memberCode(m)} />
         <span className="bq-row-m">
           <span className="bq-row-t">{m.fullName}</span>
-          <span className="bq-row-s">
-            رقم <Num>{memberCode(m)}</Num> · المجموعة {groupLabel(m.groupCode)}
-          </span>
+          <span className="bq-row-s">المجموعة {groupLabel(m.groupCode)}</span>
         </span>
         <StatusTag m={m} />
       </button>

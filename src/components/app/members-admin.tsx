@@ -635,8 +635,14 @@ export function MembersAdmin({
                       <span className="bq-row-m">
                         <span className="bq-row-t">{m.fullName}</span>
                         <span className="bq-row-s">
-                          المجموعة {groupLabel(m.groupCode)}
-                          {m.phone ? "" : " · بلا رقم هاتف"}
+                          {[
+                            m.groupCode !== m.listCode
+                              ? `رسوم المجموعة ${groupLabel(m.groupCode)}`
+                              : "",
+                            m.phone ? "" : "بلا رقم هاتف",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </span>
                       </span>
                       <StatusTag m={m} />
