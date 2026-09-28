@@ -6,3 +6,4 @@ public/swe-worker-*.js
 docs
 supabase
 *.md
+public/offline.html
