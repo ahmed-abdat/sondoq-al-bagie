@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct, useDemoState } from "../act";
-import type { CommitteeRole, FundAccountAdmin, PaymentMethod } from "@/lib/data/types";
+import type { CommitteeAccount, CommitteeRole, FundAccountAdmin, PaymentMethod } from "@/lib/data/types";
+import { CommitteeAccounts } from "../accounts-admin";
 import { METHOD_LABELS, METHODS, methodLogo } from "@/lib/methods";
 import { MethodBadge } from "../bits";
 import { ROLE_LABEL } from "../derive";
@@ -147,17 +148,23 @@ export function SettingsView({
   whatsapp,
   openingBalance,
   accounts,
+  committee,
+  members,
+  selfId,
 }: {
   role: CommitteeRole;
   displayName: string;
   showOwed: boolean;
   whatsapp: string | null;
   openingBalance: number;
+  committee: CommitteeAccount[];
+  members: { memberId: string; memberRef: string }[];
+  selfId: string | null;
   accounts: FundAccountAdmin[];
 }) {
   const router = useRouter();
   const online = useOnline();
-  const { inviteCommitteeMember, setPassword, updateFundAccount, updateSettings } = useAct();
+  const { setPassword, updateFundAccount, updateSettings } = useAct();
   const say = useSnack();
   const [owed, setOwed] = useState(showOwed);
   const [over, setOver] = useState<Record<string, boolean>>({});
@@ -183,7 +190,6 @@ export function SettingsView({
     else router.refresh();
   };
   const [pw, setPw] = useState("");
-  const [inv, setInv] = useState({ email: "", name: "", role: "committee" as CommitteeRole });
   const [adding, setAdding] = useState(false);
   const admin = role === "admin";
 
@@ -388,61 +394,10 @@ export function SettingsView({
       </section>
 
       {admin && (
-        <section className="bq-sec" aria-labelledby="bq-inv-h">
-          <h2 id="bq-inv-h">إضافة عضو إلى اللجنة</h2>
-          <p className="bq-lead">نرسل له رسالة على بريده ليختار كلمة السر.</p>
-          <form
-            className="bq-login"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const r = await inviteCommitteeMember({
-                email: inv.email,
-                displayName: inv.name,
-                role: inv.role,
-              });
-              if (!r.ok) return fail(r.message);
-              setInv({ email: "", name: "", role: "committee" });
-              say("أُرسلت الدعوة");
-            }}
-          >
-            <label>
-              الاسم
-              <input
-                className="bq-input"
-                value={inv.name}
-                onChange={(e) => setInv({ ...inv, name: e.target.value })}
-                required
-              />
-            </label>
-            <label>
-              البريد الإلكتروني
-              <input
-                className="bq-input"
-                type="email"
-                dir="ltr"
-                value={inv.email}
-                onChange={(e) => setInv({ ...inv, email: e.target.value })}
-                required
-              />
-            </label>
-            <label>
-              الدور
-              <select
-                className="bq-input"
-                value={inv.role}
-                onChange={(e) => setInv({ ...inv, role: e.target.value as CommitteeRole })}
-              >
-                {(["committee", "deputy", "treasurer", "admin"] as const).map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABEL[r]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit" className="bq-btn bq-btn-primary bq-press" disabled={!online}>
-              أرسل الدعوة
-            </button>
-          </form>
+        <section className="bq-sec" aria-labelledby="bq-acc-h">
+          <h2 id="bq-acc-h">حسابات اللجنة</h2>
+          <p className="bq-lead">من يدخل إلى صفحة اللجنة، ودور كل واحد.</p>
+          <CommitteeAccounts accounts={committee} members={members} selfId={selfId} />
         </section>
       )}
 

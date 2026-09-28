@@ -16,13 +16,14 @@ export function LoginForm({ next }: { next?: string }) {
     <form action={action} className="bq-login">
       <input type="hidden" name="next" value={next ?? ""} />
       <label>
-        البريد الإلكتروني
+        البريد أو رقم الهاتف
         <input
           className="bq-input"
-          name="email"
-          type="email"
+          name="login"
+          type="text"
+          inputMode="email"
           dir="ltr"
-          autoComplete="email"
+          autoComplete="username"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -62,13 +63,13 @@ export function LoginForm({ next }: { next?: string }) {
           className="bq-link bq-link-s bq-press"
           disabled={reset === "sending" || !online}
           onClick={async () => {
-            if (!email.includes("@")) return;
+            if (!email.includes("@")) return; // reset links go to an email; phone logins ask the admin
             setReset("sending");
             await requestPasswordReset({ email });
             setReset("sent");
           }}
         >
-          نسيت كلمة السر؟ {email.includes("@") ? "" : "(اكتب بريدك أولًا)"}
+          نسيت كلمة السر؟ {email.includes("@") ? "" : "(اكتب بريدك، أو اطلب كلمة جديدة من المسؤول)"}
         </button>
       )}
     </form>

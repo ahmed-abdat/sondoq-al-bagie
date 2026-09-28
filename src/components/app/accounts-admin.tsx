@@ -1,30 +1,25 @@
 "use client";
 // «حسابات اللجنة» (admin): list accounts, add one, new password, stop/restart. No email invites:
 // the admin hands the login details over once (WhatsApp or copy); the password is never shown again.
-// TODO(lane-a): createCommitteeAccount / resetCommitteePassword / setCommitteeAccountActive and a
-// committee accounts list are coming; until they land, real mode says «قريبًا» and demo simulates.
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import type { CommitteeRole } from "@/lib/data/types";
+import type { CommitteeAccount, CommitteeRole, IssuedCredentials } from "@/lib/data/types";
+import { parseLogin } from "@/lib/data/logins";
 import { waLink } from "@/lib/whatsapp";
-import { useIsDemo } from "./act";
+import { useAct } from "./act";
 import { relativeAgo, ROLE_LABEL } from "./derive";
 import { I } from "./icons";
 import { Num, useNow } from "./num";
 import { Sheet } from "./sheet";
 
-export type CommitteeAccount = {
-  userId: string;
-  displayName: string;
-  /** phone or email used to sign in */
-  login: string;
-  role: CommitteeRole;
-  active: boolean;
-  lastSignInAt: string | null;
-  memberRef: string | null;
-};
-
 type Creds = { name: string; login: string; password: string };
+type Result<T> = { ok: true; data: T } | { ok: false; code: string; message: string };
+
+const say = (r: { code: string; message: string }) =>
+  r.code === "not_configured"
+    ? "إنشاء الحسابات غير مفعّل بعد على الخادم — اطلب من المسؤول إضافة المفتاح السري."
+    : r.message;
 
 const ROLES: { k: CommitteeRole; hint: string }[] = [
   { k: "treasurer", hint: "يستلم المال ويؤكد الدفعات." },
@@ -36,15 +31,7 @@ const ROLES: { k: CommitteeRole; hint: string }[] = [
 const LTR = "⁦"; // keep login and password readable inside an Arabic message
 const PDI = "⁩";
 
-/** A readable one-off password: 10 characters without look-alikes (0/O, 1/l). */
-function makePassword() {
-  const abc = "abcdefghijkmnpqrstuvwxyzACDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const buf = new Uint32Array(10);
-  crypto.getRandomValues(buf);
-  return [...buf].map((n) => abc[n % abc.length]).join("");
-}
-
-const isPhone = (v: string) => /^\+?[\d\s-]{8,15}$/.test(v.trim());
+const isPhone = (v: string) => parseLogin(v)?.kind === "phone";
 
 function CredentialsCard({ c, onClose }: { c: Creds; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -117,22 +104,35 @@ function CredentialsCard({ c, onClose }: { c: Creds; onClose: () => void }) {
   );
 }
 
-function AddAccountForm({ onCreated }: { onCreated: (c: Creds, a: CommitteeAccount) => void }) {
+function AddAccountForm({
+  members,
+  onCreated,
+}: {
+  members: { memberId: string; memberRef: string }[];
+  onCreated: (c: Creds) => void;
+}) {
   const online = useOnline();
-  const demo = useIsDemo();
+  const { createCommitteeAccount } = useAct();
   const [name, setName] = useState("");
   const [login, setLogin] = useState("");
   const [role, setRole] = useState<CommitteeRole>("committee");
   const [memberRef, setMemberRef] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const loginOk = isPhone(login) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(login.trim());
-  const ok = name.trim().length > 1 && loginOk;
+  const loginOk = !!parseLogin(login);
+  const ref = memberRef.trim().replace(/\s+/g, "");
+  const member = ref ? members.find((m) => m.memberRef.toUpperCase() === ref) : undefined;
+  const ok = name.trim().length > 1 && loginOk && (!ref || !!member);
   return (
     <div className="bq-rec">
       <h2>إضافة حساب</h2>
       <p className="bq-rec-k">الاسم</p>
-      <input className="bq-input" value={name} onChange={(e) => setName(e.target.value)} aria-label="الاسم" />
+      <input
+        className="bq-input"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        aria-label="الاسم"
+      />
       <p className="bq-rec-k">رقم الهاتف أو البريد</p>
       <input
         className="bq-input"
@@ -169,7 +169,9 @@ function AddAccountForm({ onCreated }: { onCreated: (c: Creds, a: CommitteeAccou
         placeholder="مثل A-12"
         aria-label="رقم العضو"
       />
-      <p className="bq-hint">حتى لا يؤكد دفعاته بنفسه.</p>
+      <p className="bq-hint">
+        {ref && !member ? "لا يوجد عضو بهذا الرقم." : "حتى لا يؤكد دفعاته بنفسه."}
+      </p>
       <div className="bq-rec-foot">
         {err && (
           <p className="bq-alert" role="alert">
@@ -183,25 +185,15 @@ function AddAccountForm({ onCreated }: { onCreated: (c: Creds, a: CommitteeAccou
           onClick={async () => {
             setBusy(true);
             setErr("");
-            await new Promise((r) => setTimeout(r, 400));
+            const r: Result<IssuedCredentials> = await createCommitteeAccount({
+              displayName: name.trim(),
+              login: login.trim(),
+              role,
+              memberId: member?.memberId ?? null,
+            });
             setBusy(false);
-            if (!demo) {
-              // TODO(lane-a): createCommitteeAccount({ displayName, login, role, memberRef })
-              return setErr("إضافة الحسابات من هنا تصل قريبًا، بعد تحديث الخادم.");
-            }
-            const password = makePassword();
-            onCreated(
-              { name: name.trim(), login: login.trim(), password },
-              {
-                userId: crypto.randomUUID(),
-                displayName: name.trim(),
-                login: login.trim(),
-                role,
-                active: true,
-                lastSignInAt: null,
-                memberRef: memberRef.trim() || null,
-              },
-            );
+            if (!r.ok) return setErr(say(r));
+            onCreated({ name: name.trim(), login: r.data.login, password: r.data.password });
           }}
         >
           {busy ? "جارٍ الإنشاء…" : "أنشئ الحساب"}
@@ -212,19 +204,33 @@ function AddAccountForm({ onCreated }: { onCreated: (c: Creds, a: CommitteeAccou
   );
 }
 
-export function CommitteeAccounts({ accounts: server }: { accounts: CommitteeAccount[] }) {
-  const demo = useIsDemo();
+export function CommitteeAccounts({
+  accounts: server,
+  members,
+  selfId,
+}: {
+  accounts: CommitteeAccount[];
+  members: { memberId: string; memberRef: string }[];
+  /** the signed-in admin: no password reset or stop on oneself */
+  selfId: string | null;
+}) {
   const online = useOnline();
   const now = useNow();
-  const [added, setAdded] = useState<CommitteeAccount[]>([]);
+  const router = useRouter();
+  const { resetCommitteePassword, setCommitteeActive } = useAct();
   const [activeOver, setActiveOver] = useState<Record<string, boolean>>({});
   const [sheet, setSheet] = useState<{ t: "add" } | { t: "creds"; c: Creds } | null>(null);
   const [note, setNote] = useState<Record<string, string>>({});
-  const list = [...server, ...added].map((a) => ({ ...a, active: activeOver[a.userId] ?? a.active }));
-  const soon = "تصل قريبًا، بعد تحديث الخادم.";
+  const list = server.map((a) => ({ ...a, active: activeOver[a.userId] ?? a.active }));
+  const refOf = (id: string | null) =>
+    id ? members.find((m) => m.memberId === id)?.memberRef : undefined;
   return (
     <>
-      <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => setSheet({ t: "add" })}>
+      <button
+        type="button"
+        className="bq-btn bq-btn-soft bq-press"
+        onClick={() => setSheet({ t: "add" })}
+      >
         {I.plus(20)} إضافة حساب
       </button>
       {list.length ? (
@@ -240,10 +246,10 @@ export function CommitteeAccounts({ accounts: server }: { accounts: CommitteeAcc
                       {a.login}
                     </bdi>{" "}
                     · {ROLE_LABEL[a.role]}
-                    {a.memberRef ? (
+                    {refOf(a.memberId) ? (
                       <>
                         {" "}
-                        · <Num>{a.memberRef}</Num>
+                        · <Num>{refOf(a.memberId)}</Num>
                       </>
                     ) : null}
                   </span>
@@ -255,32 +261,52 @@ export function CommitteeAccounts({ accounts: server }: { accounts: CommitteeAcc
                         : "لم يدخل بعد"}
                   </span>
                   {note[a.userId] && <span className="bq-row-s">{note[a.userId]}</span>}
-                  <span className="bq-com-actions">
-                    <button
-                      type="button"
-                      className="bq-link bq-link-s bq-press"
-                      disabled={!online}
-                      onClick={() =>
-                        demo
-                          ? setSheet({ t: "creds", c: { name: a.displayName, login: a.login, password: makePassword() } })
-                          : setNote((n) => ({ ...n, [a.userId]: `كلمة سر جديدة: ${soon}` }))
-                      }
-                    >
-                      كلمة سر جديدة
-                    </button>
-                    <button
-                      type="button"
-                      className="bq-link bq-link-s bq-link-quiet bq-press"
-                      disabled={!online}
-                      onClick={() =>
-                        demo
-                          ? setActiveOver((o) => ({ ...o, [a.userId]: !a.active }))
-                          : setNote((n) => ({ ...n, [a.userId]: `الإيقاف: ${soon}` }))
-                      }
-                    >
-                      {a.active ? "إيقاف الحساب" : "تفعيل الحساب"}
-                    </button>
-                  </span>
+                  {a.userId !== selfId && (
+                    <span className="bq-com-actions">
+                      <button
+                        type="button"
+                        className="bq-link bq-link-s bq-press"
+                        disabled={!online}
+                        onClick={async () => {
+                          const r: Result<IssuedCredentials> = await resetCommitteePassword({
+                            userId: a.userId,
+                          });
+                          if (!r.ok) return setNote((n) => ({ ...n, [a.userId]: say(r) }));
+                          setSheet({
+                            t: "creds",
+                            c: {
+                              name: a.displayName,
+                              login: r.data.login,
+                              password: r.data.password,
+                            },
+                          });
+                        }}
+                      >
+                        كلمة سر جديدة
+                      </button>
+                      <button
+                        type="button"
+                        className="bq-link bq-link-s bq-link-quiet bq-press"
+                        disabled={!online}
+                        onClick={async () => {
+                          const next = !a.active;
+                          setActiveOver((o) => ({ ...o, [a.userId]: next }));
+                          const r = await setCommitteeActive({ userId: a.userId, active: next });
+                          if (!r.ok) {
+                            setActiveOver((o) => ({ ...o, [a.userId]: !next }));
+                            return setNote((n) => ({ ...n, [a.userId]: say(r) }));
+                          }
+                          setNote((n) => ({
+                            ...n,
+                            [a.userId]: next ? "فُعّل الحساب." : "أُوقف الحساب.",
+                          }));
+                          router.refresh();
+                        }}
+                      >
+                        {a.active ? "إيقاف الحساب" : "تفعيل الحساب"}
+                      </button>
+                    </span>
+                  )}
                 </span>
               </div>
             </li>
@@ -292,8 +318,9 @@ export function CommitteeAccounts({ accounts: server }: { accounts: CommitteeAcc
       {sheet?.t === "add" && (
         <Sheet key="add" label="إضافة حساب" onDone={() => setSheet(null)}>
           <AddAccountForm
-            onCreated={(c, a) => {
-              setAdded((l) => [...l, a]);
+            members={members}
+            onCreated={(c) => {
+              router.refresh();
               setSheet({ t: "creds", c });
             }}
           />

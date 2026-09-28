@@ -12,6 +12,7 @@ import type {
   MemberAdmin,
   PendingPayment,
 } from "@/lib/data/types";
+import { generatePassword, parseLogin } from "@/lib/data/logins";
 import { DEMO_USER } from "./demo";
 
 type Actions = typeof real;
@@ -213,6 +214,18 @@ const demo: Partial<Actions> = {
   },
   updateFundAccount: async () => ok(undefined),
   inviteCommitteeMember: async () => ok({ userId: "demo" }),
+  async createCommitteeAccount(p) {
+    const login = parseLogin(p.login);
+    if (!login) {
+      await wait();
+      return { ok: false, code: "bad_login", message: "اكتب رقم هاتف أو بريدًا صحيحًا." };
+    }
+    return ok({ userId: crypto.randomUUID(), login: login.display, password: generatePassword() });
+  },
+  async resetCommitteePassword() {
+    return ok({ userId: "demo", login: "+22236123456", password: generatePassword() });
+  },
+  setCommitteeActive: async () => ok(undefined),
   setPassword: async () => ok(undefined),
   requestPasswordReset: async () => ok(undefined),
   async addMember(p) {

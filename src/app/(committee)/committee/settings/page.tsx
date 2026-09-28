@@ -14,6 +14,10 @@ export default async function SettingsPage() {
     src.fundSummary(),
   ]);
   if (!session) redirect("/login?next=/committee/settings");
+  const admin = session.role === "admin";
+  const [people, members] = admin
+    ? await Promise.all([src.committeeAccounts(), src.membersAdmin()])
+    : [[], []];
   return (
     <Tab>
       <SettingsView
@@ -22,6 +26,9 @@ export default async function SettingsPage() {
         showOwed={info.showAmountOwed}
         whatsapp={info.whatsappContact}
         openingBalance={summary.openingBalance}
+        committee={people}
+        members={members.map((m) => ({ memberId: m.memberId, memberRef: m.memberRef }))}
+        selfId={session.userId}
         accounts={accounts}
       />
     </Tab>

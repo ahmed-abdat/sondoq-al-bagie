@@ -6,6 +6,7 @@ import type {
   Arrear,
   CampaignContribution,
   CampaignProgress,
+  CommitteeAccount,
   CommitteeSession,
   MemberAdmin,
   MembershipStatus,
@@ -497,3 +498,36 @@ export const fxMembersAdmin = (): MemberAdmin[] =>
     amountOwed: amountOwed ?? 0,
     joinedMonth: "2020-01-01",
   }));
+
+export const fxCommitteeAccounts = (): CommitteeAccount[] => [
+  {
+    userId: uuid("9", 1),
+    displayName: "مستخدم تجريبي",
+    role: "admin",
+    active: true,
+    memberId: null,
+    login: "demo@example.com",
+    lastSignInAt: "2026-09-28T09:00:00Z",
+    createdAt: "2026-09-01T09:00:00Z",
+  },
+  {
+    userId: uuid("9", 2),
+    displayName: "سيدي محمد",
+    role: "treasurer",
+    active: true,
+    memberId: RAW[2].id,
+    login: "+22236123456",
+    lastSignInAt: "2026-09-27T18:30:00Z",
+    createdAt: "2026-09-01T09:00:00Z",
+  },
+  {
+    userId: uuid("9", 3),
+    displayName: "يحيى",
+    role: "committee",
+    active: true,
+    memberId: null,
+    login: "+22246123457",
+    lastSignInAt: null,
+    createdAt: "2026-09-20T09:00:00Z",
+  },
+];
