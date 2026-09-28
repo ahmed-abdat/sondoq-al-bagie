@@ -1199,8 +1199,13 @@
     gap: 14px;
     min-height: 64px;
   }
-  .bq-pay > li.is-off {
-    opacity: 0.55;
+  /* a hidden number stays readable: muted text, greyed logo (no whole-row fade) */
+  .bq-pay > li.is-off .bq-pay-n {
+    color: var(--muted);
+  }
+  .bq-pay > li.is-off .bq-meth-tile {
+    filter: grayscale(1);
+    opacity: 0.7;
   }
   .bq-pay-n {
     font-size: 17px;
@@ -3402,5 +3407,25 @@
     width: 100%;
     margin-block: 16px;
     text-align: start;
+  }
+}
+
+@layer components {
+  /* disabled buttons: a neutral fill with readable text, not a faded green (white on pale green failed AA) */
+  .bq-btn:disabled {
+    opacity: 1;
+    background: var(--n2);
+    color: var(--muted);
+    box-shadow: none;
+  }
+  .bq-chip:disabled {
+    opacity: 1;
+    background: var(--n1);
+    color: var(--muted);
+    text-decoration: line-through;
+    text-decoration-color: rgba(79, 92, 85, 0.4);
+  }
+  .bq-link:disabled {
+    color: var(--muted);
   }
 }
