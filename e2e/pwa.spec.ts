@@ -85,3 +85,25 @@ test("committee pages are never served from the cache", async ({ page, context }
   await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toBeVisible();
   await context.setOffline(false);
 });
+
+test("offline banner shows while offline and hides when back", async ({ page, context }) => {
+  await page.goto("/");
+  await waitForServiceWorker(page);
+  await expect(page.getByText(/غير متصل/)).toHaveCount(0);
+  await context.setOffline(true);
+  await expect(page.getByText(/غير متصل/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(/غير متصل/)).toBeVisible();
+  await context.setOffline(false);
+  await expect(page.getByText(/غير متصل/)).toHaveCount(0);
+});
+
+test("receipt verification is never served from the cache", async ({ page, context }) => {
+  await page.goto("/");
+  await waitForServiceWorker(page);
+  await page.goto("/r/BQ-TEST-0001");
+  await context.setOffline(true);
+  await page.goto("/r/BQ-TEST-0001");
+  await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toBeVisible();
+  await context.setOffline(false);
+});
