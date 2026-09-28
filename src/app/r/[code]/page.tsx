@@ -47,8 +47,8 @@ export default async function VerifyPage({ params }: PageProps<"/r/[code]">) {
           <span className="bq-verify-i">{I.clock(32)}</span>
           <h1>وصل من النسخة التجريبية</h1>
           <p className="bq-lead">
-            الرمز <Num>{code}</Num> صدر في النسخة التجريبية، وهي لا تحفظ شيئًا. في النسخة الحقيقية تظهر هنا
-            تفاصيل الوصل.
+            الرمز <Num>{code}</Num> صدر في النسخة التجريبية، وهي لا تحفظ شيئًا. في النسخة الحقيقية
+            تظهر هنا تفاصيل الوصل.
           </p>
         </section>
       ) : st.kind === "cancelled" ? (

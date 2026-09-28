@@ -230,6 +230,7 @@ export function CommitteeView({
             ctx={ctx}
             accounts={accounts}
             campaigns={campaigns}
+            me={me}
             onDone={(t) => {
               setSheet(null);
               say(t);

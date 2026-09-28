@@ -13,6 +13,9 @@ import { MAIN_METHODS, METHOD_LABELS, METHODS } from "@/lib/methods";
 import { parseAmount, toWesternDigits } from "@/lib/money";
 import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
 import { rememberMembers, useAct } from "./act";
+import { ShareBtns } from "./entries";
+import { Stamp } from "./receipt";
+import type { ReceiptView } from "./receipt-model";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
 import {
   dayWords,
@@ -226,6 +229,7 @@ export function RecordBody({
   ctx,
   accounts,
   campaigns = [],
+  me,
   onDone,
 }: {
   members: MemberStatus[];
@@ -234,6 +238,8 @@ export function RecordBody({
   accounts: FundAccount[];
   /** open campaigns: one transfer can also carry a contribution */
   campaigns?: CampaignProgress[];
+  /** who records: printed on the receipt when the payment is confirmed at once */
+  me?: { by: string; role: string };
   onDone: (text: string) => void;
 }) {
   const router = useRouter();
@@ -258,6 +264,7 @@ export function RecordBody({
   const [checks, setChecks] = useState<(ReceiptChecks & { readMro: number | null }) | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [confirmed, setConfirmed] = useState<{ r: ReceiptView; text: string } | null>(null);
   useEffect(() => {
     void warmOcr();
     return () => void terminateOcr();
@@ -389,13 +396,61 @@ export function RecordBody({
       rows.length > 1
         ? `${rows[0].m.fullName} و${rows.length - 1 === 1 ? "عضو آخر" : `${rows.length - 1} آخرين`}`
         : rows[0].m.fullName;
-    onDone(
-      r.data.status === "confirmed"
-        ? `سُجّلت دفعة ${who} وأُكّدت.`
-        : `سُجّلت دفعة ${who}. تنتظر تأكيد أمين الصندوق.`,
-    );
+    if (r.data.status === "confirmed") {
+      // recorded by someone who may confirm: confirmed at once — show the stamp and the receipt
+      setConfirmed({
+        text: `سُجّلت دفعة ${who} وأُكّدت.`,
+        r: {
+          no: null,
+          code: r.data.receiptCode,
+          payer: payerName,
+          covers: rows
+            .filter((x) => x.months.length)
+            .map((x) => ({ name: x.m.fullName, year: ctx.year, months: x.months })),
+          campaigns:
+            camp && campAmt > 0 ? [openCamps.find((c) => c.campaignId === camp)?.title ?? ""] : [],
+          amount: total + credit,
+          method: meth,
+          txn: txn.trim() || null,
+          txnLast4: txn.trim() ? txn.trim().slice(-4) : null,
+          paidOn,
+          recordedBy: me?.by ?? null,
+          recordedAt: new Date().toISOString(),
+          proofPath: proof?.path ?? null,
+          status: {
+            kind: "confirmed",
+            by: me?.by ?? "",
+            role: me?.role ?? "",
+            at: new Date().toISOString(),
+          },
+        },
+      });
+      return;
+    }
+    onDone(`سُجّلت دفعة ${who}. تنتظر التأكيد.`);
   };
 
+  if (confirmed)
+    return (
+      <div className="bq-rec bq-rec-done">
+        <Stamp
+          variant="confirmed"
+          date={confirmed.r.status.kind === "confirmed" ? confirmed.r.status.at : paidOn}
+          size={112}
+          press
+        />
+        <h2>سُجّلت وأُكّدت</h2>
+        <p className="bq-lead">{confirmed.text}</p>
+        <ShareBtns r={confirmed.r} />
+        <button
+          type="button"
+          className="bq-btn bq-btn-ghost bq-btn-lg bq-press"
+          onClick={() => onDone(confirmed.text)}
+        >
+          تم
+        </button>
+      </div>
+    );
   return (
     <div className="bq-rec">
       <h2>سجّل دفعة</h2>

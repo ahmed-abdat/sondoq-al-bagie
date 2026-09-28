@@ -24,10 +24,7 @@ export default async function CommitteePage() {
         me={{
           by: session?.displayName ?? "",
           role: session ? ROLE_LABEL[session.role] : "",
-          // canConfirm comes from the data layer when present; else the roles that may confirm
-          canConfirm:
-            (session as { canConfirm?: boolean } | null)?.canConfirm ??
-            (!!session && ["admin", "treasurer", "deputy"].includes(session.role)),
+          canConfirm: !!session?.canConfirm,
           memberId: session?.memberId ?? null,
         }}
         members={members.filter((m) => m.status === "active")}

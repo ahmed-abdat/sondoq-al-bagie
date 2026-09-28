@@ -95,9 +95,10 @@ export function MembersView({
               k: "all",
               l: (
                 <>
-                  الكل{" "}
-                  {/* same number as «X من N» on the home page: active members */}
-                  <Num className="bq-seg-n">{members.filter((m) => m.status === "active").length}</Num>
+                  الكل {/* same number as «X من N» on the home page: active members */}
+                  <Num className="bq-seg-n">
+                    {members.filter((m) => m.status === "active").length}
+                  </Num>
                 </>
               ),
             },
