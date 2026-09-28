@@ -24,6 +24,7 @@ export {
   getFundAccountsAdmin,
   getPayment,
   getPendingPayments,
+  getProofUrl,
   getRecentPayments,
 } from "./committee";
 export { MESSAGES, messageFor } from "./errors";
