@@ -19,6 +19,7 @@ and every change lands in `audit_log`.
 | `*_m5_backups.sql` | private `backups` bucket for the weekly JSON export (service role only) |
 | `*_m6_campaigns.sql` | `create_campaign` / `update_campaign` / `close_campaign` (admin, treasurer, deputy; surplus to the fund as a transfer) |
 | `*_m6_group_prices.sql` | public `group_prices_public` (year, group, monthly fee) |
+| `*_m7_member_lists.sql` | two lists: `members.list_code` + unique (list, number), `member_ref` "A-12" in views and receipts; committee `members_admin`; active-only counts/arrears; `change_member_group`, `next_member_number`, renumbering |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the
