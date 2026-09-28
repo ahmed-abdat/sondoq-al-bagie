@@ -8,14 +8,18 @@ import { CommitteeView } from "@/components/app/views/committee";
 export const metadata: Metadata = { title: "اللجنة · صندوق البقيع", robots: { index: false } };
 
 export default async function CommitteePage() {
-  const [session, pending, members, ctx, accounts, info] = await Promise.all([
-    src.committeeSession(),
-    src.pendingPayments(),
-    src.members(),
-    memberCtx(),
-    src.fundAccounts(),
-    src.fundInfo(),
-  ]);
+  const [session, pending, members, ctx, accounts, info, arrears, expenses, campaigns] =
+    await Promise.all([
+      src.committeeSession(),
+      src.pendingPayments(),
+      src.members(),
+      memberCtx(),
+      src.fundAccounts(),
+      src.fundInfo(),
+      src.arrears(),
+      src.expensesAdmin(),
+      src.campaigns(),
+    ]);
   return (
     <Tab>
       <CommitteeView
@@ -25,6 +29,10 @@ export default async function CommitteePage() {
         ctx={ctx}
         accounts={accounts}
         whatsapp={info.whatsappContact}
+        arrears={arrears}
+        expenses={expenses}
+        campaigns={campaigns}
+        canCampaign={!!session && session.role !== "committee"}
       />
     </Tab>
   );

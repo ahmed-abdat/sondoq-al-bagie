@@ -90,7 +90,9 @@ export function CampaignFormBody({
         onChange={(e) => setDeadline(e.target.value)}
         aria-label="آخر يوم للحملة"
       />
-      <p className="bq-hint bq-small-top">المساهمات تُحسب منفصلة عن الرسوم الشهرية، ويراها كل الأعضاء في «التبرعات».</p>
+      <p className="bq-hint bq-small-top">
+        المساهمات تُحسب منفصلة عن الرسوم الشهرية، ويراها كل الأعضاء في «التبرعات».
+      </p>
       <div className="bq-rec-foot">
         {err && (
           <p className="bq-alert" role="alert">
@@ -111,10 +113,18 @@ export function CampaignFormBody({
   );
 }
 
-export function CloseCampaignBody({ campaign, onDone }: { campaign: CampaignProgress; onDone: (t: string) => void }) {
+export function CloseCampaignBody({
+  campaign,
+  onDone,
+}: {
+  campaign: CampaignProgress;
+  onDone: (t: string) => void;
+}) {
   const router = useRouter();
   const online = useOnline();
-  const [choice, setChoice] = useState<"to_fund" | "keep" | null>(campaign.balance > 0 ? null : "keep");
+  const [choice, setChoice] = useState<"to_fund" | "keep" | null>(
+    campaign.balance > 0 ? null : "keep",
+  );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   return (
@@ -166,7 +176,9 @@ export function CloseCampaignBody({ campaign, onDone }: { campaign: CampaignProg
           </div>
         </>
       )}
-      <p className="bq-hint bq-small-top">بعد الإغلاق لا تُقبل مساهمات جديدة، ولا يمكن فتحها من جديد.</p>
+      <p className="bq-hint bq-small-top">
+        بعد الإغلاق لا تُقبل مساهمات جديدة، ولا يمكن فتحها من جديد.
+      </p>
       <div className="bq-rec-foot">
         {err && (
           <p className="bq-alert" role="alert">
@@ -184,7 +196,11 @@ export function CloseCampaignBody({ campaign, onDone }: { campaign: CampaignProg
             setBusy(false);
             if (!r.ok) return setErr(r.message);
             router.refresh();
-            onDone(r.data > 0 ? `أُغلقت الحملة وحُوّل ${fmt(r.data)} أوقية إلى الصندوق` : "أُغلقت الحملة");
+            onDone(
+              r.data > 0
+                ? `أُغلقت الحملة وحُوّل ${fmt(r.data)} أوقية إلى الصندوق`
+                : "أُغلقت الحملة",
+            );
           }}
         >
           أغلق الحملة
@@ -222,14 +238,27 @@ export function CampaignAdminList({
                     من <Num>{fmt(c.targetAmount)}</Num>
                   </>
                 ) : null}{" "}
-                أوقية · {c.status === "open" ? (c.deadline ? `حتى ${dayWords(c.deadline)}` : "مفتوحة") : "مغلقة"}
+                أوقية ·{" "}
+                {c.status === "open"
+                  ? c.deadline
+                    ? `حتى ${dayWords(c.deadline)}`
+                    : "مفتوحة"
+                  : "مغلقة"}
               </span>
               {c.status === "open" && (
                 <span className="bq-com-actions">
-                  <button type="button" className="bq-link bq-link-s bq-press" onClick={() => onEdit(c)}>
+                  <button
+                    type="button"
+                    className="bq-link bq-link-s bq-press"
+                    onClick={() => onEdit(c)}
+                  >
                     تعديل
                   </button>
-                  <button type="button" className="bq-link bq-link-s bq-press" onClick={() => onClose(c)}>
+                  <button
+                    type="button"
+                    className="bq-link bq-link-s bq-press"
+                    onClick={() => onClose(c)}
+                  >
                     إغلاق
                   </button>
                 </span>

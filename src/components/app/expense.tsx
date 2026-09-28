@@ -118,20 +118,21 @@ export function RecordExpenseBody({
         <>
           <p className="bq-rec-k">من أين صُرف؟</p>
           <div className="bq-chips" role="radiogroup" aria-label="مصدر المال">
-            {[{ id: "", t: "الصندوق الرئيسي" }, ...open.map((c) => ({ id: c.campaignId, t: `حملة: ${c.title}` }))].map(
-              (o) => (
-                <button
-                  key={o.id || "main"}
-                  type="button"
-                  role="radio"
-                  aria-checked={from === o.id}
-                  className="bq-chip bq-press"
-                  onClick={() => setFrom(o.id)}
-                >
-                  {o.t}
-                </button>
-              ),
-            )}
+            {[
+              { id: "", t: "الصندوق الرئيسي" },
+              ...open.map((c) => ({ id: c.campaignId, t: `حملة: ${c.title}` })),
+            ].map((o) => (
+              <button
+                key={o.id || "main"}
+                type="button"
+                role="radio"
+                aria-checked={from === o.id}
+                className="bq-chip bq-press"
+                onClick={() => setFrom(o.id)}
+              >
+                {o.t}
+              </button>
+            ))}
           </div>
         </>
       )}
@@ -182,7 +183,13 @@ export function RecordExpenseBody({
 }
 
 /** Recent expenses with an inline «إلغاء» that asks for a reason. */
-export function ExpenseAdminList({ items, onSay }: { items: ExpenseAdmin[]; onSay: (t: string) => void }) {
+export function ExpenseAdminList({
+  items,
+  onSay,
+}: {
+  items: ExpenseAdmin[];
+  onSay: (t: string) => void;
+}) {
   const router = useRouter();
   const online = useOnline();
   const [open, setOpen] = useState<string | null>(null);
@@ -271,7 +278,11 @@ export function ExpenseAdminList({ items, onSay }: { items: ExpenseAdmin[]; onSa
                   >
                     ألغِ المصروف
                   </button>
-                  <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={() => setOpen(null)}>
+                  <button
+                    type="button"
+                    className="bq-btn bq-btn-ghost bq-press"
+                    onClick={() => setOpen(null)}
+                  >
                     رجوع
                   </button>
                 </div>

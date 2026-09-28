@@ -23,15 +23,24 @@ export function LateList({
   // reminded just now (before the server list catches up)
   const [sent, setSent] = useState<Record<string, string>>({});
   const [groupAt, setGroupAt] = useState<string | null>(null);
-  const withUrl = (): ReminderContext => ({ ...ctx, publicUrl: `${window.location.origin}/members` });
+  const withUrl = (): ReminderContext => ({
+    ...ctx,
+    publicUrl: `${window.location.origin}/members`,
+  });
 
   const remind = (a: Arrear) => {
     window.open(reminderLink(a, withUrl()), "_blank", "noopener");
     setSent((s) => ({ ...s, [a.memberId]: new Date().toISOString() }));
-    void logReminder({ kind: "individual", memberId: a.memberId }).then((r) => r.ok && router.refresh());
+    void logReminder({ kind: "individual", memberId: a.memberId }).then(
+      (r) => r.ok && router.refresh(),
+    );
   };
   const group = () => {
-    window.open(waLink(null, groupReminderText({ ...withUrl(), lateCount: arrears.length })), "_blank", "noopener");
+    window.open(
+      waLink(null, groupReminderText({ ...withUrl(), lateCount: arrears.length })),
+      "_blank",
+      "noopener",
+    );
     setGroupAt(new Date().toISOString());
     void logReminder({ kind: "group" });
   };
@@ -43,7 +52,8 @@ export function LateList({
         <span className="bq-row-m">
           <span className="bq-row-t">تذكير في مجموعة الواتساب</span>
           <span className="bq-row-s">
-            {groupAt ? "أُرسل الآن · " : ""}بلا أسماء ولا مبالغ · المتأخرون: <Num>{arrears.length}</Num>
+            {groupAt ? "أُرسل الآن · " : ""}بلا أسماء ولا مبالغ · المتأخرون:{" "}
+            <Num>{arrears.length}</Num>
           </span>
         </span>
         <span className="bq-chev">{I.go(18)}</span>
@@ -52,7 +62,9 @@ export function LateList({
         <p className="bq-hint">لا يوجد متأخرون الآن.</p>
       ) : (
         <>
-          <p className="bq-hint bq-list-count">الأكثر تأخرًا أولًا. التذكير يصل للعضو وحده مع المبلغ.</p>
+          <p className="bq-hint bq-list-count">
+            الأكثر تأخرًا أولًا. التذكير يصل للعضو وحده مع المبلغ.
+          </p>
           <ul className="bq-list">
             {arrears.map((a) => {
               const last = sent[a.memberId] ?? a.lastRemindedAt;
