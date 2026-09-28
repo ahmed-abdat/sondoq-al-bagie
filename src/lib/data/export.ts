@@ -19,8 +19,9 @@ export const EXPORTS = {
 } satisfies Record<string, Build>;
 
 /**
- * GET handler of /api/export/<name>.csv: active committee members only (401 otherwise), rows
- * read through RLS with the caller's session, never cached.
+ * GET handler of /api/export/<name>.csv: admin, treasurer or deputy only — the same gate as the
+ * /committee/export page (401 signed out, 403 for the «committee» role) — rows read through RLS
+ * with the caller's session, never cached.
  */
 export function exportRoute(name: keyof typeof EXPORTS) {
   return async function GET(): Promise<Response> {
@@ -28,6 +29,9 @@ export function exportRoute(name: keyof typeof EXPORTS) {
     const c = session ? await createClient() : null;
     if (!session || !c) {
       return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    }
+    if (session.role === "committee") {
+      return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
     }
     try {
       const body = await EXPORTS[name](c);

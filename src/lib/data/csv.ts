@@ -1,5 +1,5 @@
 // Committee CSV exports (members with phones, payments, expenses). Pure builders, unit tested;
-// the routes under src/app/api/export/ check the committee session and read through RLS.
+// the routes under src/app/api/export/ allow admin, treasurer and deputy and read through RLS.
 // Excel-friendly: UTF-8 with BOM (Arabic shows right), commas, CRLF, Western digits, MRO + MRU.
 import { mroToMru } from "@/lib/money";
 import { METHOD_LABELS, isMethod } from "@/lib/methods";
