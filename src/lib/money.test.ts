@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMro, mruToMro, parseAmount, toWesternDigits } from "./money";
+import { formatMro, mroToMru, mruToMro, parseAmount, toWesternDigits } from "./money";
 
 describe("toWesternDigits", () => {
   it("converts Arabic-Indic digits", () => {
@@ -31,6 +31,12 @@ describe("mruToMro", () => {
   it("multiplies by ten and rounds", () => {
     expect(mruToMro(150)).toBe(1500);
     expect(mruToMro(50.05)).toBe(501);
+  });
+});
+
+describe("mroToMru", () => {
+  it("divides by ten", () => {
+    expect(mroToMru(12500)).toBe(1250);
   });
 });
 

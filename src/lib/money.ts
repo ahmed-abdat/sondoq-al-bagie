@@ -43,11 +43,10 @@ export function mruToMro(mru: number): number {
   return Math.round(mru * 10);
 }
 
-const formatter = new Intl.NumberFormat("ar-MR-u-nu-latn", {
-  maximumFractionDigits: 0,
-});
-
-/** "12 500 أوقية" بأرقام لاتينية ليسهل قراءتها ومقارنتها مع الإيصالات. */
-export function formatMro(mro: number): string {
-  return `${formatter.format(mro)} أوقية`;
+/** يحوّل من الأوقية القديمة (MRO) إلى الجديدة (MRU) كما تظهر في المحافظ. */
+export function mroToMru(mro: number): number {
+  return mro / 10;
 }
+
+// العرض في format.ts (أرقام لاتينية وفاصل آلاف ضيق)، ويُعاد تصديره هنا للتوافق.
+export { formatMro } from "./format";
