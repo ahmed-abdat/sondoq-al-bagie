@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Alexandria, Noto_Sans_Arabic } from "next/font/google";
-import { usingFixtures } from "@/components/app/source";
+import { DemoProvider } from "@/components/app/act";
+import { DEMO_BANNER } from "@/components/app/demo";
+import { demoMode, usingFixtures } from "@/components/app/source";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -34,10 +36,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full font-sans">
         {usingFixtures && (
           <p className="bq-demo" role="note">
-            بيانات تجريبية — ليست أرقام الصندوق الحقيقية
+            {demoMode ? DEMO_BANNER : "بيانات تجريبية — ليست أرقام الصندوق الحقيقية"}
           </p>
         )}
-        <Providers>{children}</Providers>
+        <Providers>
+          <DemoProvider demo={demoMode}>{children}</DemoProvider>
+        </Providers>
       </body>
     </html>
   );

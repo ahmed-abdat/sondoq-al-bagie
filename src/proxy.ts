@@ -1,11 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isDemo } from "@/components/app/demo";
 import { updateSession } from "@/lib/supabase/proxy";
 
 // صفحات اللجنة تحتاج تسجيل دخول، والصفحة العامة مفتوحة للجميع.
 export async function proxy(request: NextRequest) {
   const { response, claims } = await updateSession(request);
 
-  if (!claims && request.nextUrl.pathname.startsWith("/committee")) {
+  // Demo previews (fictional data, writes simulated in the browser) open /committee without a login.
+  if (!claims && !isDemo() && request.nextUrl.pathname.startsWith("/committee")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);

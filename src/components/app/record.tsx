@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
-import { recordPayment, uploadProof } from "@/lib/data/actions";
+import { useAct } from "./act";
 import type { FundAccount, MemberStatus, PaymentMethod } from "@/lib/data/types";
 import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
 import { MAIN_METHODS, METHOD_LABELS, METHODS } from "@/lib/methods";
@@ -38,6 +38,7 @@ export function RecordBody({
 }) {
   const router = useRouter();
   const online = useOnline();
+  const { recordPayment, uploadProof } = useAct();
   const [q, setQ] = useState("");
   const [who, setWho] = useState<MemberStatus | null>(null);
   const [months, setMonths] = useState<number[]>([]);

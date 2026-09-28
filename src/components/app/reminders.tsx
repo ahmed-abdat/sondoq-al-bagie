@@ -3,7 +3,7 @@
 // message for the members' group (no names, no amounts). Each opened link is logged.
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { logReminder } from "@/lib/data/actions";
+import { useAct } from "./act";
 import { groupReminderText, reminderLink, type ReminderContext } from "@/lib/data/reminders";
 import type { Arrear } from "@/lib/data/types";
 import { waLink } from "@/lib/whatsapp";
@@ -20,6 +20,7 @@ export function LateList({
   ctx: Omit<ReminderContext, "publicUrl">;
 }) {
   const router = useRouter();
+  const { logReminder } = useAct();
   // reminded just now (before the server list catches up)
   const [sent, setSent] = useState<Record<string, string>>({});
   const [groupAt, setGroupAt] = useState<string | null>(null);

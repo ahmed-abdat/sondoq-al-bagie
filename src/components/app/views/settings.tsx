@@ -3,25 +3,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import { logout } from "@/app/login/actions";
-import {
-  addFundAccount,
-  inviteCommitteeMember,
-  setPassword,
-  updateFundAccount,
-  updateSettings,
-} from "@/lib/data/actions";
+import { useAct, useDemoState } from "../act";
 import type { CommitteeRole, FundAccountAdmin, PaymentMethod } from "@/lib/data/types";
 import { METHOD_LABELS, METHODS, methodLogo } from "@/lib/methods";
 import { MethodBadge } from "../bits";
 import { ROLE_LABEL } from "../derive";
 import { I } from "../icons";
 import { Sheet } from "../sheet";
+import { LogoutButton } from "../logout";
 import { useSnack } from "../shell";
 
 function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
   const router = useRouter();
   const online = useOnline();
+  const { addFundAccount } = useAct();
   const [m, setM] = useState<PaymentMethod | null>(null);
   const [num, setNum] = useState("");
   const [holder, setHolder] = useState("");
@@ -115,10 +110,15 @@ export function SettingsView({
 }) {
   const router = useRouter();
   const online = useOnline();
+  const { inviteCommitteeMember, setPassword, updateFundAccount, updateSettings } = useAct();
   const say = useSnack();
   const [owed, setOwed] = useState(showOwed);
   const [over, setOver] = useState<Record<string, boolean>>({});
-  const list = accounts.map((a) => ({ ...a, active: over[a.id] ?? a.active }));
+  const demoAccounts = useDemoState().accounts;
+  const list = [...accounts, ...demoAccounts].map((a) => ({
+    ...a,
+    active: over[a.id] ?? a.active,
+  }));
   const [wa, setWa] = useState(whatsapp ?? "");
   const [pw, setPw] = useState("");
   const [inv, setInv] = useState({ email: "", name: "", role: "committee" as CommitteeRole });
@@ -343,11 +343,11 @@ export function SettingsView({
             احفظ كلمة السر
           </button>
         </form>
-        <form action={logout} className="bq-small-top">
-          <button type="submit" className="bq-btn bq-btn-ghost bq-press">
+        <div className="bq-small-top">
+          <LogoutButton className="bq-btn bq-btn-ghost bq-press">
             {I.out2(20)} خروج من حساب اللجنة
-          </button>
-        </form>
+          </LogoutButton>
+        </div>
       </section>
 
       {adding && (

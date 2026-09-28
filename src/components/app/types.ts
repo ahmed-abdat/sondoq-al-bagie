@@ -20,3 +20,12 @@ export type LedgerEntry = {
   category?: ExpenseCategory;
   note?: string | null;
 };
+
+/**
+ * Committee member row (with phone and note).
+ * TODO(lane-a): replace with the getMembersAdmin() shape from src/lib/data/types.ts when it lands.
+ */
+export type MemberAdmin = import("@/lib/data/types").MemberStatus & {
+  phone: string | null;
+  note: string | null;
+};

@@ -49,6 +49,16 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
 - Offline banner time: `cache-seed.tsx` (public layout) writes the server-read fund summary into
   the persisted public query cache with its read time, so the banner says «آخر تحديث قبل …».
 
+## Demo mode (round 3)
+- On only when `SONDOQ_FIXTURES=1` and `VERCEL_ENV !== "production"` (`src/components/app/demo.ts`,
+  unit-tested). Then: /committee opens without a login (`src/proxy.ts`, one branch) as a fake
+  admin «مستخدم تجريبي»; banner «نسخة تجريبية — البيانات وهمية ولا يُحفظ شيء».
+- Every committee write goes through `useAct()` (`src/components/app/act.tsx`): real server
+  actions normally; in demo, simulated after ~400 ms with a local store (`useDemoState`) that the
+  screens merge (new pending slips, expenses, campaigns, accounts, members). Receipt codes
+  `BQ-DEMO-0001…` open a sample receipt on /r. OCR stays real (on the phone).
+- Outside demo, the committee session is always the real signed-in one, even with fixtures.
+
 ## Remaining / next
 1. Lane B: `PERSIST_MAX_AGE` (30 days) is used as `gcTime`; it exceeds setTimeout's 2^31 ms, so
    queries without observers are garbage-collected immediately. Use `gcTime: Infinity` (or ≤ 24

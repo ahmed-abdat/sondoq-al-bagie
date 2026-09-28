@@ -4,7 +4,7 @@
 // and committee (everything).
 import Image from "next/image";
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { proofUrl } from "@/lib/data/actions";
+import { useAct } from "./act";
 import { METHOD_LABELS, methodLogo } from "@/lib/methods";
 import { qrMatrix } from "@/lib/qr";
 import { safeReceiptSrc } from "@/lib/receipt";
@@ -328,6 +328,7 @@ export function Proof({
 }) {
   const dlg = useRef<HTMLDialogElement>(null);
   const [src, setSrc] = useState<string | null>(null);
+  const { proofUrl } = useAct();
   useEffect(() => {
     if (!path) return;
     let live = true;
@@ -337,7 +338,7 @@ export function Proof({
     return () => {
       live = false;
     };
-  }, [path]);
+  }, [path, proofUrl]);
   if (!path) return <span className="rc-sub">لا توجد صورة</span>;
   const label = METHOD_LABELS[method];
   return (

@@ -311,6 +311,15 @@ const RECEIPTS: Rc[] = [
   },
 ];
 export function fxReceipt(code: string): VerifiedReceipt {
+  // demo mode confirms payments locally with BQ-DEMO-0001… codes: show them as a sample receipt
+  if (/^BQ-DEMO-\d{4}$/i.test(code.trim()))
+    return {
+      ...RECEIPTS[0],
+      code: code.trim().toUpperCase(),
+      receiptNo: "DEMO",
+      confirmedByName: "مستخدم تجريبي",
+      confirmedByRole: "admin",
+    };
   const r = RECEIPTS.find((x) => x.code.toUpperCase() === code.trim().toUpperCase());
   return r ?? { status: "not_found" };
 }

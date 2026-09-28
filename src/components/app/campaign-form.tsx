@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import { closeCampaign, createCampaign, updateCampaign } from "@/lib/data/actions";
+import { useAct } from "./act";
 import type { CampaignProgress } from "@/lib/data/types";
 import { parseAmount } from "@/lib/money";
 import { dayWords, fmt } from "./derive";
@@ -20,6 +20,7 @@ export function CampaignFormBody({
 }) {
   const router = useRouter();
   const online = useOnline();
+  const { createCampaign, updateCampaign } = useAct();
   const [title, setTitle] = useState(campaign?.title ?? "");
   const [purpose, setPurpose] = useState(campaign?.purpose ?? "");
   const [target, setTarget] = useState(campaign?.targetAmount ? String(campaign.targetAmount) : "");
@@ -122,6 +123,7 @@ export function CloseCampaignBody({
 }) {
   const router = useRouter();
   const online = useOnline();
+  const { closeCampaign } = useAct();
   const [choice, setChoice] = useState<"to_fund" | "keep" | null>(
     campaign.balance > 0 ? null : "keep",
   );
