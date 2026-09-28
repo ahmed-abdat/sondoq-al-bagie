@@ -564,6 +564,9 @@ export type Database = {
           payer_name: string
           proof_hash: string | null
           proof_path: string | null
+          receipt_code: string | null
+          receipt_seq: number | null
+          receipt_year: number | null
           reject_reason: string | null
           status: Database["public"]["Enums"]["payment_status"]
           txn_ref: string | null
@@ -584,6 +587,9 @@ export type Database = {
           payer_name: string
           proof_hash?: string | null
           proof_path?: string | null
+          receipt_code?: string | null
+          receipt_seq?: number | null
+          receipt_year?: number | null
           reject_reason?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           txn_ref?: string | null
@@ -604,9 +610,27 @@ export type Database = {
           payer_name?: string
           proof_hash?: string | null
           proof_path?: string | null
+          receipt_code?: string | null
+          receipt_seq?: number | null
+          receipt_year?: number | null
           reject_reason?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
           txn_ref?: string | null
+        }
+        Relationships: []
+      }
+      receipt_counters: {
+        Row: {
+          last: number
+          year: number
+        }
+        Insert: {
+          last: number
+          year: number
+        }
+        Update: {
+          last?: number
+          year?: number
         }
         Relationships: []
       }
@@ -753,7 +777,10 @@ export type Database = {
           category: Database["public"]["Enums"]["expense_category"] | null
           kind: string | null
           member_names: string | null
+          method: Database["public"]["Enums"]["payment_method"] | null
           months: number | null
+          payment_id: string | null
+          receipt_code: string | null
         }
         Relationships: []
       }
@@ -770,6 +797,16 @@ export type Database = {
           months_count: number | null
           number: number | null
           phone: string | null
+        }
+        Relationships: []
+      }
+      campaign_contributions: {
+        Row: {
+          amount: number | null
+          at: string | null
+          campaign_id: string | null
+          contributor_name: string | null
+          payment_id: string | null
         }
         Relationships: []
       }
@@ -889,6 +926,8 @@ export type Database = {
           paid_on: string | null
           payer_name: string | null
           proof_path: string | null
+          receipt_code: string | null
+          receipt_no: string | null
           reject_reason: string | null
           status: Database["public"]["Enums"]["payment_status"] | null
           txn_ref: string | null
@@ -1033,6 +1072,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      verify_receipt: { Args: { p_code: string }; Returns: Json }
     }
     Enums: {
       allocation_kind: "months" | "campaign" | "credit"

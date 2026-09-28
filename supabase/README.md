@@ -15,6 +15,7 @@ and every change lands in `audit_log`.
 | `*_m1_keepalive.sql` | `keepalive` view for the free-tier cron: `GET /rest/v1/keepalive?select=ok` with the publishable key |
 | `*_m2_methods.sql` | wallet methods click, bim, amanty, bamis |
 | `*_m2_accounts.sql` | `fund_accounts` (+ public `fund_accounts_public`), `settings.whatsapp_contact` (+ public `fund_info`), committee `payment_queue`, `undo_payment`, admin `add_fund_account` / `update_fund_account`, `update_settings(… p_whatsapp_contact)`; activity feed shows confirmed payments only |
+| `*_m2_receipts.sql` | receipt number (gapless per year) + code `BQ-XXXX-NNNN` stamped by `confirm_payment` (not for paper); public RPC `verify_receipt(code)`; public `campaign_contributions`; `activity_feed` gains payment id/amount/method/receipt code; `payment_queue` gains receipt code/number |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the
@@ -89,3 +90,10 @@ After a schema change regenerate `src/lib/supabase/database.types.ts`
 Applied to project `vhcdgxgwdlflmxmqnxzf` on 2026-09-28 through the Supabase MCP. The file names
 match the remote migration versions, so `supabase db push` sees them as already applied.
 No seed data was applied remotely: only the groups and 2026 prices (`*_m1_groups.sql`).
+
+## Advisor warnings that are intentional
+
+- `0029 authenticated_security_definer_function_executable` on every write RPC: signed-in users
+  must call them; each one re-checks the caller's committee role inside.
+- `0028 anon_security_definer_function_executable` on `verify_receipt`: anyone holding a receipt
+  code may check it. It returns only what the printed receipt shows.

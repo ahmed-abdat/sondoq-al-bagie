@@ -42,7 +42,13 @@ async function run<S extends z.ZodType, T = undefined>(
 
 /* ───────────── payments ───────────── */
 
-export type RecordPaymentResult = { id: string; status: "pending" | "confirmed"; replay: boolean };
+export type RecordPaymentResult = {
+  id: string;
+  status: "pending" | "confirmed";
+  replay: boolean;
+  /** set when the payment was confirmed at once */
+  receiptCode: string | null;
+};
 
 /** Record a payment. Treasurer/deputy/admin recordings are confirmed at once (except their own). */
 export async function recordPayment(input: s.RecordPaymentInput) {
@@ -82,8 +88,18 @@ export async function recordPayment(input: s.RecordPaymentInput) {
     {
       touchesPublic: true,
       result: (d): RecordPaymentResult => {
-        const r = d as { id: string; status: RecordPaymentResult["status"]; replay: boolean };
-        return { id: r.id, status: r.status, replay: r.replay };
+        const r = d as {
+          id: string;
+          status: RecordPaymentResult["status"];
+          replay: boolean;
+          receipt_code?: string | null;
+        };
+        return {
+          id: r.id,
+          status: r.status,
+          replay: r.replay,
+          receiptCode: r.receipt_code ?? null,
+        };
       },
     },
   );
@@ -94,6 +110,8 @@ export type ConfirmResult = {
   already: boolean;
   decidedByName: string | null;
   decidedAt: string | null;
+  /** receipt verification code (null for paper) */
+  receiptCode: string | null;
 };
 
 export async function confirmPayment(input: { id: string }) {
@@ -108,8 +126,14 @@ export async function confirmPayment(input: { id: string }) {
           already: boolean;
           decided_by_name: string | null;
           decided_at: string | null;
+          receipt_code?: string | null;
         };
-        return { already: r.already, decidedByName: r.decided_by_name, decidedAt: r.decided_at };
+        return {
+          already: r.already,
+          decidedByName: r.decided_by_name,
+          decidedAt: r.decided_at,
+          receiptCode: r.receipt_code ?? null,
+        };
       },
     },
   );
