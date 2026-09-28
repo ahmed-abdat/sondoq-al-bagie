@@ -3,6 +3,7 @@
 //   node supabase/import/import-paper.mts --sheet data/a.csv --sheet data/b.csv [--phones data/phones.csv]
 //        [--page-totals data/page_totals.csv] [--only A:1-21,B:54-70] [--year 2026] [--price A=1000]
 //        [--members-sql data/1-members.sql] [--payments-sql data/2-payments.sql] [--sql data/all.sql]
+//        [--note "…"]   note on the payments (default «سجل ورقي <year>»)
 //
 // Without an output flag it is a dry run: it validates and prints a summary, and writes nothing.
 // Outputs are SQL files for the owner to paste into the Supabase SQL editor (it runs as the server,
@@ -307,7 +308,7 @@ const lit = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
 type Steps = { members: boolean; payments: boolean };
 
-function toSql(members: Member[], pay: Member[], prices: Record<string, number>, year: number, today: string, steps: Steps): string {
+function toSql(members: Member[], pay: Member[], prices: Record<string, number>, year: number, today: string, steps: Steps, noteText: string): string {
   const rows = (steps.members ? members : pay).map((m) => {
     const paid = pay.includes(m);
     const last = m.months[m.months.length - 1];
@@ -320,7 +321,7 @@ function toSql(members: Member[], pay: Member[], prices: Record<string, number>,
     ].join(", ")})`;
   });
   const used = Object.keys(prices).filter((g) => members.some((m) => m.group === g));
-  const note = lit(`سجل ورقي ${year}`);
+  const note = lit(noteText);
   const what = steps.members && steps.payments ? "members and payments" : steps.members ? "step 1: members" : "step 2: payments";
   const memberBlock = `
       if mid is null then
@@ -409,6 +410,7 @@ function main() {
       sql: { type: "string" },
       "members-sql": { type: "string" },
       "payments-sql": { type: "string" },
+      note: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -453,7 +455,7 @@ function main() {
   let wrote = false;
   for (const [file, steps] of outputs) {
     if (!file) continue;
-    writeFileSync(file, toSql(members, pay, prices, year, today, steps));
+    writeFileSync(file, toSql(members, pay, prices, year, today, steps, values.note?.trim() || `سجل ورقي ${year}`));
     console.log(`\nSQL written to ${file} (contains names/phones: do not commit it).`);
     wrote = true;
   }
