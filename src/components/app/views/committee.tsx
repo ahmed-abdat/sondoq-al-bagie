@@ -65,15 +65,16 @@ export function CommitteeView({
   }, []);
   const none = members.filter((m) => m.status === "active" && m.monthsPaidThisYear === 0).length;
   const late = members.filter((m) => m.status === "active" && m.monthsBehind > 0).length;
-  const group = waLink(
-    null,
-    groupReminderText({
+  const sendGroup = () => {
+    const text = groupReminderText({
       accounts,
       whatsappContact: whatsapp,
       lateCount: late,
-      publicUrl: typeof window === "undefined" ? undefined : `${window.location.origin}/members`,
-    }),
-  );
+      publicUrl: `${window.location.origin}/members`,
+    });
+    window.open(waLink(null, text), "_blank", "noopener");
+    void logReminder({ kind: "group" });
+  };
 
   return (
     <>
@@ -123,13 +124,7 @@ export function CommitteeView({
           <Num className="bq-amt">{none}</Num>
           <span className="bq-chev">{I.go(18)}</span>
         </Link>
-        <a
-          href={group}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bq-row bq-press"
-          onClick={() => void logReminder({ kind: "group" })}
-        >
+        <button type="button" className="bq-row bq-press" onClick={sendGroup}>
           <span className="bq-disc is-in">{I.wa(22)}</span>
           <span className="bq-row-m">
             <span className="bq-row-t">تذكير في مجموعة الواتساب</span>
@@ -138,7 +133,7 @@ export function CommitteeView({
             </span>
           </span>
           <span className="bq-chev">{I.go(18)}</span>
-        </a>
+        </button>
       </section>
 
       {!sheet && (
