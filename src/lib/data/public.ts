@@ -27,6 +27,7 @@ function cached<A extends unknown[], R>(
 
 export const getFundSummary = cached("fund_summary", read.fundSummary, toFundSummary(null));
 export const getMembers = cached("member_status", read.members, []);
+export const getLateMembers = cached("late_members", read.lateMembers, []);
 export const getMemberMonths = cached("member_months", read.memberMonths, []);
 export const getMemberMonthsOf = cached("member_months_of", read.memberMonthsOf, []);
 export const getMonthlyCollection = cached("monthly_collection", read.monthlyCollection, []);

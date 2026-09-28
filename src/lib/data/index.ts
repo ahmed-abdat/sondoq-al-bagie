@@ -11,6 +11,7 @@ export {
   getFundAccounts,
   getFundInfo,
   getFundSummary,
+  getLateMembers,
   getMemberMonths,
   getMemberMonthsOf,
   getMembers,
