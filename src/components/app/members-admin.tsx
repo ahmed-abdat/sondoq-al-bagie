@@ -257,7 +257,8 @@ export function MemberAdminBody({
             دفع رسوم <Num className="bq-strong">{m.monthsPaidThisYear}</Num> من 12 شهرًا هذا العام
             {m.monthsBehind > 0 && (
               <span className="bq-row-s">
-                متأخر {monthsWord(m.monthsBehind)} · <Num>{fmt(m.amountOwed)}</Num> أوقية
+                متأخر {monthsWord(m.monthsBehind)} · عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num>{" "}
+                أوقية
               </span>
             )}
           </>

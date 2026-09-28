@@ -147,7 +147,13 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCt
       </ol>
       {showOwed && m.amountOwed ? (
         <p className="bq-owed">
-          المبلغ المتأخر: <Num className="bq-strong">{fmt(m.amountOwed)}</Num> أوقية
+          المتأخر عليه حتى الآن: <Num className="bq-strong">{fmt(m.amountOwed)}</Num> أوقية
+          {price ? (
+            <>
+              {" "}
+              من رسوم السنة <Num>{fmt(price * 12)}</Num>
+            </>
+          ) : null}
         </p>
       ) : (
         <p className="bq-hint bq-note">لا تُعرض المبالغ هنا. يرى الجميع الأشهر فقط.</p>

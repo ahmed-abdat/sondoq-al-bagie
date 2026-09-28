@@ -77,7 +77,8 @@ export function LateList({
                     <span className="bq-row-m">
                       <span className="bq-row-t">{a.fullName}</span>
                       <span className="bq-row-s">
-                        متأخر {monthsWord(a.monthsCount)} · <Num>{fmt(a.amountOwed)}</Num> أوقية
+                        متأخر {monthsWord(a.monthsCount)} · عليه حتى الآن{" "}
+                        <Num>{fmt(a.amountOwed)}</Num> أوقية
                       </span>
                       <span className={`bq-row-s ${sent[a.memberId] ? "is-ok" : ""}`}>
                         {a.phone

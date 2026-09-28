@@ -58,16 +58,9 @@ export default async function ReportPage() {
   const yearExpenses = r.expenses;
   const campaigns = r.campaigns;
 
+  // the report shows paid / late / not yet only (owner): paid-ahead months are simply paid
   const dot = (st: string) =>
-    st === "paid"
-      ? "is-paid"
-      : st === "prepaid"
-        ? "is-ahead"
-        : st === "late"
-          ? "is-late"
-          : st === "not_owed"
-            ? "is-off"
-            : "";
+    st === "paid" || st === "prepaid" ? "is-paid" : st === "late" ? "is-late" : "";
   const cards: { k: string; v: number; sign?: string }[] = [
     { k: "رصيد سابق", v: summary.openingBalance },
     { k: "جُمع من الرسوم", v: summary.moneyIn, sign: "+" },
@@ -163,9 +156,8 @@ export default async function ReportPage() {
       </Collapsible>
 
       <p className="rp-note rp-legend">
-        <span className="rp-d is-paid" /> مدفوع <span className="rp-d is-ahead" /> مقدَّمًا{" "}
-        <span className="rp-d is-late" /> غير مدفوع <span className="rp-d is-off" /> غير مستحق{" "}
-        <span className="rp-d" /> لم يحن
+        <span className="rp-d is-paid" /> مدفوع <span className="rp-d is-late" /> متأخر{" "}
+        <span className="rp-d" /> لم يحن بعد
       </p>
       {lists.map((l) => {
         const rows = shown.filter((m) => listOf(m) === l);
@@ -180,9 +172,14 @@ export default async function ReportPage() {
                   <span className="rp-mname">{m.fullName}</span>
                   <span className="rp-mst">
                     {statusLabel(
-                      { status: m.status, monthsBehind: m.monthsBehind, monthsPaidThisYear: m.monthsPaid },
-                      month,
-                    )}
+                      {
+                        status: m.status,
+                        monthsBehind: m.monthsBehind,
+                        monthsPaidThisYear: m.monthsPaid,
+                      },
+                      12,
+                    )}{" "}
+                    · دفع <Num>{m.monthsPaid}</Num> من <Num>12</Num> شهرًا
                     {r.showAmountOwed && m.amountOwed ? (
                       <>
                         {" "}
@@ -192,7 +189,12 @@ export default async function ReportPage() {
                   </span>
                   <span
                     className="rp-dots"
-                    aria-label={m.months.map((st, i) => `${MONTHS[i]}: ${st}`).join("، ")}
+                    aria-label={m.months
+                      .map(
+                        (st, i) =>
+                          `${MONTHS[i]}: ${st === "paid" || st === "prepaid" ? "مدفوع" : st === "late" ? "متأخر" : "لم يحن بعد"}`,
+                      )
+                      .join("، ")}
                   >
                     {m.months.map((st, i) => (
                       <span key={i} className={`rp-d ${dot(st)}`} title={MONTHS[i]} />
