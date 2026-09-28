@@ -3171,3 +3171,47 @@
     transform: none;
   }
 }
+@layer components {
+  /* inline save state under a setting */
+  .bq-save {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 22px;
+    margin-block-start: 6px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .bq-save.is-idle {
+    min-height: 0;
+    margin: 0;
+  }
+  .bq-save.is-saved {
+    color: var(--g8);
+    font-weight: 600;
+    animation: bq-vt-fade-in 160ms var(--ease-out) both;
+  }
+  .bq-save.is-error {
+    padding: 10px 14px;
+    border-radius: var(--r-md);
+    background: var(--rej-tint);
+    color: var(--rej-ink);
+  }
+  .bq-spin {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 2px solid var(--n3);
+    border-block-start-color: var(--g8);
+    animation: bq-spin 700ms linear infinite;
+  }
+  .bq-switch[aria-busy="true"],
+  .bq-mini-switch[aria-busy="true"] {
+    opacity: 0.7;
+  }
+}
+@keyframes bq-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

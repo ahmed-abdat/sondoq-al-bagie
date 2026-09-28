@@ -7,10 +7,11 @@ import { SettingsView } from "@/components/app/views/settings";
 export const metadata: Metadata = { title: "الإعدادات · صندوق البقيع", robots: { index: false } };
 
 export default async function SettingsPage() {
-  const [session, info, accounts] = await Promise.all([
+  const [session, info, accounts, summary] = await Promise.all([
     src.committeeSession(),
     src.fundInfo(),
     src.fundAccountsAdmin(),
+    src.fundSummary(),
   ]);
   if (!session) redirect("/login?next=/committee/settings");
   return (
@@ -20,6 +21,7 @@ export default async function SettingsPage() {
         displayName={session.displayName}
         showOwed={info.showAmountOwed}
         whatsapp={info.whatsappContact}
+        openingBalance={summary.openingBalance}
         accounts={accounts}
       />
     </Tab>
