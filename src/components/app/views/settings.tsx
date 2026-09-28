@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct, useDemoState } from "../act";
-import type { CommitteeAccount, CommitteeRole, FundAccountAdmin, PaymentMethod } from "@/lib/data/types";
+import type {
+  CommitteeAccount,
+  CommitteeRole,
+  FundAccountAdmin,
+  PaymentMethod,
+} from "@/lib/data/types";
 import { CommitteeAccounts } from "../accounts-admin";
 import { METHOD_LABELS, METHODS, methodLogo } from "@/lib/methods";
 import { MethodBadge } from "../bits";
@@ -183,6 +188,7 @@ export function SettingsView({
   const [waSave, setWaSave] = useState<SaveState>(IDLE);
   const [openSave, setOpenSave] = useState<SaveState>(IDLE);
   const [accSave, setAccSave] = useState<Record<string, SaveState>>({});
+  const [pwSave, setPwSave] = useState<SaveState>(IDLE);
   const saveOwed = async (next: boolean) => {
     setOwed(next);
     if (!(await runSave(setOwedSave, () => updateSettings({ showAmountOwed: next }))))
@@ -192,8 +198,6 @@ export function SettingsView({
   const [pw, setPw] = useState("");
   const [adding, setAdding] = useState(false);
   const admin = role === "admin";
-
-  const fail = (msg: string) => say(msg);
 
   return (
     <>
@@ -333,11 +337,11 @@ export function SettingsView({
               disabled={!admin}
             />
           </label>
-          {admin && (
+          {admin && wa !== savedWa && (
             <button
               type="button"
-              className="bq-btn bq-btn-soft bq-press"
-              disabled={!online || wa === savedWa || waSave.status === "saving"}
+              className="bq-btn bq-btn-primary bq-press"
+              disabled={!online || waSave.status === "saving"}
               onClick={async () => {
                 if (await runSave(setWaSave, () => updateSettings({ whatsappContact: wa }))) {
                   setSavedWa(wa);
@@ -366,16 +370,11 @@ export function SettingsView({
             aria-describedby="bq-open-note"
             disabled={!admin}
           />
-          {admin && (
+          {admin && openingNum !== savedOpening && (
             <button
               type="button"
-              className="bq-btn bq-btn-soft bq-press"
-              disabled={
-                !online ||
-                openingNum === savedOpening ||
-                openingNum < 0 ||
-                openSave.status === "saving"
-              }
+              className="bq-btn bq-btn-primary bq-press"
+              disabled={!online || openingNum < 0 || openSave.status === "saving"}
               onClick={async () => {
                 if (
                   await runSave(setOpenSave, () => updateSettings({ openingBalance: openingNum }))
@@ -402,19 +401,17 @@ export function SettingsView({
       )}
 
       <section className="bq-sec" aria-labelledby="bq-pw-h">
-        <h2 id="bq-pw-h">كلمة السر</h2>
+        <h2 id="bq-pw-h">حسابك</h2>
+        <p className="bq-lead">{displayName} · غيّر كلمة السر التي تدخل بها أنت.</p>
         <form
           className="bq-login"
           onSubmit={async (e) => {
             e.preventDefault();
-            const r = await setPassword({ password: pw });
-            if (!r.ok) return fail(r.message);
-            setPw("");
-            say("غُيّرت كلمة السر");
+            if (await runSave(setPwSave, () => setPassword({ password: pw }))) setPw("");
           }}
         >
           <label>
-            كلمة سر جديدة (8 أحرف على الأقل)
+            كلمة سر جديدة (8 أحرف أو أكثر)
             <input
               className="bq-input"
               type="password"
@@ -429,10 +426,11 @@ export function SettingsView({
           <button
             type="submit"
             className="bq-btn bq-btn-soft bq-press"
-            disabled={!online || pw.length < 8}
+            disabled={!online || pw.length < 8 || pwSave.status === "saving"}
           >
-            احفظ كلمة السر
+            غيّر كلمة السر
           </button>
+          <SaveNote s={pwSave} />
         </form>
         <div className="bq-small-top">
           <LogoutButton className="bq-btn bq-btn-ghost bq-press">
