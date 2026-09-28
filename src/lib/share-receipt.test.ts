@@ -28,8 +28,8 @@ const R: ShareableReceipt = {
 
 describe("monthsInWords", () => {
   it("groups consecutive months into ranges", () => {
-    expect(monthsInWords([9, 7, 8], 2026)).toBe(`${M(7)} – ${M(9)} 2026`);
-    expect(monthsInWords([1, 3, 4], 2026)).toBe(`${M(1)}، ${M(3)} – ${M(4)} 2026`);
+    expect(monthsInWords([9, 7, 8], 2026)).toBe(`من ${M(7)} إلى ${M(9)} 2026`);
+    expect(monthsInWords([1, 3, 4], 2026)).toBe(`${M(1)}، من ${M(3)} إلى ${M(4)} 2026`);
     expect(monthsInWords([5], 2026)).toBe(`${M(5)} 2026`);
   });
   it("says full year for 12 months", () => {
@@ -44,9 +44,9 @@ describe("monthsInWords", () => {
 
 describe("coverLine", () => {
   it("names the member only when needed", () => {
-    expect(coverLine(R.covers[0], R.payer, false)).toBe(`عن: رسوم ${M(7)} – ${M(9)} 2026`);
+    expect(coverLine(R.covers[0], R.payer, false)).toBe(`عن: رسوم من ${M(7)} إلى ${M(9)} 2026`);
     expect(coverLine({ name: "علي", year: 2026, months: [1] }, R.payer, false)).toBe(
-      `عن: علي — رسوم ${M(1)} 2026`,
+      `عن: علي، رسوم ${M(1)} 2026`,
     );
   });
 });
@@ -63,7 +63,7 @@ describe("receiptShareText", () => {
     expect(t).toContain("رمز التحقق: \u2066BQ-7K2M-0231\u2069");
     expect(t).toContain("\u20661234567890123456789\u2069");
     expect(t).toContain(`المبلغ: 3${THIN}000 أوقية (300 أوقية جديدة)`);
-    expect(t).toContain(`عن: رسوم ${M(7)} – ${M(9)} 2026`);
+    expect(t).toContain(`عن: رسوم من ${M(7)} إلى ${M(9)} 2026`);
     expect(t).toContain("أكّدها: سيدي محمد، أمين الصندوق");
     expect(t).toContain("https://x.app/r/BQ-7K2M-0231");
   });
