@@ -413,4 +413,35 @@ select tests.ok((public.record_payment(gen_random_uuid(), 'سجل', 'paper', 100
 select tests.ok(not exists (select 1 from public.payments where method = 'paper' and receipt_code is not null),
   'paper imports get no receipt');
 
+/* ───────────── M6: campaigns ───────────── */
+
+select tests.login('committee');
+select tests.throws($$select public.create_campaign(gen_random_uuid(), 'حملة')$$, 'not_allowed', 'plain committee cannot open a campaign');
+select tests.login('treasurer');
+select tests.set('c6', public.create_campaign('00000000-0000-0000-0000-00000000c006', 'ترميم', 'fixed', 'السقف', 20000, null,
+  jsonb_build_array(jsonb_build_object('member_id', tests.id('E'), 'expected_amount', 3000))));
+select public.create_campaign('00000000-0000-0000-0000-00000000c006', 'ترميم');   -- retry is a no-op
+select tests.ok((select count(*) from public.campaigns where id = tests.id('c6')) = 1, 'retried create adds nothing');
+-- one transfer pays a month and the campaign
+select tests.ok((public.record_payment(gen_random_uuid(), 'دافع', 'bankily', 4000, current_date,
+  jsonb_build_array(tests.month('E', 1, 1000),
+                    jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', tests.id('E'), 'amount', 3000)))
+  ->> 'status') = 'confirmed', 'one payment splits a month and a campaign');
+select public.update_campaign(tests.id('c6'), 'ترميم المسجد', 'السقف', 25000, current_date + 30);
+select public.record_expense(gen_random_uuid(), current_date, 'other', 1000, 'مواد', tests.id('c6'));
+select tests.login('public');
+select tests.ok((select collected = 3000 and spent = 1000 and balance = 2000 and participants_paid = 1 and target_amount = 25000
+                 from public.campaign_progress where campaign_id = tests.id('c6')), 'campaign progress after split payment, edit and expense');
+select tests.set('bal6', (select balance from public.fund_summary));
+select tests.login('treasurer');
+select tests.ok(public.close_campaign(tests.id('c6'), 'to_fund') = 2000, 'closing moves the surplus to the fund');
+select tests.ok(public.close_campaign(tests.id('c6'), 'to_fund') = 0, 'closing twice is a no-op');
+select tests.throws($$select public.update_campaign(tests.id('c6'), 'x', null, null, null)$$, 'campaign_closed', 'closed campaigns are not edited');
+select tests.throws($$select public.record_payment(gen_random_uuid(), 'دافع', 'cash', 500, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)))$$,
+  'campaign_closed', 'no contributions after closing');
+select tests.login('public');
+select tests.ok((select balance from public.fund_summary) = tests.get('bal6')::int + 2000, 'main fund balance grows by the surplus');
+select tests.ok((select balance from public.campaign_progress where campaign_id = tests.id('c6')) = 0, 'campaign balance is zero after transfer');
+
 rollback;

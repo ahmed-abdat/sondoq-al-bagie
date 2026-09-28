@@ -41,6 +41,7 @@ export const MESSAGES = {
   no_open_period: "لا توجد فترة عضوية مفتوحة لهذا العضو.",
   before_current_period: "التاريخ قبل بداية الحالة الحالية.",
   months_already_paid_after: "توجد أشهر مدفوعة بعد هذا التاريخ.",
+  campaign_closed: "هذه الحملة مغلقة.",
   not_a_wallet: "اختر محفظة (لا نقداً ولا سجلاً ورقياً).",
   account_exists: "هذا الرقم مضاف من قبل لنفس المحفظة.",
 } as const satisfies Record<string, string>;
