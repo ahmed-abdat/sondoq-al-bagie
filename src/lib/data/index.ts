@@ -5,6 +5,7 @@ import "server-only";
 export * from "./types";
 export {
   getActivity,
+  getCampaignContributions,
   getCampaigns,
   getExpenseTotals,
   getFundAccounts,
@@ -14,6 +15,7 @@ export {
   getMemberMonthsOf,
   getMembers,
   getMonthlyCollection,
+  getReceipt,
   getRecentExpenses,
 } from "./public";
 export {
