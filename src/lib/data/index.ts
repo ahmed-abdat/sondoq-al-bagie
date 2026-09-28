@@ -22,6 +22,7 @@ export {
 export {
   getArrears,
   getCommitteeSession,
+  getExpensesAdmin,
   getFundAccountsAdmin,
   getPayment,
   getPendingPayments,

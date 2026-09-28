@@ -69,6 +69,14 @@ export type Expense = {
   campaignId: string | null;
 };
 
+/** Committee view of an expense: includes cancelled ones and the receipt image path. */
+export type ExpenseAdmin = Expense & {
+  receiptPath: string | null;
+  createdAt: string;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+};
+
 export type CampaignProgress = {
   campaignId: string;
   title: string;

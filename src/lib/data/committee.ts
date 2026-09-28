@@ -46,6 +46,7 @@ export const getPendingPayments = committee(read.pendingPayments, []);
 export const getRecentPayments = committee(read.recentPayments, []);
 export const getPayment = committee(read.paymentById, null);
 export const getArrears = committee(read.arrears, []);
+export const getExpensesAdmin = committee(read.expensesAdmin, []);
 export const getFundAccountsAdmin = committee(read.fundAccountsAdmin, []);
 
 /** 5-minute signed link to a proof image, or null (not a committee member / missing file). */

@@ -1,12 +1,13 @@
 // WhatsApp texts the committee sends from the app (free wa.me links, no API). Simple standard
 // Arabic; «الرسوم الشهرية» for the monthly fee. Pure; unit tested. After opening a link, call
-// the logReminder action so the arrears list shows «آخر تذكير».
+// the logReminder action so the arrears list shows «آخر تذكير». Receipt messages: see
+// receiptShareText() in src/lib/share-receipt.ts.
 import { formatMonth } from "@/lib/dates";
 import { formatMro, formatMru } from "@/lib/format";
 import { methodLabel, type Method } from "@/lib/methods";
 import { mroToMru } from "@/lib/money";
 import { waLink } from "@/lib/whatsapp";
-import type { Arrear, FundAccount, VerifiedReceipt } from "./types";
+import type { Arrear, FundAccount } from "./types";
 
 const FUND = "صندوق رابطة البقيع";
 
@@ -83,24 +84,4 @@ export function groupReminderText(ctx: ReminderContext & { lateCount: number }):
   ]
     .filter(Boolean)
     .join("\n");
-}
-
-/** Thank-you with the receipt link after a confirmed payment. */
-export function receiptText(
-  r: Exclude<VerifiedReceipt, { status: "not_found" }>,
-  receiptUrl: string,
-): string {
-  const months = r.members
-    .filter((m) => m.months.length)
-    .map(
-      (m) =>
-        `${m.fullName}: ${monthsList(m.months.map((x) => `${x.year}-${String(x.month).padStart(2, "0")}`))}`,
-    );
-  return [
-    `شكراً ${r.payerName}، استلمنا ${amount(r.amount)}.`,
-    ...(months.length ? ["الرسوم الشهرية:", ...months.map((m) => `• ${m}`)] : []),
-    ...(r.campaignTitles.length ? [`المساهمة: ${r.campaignTitles.join("، ")}`] : []),
-    `رقم الإيصال: ${r.receiptNo}`,
-    `للتحقق: ${receiptUrl}`,
-  ].join("\n");
 }
