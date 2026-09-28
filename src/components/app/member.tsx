@@ -34,25 +34,25 @@ export function MemberRow({
   );
 }
 
-export function MemberSheetBody({
-  m,
-  months,
-  year,
-  dueMonth,
-  price,
-  vt,
-  showOwed,
-}: {
-  m: MemberStatus;
+/** What the member sheet needs besides the member (server-computed, same for every member). */
+export type MemberCtx = {
+  /** this year's months of every member */
   months: MemberMonth[];
   year: number;
   dueMonth: number;
-  price: number | null;
-  vt: boolean;
-  /** committee switch «إظهار المبالغ المتأخرة» and the amount is known */
+  prices: Record<string, number>;
+  /** the admin switch «إظهار المبالغ المتأخرة» */
   showOwed: boolean;
-}) {
-  const cells = monthCells(months, dueMonth);
+};
+
+export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCtx; vt: boolean }) {
+  const { year } = ctx;
+  const price = ctx.prices[m.groupCode] ?? null;
+  const showOwed = ctx.showOwed;
+  const cells = monthCells(
+    ctx.months.filter((x) => x.memberId === m.memberId),
+    ctx.dueMonth,
+  );
   const owed = cells.filter((c) => c.state === "owed").map((c) => c.month);
   const paidDue = cells.filter((c) => c.state === "paid").length;
   const due = paidDue + owed.length;

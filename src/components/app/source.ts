@@ -64,7 +64,7 @@ export async function ledger(): Promise<LedgerEntry[]> {
         id: `p-${a.paymentId}`,
         kind: a.months > 0 ? "payment" : "donation",
         title: a.memberNames,
-        sub: a.months > 0 ? `رسوم ${monthCount(a.months)}` : "مساهمة في حملة",
+        sub: a.months >= 12 ? "رسوم السنة كاملة" : a.months > 0 ? `رسوم ${monthCount(a.months)}` : "مساهمة في حملة",
         amount: a.amount,
         at: a.at,
         when: relativeAgo(a.at, now),
