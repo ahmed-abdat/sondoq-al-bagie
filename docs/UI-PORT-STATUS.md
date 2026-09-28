@@ -93,6 +93,16 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
   receipt sheet/receipt copy fixes, lazy receipt/QR/share code on public pages.
 - Motion: 240ms pill/reveal, 320ms sheet, 220ms tab slide, 450ms bars, focus kept inside sheets.
 
+## Round 5 (handover + terms)
+- /committee/handover (from «الإعدادات» → «تسليم الصندوق للجنة الجديدة», admin/treasurer/deputy):
+  start → count per active wallet + «نقدًا» + extra lines with live total and calm difference →
+  who stays → note → submit; another admin accepts («قبول التسليم وبدء الدورة N», optional title)
+  or anyone cancels with a reason; success shows the stamp and «محضر التسليم» (WhatsApp/copy).
+- Public: hero and /accounts show «الدورة N · منذ …»; /accounts adds «فرق عند التسليم» to the
+  balance sum and «الدورات السابقة».
+- Demo: the handover lives in the act seam's local store (submitted «by someone else» so accept
+  can be tried).
+
 ## Remaining / next
 1. Lane B: `PERSIST_MAX_AGE` (30 days) is used as `gcTime`; it exceeds setTimeout's 2^31 ms, so
    queries without observers are garbage-collected immediately. Use `gcTime: Infinity` (or ≤ 24

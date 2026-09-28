@@ -1,13 +1,18 @@
 import "server-only";
 // Page-level bundles shared by several routes (Server Components only).
-import { currentDueMonth, updatedLabel } from "./derive";
+import { currentDueMonth, dayWords, updatedLabel } from "./derive";
 import type { HeroData } from "./hero";
 import type { MemberCtx } from "./member";
 import * as src from "./source";
 
 export async function heroData(note?: HeroData["note"]): Promise<HeroData> {
   const s = await src.fundSummary();
+  const term =
+    s.termNumber && s.termStartedOn
+      ? `الدورة ${s.termNumber} · منذ ${dayWords(s.termStartedOn)} ${s.termStartedOn.slice(0, 4)}`
+      : null;
   return {
+    term,
     balance: s.balance,
     collected: s.collectedThisYear,
     spent: s.spentThisYear,

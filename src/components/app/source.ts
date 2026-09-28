@@ -128,4 +128,6 @@ export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFu
 export const membersAdmin = () => pick(fx.fxMembersAdmin, () => data.getMembersAdmin());
 export const committeeAccounts = () =>
   pick(fx.fxCommitteeAccounts, () => data.getCommitteeAccounts());
+export const terms = () => pick(fx.fxTerms, () => data.getTerms());
+export const handovers = () => pick(fx.fxHandovers, () => data.getHandovers());
 export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());

@@ -1199,8 +1199,13 @@
     gap: 14px;
     min-height: 64px;
   }
-  .bq-pay > li.is-off {
-    opacity: 0.55;
+  /* a hidden number stays readable: muted text, greyed logo (no whole-row fade) */
+  .bq-pay > li.is-off .bq-pay-n {
+    color: var(--muted);
+  }
+  .bq-pay > li.is-off .bq-meth-tile {
+    filter: grayscale(1);
+    opacity: 0.7;
   }
   .bq-pay-n {
     font-size: 17px;
@@ -3338,5 +3343,89 @@
   .bq-input[dir="ltr"]::placeholder,
   .bq-search input[dir="ltr"]::placeholder {
     direction: rtl;
+  }
+}
+@layer components {
+  /* handover («تسليم الصندوق») */
+  .bq-ho-progress {
+    display: flex;
+    gap: 6px;
+    margin-block-start: 16px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .bq-ho-progress li {
+    flex: 1;
+    padding-block-start: 8px;
+    border-block-start: 4px solid var(--n2);
+    text-align: center;
+  }
+  .bq-ho-progress li.is-on {
+    border-color: var(--g7);
+    color: var(--g8);
+    font-weight: 600;
+  }
+  .bq-ho-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bq-ho-lines li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 140px;
+    align-items: center;
+    gap: 10px;
+  }
+  .bq-ho-label {
+    font-weight: 600;
+  }
+  .bq-ho-diff {
+    margin-block-start: 8px;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .bq-ho-diff.is-ok {
+    color: var(--g8);
+  }
+  .bq-ho-person {
+    cursor: pointer;
+  }
+  .bq-ho-person input {
+    width: 24px;
+    height: 24px;
+    accent-color: var(--g8);
+    flex: none;
+  }
+  .bq-textarea {
+    min-height: 96px;
+    padding-block: 12px;
+    resize: vertical;
+  }
+  .bq-ho-sum {
+    width: 100%;
+    margin-block: 16px;
+    text-align: start;
+  }
+}
+
+@layer components {
+  /* disabled buttons: a neutral fill with readable text, not a faded green (white on pale green failed AA) */
+  .bq-btn:disabled {
+    opacity: 1;
+    background: var(--n2);
+    color: var(--muted);
+    box-shadow: none;
+  }
+  .bq-chip:disabled {
+    opacity: 1;
+    background: var(--n1);
+    color: var(--muted);
+    text-decoration: line-through;
+    text-decoration-color: rgba(79, 92, 85, 0.4);
+  }
+  .bq-link:disabled {
+    color: var(--muted);
   }
 }

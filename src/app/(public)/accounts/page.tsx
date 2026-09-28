@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { heroData } from "@/components/app/page-data";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { AccountsView } from "@/components/app/views/accounts";
@@ -7,13 +8,15 @@ export const metadata: Metadata = { title: "الحسابات · صندوق ال�
 
 export default async function AccountsPage() {
   const year = src.thisYear();
-  const [summary, accounts, monthly, months, totals, ledger] = await Promise.all([
+  const [summary, accounts, monthly, months, totals, ledger, terms, hero] = await Promise.all([
     src.fundSummary(),
     src.fundAccounts(),
     src.monthly(year),
     src.memberMonths(year),
     src.expenseTotals(),
     src.ledger(),
+    src.terms(),
+    heroData(),
   ]);
   const payers = Array.from(
     { length: 12 },
@@ -33,6 +36,8 @@ export default async function AccountsPage() {
         currentMonth={src.today().getUTCMonth() + 1}
         spentBy={spentBy}
         ledger={ledger}
+        term={hero.term ?? null}
+        pastTerms={terms.filter((t) => t.endedOn)}
       />
     </Tab>
   );

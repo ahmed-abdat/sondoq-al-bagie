@@ -5,6 +5,7 @@ import type {
   FundAccount,
   FundSummary,
   MonthlyCollection,
+  Term,
 } from "@/lib/data/types";
 import { categoryLabel, dayWords, fmt } from "../derive";
 import dynamic from "next/dynamic";
@@ -31,6 +32,8 @@ export function AccountsView({
   currentMonth,
   spentBy,
   ledger,
+  term,
+  pastTerms,
 }: {
   summary: FundSummary;
   accounts: FundAccount[];
@@ -40,6 +43,9 @@ export function AccountsView({
   /** this year's spending per category, largest first */
   spentBy: { category: ExpenseCategory; total: number }[];
   ledger: LedgerEntry[];
+  /** «الدورة 2 · منذ …» */
+  term: string | null;
+  pastTerms: Term[];
 }) {
   const [f, setF] = useState<"all" | "in" | "out">("all");
   const sheet = useSheet<LedgerEntry>();
@@ -55,6 +61,7 @@ export function AccountsView({
     <>
       <header className="bq-page-h">
         <h1>الحسابات</h1>
+        {term && <p className="bq-lead">{term}</p>}
       </header>
 
       <section
@@ -109,6 +116,19 @@ export function AccountsView({
               <Num>{fmt(summary.moneyOut)}</Num>
             </dd>
           </div>
+          {summary.adjustments !== 0 && (
+            <div>
+              <dt>
+                <span className="bq-op" aria-hidden="true">
+                  {summary.adjustments > 0 ? "+" : "−"}
+                </span>
+                فرق عند التسليم
+              </dt>
+              <dd>
+                <Num>{fmt(Math.abs(summary.adjustments))}</Num>
+              </dd>
+            </div>
+          )}
           <div className="is-total">
             <dt>
               <span className="bq-op" aria-hidden="true">
@@ -187,6 +207,51 @@ export function AccountsView({
           <p className="bq-hint">لم يُصرف شيء هذا العام.</p>
         )}
       </section>
+
+      {pastTerms.length > 0 && (
+        <section className="bq-sec bq-rv" data-rv="acc-terms" aria-labelledby="bq-terms-h">
+          <h2 id="bq-terms-h">الدورات السابقة</h2>
+          <ul className="bq-list">
+            {pastTerms.map((t) => (
+              <li key={t.number}>
+                <div className="bq-row">
+                  <span
+                    className="bq-av"
+                    style={{ width: 40, height: 40, fontSize: 17 }}
+                    aria-hidden="true"
+                  >
+                    <Num>{t.number}</Num>
+                  </span>
+                  <span className="bq-row-m">
+                    <span className="bq-row-t">{t.title || `الدورة ${t.number}`}</span>
+                    <span className="bq-row-s">
+                      من {dayWords(t.startedOn)} <Num>{t.startedOn.slice(0, 4)}</Num>
+                      {t.endedOn ? (
+                        <>
+                          {" "}
+                          إلى {dayWords(t.endedOn)} <Num>{t.endedOn.slice(0, 4)}</Num>
+                        </>
+                      ) : null}
+                    </span>
+                    <span className="bq-row-s">
+                      بدأت بـ <Num>{fmt(t.openingBalance)}</Num> وسُلّمت بـ{" "}
+                      <Num>{fmt(t.closingBalance ?? 0)}</Num> أوقية · جُمع{" "}
+                      <Num>{fmt(t.collected)}</Num> · صُرف <Num>{fmt(t.spent)}</Num>
+                      {t.adjustment ? (
+                        <>
+                          {" "}
+                          · فرق عند التسليم{" "}
+                          <Num>{`${t.adjustment > 0 ? "+" : "−"}${fmt(Math.abs(t.adjustment))}`}</Num>
+                        </>
+                      ) : null}
+                    </span>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="bq-sec bq-rv" id="bq-ops" data-rv="acc-ops" aria-labelledby="bq-all-h">
         <h2 id="bq-all-h">كل العمليات</h2>

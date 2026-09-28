@@ -7,6 +7,8 @@ import type {
   CampaignContribution,
   CampaignProgress,
   CommitteeAccount,
+  Handover,
+  Term,
   CommitteeSession,
   MemberAdmin,
   MembershipStatus,
@@ -219,7 +221,7 @@ export function fxSummary(): FundSummary {
     lastActivityAt: "2026-09-28T09:48:00Z",
     membersActive: members.length,
     adjustments: 0,
-    termNumber: 1,
+    termNumber: 2,
     termStartedOn: "2026-01-01",
   };
 }
@@ -531,3 +533,29 @@ export const fxCommitteeAccounts = (): CommitteeAccount[] => [
     createdAt: "2026-09-20T09:00:00Z",
   },
 ];
+
+export const fxTerms = (): Term[] => [
+  {
+    number: 2,
+    title: "الدورة 2",
+    startedOn: "2026-01-01",
+    endedOn: null,
+    openingBalance: 45000,
+    closingBalance: null,
+    collected: fxSummary().collectedThisYear,
+    spent: fxSummary().spentThisYear,
+    adjustment: 0,
+  },
+  {
+    number: 1,
+    title: "الدورة 1",
+    startedOn: "2024-01-01",
+    endedOn: "2025-12-31",
+    openingBalance: 12000,
+    closingBalance: 45000,
+    collected: 168000,
+    spent: 134500,
+    adjustment: -500,
+  },
+];
+export const fxHandovers = (): Handover[] => [];

@@ -400,6 +400,27 @@ export function SettingsView({
         </section>
       )}
 
+      {role !== "committee" && (
+        <section className="bq-sec" aria-label="نهاية الدورة">
+          <ul className="bq-list bq-menu">
+            <li>
+              <Link
+                href="/committee/handover"
+                className="bq-row bq-press"
+                transitionTypes={["tab-fwd"]}
+              >
+                <span className="bq-disc">{I.book(22)}</span>
+                <span className="bq-row-m">
+                  <span className="bq-row-t">تسليم الصندوق للجنة الجديدة</span>
+                  <span className="bq-row-s">عند نهاية الدورة فقط</span>
+                </span>
+                <span className="bq-chev">{I.go(18)}</span>
+              </Link>
+            </li>
+          </ul>
+        </section>
+      )}
+
       <section className="bq-sec" aria-labelledby="bq-pw-h">
         <h2 id="bq-pw-h">حسابك</h2>
         <p className="bq-lead">{displayName} · غيّر كلمة السر التي تدخل بها أنت.</p>
