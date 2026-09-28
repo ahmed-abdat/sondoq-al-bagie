@@ -36,4 +36,8 @@ describe("ltr", () => {
     expect(ltr("+222 36 12 34 56")).toBe("\u2066+222 36 12 34 56\u2069");
     expect(ltr(22000001)).toBe("\u206622000001\u2069");
   });
+
+  it("wraps text in LTR isolates", () => {
+    expect(ltr("BQ-7K2M-0231")).toBe("\u2066BQ-7K2M-0231\u2069");
+  });
 });

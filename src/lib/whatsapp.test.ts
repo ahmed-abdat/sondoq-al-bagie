@@ -34,3 +34,12 @@ describe("waLink", () => {
     expect(waLink(undefined, "hi")).toBe("https://wa.me/?text=hi");
   });
 });
+
+describe("Arabic-Indic digits (Arabic keyboards)", () => {
+  it("are converted, not dropped", () => {
+    expect(waPhone("٣٦ ١٢ ٣٤ ٥٦")).toBe("22236123456");
+    expect(waPhone("+٢٢٢ ٣٦١٢٣٤٥٦")).toBe("22236123456");
+    expect(isValidLocalPhone("٣٦١٢٣٤٥٦")).toBe(true);
+    expect(waLink("٣٦١٢٣٤٥٦", "x")).toBe("https://wa.me/22236123456?text=x");
+  });
+});
