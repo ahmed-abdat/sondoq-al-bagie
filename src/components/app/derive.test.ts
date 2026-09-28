@@ -51,14 +51,14 @@ describe("months in words", () => {
     expect(monthCount(12)).toBe("12 شهرًا");
   });
   it("labels runs", () => {
-    expect(monthsLabel([9, 7, 8])).toBe("يوليو–سبتمبر");
+    expect(monthsLabel([9, 7, 8])).toBe("من يوليو إلى سبتمبر");
     expect(monthsLabel([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])).toBe("السنة كاملة");
     expect(monthsLabel([3, 5])).toBe("مارس، مايو");
     expect(monthsLabel([8])).toBe("أغسطس");
   });
   it("writes receipt months", () => {
-    expect(monthsInWords([7, 8, 9], 2026)).toBe("يوليو – سبتمبر 2026");
-    expect(monthsInWords([1, 2, 5], 2026)).toBe("يناير – فبراير، مايو 2026");
+    expect(monthsInWords([7, 8, 9], 2026)).toBe("من يوليو إلى سبتمبر 2026");
+    expect(monthsInWords([1, 2, 5], 2026)).toBe("من يناير إلى فبراير، مايو 2026");
     expect(monthsInWords([12], 2026)).toBe("ديسمبر 2026");
     expect(
       monthsInWords(

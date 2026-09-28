@@ -55,7 +55,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full font-sans">
         {usingFixtures && (
           <p className="bq-demo" role="note">
-            {demoMode ? DEMO_BANNER : "بيانات تجريبية — ليست أرقام الصندوق الحقيقية"}
+            {demoMode ? DEMO_BANNER : "بيانات تجريبية: ليست أرقام الصندوق الحقيقية."}
           </p>
         )}
         <Providers>

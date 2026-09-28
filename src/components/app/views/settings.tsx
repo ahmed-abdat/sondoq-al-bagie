@@ -265,7 +265,7 @@ export function SettingsView({
               <span>
                 {owed
                   ? "يرى كل عضو المبلغ المتأخر عليه في صفحته."
-                  : "المبالغ مخفية عن الأعضاء — يظهر فقط منتظم أو متأخر."}
+                  : "المبالغ مخفية عن الأعضاء. يظهر فقط: منتظم أو متأخر."}
               </span>
             </span>
             <span className="bq-switch-k" aria-hidden="true">

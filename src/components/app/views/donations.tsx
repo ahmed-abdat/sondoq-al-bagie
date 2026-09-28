@@ -86,11 +86,11 @@ export function DonationsView({
               </>
             ) : (
               <p className="bq-camp-none">
-                لم تُجمع مساهمات بعد
+                لم تُجمع مساهمات بعد.
                 {target > 0 && (
                   <>
                     {" "}
-                    — الهدف <Num className="bq-strong">{fmt(target)}</Num> أوقية
+                    الهدف <Num className="bq-strong">{fmt(target)}</Num> أوقية.
                   </>
                 )}
               </p>

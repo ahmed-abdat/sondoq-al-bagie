@@ -22,7 +22,7 @@ export function EntryRow({
         type="button"
         className="bq-row bq-press"
         onClick={(ev) => onOpen(e, ev.currentTarget)}
-        aria-label={`${e.title}، ${fmt(e.amount)} أوقية — افتح التفاصيل`}
+        aria-label={`${e.title}، ${fmt(e.amount)} أوقية. افتح التفاصيل`}
       >
         <span className={`bq-disc ${inn ? "is-in" : ""}`}>
           {e.kind === "donation" ? I.heart(22) : inn ? I.coins(22) : I.bag(22)}

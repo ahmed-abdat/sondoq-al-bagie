@@ -162,7 +162,7 @@ export default async function ReportPage() {
         <p className="rp-note">
           <span className="rp-c is-paid">✓</span> مدفوع · <span className="rp-c is-ahead">✓</span>{" "}
           مدفوع مقدَّمًا · <span className="rp-c is-late" /> غير مدفوع ·{" "}
-          <span className="rp-c is-off">–</span> غير مستحق
+          <span className="rp-c is-off">·</span> غير مستحق
         </p>
         {lists.map((l) => (
           <table key={l} className="rp-table rp-grid">
@@ -194,7 +194,7 @@ export default async function ReportPage() {
                           key={i}
                           className={`rp-m ${st === "paid" ? "is-paid" : st === "prepaid" ? "is-ahead" : st === "late" ? "is-late" : st === "not_owed" ? "is-off" : ""}`}
                         >
-                          {st === "paid" || st === "prepaid" ? "✓" : st === "not_owed" ? "–" : ""}
+                          {st === "paid" || st === "prepaid" ? "✓" : st === "not_owed" ? "·" : ""}
                         </td>
                       ))}
                       <td className="rp-st">
@@ -270,7 +270,7 @@ export default async function ReportPage() {
               {campaigns.map((c) => (
                 <tr key={c.campaignId}>
                   <td className="rp-name">{c.title}</td>
-                  <td>{c.targetAmount ? <Num>{fmt(c.targetAmount)}</Num> : "—"}</td>
+                  <td>{c.targetAmount ? <Num>{fmt(c.targetAmount)}</Num> : "بلا هدف"}</td>
                   <td>
                     <Num>{fmt(c.collected)}</Num>
                   </td>

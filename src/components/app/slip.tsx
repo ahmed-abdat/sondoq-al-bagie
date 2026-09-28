@@ -184,7 +184,7 @@ export function PendingSlip({
       </p>
       {base.covers.map((c) => (
         <p key={`${c.name}-${c.year}`} className="bq-slip-cov">
-          عن: {multi || c.name !== p.payerName ? `${c.name} — ` : ""}رسوم{" "}
+          {multi || c.name !== p.payerName ? `عن ${c.name}: ` : "عن: "}رسوم{" "}
           {monthsInWords(c.months, c.year)}
         </p>
       ))}
