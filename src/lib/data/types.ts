@@ -359,6 +359,68 @@ export type VerifiedReceipt =
       campaignTitles: string[];
     };
 
+/* ───────────── fund report (shareable, public data only) ───────────── */
+
+/** A month in the report grid: `prepaid` = paid for a month that is not due yet. */
+export type ReportMonthState = MonthState | "prepaid";
+
+export type ReportMember = {
+  memberId: string;
+  memberRef: string;
+  fullName: string;
+  groupCode: string;
+  status: MembershipStatus;
+  /** 'منتظم' | 'متأخر' for active members; «معفى» / «غادر» / «متوفى» otherwise */
+  statusLabel: string;
+  /** index 0 = January … 11 = December of `ReportData.year` */
+  months: ReportMonthState[];
+  monthsPaid: number;
+  monthsBehind: number;
+  /** null unless the admin turned on «show amounts owed» */
+  amountOwed: number | null;
+};
+
+export type ReportExpense = {
+  spentOn: string;
+  category: ExpenseCategory;
+  /** Arabic category label */
+  categoryLabel: string;
+  /** the expense note; the UI shows categoryLabel when it is null */
+  note: string | null;
+  amount: number;
+  campaignId: string | null;
+};
+
+export type ReportCampaign = {
+  campaignId: string;
+  title: string;
+  status: CampaignStatus;
+  targetAmount: number | null;
+  collected: number;
+  spent: number;
+  balance: number;
+};
+
+/** Everything a fund report shows, in one read (getReport). Amounts in MRO. */
+export type ReportData = {
+  year: number;
+  /** live fund totals (all time, like the home page) */
+  summary: FundSummary;
+  /** the chosen term (default: the open one), null before terms exist */
+  term: Term | null;
+  /** 12 rows, January first */
+  monthly: MonthlyCollection[];
+  /** every member, by list then number */
+  members: ReportMember[];
+  /** expenses of `year`, newest first */
+  expenses: ReportExpense[];
+  /** false if older expenses of the year may be missing (the public list holds the latest 50) */
+  expensesComplete: boolean;
+  campaigns: ReportCampaign[];
+  showAmountOwed: boolean;
+  generatedAt: string;
+};
+
 /* ───────────── action results ───────────── */
 
 /** Every server action returns this. `message` is Arabic, ready to show. */

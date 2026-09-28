@@ -21,7 +21,9 @@ export {
   getRecentExpenses,
   getCurrentTerm,
   getTerms,
+  getReport,
 } from "./public";
+export type { ReportOptions } from "./report";
 export {
   getArrears,
   getMembersAdmin,
