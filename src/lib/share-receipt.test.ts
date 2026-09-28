@@ -59,7 +59,9 @@ it("verifyUrl and file name", () => {
 describe("receiptShareText", () => {
   it("contains the amount in both currencies, months, code and link", () => {
     const t = receiptShareText(R, "https://x.app/r/BQ-7K2M-0231");
-    expect(t).toContain("رقم الوصل: 0231");
+    expect(t).toContain("رقم الوصل: \u20660231\u2069");
+    expect(t).toContain("رمز التحقق: \u2066BQ-7K2M-0231\u2069");
+    expect(t).toContain("\u20661234567890123456789\u2069");
     expect(t).toContain(`المبلغ: 3${THIN}000 أوقية (300 أوقية جديدة)`);
     expect(t).toContain(`عن: رسوم ${M(7)} – ${M(9)} 2026`);
     expect(t).toContain("أكّدها: سيدي محمد، أمين الصندوق");

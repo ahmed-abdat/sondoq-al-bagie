@@ -82,6 +82,8 @@ export const publicQueries = {
       queryKey: [PUBLIC_KEY, "fund_accounts"],
       queryFn: () => read.fundAccounts(client()),
     }),
+  terms: () =>
+    queryOptions({ queryKey: [PUBLIC_KEY, "terms"], queryFn: () => read.terms(client()) }),
   fundInfo: () =>
     queryOptions({ queryKey: [PUBLIC_KEY, "fund_info"], queryFn: () => read.fundInfo(client()) }),
 };
@@ -107,6 +109,16 @@ export const committeeQueries = {
     queryOptions({
       queryKey: [COMMITTEE_KEY, "members"],
       queryFn: () => read.membersAdmin(client()),
+    }),
+  handovers: () =>
+    queryOptions({
+      queryKey: [COMMITTEE_KEY, "handovers"],
+      queryFn: () => read.handovers(client()),
+    }),
+  handover: (id: string) =>
+    queryOptions({
+      queryKey: [COMMITTEE_KEY, "handovers", id],
+      queryFn: () => read.handoverById(client(), id),
     }),
   arrears: () =>
     queryOptions({ queryKey: [COMMITTEE_KEY, "arrears"], queryFn: () => read.arrears(client()) }),

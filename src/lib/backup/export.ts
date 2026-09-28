@@ -20,6 +20,9 @@ export const BACKUP_TABLES = [
   "expenses",
   "transfers",
   "reminders",
+  "terms",
+  "handovers",
+  "balance_adjustments",
   "audit_log",
 ] as const satisfies readonly (keyof Database["public"]["Tables"])[];
 

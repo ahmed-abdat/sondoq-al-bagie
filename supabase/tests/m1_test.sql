@@ -92,7 +92,7 @@ insert into public.group_prices (group_id, year, monthly_amount)
 select g.id, y, case g.code when 'A' then 1000 else 500 end
 from public.groups g, generate_series(extract(year from current_date)::int - 1, extract(year from current_date)::int) y
 on conflict (group_id, year) do nothing;
-update public.settings set opening_balance = 0, grace_days = 10, show_amount_owed = false;
+update public.settings set opening_balance = 0, grace_days = 10, show_amount_owed = false where id;
 
 -- E: A, active for 4 months (3 back + this one).  F: B, exempt from last month.
 -- G: A, deceased from 2 months back.  T: the treasurer's own membership.  K: spare A member.
@@ -260,12 +260,12 @@ select tests.ok((select state from public.member_months where member_id = tests.
   'member_months shows paid months');
 
 select tests.login('server');
-update public.settings set grace_days = 0, show_amount_owed = true;
+update public.settings set grace_days = 0, show_amount_owed = true where id;
 select tests.login('public');
 select tests.ok((select months_behind from public.member_status where number = 1001) = 2, 'grace 0: this month is owed at once');
 select tests.ok((select amount_owed from public.member_status where number = 1002) = 1000, 'amount owed shown once enabled (2 × 500)');
 select tests.login('server');
-update public.settings set grace_days = 10, show_amount_owed = false;
+update public.settings set grace_days = 10, show_amount_owed = false where id;
 
 select tests.login('committee');
 select tests.ok((select phone from public.arrears where number = 1001) = '+22211111111', 'committee arrears view carries the phone');
@@ -481,5 +481,57 @@ select tests.throws('select * from public.members_admin', '42501', 'anon cannot 
 select tests.login('former');   -- signed in but not an active committee member
 select tests.ok((select count(*) from public.members_admin) = 0 and (select count(*) from public.arrears) = 0
                 and (select count(*) from public.payment_queue) = 0, 'non-committee accounts see no member/arrears/payment rows');
+
+/* ───────────── M8: terms and handover (keep last: it deactivates committee accounts) ───────────── */
+
+select tests.login('public');
+select tests.ok((select term_number from public.fund_summary) = 1, 'the fund is in term 1');
+select tests.ok((select count(*) from public.terms_public) = 1, 'anon reads the terms list');
+select tests.throws('select * from public.handovers', '42501', 'anon cannot read handovers');
+select tests.throws('select * from public.handovers_admin', '42501', 'anon cannot read the handover view');
+select tests.login('server');
+select tests.throws($$insert into public.terms (number, started_on, opening_balance) values (9, current_date, 0)$$, '23505',
+  'only one open term');
+
+select tests.login('committee');
+select tests.throws($$select public.start_handover(gen_random_uuid())$$, 'not_allowed', 'a plain committee member cannot start a handover');
+select tests.login('treasurer');
+select tests.set('h1', public.start_handover('00000000-0000-0000-0000-0000000000d1', 'نهاية الدورة'));
+select tests.throws($$select public.start_handover(gen_random_uuid())$$, 'handover_in_progress', 'one handover at a time');
+select tests.throws($$select public.submit_handover(tests.id('h1'))$$, 'counted_required', 'cannot submit without counted money');
+select tests.set('bal8', app_private.current_balance());
+select public.update_handover_draft(tests.id('h1'),
+  jsonb_build_array(jsonb_build_object('label', 'نقداً', 'method', 'cash', 'amount', 700),
+                    jsonb_build_object('label', 'بنكيلي', 'method', 'bankily', 'amount', tests.get('bal8')::int - 1200)),
+  array['00000000-0000-0000-0000-0000000000a3'::uuid]);
+select tests.throws($$select public.update_handover_draft(tests.id('h1'), '[{"label":"x","amount":-5}]'::jsonb)$$, 'invalid_input',
+  'negative counted amounts are refused');
+select public.submit_handover(tests.id('h1'));
+select tests.throws($$select public.accept_handover(tests.id('h1'))$$, 'not_admin', 'the treasurer cannot accept');
+select tests.login('admin');
+select tests.ok(public.accept_handover(tests.id('h1'), 'الدورة الثانية') = 2, 'the incoming admin accepts: term 2 opens');
+select tests.ok(public.accept_handover(tests.id('h1')) = 2, 'accepting twice is a no-op');
+select tests.login('public');
+select tests.ok((select term_number from public.fund_summary) = 2, 'fund is now in term 2');
+select tests.ok((select balance from public.fund_summary) = tests.get('bal8')::int - 500,
+  'balance equals the counted money (difference booked)');
+select tests.ok((select closing_balance from public.terms_public where number = 1) = tests.get('bal8')::int - 500
+                and (select ended_on from public.terms_public where number = 1) is not null
+                and (select opening_balance from public.terms_public where number = 2) = tests.get('bal8')::int - 500,
+  'term 1 closed at the counted balance; term 2 opens with it');
+select tests.ok((select amount from public.activity_feed where kind = 'balance_adjustment') = -500,
+  'the handover difference is public as «فرق عند التسليم»');
+select tests.login('server');
+select tests.ok((select difference from public.handovers where id = tests.id('h1')) = -500, 'difference recorded');
+select tests.ok((select array_agg(display_name order by display_name) from public.committee where active) = array['المدير', 'النائب'],
+  'only the carried-over deputy and the accepting admin stay active');
+
+select tests.login('admin');
+select tests.set('h2', public.start_handover(gen_random_uuid()));
+select public.update_handover_draft(tests.id('h2'), '[{"label":"نقداً","amount":10}]'::jsonb);
+select public.submit_handover(tests.id('h2'));
+select tests.throws($$select public.accept_handover(tests.id('h2'))$$, 'same_person', 'the admin who submitted cannot also accept');
+select public.cancel_handover(tests.id('h2'), 'خطأ');
+select tests.ok((select status from public.handovers where id = tests.id('h2')) = 'cancelled', 'a handover can be cancelled with a reason');
 
 rollback;

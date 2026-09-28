@@ -30,3 +30,12 @@ export function percent(part: number, whole: number): number {
   if (whole <= 0) return 0;
   return Math.round((part / whole) * 100);
 }
+
+/**
+ * Keep a left-to-right run (phone, account number, code, URL) in one piece inside Arabic text:
+ * wraps it in LEFT-TO-RIGHT ISOLATE … POP DIRECTIONAL ISOLATE (U+2066 … U+2069), which WhatsApp
+ * and browsers honour, so "+222 36 12 34 56" does not flip or split around Arabic words.
+ */
+export function ltr(value: string | number): string {
+  return `\u2066${value}\u2069`;
+}

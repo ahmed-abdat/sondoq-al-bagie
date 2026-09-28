@@ -1,6 +1,87 @@
 -- Undo the M2 migrations (dev/branch only). Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- terms and handover (m8)
+drop view if exists public.handovers_admin, public.terms_public, public.fund_summary;
+drop function if exists public.start_handover(uuid, text), public.update_handover_draft(uuid, jsonb, uuid[], text),
+  public.submit_handover(uuid), public.accept_handover(uuid, text), public.cancel_handover(uuid, text),
+  app_private.current_balance(), app_private.require_money_keeper(), app_private.lines_total(jsonb),
+  app_private.public_terms(), app_private.public_fund_summary();
+create or replace function app_private.public_activity_feed()
+returns table (at timestamptz, kind text, member_names text, months integer, amount integer,
+               category public.expense_category, payment_id uuid, method public.payment_method, receipt_code text)
+language sql stable security definer set search_path = '' as $$
+  (select p.decided_at, 'payment_confirmed',
+          (select string_agg(distinct m.full_name, '، ') from public.payment_allocations a
+           join public.members m on m.id = a.member_id where a.payment_id = p.id),
+          (select count(*) from public.payment_allocations a where a.payment_id = p.id and a.kind = 'months')::integer,
+          p.amount, null::public.expense_category, p.id, p.method, p.receipt_code
+   from public.payments p
+   where p.status = 'confirmed' and p.decided_at is not null and p.method <> 'paper'
+   order by p.decided_at desc limit 30)
+  union all
+  (select e.created_at, 'expense', null, null, e.amount, e.category, null, null, null
+   from public.expenses e where e.cancelled_at is null order by e.created_at desc limit 20)
+  union all
+  (select c.created_at, 'campaign_opened', null, null, c.target_amount, null, null, null, null
+   from public.campaigns c order by c.created_at desc limit 10)
+  order by 1 desc limit 50;
+$$;
+drop table if exists public.balance_adjustments, public.handovers, public.terms;
+drop type if exists public.handover_status;
+create function app_private.public_fund_summary()
+returns table (opening_balance integer, money_in bigint, money_out bigint, transfers_in bigint, balance bigint,
+               collected_this_year bigint, spent_this_year bigint, members_ok integer, members_behind integer,
+               last_activity_at timestamptz, members_active integer)
+language sql stable security definer set search_path = '' as $$
+  with fin as (
+    select coalesce(sum(a.amount), 0) as total,
+           coalesce(sum(a.amount) filter (where extract(year from p.paid_on) = extract(year from current_date)), 0) as this_year
+    from public.payment_allocations a join public.payments p on p.id = a.payment_id
+    where p.status = 'confirmed' and a.kind in ('months', 'credit')
+  ),
+  fout as (
+    select coalesce(sum(e.amount), 0) as total,
+           coalesce(sum(e.amount) filter (where extract(year from e.spent_on) = extract(year from current_date)), 0) as this_year
+    from public.expenses e where e.cancelled_at is null and e.campaign_id is null
+  ),
+  tr as (select coalesce(sum(t.amount), 0) as total from public.transfers t),
+  mem as (
+    select count(*) filter (where r.member_status = 'active' and r.months_behind = 0)::integer as ok,
+           count(*) filter (where r.member_status = 'active' and r.months_behind > 0)::integer as behind,
+           count(*) filter (where r.member_status = 'active')::integer as active
+    from app_private.member_rollup() r
+  )
+  select s.opening_balance, fin.total, fout.total, tr.total,
+         s.opening_balance + fin.total - fout.total + tr.total,
+         fin.this_year, fout.this_year, mem.ok, mem.behind,
+         greatest((select max(coalesce(p.cancelled_at, p.decided_at)) from public.payments p),
+                  (select max(coalesce(e.cancelled_at, e.created_at)) from public.expenses e)),
+         mem.active
+  from public.settings s, fin, fout, tr, mem;
+$$;
+create view public.fund_summary with (security_invoker = true) as select * from app_private.public_fund_summary();
+grant select on public.fund_summary to anon, authenticated, service_role;
+grant execute on function app_private.public_fund_summary() to anon, authenticated, service_role;
+create or replace function public.update_settings(
+  p_opening_balance integer default null, p_opening_balance_on date default null,
+  p_grace_days integer default null, p_show_amount_owed boolean default null,
+  p_whatsapp_contact text default null
+) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform app_private.require_admin();
+  perform app_private.set_action('update_settings');
+  update public.settings set
+    opening_balance    = coalesce(p_opening_balance, opening_balance),
+    opening_balance_on = coalesce(p_opening_balance_on, opening_balance_on),
+    grace_days         = coalesce(p_grace_days, grace_days),
+    show_amount_owed   = coalesce(p_show_amount_owed, show_amount_owed),
+    whatsapp_contact   = case when p_whatsapp_contact is null then whatsapp_contact
+                              else nullif(regexp_replace(p_whatsapp_contact, '[\s-]', '', 'g'), '') end,
+    updated_at = now(), updated_by = auth.uid()
+  where id;   -- the singleton row (PostgREST sessions load pg_safeupdate: no UPDATE without WHERE)
+end $$;
 -- member lists (m7): back to one global numbering
 drop view if exists public.payment_queue, public.members_admin, public.arrears, public.member_status, public.fund_summary;
 drop function if exists app_private.public_member_status(), app_private.public_fund_summary(), app_private.member_rollup(),

@@ -3,7 +3,7 @@
 // the logReminder action so the arrears list shows «آخر تذكير». Receipt messages: see
 // receiptShareText() in src/lib/share-receipt.ts.
 import { formatMonth } from "@/lib/dates";
-import { formatMro, formatMru } from "@/lib/format";
+import { formatNumber, ltr } from "@/lib/format";
 import { methodLabel, type Method } from "@/lib/methods";
 import { mroToMru } from "@/lib/money";
 import { waLink } from "@/lib/whatsapp";
@@ -26,8 +26,9 @@ function monthsCount(n: number): string {
   return `${n} شهراً`;
 }
 
+/** Same wording as the shared receipt: «2 000 أوقية (200 أوقية جديدة)». */
 function amount(mro: number): string {
-  return `${formatMro(mro)} (${formatMru(mroToMru(mro))})`;
+  return `${formatNumber(mro)} أوقية (${formatNumber(mroToMru(mro))} أوقية جديدة)`;
 }
 
 function accountsBlock(accounts: FundAccount[]): string[] {
@@ -35,7 +36,7 @@ function accountsBlock(accounts: FundAccount[]): string[] {
   return [
     "يمكن التحويل إلى:",
     ...accounts.map(
-      (a) => `• ${methodLabel(a.method as Method)}: ${a.accountNumber} (${a.holderName})`,
+      (a) => `• ${methodLabel(a.method as Method)}: ${ltr(a.accountNumber)} (${a.holderName})`,
     ),
   ];
 }
@@ -60,9 +61,9 @@ export function reminderText(
     `المبلغ: ${amount(a.amountOwed)}.`,
     ...accountsBlock(ctx.accounts),
     ctx.whatsappContact
-      ? `بعد التحويل أرسلوا صورة الإيصال إلى ${ctx.whatsappContact}.`
+      ? `بعد التحويل أرسلوا صورة الإيصال إلى ${ltr(ctx.whatsappContact)}.`
       : "بعد التحويل أرسلوا صورة الإيصال إلى هذا الرقم.",
-    ...(ctx.publicUrl ? [`حالة الرسوم الشهرية: ${ctx.publicUrl}`] : []),
+    ...(ctx.publicUrl ? [`حالة الرسوم الشهرية: ${ltr(ctx.publicUrl)}`] : []),
     "جزاكم الله خيراً.",
   ].join("\n");
 }
@@ -78,8 +79,8 @@ export function groupReminderText(ctx: ReminderContext & { lateCount: number }):
     `تذكير بالرسوم الشهرية في ${FUND}.`,
     ctx.lateCount > 0 ? `ما زال ${ctx.lateCount} من الأعضاء لم يسددوا كل الأشهر المستحقة.` : "",
     ...accountsBlock(ctx.accounts),
-    ctx.whatsappContact ? `أرسلوا صورة الإيصال إلى ${ctx.whatsappContact}.` : "",
-    ...(ctx.publicUrl ? [`تفاصيل كل عضو: ${ctx.publicUrl}`] : []),
+    ctx.whatsappContact ? `أرسلوا صورة الإيصال إلى ${ltr(ctx.whatsappContact)}.` : "",
+    ...(ctx.publicUrl ? [`تفاصيل كل عضو: ${ltr(ctx.publicUrl)}`] : []),
     "جزاكم الله خيراً.",
   ]
     .filter(Boolean)
