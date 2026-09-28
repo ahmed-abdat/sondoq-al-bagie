@@ -4,10 +4,7 @@ import { useActionState } from "react";
 import { login, type LoginState } from "./actions";
 
 export function LoginForm({ next }: { next?: string }) {
-  const [state, action, pending] = useActionState<LoginState, FormData>(
-    login,
-    {},
-  );
+  const [state, action, pending] = useActionState<LoginState, FormData>(login, {});
 
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -20,7 +17,7 @@ export function LoginForm({ next }: { next?: string }) {
           dir="ltr"
           autoComplete="email"
           required
-          className="h-12 rounded-xl border border-line bg-surface-2 px-3 text-base outline-none focus:border-primary"
+          className="border-line bg-surface-2 focus:border-primary h-12 rounded-xl border px-3 text-base outline-none"
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm font-medium">
@@ -31,18 +28,18 @@ export function LoginForm({ next }: { next?: string }) {
           dir="ltr"
           autoComplete="current-password"
           required
-          className="h-12 rounded-xl border border-line bg-surface-2 px-3 text-base outline-none focus:border-primary"
+          className="border-line bg-surface-2 focus:border-primary h-12 rounded-xl border px-3 text-base outline-none"
         />
       </label>
       {state.error && (
-        <p role="alert" className="rounded-xl bg-bad-soft px-3 py-2 text-sm text-bad">
+        <p role="alert" className="bg-bad-soft text-bad rounded-xl px-3 py-2 text-sm">
           {state.error}
         </p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="h-12 rounded-xl bg-primary text-base font-bold text-primary-ink disabled:opacity-60"
+        className="bg-primary text-primary-ink h-12 rounded-xl text-base font-bold disabled:opacity-60"
       >
         {pending ? "جارٍ الدخول…" : "دخول"}
       </button>

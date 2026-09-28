@@ -29,11 +29,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="ar"
-      dir="rtl"
-      className={`${body.variable} ${kufi.variable} h-full antialiased`}
-    >
+    <html lang="ar" dir="rtl" className={`${body.variable} ${kufi.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );

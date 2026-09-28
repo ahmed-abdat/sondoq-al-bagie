@@ -5,10 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type LoginState = { error?: string };
 
-export async function login(
-  _prev: LoginState,
-  formData: FormData,
-): Promise<LoginState> {
+export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const supabase = await createClient();
   if (!supabase) return { error: "الخادم غير مهيأ بعد (إعدادات Supabase)." };
 

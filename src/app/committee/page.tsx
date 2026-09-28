@@ -13,18 +13,18 @@ export default async function CommitteeHome() {
       <header className="flex items-center justify-between">
         <Brand subtitle="لوحة اللجنة" />
         <form action={logout}>
-          <button className="rounded-full border border-line bg-surface px-4 py-2 text-sm">
+          <button className="border-line bg-surface rounded-full border px-4 py-2 text-sm">
             خروج
           </button>
         </form>
       </header>
-      <section className="rounded-2xl border border-line bg-surface p-4">
-        <p className="text-sm text-muted">مرحباً</p>
+      <section className="border-line bg-surface rounded-2xl border p-4">
+        <p className="text-muted text-sm">مرحباً</p>
         <p dir="ltr" className="text-end font-medium">
           {user.email}
         </p>
       </section>
-      <section className="rounded-2xl border border-dashed border-line p-4 text-sm text-muted">
+      <section className="border-line text-muted rounded-2xl border border-dashed p-4 text-sm">
         تسجيل الدفعات وتأكيدها يأتي في المرحلة 2.
       </section>
     </main>
