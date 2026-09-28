@@ -295,7 +295,7 @@ select tests.ok(exists (select 1 from pg_publication_tables where pubname = 'sup
 /* ───────────── M2: fund accounts, contact, payment queue, undo ───────────── */
 
 select tests.login('admin');
-select tests.set('acc', public.add_fund_account('bankily', '2222 3333', 'صندوق البقيع', null, 1));
+select tests.set('acc', public.add_fund_account('bankily', '2222 3333', 'صندوق الشباب', null, 1));
 select tests.ok((select account_number from public.fund_accounts where id = tests.id('acc')) = '22223333', 'account number stored without spaces');
 select tests.throws($$select public.add_fund_account('bankily', '22223333', 'x')$$, 'account_exists', 'same active wallet number twice');
 select tests.throws($$select public.add_fund_account('cash', '22223333', 'x')$$, 'not_a_wallet', 'cash is not a wallet account');
