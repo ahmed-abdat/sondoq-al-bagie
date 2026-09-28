@@ -25,7 +25,7 @@ const ctx = {
       id: "a",
       method: "bankily" as const,
       accountNumber: "22000001",
-      holderName: "رابطة البقيع",
+      holderName: "رابطة الشباب",
       sortOrder: 1,
       active: true,
     },
@@ -46,7 +46,7 @@ describe("reminders", () => {
     expect(t).toContain("شهران");
     expect(t).toContain(`${formatNumber(2000)} أوقية (${formatNumber(200)} أوقية جديدة)`);
     expect(t).not.toContain("MRU");
-    expect(t).toContain(`بنكيلي: ${ltr("22000001")} (رابطة البقيع)`);
+    expect(t).toContain(`بنكيلي: ${ltr("22000001")} (رابطة الشباب)`);
     expect(t).toContain(ltr("+22200000000"));
   });
 
