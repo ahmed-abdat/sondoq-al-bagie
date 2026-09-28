@@ -465,16 +465,16 @@
   }
   .bq-rv {
     transition:
-      opacity 300ms var(--ease-out),
-      transform 300ms var(--ease-out);
+      opacity 240ms var(--ease-out),
+      transform 240ms var(--ease-out);
   }
   .bq-rv.in .bq-grow > span,
   .bq-rv.in .bq-grow .bq-mbar-f {
-    animation: bq-grow 700ms var(--ease-out) both;
+    animation: bq-grow 450ms var(--ease-out) both;
   }
   .bq-rv.in .bq-grow .bq-mbar-f {
     animation-name: bq-grow-y;
-    animation-delay: calc(var(--i, 0) * 30ms);
+    animation-delay: calc(var(--i, 0) * 20ms);
   }
 
   /* ───── search ───── */
@@ -2315,11 +2315,11 @@
 }
 ::view-transition-new(.tab-fwd) {
   --vt-from: -20px;
-  animation: bq-vt-in 260ms var(--ease-out) both;
+  animation: bq-vt-in 220ms var(--ease-out) both;
 }
 ::view-transition-new(.tab-back) {
   --vt-from: 20px;
-  animation: bq-vt-in 260ms var(--ease-out) both;
+  animation: bq-vt-in 220ms var(--ease-out) both;
 }
 /* the nav and the balance panel stay live so the pill slides for real */
 ::view-transition-group(bq-bnav),
@@ -2410,7 +2410,7 @@
   .bq-sheet {
     transform: none;
     opacity: 0;
-    transition: opacity 200ms linear;
+    transition: opacity 200ms var(--ease-out);
   }
   .bq-sheet-wrap[data-open="true"] .bq-sheet {
     opacity: 1;
@@ -2419,7 +2419,7 @@
   .bq-compact {
     transform: none;
     opacity: 0;
-    transition: opacity 200ms linear;
+    transition: opacity 200ms var(--ease-out);
   }
   .bq-compact.is-on {
     opacity: 1;

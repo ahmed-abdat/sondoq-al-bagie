@@ -464,7 +464,7 @@ The one green field. Brand row (48px logo with gold ring, «صندوق البق�
 ### Navigation
 - **Bottom bar (below 1024px):** fixed, 64px plus safe-area inset, white, Nav-edge shadow, no line. Five equal items in this order: «الرئيسية», «الأعضاء», «الحسابات», «التبرعات», «اللجنة» (lock icon). Each is a 24px line icon over a 14px label; inactive Slate, active Forest Deep with a 700 label. A single 60×32 Green Tint pill slides between items (translateX, 240ms ease-out). Committee badge: 20px Forest circle with a 2px white ring.
 - **Rail (1024px and up):** same five items, 96×76 each, 104px wide, logo at the top, the pill slides vertically.
-- Tab change uses a View Transition: the old page fades out in 160ms, the new page fades in and slides 20px in reading direction over 260ms; the nav and the aside are excluded so the pill slides live. Fallback: 180ms fade and 6px rise.
+- Tab change uses a View Transition: the old page fades out in 160ms, the new page fades in and slides 20px in reading direction over 220ms; the nav and the aside are excluded so the pill slides live. Fallback: 180ms fade and 6px rise.
 
 ### Buttons
 - **Shape:** full pill, 48px tall (56px full-width for the one primary per screen, 52px in slips).
@@ -503,7 +503,7 @@ The real wallet logo (Bankily, Masrvi, Sedad) on a white tile, radius 28% of its
 - **Campaign bar:** 6px Gold Track with a Logo Gold fill (slim row) or the standard 12px track with the percentage beside it (التبرعات).
 - **Month rail:** 58px-wide snapping buttons with a 30×140 pill track; fill scales on Y. Current month's track is Green Tint, the selected bar is Forest Deep with a white-then-Forest ring, future months Pebble. Selecting a month updates the figure above it («ما جُمع كل شهر»).
 - **Expense stack:** one 18px bar split by category, largest first, in the green steps Forest, Association Green, Logo Green, then Pebble, with 4px gaps; rounded only at the outer ends; the category list below repeats each colour as a 14px swatch.
-- Bars grow once when their section is revealed (700ms ease-out; month bars stagger 30ms).
+- Bars grow once when their section is revealed (450ms ease-out; month bars stagger 20ms).
 
 ### Member Sheet
 Bottom sheet, Paper, 28px top corners, max 600px wide and 92dvh tall, 5px Pebble handle, 44px close button. Opens with the avatar morphing from the row (View Transition, 320ms drawer curve), sheet in 320ms / out 220ms, scrim `rgba(10,30,18,.42)`. Drag to dismiss with velocity and a rubber-band pull-up. Content: name as Title, number and group, «دفع رسوم 8 من 9 أشهر مستحقة», a status line (icon + words, e.g. «متأخر عن رسوم شهرين: يوليو–أغسطس»), then twelve month cells in a 3-column grid, month names in words: paid (Association Green, white, check «مدفوع»), paid ahead (Green Tint, «مدفوع مسبقًا»), owed (hatched Stone/Mist, clock «متأخر»), not yet (Mist, «لم يحن»). Amount owed appears only for the committee when the switch is on; otherwise «لا تُعرض المبالغ هنا».
@@ -527,7 +527,7 @@ Committee settings: a Green Wash 20px-radius row, 64px minimum, title plus one p
 Reached from a receipt's code. Brand row, then one Green Wash (or Mist for void / not found / pending) 24px card with a 64px circular icon (Association Green check; Reject Tint ban for void; Stone search/clock otherwise), a 28px verdict («وصل صحيح», «أُلغي هذا الوصل», «لم يُؤكَّد هذا الوصل بعد», «لم نجد هذا الوصل»), a one-line explanation, then the facts grid and a privacy note. A single full-width soft button returns.
 
 ### Motion (all components)
-One vocabulary: ease-out `cubic-bezier(0.23,1,0.32,1)`, drawer `cubic-bezier(0.32,0.72,0,1)`, and a spring (linear() curve) used only for press release. UI transitions 150–250ms (the nav pill 240ms); sheets 320ms in / 220ms out. Only transform, opacity, clip-path and filter animate; never width, never `transition: all`, never ease-in. Sections below the fold reveal once (opacity + 12px, 300ms) and are visible by default if JS or IntersectionObserver is missing. Numbers roll over 600ms. Reduced motion: animations become near-instant, transitions shorten to 160ms fades, the sheet and compact bar fade instead of sliding, view transitions are off, and the press scale is removed.
+One vocabulary: ease-out `cubic-bezier(0.23,1,0.32,1)`, drawer `cubic-bezier(0.32,0.72,0,1)`, and a spring (linear() curve) used only for press release. UI transitions 150–250ms (the nav pill 240ms); sheets 320ms in / 220ms out. Only transform, opacity, clip-path and filter animate; never width, never `transition: all`, never ease-in. Sections below the fold reveal once (opacity + 12px, 240ms) and are visible by default if JS or IntersectionObserver is missing. Numbers roll over 600ms. Reduced motion: animations become near-instant, transitions shorten to 160ms fades, the sheet and compact bar fade instead of sliding, view transitions are off, and the press scale is removed.
 
 ## Do's and Don'ts
 
