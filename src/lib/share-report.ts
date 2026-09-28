@@ -52,7 +52,7 @@ export function reportUrl(origin: string): string {
 }
 
 export function reportFileName(year: number, month: number): string {
-  return `ملخص-صندوق-البقيع-${year}-${String(month).padStart(2, "0")}.png`;
+  return `ملخص-صندوق-الشباب-${year}-${String(month).padStart(2, "0")}.png`;
 }
 
 export function reportShareText(d: ReportSummaryData, url: string): string {

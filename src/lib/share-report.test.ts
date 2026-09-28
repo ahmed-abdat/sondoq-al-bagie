@@ -32,7 +32,7 @@ const D: ReportSummaryData = {
 it("paidLine / url / file name", () => {
   expect(paidLine(D)).toBe(`38 من 70 دفعوا رسوم ${monthName(9)}`);
   expect(reportUrl("https://x.app/")).toBe("https://x.app/report");
-  expect(reportFileName(2026, 9)).toBe("ملخص-صندوق-البقيع-2026-09.png");
+  expect(reportFileName(2026, 9)).toBe("ملخص-صندوق-الشباب-2026-09.png");
 });
 
 describe("monthBars", () => {
