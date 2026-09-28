@@ -59,6 +59,21 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
   `BQ-DEMO-0001…` open a sample receipt on /r. OCR stays real (on the phone).
 - Outside demo, the committee session is always the real signed-in one, even with fixtures.
 
+## Member management (round 3)
+- Two lists, each numbered from 1, shown as «A-12» / «B-12» (`memberCode`, avatars, rows,
+  search accepts «A-12», «b12», «ب 12»). Fixtures: A 1–21, B 1–70 (91 people, one exempt, one
+  left, one deceased).
+- /committee → «الأعضاء» (admin/treasurer/deputy): search, list and state filters, «إضافة عضو»
+  (list, next free number, name, optional phone, first month → `addMember`), member sheet with
+  «تعديل البيانات» (`updateMember`), «تغيير الحالة» (نشط/معفى/غادر/متوفى, from month, reason,
+  calm confirmation for غادر/متوفى → `changeMemberStatus`) and «نقل إلى الفئة …».
+- Public lists hide غادر/متوفى; معفى shows «معفى» with no owed months; «X من N» counts active only.
+- Record payment: one transfer can also carry a campaign contribution (months + campaign
+  allocations in one `recordPayment`). The record sheet lists active members only.
+- TODO(lane-a): `getMembersAdmin()` (phone, note) — real mode maps `getMembers()` with no phone;
+  `changeMemberGroup` with the new list number — the move currently rides on
+  `changeMemberStatus({ groupCode })` and keeps the number.
+
 ## Remaining / next
 1. Lane B: `PERSIST_MAX_AGE` (30 days) is used as `gcTime`; it exceeds setTimeout's 2^31 ms, so
    queries without observers are garbage-collected immediately. Use `gcTime: Infinity` (or ≤ 24
