@@ -1,11 +1,11 @@
 "use client";
 import { toWesternDigits } from "@/lib/money";
 // Committee «الأعضاء»: find a member, add one, edit details, change state, move between lists.
-// Two lists, each numbered from 1 (A-12, B-12). States: نشط · معفى · غادر · متوفى.
+// Two lists, each numbered from 1 (A-12, B-12). States: نشط · معفى · غادر.
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import { MEMBER_STATUSES, type MemberAdmin, type SettableStatus } from "@/lib/data/types";
+import { type MemberAdmin, type SettableStatus } from "@/lib/data/types";
 import { useAct, useDemoState } from "./act";
 import { Avatar, StatusTag } from "./bits";
 import {
@@ -16,6 +16,7 @@ import {
   MONTHS,
   nextFreeNumber,
   searchMembers,
+  STATE_CHOICES,
   STATE_LABEL,
 } from "./derive";
 import { I } from "./icons";
@@ -25,7 +26,7 @@ import { Sheet } from "./sheet";
 import { useSnack } from "./shell";
 
 type State = SettableStatus;
-const STATES = MEMBER_STATUSES;
+const STATES = STATE_CHOICES;
 const LISTS = ["A", "B"] as const;
 
 /** "YYYY-MM" (month input) → "YYYY-MM-01" (action input). */
@@ -392,7 +393,7 @@ export function MemberAdminBody({
                 disabled={!state || !reason.trim() || busy || !online}
                 aria-describedby="bq-state-need"
                 onClick={() => {
-                  if (state === "left" || state === "deceased") return setConfirming(true);
+                  if (state === "left") return setConfirming(true);
                   void run(
                     () =>
                       changeMemberStatus({
@@ -422,7 +423,7 @@ export function MemberAdminBody({
 
       {mode === "state" && confirming && state && (
         <div className="bq-rej bq-small-top">
-          <p className="bq-rej-l">{state === "deceased" ? "رحمه الله." : "تأكيد المغادرة"}</p>
+          <p className="bq-rej-l">تأكيد المغادرة</p>
           <p className="bq-lead">
             لن تُحسب على {m.fullName} رسوم من {ymLabel(from)}، ولن يظهر في قوائم الأعضاء العامة.
             يبقى سجلّه ودفعاته السابقة كما هي.
@@ -593,7 +594,7 @@ export function MembersAdmin({
               k: "gone",
               l: (
                 <>
-                  غادروا أو توفوا <Num className="bq-seg-n">{count("gone")}</Num>
+                  غادروا <Num className="bq-seg-n">{count("gone")}</Num>
                 </>
               ),
             },

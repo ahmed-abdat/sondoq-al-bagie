@@ -83,7 +83,7 @@ type Raw = {
 const STATUS: Record<string, MembershipStatus> = {
   "A-5": "exempt",
   "B-33": "left",
-  "B-60": "deceased",
+  "B-60": "left",
 };
 const RAW: Raw[] = Array.from({ length: 91 }, (_, i) => {
   const r = seeded(i + 3);
