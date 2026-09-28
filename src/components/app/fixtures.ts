@@ -480,6 +480,7 @@ export const fxSession = (): CommitteeSession => ({
   displayName: "سيدي محمد",
   role: "treasurer",
   memberId: null,
+  canConfirm: true,
 });
 
 const omitLabel = <T extends { statusLabel: string }>(m: T): Omit<T, "statusLabel"> => {

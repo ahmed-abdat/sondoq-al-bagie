@@ -3,7 +3,10 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { isProofPath } from "./proof";
 import * as read from "./read";
-import type { CommitteeSession } from "./types";
+import type { CommitteeRole, CommitteeSession } from "./types";
+
+/** Same rule as app_private.can_confirm() in the database. */
+const CONFIRMERS: readonly CommitteeRole[] = ["admin", "treasurer", "deputy"];
 
 /**
  * Signed-in, active committee member, or null. Deduplicated per request. Use it in committee
@@ -28,6 +31,7 @@ export const getCommitteeSession = cache(async (): Promise<CommitteeSession | nu
     displayName: data.display_name,
     role: data.role,
     memberId: data.member_id,
+    canConfirm: CONFIRMERS.includes(data.role),
   };
 });
 
