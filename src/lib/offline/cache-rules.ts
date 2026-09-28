@@ -13,6 +13,7 @@ export const PUBLIC_VIEWS = [
   "activity_feed",
   "fund_accounts_public",
   "fund_info",
+  "campaign_contributions",
 ] as const;
 
 /**
