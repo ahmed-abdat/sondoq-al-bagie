@@ -208,6 +208,20 @@ export function CommitteeView({
             />
           )}
           <MenuRow
+            href="/report"
+            icon={I.book(22)}
+            title="تقرير الصندوق"
+            sub="للطباعة أو المشاركة في مجموعة الواتساب"
+          />
+          {canManage && (
+            <MenuRow
+              href="/committee/export"
+              icon={I.save(22)}
+              title="تصدير البيانات"
+              sub="ملفات Excel للأعضاء والدفعات والمصاريف"
+            />
+          )}
+          <MenuRow
             href="/committee/settings"
             icon={I.lock(22)}
             title="الإعدادات"
@@ -368,6 +382,36 @@ export function CampaignsPage({ campaigns: server }: { campaigns: CampaignProgre
           <CampaignFormBody campaign={sheet.c} onDone={done} />
         </Sheet>
       )}
+    </>
+  );
+}
+
+const EXPORTS = [
+  { file: "members", title: "الأعضاء", sub: "الرقم، الاسم، المجموعة، الحالة، الأشهر" },
+  { file: "payments", title: "الدفعات", sub: "كل دفعة مع حالتها ومن أكّدها" },
+  { file: "expenses", title: "المصاريف", sub: "التاريخ، البيان، النشاط، المبلغ" },
+] as const;
+
+export function ExportPage() {
+  return (
+    <>
+      <SubHead title="تصدير البيانات" lead="ملفات CSV تُفتح في Excel أو Google Sheets." />
+      <section className="bq-sec bq-sec-first">
+        <ul className="bq-list bq-menu">
+          {EXPORTS.map((x) => (
+            <li key={x.file}>
+              <a href={`/api/export/${x.file}.csv`} className="bq-row bq-press" download>
+                <span className="bq-disc">{I.save(22)}</span>
+                <span className="bq-row-m">
+                  <span className="bq-row-t">{x.title}</span>
+                  <span className="bq-row-s">{x.sub}</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p className="bq-hint bq-small-top">الملفات للجنة فقط، لأنها قد تحوي أرقام الهواتف.</p>
+      </section>
     </>
   );
 }

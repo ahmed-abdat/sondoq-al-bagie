@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import type {
   ExpenseCategory,
@@ -15,6 +16,7 @@ import { EntryRow } from "../entry-row";
 const EntrySheetBody = dynamic(() => import("../entries").then((m) => m.EntrySheetBody), {
   ssr: false,
 });
+import { I } from "../icons";
 import { MonthRail } from "../month-rail";
 import { Num, Roll } from "../num";
 import { PayTo } from "../pay-to";
@@ -146,6 +148,9 @@ export function AccountsView({
           </div>
         </dl>
         <p className="bq-hint">تبرعات الحملات تُحفظ في حسابها الخاص، ولا تدخل هنا.</p>
+        <Link href="/report" className="bq-link bq-press">
+          تقرير كامل للطباعة والمشاركة {I.go(18)}
+        </Link>
       </section>
 
       <section className="bq-sec bq-rv" id="bq-pay" data-rv="acc-pay" aria-labelledby="bq-pay-h">
