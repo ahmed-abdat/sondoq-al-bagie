@@ -282,6 +282,7 @@ const demo: Partial<Actions> = {
               ...s.handover,
               status: "submitted",
               submittedAt: now(),
+              startedByName: "أمين الصندوق السابق",
               submittedByName: "أمين الصندوق السابق",
             },
           }

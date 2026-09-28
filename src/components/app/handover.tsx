@@ -153,7 +153,17 @@ export function HandoverView({
     );
 
   if (h.status === "submitted")
-    return <Submitted h={h} termNumber={termNumber} me={me} run={run} busy={busy} err={err} />;
+    return (
+      <Submitted
+        h={h}
+        balance={balance}
+        termNumber={termNumber}
+        me={me}
+        run={run}
+        busy={busy}
+        err={err}
+      />
+    );
 
   // confirmed
   const next = h.toTerm ?? termNumber;
@@ -446,6 +456,7 @@ function Draft({
 
 function Submitted({
   h,
+  balance,
   termNumber,
   me,
   run,
@@ -453,6 +464,7 @@ function Submitted({
   err,
 }: {
   h: Handover;
+  balance: number;
   termNumber: number;
   me: { name: string; admin: boolean };
   run: RunFn;
@@ -477,7 +489,7 @@ function Submitted({
           {h.submittedAt ? ` يوم ${dayDate(h.submittedAt)}` : ""}.
         </p>
       </div>
-      <Summary h={h} computed={h.computedBalance ?? h.liveBalance} />
+      <Summary h={h} computed={h.computedBalance ?? (h.liveBalance || balance)} />
       {err && (
         <p className="bq-alert" role="alert">
           {err}
