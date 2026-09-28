@@ -6,7 +6,7 @@ import type { Client } from "./read";
 function fake(res: { data: unknown; error: unknown }) {
   const rpc = vi.fn(async () => res);
   const b: Record<string, unknown> = {};
-  for (const m of ["select", "eq", "order", "limit", "in", "neq"]) b[m] = () => b;
+  for (const m of ["select", "eq", "gt", "order", "limit", "in", "neq"]) b[m] = () => b;
   b.maybeSingle = async () => res;
   b.then = (ok: (v: unknown) => unknown) => Promise.resolve(res).then(ok);
   return { client: { from: () => b, rpc } as unknown as Client, rpc };

@@ -43,6 +43,22 @@ export async function members(c: Client) {
   );
 }
 
+/**
+ * Public late list, most months behind first. `amountOwed` stays null unless the admin turned
+ * on settings.show_amount_owed (the database decides).
+ */
+export async function lateMembers(c: Client) {
+  return many(
+    "member_status",
+    await c
+      .from("member_status")
+      .select("*")
+      .gt("months_behind", 0)
+      .order("months_behind", { ascending: false })
+      .order("number"),
+  ).map(map.toMemberStatus);
+}
+
 /** Month grid of every member for one year (default: this year). */
 export async function memberMonths(c: Client, year: number = thisYear()) {
   return many(
@@ -161,7 +177,12 @@ export async function paymentById(c: Client, id: string) {
 export async function arrears(c: Client) {
   return many(
     "arrears",
-    await c.from("arrears").select("*").order("months_count", { ascending: false }).order("number"),
+    await c
+      .from("arrears")
+      .select("*")
+      .order("months_count", { ascending: false })
+      .order("amount_owed", { ascending: false })
+      .order("number"),
   ).map(map.toArrear);
 }
 

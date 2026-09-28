@@ -22,6 +22,11 @@ export const publicQueries = {
       queryKey: [PUBLIC_KEY, "member_status"],
       queryFn: () => read.members(client()),
     }),
+  lateMembers: () =>
+    queryOptions({
+      queryKey: [PUBLIC_KEY, "late_members"],
+      queryFn: () => read.lateMembers(client()),
+    }),
   memberMonths: (year: number) =>
     queryOptions({
       queryKey: [PUBLIC_KEY, "member_months", year],
