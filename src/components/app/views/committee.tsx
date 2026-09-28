@@ -2,13 +2,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { logout } from "@/app/login/actions";
 import { usePaymentsRealtime } from "@/lib/data/realtime";
 import type {
   Arrear,
   CampaignProgress,
   ExpenseAdmin,
   FundAccount,
+  MemberAdmin,
   MemberStatus,
   PendingPayment,
 } from "@/lib/data/types";
@@ -25,6 +25,9 @@ import { Receipt } from "../receipt";
 import type { ReceiptView } from "../receipt-model";
 import { RecordBody } from "../record";
 import { Sheet } from "../sheet";
+import { useDemoState } from "../act";
+import { LogoutButton } from "../logout";
+import { MembersAdmin } from "../members-admin";
 import { useSnack } from "../shell";
 import { PendingSlip } from "../slip";
 
@@ -36,16 +39,18 @@ export function CommitteeLive() {
 }
 
 export function CommitteeView({
-  pending,
+  pending: serverPending,
   me,
   members,
   ctx,
   accounts,
   whatsapp,
   arrears,
-  expenses,
-  campaigns,
+  expenses: serverExpenses,
+  campaigns: serverCampaigns,
   canCampaign,
+  membersAdmin,
+  thisMonth,
 }: {
   pending: PendingPayment[];
   me: { by: string; role: string };
@@ -56,16 +61,28 @@ export function CommitteeView({
   arrears: Arrear[];
   expenses: ExpenseAdmin[];
   campaigns: CampaignProgress[];
-  /** admin, treasurer, deputy */
+  /** admin, treasurer, deputy: campaigns and member management */
   canCampaign: boolean;
+  membersAdmin: MemberAdmin[];
+  /** "YYYY-MM" */
+  thisMonth: string;
 }) {
-  const [part, setPart] = useState<"pay" | "late" | "exp" | "camp">("pay");
+  const [part, setPart] = useState<"pay" | "late" | "exp" | "camp" | "mem">("pay");
+  // demo mode: local additions/changes (empty otherwise)
+  const demo = useDemoState();
+  const pending = [...serverPending, ...demo.pending];
+  const expenses = [...demo.expenses, ...serverExpenses];
+  const campaigns = [...demo.campaigns, ...serverCampaigns].map((c) => ({
+    ...c,
+    ...demo.campaignPatch[c.campaignId],
+  }));
   const say = useSnack();
   // keep decided slips on screen (collapsed) after the server list drops them
   const [seen, setSeen] = useState(pending);
   const fresh = pending.filter((p) => !seen.some((s) => s.id === p.id));
   if (fresh.length) setSeen([...seen, ...fresh]);
-  const waiting = pending.length;
+  const [decided, setDecided] = useState<Set<string>>(new Set());
+  const waiting = pending.filter((p) => !decided.has(p.id)).length;
   const [sheet, setSheet] = useState<
     | { t: "record" }
     | { t: "receipt"; r: ReceiptView }
@@ -101,11 +118,7 @@ export function CommitteeView({
           <Link href="/committee/settings" className="bq-link bq-link-s bq-press">
             الإعدادات
           </Link>
-          <form action={logout}>
-            <button type="submit" className="bq-link bq-link-s bq-press">
-              خروج
-            </button>
-          </form>
+          <LogoutButton className="bq-link bq-link-s bq-press">خروج</LogoutButton>
         </span>
       </div>
 
@@ -131,7 +144,12 @@ export function CommitteeView({
             ),
           },
           { k: "exp", l: "المصاريف" },
-          ...(canCampaign ? [{ k: "camp" as const, l: "الحملات" }] : []),
+          ...(canCampaign
+            ? [
+                { k: "mem" as const, l: "الأعضاء" },
+                { k: "camp" as const, l: "الحملات" },
+              ]
+            : []),
         ]}
       />
 
@@ -140,7 +158,19 @@ export function CommitteeView({
           <ul className="bq-queue">
             {seen.map((p) => (
               <li key={p.id}>
-                <PendingSlip p={p} me={me} onFull={(r) => setSheet({ t: "receipt", r })} />
+                <PendingSlip
+                  p={p}
+                  me={me}
+                  onFull={(r) => setSheet({ t: "receipt", r })}
+                  onDecided={(d) =>
+                    setDecided((x) => {
+                      const n = new Set(x);
+                      if (d) n.add(p.id);
+                      else n.delete(p.id);
+                      return n;
+                    })
+                  }
+                />
               </li>
             ))}
           </ul>
@@ -199,6 +229,12 @@ export function CommitteeView({
         </section>
       )}
 
+      {part === "mem" && canCampaign && (
+        <section className="bq-sec bq-sec-first" aria-label="إدارة الأعضاء">
+          <MembersAdmin members={membersAdmin} prices={ctx.prices} thisMonth={thisMonth} />
+        </section>
+      )}
+
       {part === "camp" && canCampaign && (
         <section className="bq-sec bq-sec-first" aria-label="الحملات">
           <button
@@ -231,7 +267,13 @@ export function CommitteeView({
 
       {sheet?.t === "record" && (
         <Sheet key="record" label="سجّل دفعة" onDone={() => setSheet(null)}>
-          <RecordBody members={members} ctx={ctx} accounts={accounts} onDone={doneSay} />
+          <RecordBody
+            members={members}
+            ctx={ctx}
+            accounts={accounts}
+            campaigns={campaigns}
+            onDone={doneSay}
+          />
         </Sheet>
       )}
       {sheet?.t === "expense" && (

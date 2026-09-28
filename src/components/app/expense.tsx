@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
-import { cancelExpense, recordExpense, uploadProof } from "@/lib/data/actions";
+import { useAct } from "./act";
 import type { CampaignProgress, ExpenseAdmin, ExpenseCategory } from "@/lib/data/types";
 import { todayIso } from "@/lib/dates";
 import { parseAmount } from "@/lib/money";
@@ -24,6 +24,7 @@ export function RecordExpenseBody({
 }) {
   const router = useRouter();
   const online = useOnline();
+  const { recordExpense, uploadProof } = useAct();
   const [cat, setCat] = useState<ExpenseCategory | null>(null);
   const [amountTxt, setAmountTxt] = useState("");
   const [note, setNote] = useState("");
@@ -192,6 +193,7 @@ export function ExpenseAdminList({
 }) {
   const router = useRouter();
   const online = useOnline();
+  const { cancelExpense } = useAct();
   const [open, setOpen] = useState<string | null>(null);
   const [pick, setPick] = useState("");
   const [other, setOther] = useState("");

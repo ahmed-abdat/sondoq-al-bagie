@@ -7,6 +7,8 @@ import type {
   CampaignContribution,
   CampaignProgress,
   CommitteeSession,
+  MemberAdmin,
+  MembershipStatus,
   Expense,
   ExpenseAdmin,
   ExpenseTotal,
@@ -65,24 +67,44 @@ function seeded(n: number) {
 const uuid = (prefix: string, n: number) =>
   `${prefix}0000000-0000-4000-8000-${String(n).padStart(12, "0")}`.slice(-36);
 
-type Raw = { id: string; no: number; name: string; group: "A" | "B"; paid: number[] };
-const RAW: Raw[] = Array.from({ length: 71 }, (_, i) => {
+type Raw = {
+  id: string;
+  no: number;
+  name: string;
+  group: "A" | "B";
+  paid: number[];
+  status: MembershipStatus;
+  phone: string | null;
+};
+// Two lists, each numbered from 1: A (1000) 1–21 and B (500) 1–70 — 91 people.
+const STATUS: Record<string, MembershipStatus> = {
+  "A-5": "exempt",
+  "B-33": "left",
+  "B-60": "deceased",
+};
+const RAW: Raw[] = Array.from({ length: 91 }, (_, i) => {
   const r = seeded(i + 3);
-  const no = i + 1;
+  const group: "A" | "B" = i < 21 ? "A" : "B";
+  const no = group === "A" ? i + 1 : i - 20;
+  const status = STATUS[`${group}-${no}`] ?? "active";
   // ~45% paid the whole year, ~38% nothing yet, the rest through May, June or August.
   const x = r();
   const upTo = x < 0.45 ? 12 : x < 0.83 ? 0 : [5, 6, 8][Math.floor(r() * 3)];
   return {
-    id: uuid("a", no),
+    id: uuid("a", i + 1),
     no,
     name: `${first[i % first.length]} ${last[Math.floor(i / first.length + r() * 3) % last.length]}`,
-    group: no <= 27 ? "A" : "B",
-    paid: Array.from({ length: upTo }, (_, k) => k + 1),
+    group,
+    paid: status === "active" ? Array.from({ length: upTo }, (_, k) => k + 1) : [],
+    status,
+    phone: i % 6 === 5 ? null : `22240${String(10000 + i).slice(1)}`.slice(0, 11),
   };
 });
 
 const owed = (m: Raw) =>
-  Array.from({ length: DUE }, (_, k) => k + 1).filter((k) => !m.paid.includes(k));
+  m.status !== "active"
+    ? []
+    : Array.from({ length: DUE }, (_, k) => k + 1).filter((k) => !m.paid.includes(k));
 
 export function fxMembers(showOwed = false): MemberStatus[] {
   return RAW.map((m) => ({
@@ -92,7 +114,7 @@ export function fxMembers(showOwed = false): MemberStatus[] {
     memberRef: `${m.group}-${m.no}`,
     fullName: m.name,
     groupCode: m.group,
-    status: "active",
+    status: m.status,
     monthsPaidThisYear: m.paid.length,
     monthsBehind: owed(m).length,
     statusLabel: owed(m).length ? "متأخر" : "منتظم",
@@ -106,16 +128,21 @@ export function fxMemberMonths(memberId?: string): MemberMonth[] {
       const month = k + 1;
       const state: MemberMonth["state"] = m.paid.includes(month)
         ? "paid"
-        : month <= DUE
-          ? "late"
-          : "upcoming";
+        : m.status !== "active"
+          ? "not_owed"
+          : month <= DUE
+            ? "late"
+            : "upcoming";
       return { memberId: m.id, year: YEAR, month, state };
     }),
   );
 }
 
 export function fxMonthly(): MonthlyCollection[] {
-  const expected = RAW.reduce((s, m) => s + FX_PRICE[m.group], 0);
+  const expected = RAW.filter((m) => m.status === "active").reduce(
+    (s, m) => s + FX_PRICE[m.group],
+    0,
+  );
   return Array.from({ length: 12 }, (_, k) => ({
     year: YEAR,
     month: k + 1,
@@ -292,6 +319,15 @@ const RECEIPTS: Rc[] = [
   },
 ];
 export function fxReceipt(code: string): VerifiedReceipt {
+  // demo mode confirms payments locally with BQ-DEMO-0001… codes: show them as a sample receipt
+  if (/^BQ-DEMO-\d{4}$/i.test(code.trim()))
+    return {
+      ...RECEIPTS[0],
+      code: code.trim().toUpperCase(),
+      receiptNo: "DEMO",
+      confirmedByName: "مستخدم تجريبي",
+      confirmedByRole: "admin",
+    };
   const r = RECEIPTS.find((x) => x.code.toUpperCase() === code.trim().toUpperCase());
   return r ?? { status: "not_found" };
 }
@@ -371,7 +407,7 @@ const pend = (
   covers: { no: number; months: number[] }[],
 ): PendingPayment => {
   const allocations = covers.flatMap((c) => {
-    const m = RAW[c.no - 1];
+    const m = RAW[c.no - 1]; // c.no = index + 1 in RAW
     return c.months.map((month) => ({
       kind: "months" as const,
       memberId: m.id,
@@ -432,7 +468,7 @@ export function fxArrears(): Arrear[] {
       number: m.no,
       memberRef: `${m.group}-${m.no}`,
       fullName: m.name,
-      phone: `2224${String(1000000 + m.no).slice(1)}`,
+      phone: m.phone,
       groupCode: m.group,
       status: "active",
       months: owed(m).map((k) => `${YEAR}-${String(k).padStart(2, "0")}`),
@@ -451,3 +487,18 @@ export const fxSession = (): CommitteeSession => ({
   role: "treasurer",
   memberId: null,
 });
+
+const omitLabel = <T extends { statusLabel: string }>(m: T): Omit<T, "statusLabel"> => {
+  const out: Partial<T> = { ...m };
+  delete out.statusLabel;
+  return out as Omit<T, "statusLabel">;
+};
+/** Committee member list (with phone). */
+export const fxMembersAdmin = (): MemberAdmin[] =>
+  fxMembers(true).map(({ amountOwed, ...rest }, i) => ({
+    ...omitLabel(rest),
+    phone: RAW[i].phone,
+    note: null,
+    amountOwed: amountOwed ?? 0,
+    joinedMonth: "2020-01-01",
+  }));

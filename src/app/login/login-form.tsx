@@ -2,12 +2,13 @@
 
 import { useActionState, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import { requestPasswordReset } from "@/lib/data/actions";
+import { useAct } from "@/components/app/act";
 import { login, type LoginState } from "./actions";
 
 export function LoginForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(login, {});
   const online = useOnline();
+  const { requestPasswordReset } = useAct();
   const [email, setEmail] = useState("");
   const [reset, setReset] = useState<"idle" | "sending" | "sent">("idle");
 

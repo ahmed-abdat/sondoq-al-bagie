@@ -3,12 +3,12 @@
 // message for the members' group (no names, no amounts). Each opened link is logged.
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { logReminder } from "@/lib/data/actions";
+import { useAct } from "./act";
 import { groupReminderText, reminderLink, type ReminderContext } from "@/lib/data/reminders";
 import type { Arrear } from "@/lib/data/types";
 import { waLink } from "@/lib/whatsapp";
 import { Avatar } from "./bits";
-import { fmt, monthsWord, remindedLabel } from "./derive";
+import { fmt, monthsWord, remindedLabel, memberCode } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
 
@@ -20,6 +20,7 @@ export function LateList({
   ctx: Omit<ReminderContext, "publicUrl">;
 }) {
   const router = useRouter();
+  const { logReminder } = useAct();
   // reminded just now (before the server list catches up)
   const [sent, setSent] = useState<Record<string, string>>({});
   const [groupAt, setGroupAt] = useState<string | null>(null);
@@ -71,7 +72,7 @@ export function LateList({
               return (
                 <li key={a.memberId}>
                   <div className="bq-row">
-                    <Avatar no={a.number} />
+                    <Avatar code={memberCode(a)} />
                     <span className="bq-row-m">
                       <span className="bq-row-t">{a.fullName}</span>
                       <span className="bq-row-s">

@@ -5,7 +5,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import { confirmPayment, rejectPayment } from "@/lib/data/actions";
+import { useAct } from "./act";
 import type { PendingPayment } from "@/lib/data/types";
 import { shareReceipt } from "@/lib/share-receipt";
 import { MethodBadge } from "./bits";
@@ -34,14 +34,18 @@ export function PendingSlip({
   p,
   me,
   onFull,
+  onDecided,
 }: {
   p: PendingPayment;
   /** who is deciding: name + role label */
   me: { by: string; role: string };
   onFull: (r: ReceiptView) => void;
+  /** true once decided here (for the waiting count), false after undo or a failed send */
+  onDecided?: (decided: boolean) => void;
 }) {
   const router = useRouter();
   const online = useOnline();
+  const { confirmPayment, rejectPayment } = useAct();
   const [st, setSt] = useState<St>({ s: "pending" });
   const [rejecting, setRejecting] = useState(false);
   const [pick, setPick] = useState("");
@@ -72,6 +76,7 @@ export function PendingSlip({
   }, []);
 
   const decide = (s: "confirmed" | "rejected", why?: string) => {
+    onDecided?.(true);
     const at = new Date().toISOString();
     setSt({ s, at, reason: why, sent: false });
     setCollapsed(false);
@@ -84,6 +89,7 @@ export function PendingSlip({
           : await rejectPayment({ id: p.id, reason: why ?? "" });
       if (!res.ok) {
         setSt({ s: "pending", error: res.message });
+        onDecided?.(false);
         return;
       }
       const d = res.data as
@@ -108,6 +114,7 @@ export function PendingSlip({
     }, UNDO_MS);
   };
   const undo = () => {
+    onDecided?.(false);
     if (timer.current !== null) clearTimeout(timer.current);
     timer.current = null;
     send.current = null;

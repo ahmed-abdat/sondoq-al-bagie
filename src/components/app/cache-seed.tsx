@@ -11,7 +11,13 @@ import type { FundSummary } from "@/lib/data/types";
  * The disabled observer keeps the entry alive: the shared gcTime (30 days) is past setTimeout's
  * limit, so an entry without observers is collected at once (Lane B follow-up).
  */
-export function PublicCacheSeed({ summary, fetchedAt }: { summary: FundSummary; fetchedAt: number }) {
+export function PublicCacheSeed({
+  summary,
+  fetchedAt,
+}: {
+  summary: FundSummary;
+  fetchedAt: number;
+}) {
   const qc = useQueryClient();
   useEffect(() => {
     const q = publicQueries.fundSummary();

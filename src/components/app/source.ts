@@ -5,11 +5,14 @@ import "server-only";
 import * as data from "@/lib/data";
 import type { ActivityItem, Expense } from "@/lib/data/types";
 import { categoryLabel, monthCount, relativeAgo } from "./derive";
+import { DEMO_USER, isDemo } from "./demo";
 import * as fx from "./fixtures";
 import { fromVerified } from "./receipt-model";
 import type { LedgerEntry } from "./types";
 
 export const usingFixtures = process.env.SONDOQ_FIXTURES === "1";
+/** Fixtures + committee writes simulated in the browser; never on production (see demo.ts). */
+export const demoMode = isDemo();
 const pick = <T>(fixture: () => T, real: () => Promise<T>): Promise<T> =>
   usingFixtures ? Promise.resolve(fixture()) : real();
 
@@ -21,7 +24,9 @@ export const thisYear = () => today().getUTCFullYear();
 export async function groupPrices(year = thisYear()): Promise<Record<string, number>> {
   if (usingFixtures) return fx.FX_PRICE;
   const rows = await data.getGroupPrices(year);
-  return Object.fromEntries(rows.filter((r) => r.year === year).map((r) => [r.group, r.monthlyAmount]));
+  return Object.fromEntries(
+    rows.filter((r) => r.year === year).map((r) => [r.group, r.monthlyAmount]),
+  );
 }
 
 /* ───────────── public ───────────── */
@@ -111,8 +116,14 @@ export async function ledger(): Promise<LedgerEntry[]> {
 }
 
 /* ───────────── committee (RLS decides; fixtures show a demo treasurer) ───────────── */
-export const committeeSession = () => pick(fx.fxSession, () => data.getCommitteeSession());
+/** Demo: a fake admin. Otherwise always the real signed-in session (even with fixtures). */
+export const committeeSession = () =>
+  demoMode
+    ? Promise.resolve({ ...fx.fxSession(), displayName: DEMO_USER, role: "admin" as const })
+    : data.getCommitteeSession();
 export const pendingPayments = () => pick(fx.fxPending, () => data.getPendingPayments());
 export const arrears = () => pick(fx.fxArrears, () => data.getArrears());
 export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFundAccountsAdmin());
+/** Committee member list: every member, any status, with phone and current group. */
+export const membersAdmin = () => pick(fx.fxMembersAdmin, () => data.getMembersAdmin());
 export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());

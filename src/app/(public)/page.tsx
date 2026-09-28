@@ -1,16 +1,18 @@
 import { memberCtx, heroData } from "@/components/app/page-data";
+import { isGone } from "@/components/app/derive";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { HomeView } from "@/components/app/views/home";
 import { MONTHS } from "@/components/app/derive";
 
 export default async function Home() {
-  const [hero, members, ctx, ledger, campaigns] = await Promise.all([
+  const [hero, members, ctx, ledger, campaigns, summary] = await Promise.all([
     heroData(),
     src.members(),
     memberCtx(),
     src.ledger(),
     src.campaigns(),
+    src.fundSummary(),
   ]);
   const month = src.today().getUTCMonth() + 1;
   const paid = new Set(
@@ -21,8 +23,9 @@ export default async function Home() {
     <Tab>
       <HomeView
         hero={hero}
-        members={members}
+        members={members.filter((m) => !isGone(m.status))}
         ctx={ctx}
+        activeCount={summary.membersActive}
         paidCount={members.filter((m) => m.status === "active" && paid.has(m.memberId)).length}
         monthName={MONTHS[month - 1]}
         ledger={ledger.slice(0, 3)}
