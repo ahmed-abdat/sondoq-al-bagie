@@ -34,5 +34,14 @@ export const getExpenseTotals = cached("expense_totals", read.expenseTotals, [])
 export const getRecentExpenses = cached("recent_expenses", read.recentExpenses, []);
 export const getCampaigns = cached("campaign_progress", read.campaigns, []);
 export const getActivity = cached("activity_feed", read.activity, []);
+export const getCampaignContributions = cached(
+  "campaign_contributions",
+  read.campaignContributions,
+  [],
+);
+/** Receipt check for /r/[code] (cached per code; a cancellation expires it). */
+export const getReceipt = cached("verify_receipt", read.verifyReceipt, {
+  status: "not_found",
+} as const);
 export const getFundAccounts = cached("fund_accounts_public", read.fundAccounts, []);
 export const getFundInfo = cached("fund_info", read.fundInfo, toFundInfo(null));

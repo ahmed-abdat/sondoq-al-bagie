@@ -132,8 +132,9 @@ select tests.ok((select count(*) from public.monthly_collection) > 0, 'anon read
 select tests.ok(not exists (
   select 1 from information_schema.columns
   where table_schema = 'public' and table_name in ('member_status','member_months','fund_summary','monthly_collection',
-        'expense_totals','recent_expenses','campaign_progress','activity_feed')
-    and column_name ~ '(phone|proof|txn|payer|receipt)'), 'public views expose no phone/proof/txn/payer columns');
+        'expense_totals','recent_expenses','campaign_progress','activity_feed','campaign_contributions',
+        'fund_accounts_public','fund_info')
+    and column_name ~ '(phone|proof|txn|payer|receipt_path)'), 'public views expose no phone/proof/txn/payer/receipt image columns');
 select tests.ok((select bool_and(amount_owed is null) from public.member_status), 'amount owed hidden by default');
 
 /* ───────────── committee reads, cannot write tables ───────────── */
@@ -356,5 +357,60 @@ select tests.ok((select count(*) from public.activity_feed where kind = 'payment
 select tests.login('deputy');
 select tests.ok((public.record_payment(gen_random_uuid(), 'دافع', 'cash', 1000, current_date,
   jsonb_build_array(tests.month('E', 0, 1000))) ->> 'status') = 'confirmed', 'the released month can be paid again');
+
+/* ───────────── M2: receipts ───────────── */
+
+select tests.login('treasurer');
+select tests.set('r1', public.record_payment(gen_random_uuid(), 'دافع الإيصال', 'masrvi', 1000, current_date,
+  jsonb_build_array(tests.month('K', 1, 1000))) ->> 'id');
+select tests.set('r2', public.record_payment(gen_random_uuid(), 'دافع ثان', 'cash', 1000, current_date,
+  jsonb_build_array(tests.month('K', 2, 1000))) ->> 'id');
+select tests.login('server');
+select tests.set('r1_code', (select receipt_code from public.payments where id = tests.id('r1')));
+select tests.ok(tests.get('r1_code') ~ '^BQ-[A-Z]{4}-[0-9]{4}$', 'confirmed payment gets a BQ-XXXX-NNNN code');
+select tests.ok((select p2.receipt_seq = p1.receipt_seq + 1 from public.payments p1, public.payments p2
+                 where p1.id = tests.id('r1') and p2.id = tests.id('r2')), 'receipt numbers are consecutive');
+select tests.ok(not exists (select 1 from public.payments where status = 'pending' and receipt_code is not null),
+  'pending payments have no receipt');
+select tests.throws($$update public.payments set receipt_code = 'BQ-AAAA-0000' where id = tests.id('r1')$$, 'stamp_once',
+  'a receipt code never changes');
+select tests.login('committee');
+select tests.ok((select receipt_no from public.payment_queue where id = tests.id('r1')) ~ '^[0-9]{4}-[0-9]{4}$',
+  'queue shows the receipt number');
+
+select tests.login('public');
+select tests.set('v', public.verify_receipt(lower(' ' || tests.get('r1_code') || ' ')));
+select tests.ok(tests.get('v')::jsonb ->> 'status' = 'valid', 'anon verifies a receipt (case/space-insensitive)');
+select tests.ok(tests.get('v')::jsonb -> 'members' -> 0 ->> 'number' = '1005', 'receipt lists the member number');
+select tests.ok(jsonb_array_length(tests.get('v')::jsonb -> 'members' -> 0 -> 'months') = 1, 'receipt lists the months');
+select tests.ok(not (tests.get('v')::jsonb ? 'phone') and not (tests.get('v')::jsonb ? 'proof_path'), 'no phone or proof on a receipt');
+select tests.ok(tests.get('v')::jsonb ->> 'confirmed_by_name' = 'الأمين', 'receipt names the confirmer');
+select tests.ok((select receipt_code from public.activity_feed where payment_id = tests.id('r1')) = tests.get('r1_code')
+  and (select amount from public.activity_feed where payment_id = tests.id('r1')) = 1000, 'feed shows amount and receipt code');
+select tests.ok(public.verify_receipt('BQ-ZZZZ-9999') ->> 'status' = 'not_found', 'unknown code → not_found');
+select tests.throws('select * from public.receipt_counters', '42501', 'anon cannot read receipt counters');
+select tests.login('treasurer');
+select public.cancel_payment(tests.id('r1'), 'خطأ في التسجيل');
+select tests.login('public');
+select tests.ok(public.verify_receipt(tests.get('r1_code')) ->> 'status' = 'cancelled', 'a cancelled payment verifies as cancelled');
+
+select tests.login('server');
+insert into public.campaigns (id, title, amount_mode) values ('00000000-0000-0000-0000-00000000c002', 'حملة اختبار', 'open');
+select tests.set('camp2', '00000000-0000-0000-0000-00000000c002'::uuid);
+select tests.login('treasurer');
+select public.record_payment(gen_random_uuid(), 'متبرع من الخارج', 'bankily', 2000, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('camp2'), 'member_id', null, 'amount', 2000)), 'TXN-C1234');
+select tests.login('public');
+select tests.ok((select contributor_name from public.campaign_contributions where campaign_id = tests.id('camp2')) = 'متبرع من الخارج'
+  and (select amount from public.campaign_contributions where campaign_id = tests.id('camp2')) = 2000,
+  'campaign contributions list the donor and amount');
+select tests.ok(public.verify_receipt((select receipt_code from public.activity_feed where amount = 2000 and kind = 'payment_confirmed' limit 1))
+  ->> 'txn_ref_last4' = '1234', 'receipt shows only the last 4 of the transaction number');
+
+select tests.login('server');
+select tests.ok((public.record_payment(gen_random_uuid(), 'سجل', 'paper', 1000, current_date,
+  jsonb_build_array(tests.month('K', 3, 1000))) ->> 'status') = 'confirmed', 'paper payment confirmed by the server');
+select tests.ok(not exists (select 1 from public.payments where method = 'paper' and receipt_code is not null),
+  'paper imports get no receipt');
 
 rollback;
