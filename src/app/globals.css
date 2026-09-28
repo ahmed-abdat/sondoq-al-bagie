@@ -3244,3 +3244,37 @@
     display: block;
   }
 }
+@layer components {
+  /* record payment: one card per member in the transfer */
+  .bq-rec-row {
+    padding: 12px 14px 6px;
+    border-radius: var(--r-lg);
+    background: var(--g0);
+    margin-block-end: 10px;
+  }
+  .bq-rec-row .bq-rec-who {
+    padding: 0;
+    background: none;
+  }
+  .bq-rec-row .bq-mstrip,
+  .bq-rec-row .bq-chips {
+    margin-block-start: 10px;
+  }
+  .bq-rec-add {
+    width: 100%;
+  }
+  .bq-rec-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 48px;
+    font-weight: 600;
+  }
+  .bq-rec-credit {
+    margin-block-start: 10px;
+  }
+  .bq-rec-k .bq-tag-inline {
+    margin-inline-start: 8px;
+  }
+}
