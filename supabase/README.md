@@ -21,6 +21,7 @@ and every change lands in `audit_log`.
 | `*_m6_group_prices.sql` | public `group_prices_public` (year, group, monthly fee) |
 | `*_m7_member_lists.sql` | two lists: `members.list_code` + unique (list, number), `member_ref` "A-12" in views and receipts; committee `members_admin`; active-only counts/arrears; `change_member_group`, `next_member_number`, renumbering |
 | `*_m7_settings_where.sql` | fix: `update_settings` targets the settings row with WHERE (Supabase API sessions load pg_safeupdate); `tests/local/run.sh` now fails on any UPDATE/DELETE without WHERE in functions |
+| `*_m8_terms_handover.sql` | committee terms (one open) and handover: `start/update/submit/accept/cancel_handover` (acceptor = another admin), `balance_adjustments` («فرق عند التسليم»), public `terms_public`, `fund_summary` + term/adjustments, committee `handovers_admin` |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the

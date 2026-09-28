@@ -217,6 +217,9 @@ export function fxSummary(): FundSummary {
     membersBehind: members.filter((m) => m.monthsBehind > 0).length,
     lastActivityAt: "2026-09-28T09:48:00Z",
     membersActive: members.length,
+    adjustments: 0,
+    termNumber: 1,
+    termStartedOn: "2026-01-01",
   };
 }
 

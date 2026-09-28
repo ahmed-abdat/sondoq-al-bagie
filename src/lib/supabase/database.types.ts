@@ -47,6 +47,36 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_adjustments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          handover_id: string | null
+          id: string
+          reason: string
+          term: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          handover_id?: string | null
+          id?: string
+          reason: string
+          term: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          handover_id?: string | null
+          id?: string
+          reason?: string
+          term?: number
+        }
+        Relationships: []
+      }
       campaign_participants: {
         Row: {
           campaign_id: string
@@ -319,6 +349,72 @@ export type Database = {
           created_at?: string
           id?: never
           name?: string
+        }
+        Relationships: []
+      }
+      handovers: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          carry_over: string[]
+          computed_balance: number | null
+          counted_balance: number | null
+          counted_lines: Json
+          difference: number | null
+          from_term: number
+          id: string
+          note: string | null
+          started_at: string
+          started_by: string | null
+          status: Database["public"]["Enums"]["handover_status"]
+          submitted_at: string | null
+          submitted_by: string | null
+          to_term: number | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          carry_over?: string[]
+          computed_balance?: number | null
+          counted_balance?: number | null
+          counted_lines?: Json
+          difference?: number | null
+          from_term: number
+          id?: string
+          note?: string | null
+          started_at?: string
+          started_by?: string | null
+          status?: Database["public"]["Enums"]["handover_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
+          to_term?: number | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          carry_over?: string[]
+          computed_balance?: number | null
+          counted_balance?: number | null
+          counted_lines?: Json
+          difference?: number | null
+          from_term?: number
+          id?: string
+          note?: string | null
+          started_at?: string
+          started_by?: string | null
+          status?: Database["public"]["Enums"]["handover_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
+          to_term?: number | null
         }
         Relationships: []
       }
@@ -739,6 +835,36 @@ export type Database = {
         }
         Relationships: []
       }
+      terms: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ended_on: string | null
+          number: number
+          opening_balance: number
+          started_on: string
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ended_on?: string | null
+          number: number
+          opening_balance: number
+          started_on: string
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ended_on?: string | null
+          number?: number
+          opening_balance?: number
+          started_on?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
       transfers: {
         Row: {
           amount: number
@@ -861,6 +987,7 @@ export type Database = {
       }
       fund_summary: {
         Row: {
+          adjustments: number | null
           balance: number | null
           collected_this_year: number | null
           last_activity_at: string | null
@@ -871,6 +998,8 @@ export type Database = {
           money_out: number | null
           opening_balance: number | null
           spent_this_year: number | null
+          term_number: number | null
+          term_started_on: string | null
           transfers_in: number | null
         }
         Relationships: []
@@ -881,6 +1010,30 @@ export type Database = {
           group_name: string | null
           monthly_amount: number | null
           year: number | null
+        }
+        Relationships: []
+      }
+      handovers_admin: {
+        Row: {
+          accepted_at: string | null
+          accepted_by_name: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          carry_over: string[] | null
+          computed_balance: number | null
+          counted_balance: number | null
+          counted_lines: Json | null
+          difference: number | null
+          from_term: number | null
+          id: string | null
+          live_balance: number | null
+          note: string | null
+          started_at: string | null
+          started_by_name: string | null
+          status: Database["public"]["Enums"]["handover_status"] | null
+          submitted_at: string | null
+          submitted_by_name: string | null
+          to_term: number | null
         }
         Relationships: []
       }
@@ -970,6 +1123,20 @@ export type Database = {
         }
         Relationships: []
       }
+      terms_public: {
+        Row: {
+          adjustment: number | null
+          closing_balance: number | null
+          collected: number | null
+          ended_on: string | null
+          number: number | null
+          opening_balance: number | null
+          spent: number | null
+          started_on: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
       recent_expenses: {
         Row: {
           amount: number | null
@@ -983,6 +1150,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_handover: {
+        Args: { p_id: string; p_new_term_title?: string }
+        Returns: number
+      }
       add_fund_account: {
         Args: {
           p_account_number: string
@@ -1010,6 +1181,7 @@ export type Database = {
         Args: { p_expense_id: string; p_reason: string }
         Returns: undefined
       }
+      cancel_handover: { Args: { p_id: string; p_reason: string }; Returns: undefined }
       cancel_payment: {
         Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
@@ -1108,6 +1280,8 @@ export type Database = {
         Args: { p_group_code: string; p_monthly_amount: number; p_year: number }
         Returns: undefined
       }
+      start_handover: { Args: { p_id: string; p_note?: string }; Returns: string }
+      submit_handover: { Args: { p_id: string }; Returns: undefined }
       undo_payment: { Args: { p_payment_id: string }; Returns: undefined }
       update_campaign: {
         Args: {
@@ -1126,6 +1300,15 @@ export type Database = {
           p_id: string
           p_note: string
           p_sort_order: number
+        }
+        Returns: undefined
+      }
+      update_handover_draft: {
+        Args: {
+          p_carry_over?: string[]
+          p_counted_lines: Json
+          p_id: string
+          p_note?: string
         }
         Returns: undefined
       }
@@ -1157,6 +1340,7 @@ export type Database = {
       campaign_status: "open" | "closed"
       committee_role: "admin" | "treasurer" | "deputy" | "committee"
       expense_category: "teaching" | "honoring" | "sports" | "other"
+      handover_status: "draft" | "submitted" | "confirmed" | "cancelled"
       membership_status: "active" | "exempt" | "away" | "left" | "deceased"
       payment_method:
         | "bankily"
@@ -1304,6 +1488,7 @@ export const Constants = {
       campaign_status: ["open", "closed"],
       committee_role: ["admin", "treasurer", "deputy", "committee"],
       expense_category: ["teaching", "honoring", "sports", "other"],
+      handover_status: ["draft", "submitted", "confirmed", "cancelled"],
       membership_status: ["active", "exempt", "away", "left", "deceased"],
       payment_method: [
         "bankily",

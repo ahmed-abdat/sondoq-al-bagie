@@ -19,6 +19,8 @@ export {
   getMonthlyCollection,
   getReceipt,
   getRecentExpenses,
+  getCurrentTerm,
+  getTerms,
 } from "./public";
 export {
   getArrears,
@@ -26,6 +28,8 @@ export {
   getCommitteeSession,
   getExpensesAdmin,
   getFundAccountsAdmin,
+  getHandover,
+  getHandovers,
   getPayment,
   getPendingPayments,
   getProofUrl,

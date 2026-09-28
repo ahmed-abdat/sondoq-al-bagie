@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  toHandover,
+  toTerm,
   toActivityItem,
   toFundInfo,
   toFundSummary,
@@ -163,5 +165,62 @@ describe("map", () => {
       fullName: "عضو",
       months: [{ year: 2026, month: 9 }],
     });
+  });
+
+  it("maps terms and handovers", () => {
+    expect(
+      toTerm({
+        number: 2,
+        title: null,
+        started_on: "2027-01-01",
+        ended_on: null,
+        opening_balance: 280000,
+        closing_balance: null,
+        collected: 1000,
+        spent: 0,
+        adjustment: 0,
+      }),
+    ).toMatchObject({ number: 2, title: "الدورة 2", endedOn: null, openingBalance: 280000 });
+    const h = toHandover({
+      id: "h",
+      from_term: 1,
+      to_term: null,
+      status: "submitted",
+      counted_lines: [{ label: "نقداً", method: "cash", account_id: null, amount: 700 }],
+      counted_balance: 700,
+      computed_balance: 1200,
+      difference: null,
+      carry_over: ["u1"],
+      note: null,
+      started_at: "2026-12-31T10:00:00Z",
+      started_by_name: "الأمين",
+      submitted_at: "2026-12-31T11:00:00Z",
+      submitted_by_name: "الأمين",
+      accepted_at: null,
+      accepted_by_name: null,
+      cancelled_at: null,
+      cancel_reason: null,
+      live_balance: 1200,
+    });
+    expect(h.countedLines).toEqual([
+      { label: "نقداً", method: "cash", accountId: null, amount: 700 },
+    ]);
+    expect(h).toMatchObject({ status: "submitted", liveBalance: 1200, carryOver: ["u1"] });
+  });
+
+  it("maps the handover difference in the activity feed", () => {
+    expect(
+      toActivityItem({
+        at: "2027-01-01T00:00:00Z",
+        kind: "balance_adjustment",
+        member_names: null,
+        months: null,
+        amount: -500,
+        category: null,
+        payment_id: null,
+        method: null,
+        receipt_code: null,
+      }),
+    ).toEqual({ kind: "balance_adjustment", at: "2027-01-01T00:00:00Z", amount: -500 });
   });
 });

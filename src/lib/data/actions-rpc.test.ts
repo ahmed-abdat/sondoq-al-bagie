@@ -168,6 +168,32 @@ const cases: Case[] = [
     { p_id: id, p_surplus_action: "to_fund" },
     true,
   ],
+  ["startHandover", () => a.startHandover({ id }), "start_handover", { p_id: id }, false],
+  [
+    "updateHandoverDraft",
+    () =>
+      a.updateHandoverDraft({
+        id,
+        countedLines: [{ label: "نقداً", method: "cash", amount: 7000 }],
+        carryOver: [member],
+      }),
+    "update_handover_draft",
+    {
+      p_id: id,
+      p_counted_lines: [{ label: "نقداً", method: "cash", account_id: null, amount: 7000 }],
+      p_carry_over: [member],
+    },
+    false,
+  ],
+  ["submitHandover", () => a.submitHandover({ id }), "submit_handover", { p_id: id }, false],
+  ["acceptHandover", () => a.acceptHandover({ id }), "accept_handover", { p_id: id }, true],
+  [
+    "cancelHandover",
+    () => a.cancelHandover({ id, reason: "خطأ" }),
+    "cancel_handover",
+    { p_id: id, p_reason: "خطأ" },
+    false,
+  ],
 ];
 
 describe("every RPC action", () => {

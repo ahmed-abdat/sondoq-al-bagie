@@ -48,6 +48,8 @@ export const getPayment = committee(read.paymentById, null);
 export const getMembersAdmin = committee(read.membersAdmin, []);
 export const getArrears = committee(read.arrears, []);
 export const getExpensesAdmin = committee(read.expensesAdmin, []);
+export const getHandovers = committee(read.handovers, []);
+export const getHandover = committee(read.handoverById, null);
 export const getFundAccountsAdmin = committee(read.fundAccountsAdmin, []);
 
 /** 5-minute signed link to a proof image, or null (not a committee member / missing file). */

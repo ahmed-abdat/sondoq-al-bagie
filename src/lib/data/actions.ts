@@ -264,6 +264,68 @@ export async function closeCampaign(input: s.CloseCampaignInput) {
   );
 }
 
+/* ───────────── handover («تسليم الصندوق») ───────────── */
+
+/** Outgoing admin/treasurer opens a draft for the current term (retries replay on the id). */
+export async function startHandover(input: s.StartHandoverInput) {
+  return run(
+    s.startHandoverSchema,
+    input,
+    (sb, p) => sb.rpc("start_handover", { p_id: p.id, p_note: p.note }),
+    { touchesPublic: false, result: (d) => d as string },
+  );
+}
+
+/** Save the counted money (cash + each wallet), who stays on the committee, and a note. */
+export async function updateHandoverDraft(input: s.UpdateHandoverDraftInput) {
+  return run(
+    s.updateHandoverDraftSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("update_handover_draft", {
+        p_id: p.id,
+        p_counted_lines: p.countedLines.map((l) => ({
+          label: l.label,
+          method: l.method ?? null,
+          account_id: l.accountId ?? null,
+          amount: l.amount,
+        })),
+        p_carry_over: p.carryOver,
+        p_note: p.note,
+      }),
+    { touchesPublic: false },
+  );
+}
+
+/** Outgoing side done; waits for the incoming admin. */
+export async function submitHandover(input: { id: string }) {
+  return run(s.paymentIdSchema, input, (sb, p) => sb.rpc("submit_handover", { p_id: p.id }), {
+    touchesPublic: false,
+  });
+}
+
+/**
+ * Incoming admin (not the one who started or submitted) accepts: closes the term, opens the next
+ * with the counted money, books any difference. Returns the new term number.
+ */
+export async function acceptHandover(input: s.AcceptHandoverInput) {
+  return run(
+    s.acceptHandoverSchema,
+    input,
+    (sb, p) => sb.rpc("accept_handover", { p_id: p.id, p_new_term_title: p.newTermTitle }),
+    { touchesPublic: true, result: (d) => Number(d) },
+  );
+}
+
+export async function cancelHandover(input: s.CancelHandoverInput) {
+  return run(
+    s.cancelHandoverSchema,
+    input,
+    (sb, p) => sb.rpc("cancel_handover", { p_id: p.id, p_reason: p.reason }),
+    { touchesPublic: false },
+  );
+}
+
 /* ───────────── admin ───────────── */
 
 export async function addMember(input: s.AddMemberInput) {

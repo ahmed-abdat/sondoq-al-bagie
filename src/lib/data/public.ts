@@ -45,5 +45,7 @@ export const getCampaignContributions = cached(
 export const getReceipt = cached("verify_receipt", read.verifyReceipt, {
   status: "not_found",
 } as const);
+export const getTerms = cached("terms", read.terms, []);
+export const getCurrentTerm = cached("current_term", read.currentTerm, null);
 export const getFundAccounts = cached("fund_accounts_public", read.fundAccounts, []);
 export const getFundInfo = cached("fund_info", read.fundInfo, toFundInfo(null));
