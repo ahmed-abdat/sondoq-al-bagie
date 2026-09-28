@@ -57,3 +57,12 @@ From then on the admin invites the other committee members from the app
 
 Only after the committee confirms the transcription: see "Import the paper sheets" in
 `supabase/README.md` (dry run first, then paste the generated SQL into the SQL Editor).
+
+## 7. Weekly backup
+
+`GET /api/backup` (Vercel cron, production only) writes every table to one JSON file in the
+private `backups` bucket (`<year>/<date>.json`) and keeps the latest 12. It needs, in Vercel
+(Production): `CRON_SECRET` (any long random string; Vercel sends it to crons) and
+`SUPABASE_SECRET_KEY`. To restore or read one: Storage → backups → download. Auth accounts are
+not in the file (recreate committee logins by invitation). Proof images stay in the `proofs`
+bucket and are not copied.

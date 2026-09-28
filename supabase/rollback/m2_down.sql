@@ -1,6 +1,8 @@
 -- Undo the M2 migrations (dev/branch only). Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- backups (m5)
+delete from storage.buckets where id = 'backups' and not exists (select 1 from storage.objects o where o.bucket_id = 'backups');
 -- receipts
 drop view if exists public.payment_queue;
 drop function if exists public.verify_receipt(text), app_private.issue_receipt(uuid), app_private.new_receipt_code();

@@ -4,7 +4,7 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import * as map from "./map";
-import type { ActivityItem, FundAccountAdmin } from "./types";
+import type { ActivityItem, ExpenseAdmin, FundAccountAdmin } from "./types";
 
 export type Client = SupabaseClient<Database>;
 
@@ -184,6 +184,31 @@ export async function arrears(c: Client) {
       .order("amount_owed", { ascending: false })
       .order("number"),
   ).map(map.toArrear);
+}
+
+/** All expenses (also cancelled), newest first, with the receipt image path. */
+export async function expensesAdmin(c: Client, limit = 100): Promise<ExpenseAdmin[]> {
+  const rows = many(
+    "expenses",
+    await c
+      .from("expenses")
+      .select("*")
+      .order("spent_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(limit),
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    spentOn: r.spent_on,
+    category: r.category,
+    amount: r.amount,
+    note: r.note,
+    campaignId: r.campaign_id,
+    receiptPath: r.receipt_path,
+    createdAt: r.created_at,
+    cancelledAt: r.cancelled_at,
+    cancelReason: r.cancel_reason,
+  }));
 }
 
 export async function fundAccountsAdmin(c: Client): Promise<FundAccountAdmin[]> {

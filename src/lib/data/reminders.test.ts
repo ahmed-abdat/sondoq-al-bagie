@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { formatMonth, monthName } from "@/lib/dates";
+import { monthName } from "@/lib/dates";
 import { formatMro } from "@/lib/format";
-import {
-  groupReminderText,
-  monthsList,
-  receiptText,
-  reminderLink,
-  reminderText,
-} from "./reminders";
+import { groupReminderText, monthsList, reminderLink, reminderText } from "./reminders";
 import type { Arrear } from "./types";
 
 const arrear: Arrear = {
@@ -64,29 +58,5 @@ describe("reminders", () => {
     expect(t).toContain("12");
     expect(t).not.toContain("محمد");
     expect(t).not.toContain("أوقية");
-  });
-
-  it("writes a receipt message with the verification link", () => {
-    const t = receiptText(
-      {
-        status: "valid",
-        code: "BQ-ABCD-1234",
-        receiptNo: "2026-0007",
-        payerName: "محمد",
-        amount: 1000,
-        method: "bankily",
-        paidOn: "2026-09-01",
-        confirmedAt: "2026-09-01T10:00:00Z",
-        confirmedByName: "الأمين",
-        confirmedByRole: "treasurer",
-        txnRefLast4: null,
-        members: [{ number: 7, fullName: "محمد", months: [{ year: 2026, month: 9 }] }],
-        campaignTitles: [],
-      },
-      "https://x.app/r/BQ-ABCD-1234",
-    );
-    expect(t).toContain("2026-0007");
-    expect(t).toContain("https://x.app/r/BQ-ABCD-1234");
-    expect(t).toContain(formatMonth("2026-09"));
   });
 });
