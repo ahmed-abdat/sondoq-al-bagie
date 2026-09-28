@@ -13,11 +13,12 @@ import {
   type ShareImageOptions,
   type ShareResult,
 } from "./canvas-share";
-import { monthName } from "./dates";
+import type { ReportData } from "./data/types";
+import { formatDay, monthName } from "./dates";
 import { formatNumber } from "./format";
 import { ASSOC_NAME, FUND_NAME } from "./share-receipt";
 
-/** Local shape until Lane A's ReportData lands (fund summary + monthly collection). */
+/** What the card draws. Build it from Lane A's ReportData with `reportSummary()`. */
 export interface ReportSummaryData {
   /** e.g. «الدورة 2026» or «2026 – 2027»; optional. */
   termLabel?: string | null;
@@ -42,9 +43,41 @@ export const REPORT_H = 1350;
 
 /* ─────────────── text & numbers (pure) ─────────────── */
 
+/**
+ * ReportData → card. «X من N» counts active members paid for the current month (as of
+ * `generatedAt`); for a past year's report, December.
+ */
+export function reportSummary(r: ReportData): ReportSummaryData {
+  const asOf = r.generatedAt;
+  const nowYear = Number(asOf.slice(0, 4));
+  const month = r.year < nowYear ? 12 : Number(asOf.slice(5, 7));
+  const active = r.members.filter((m) => m.status === "active");
+  const paid = active.filter((m) => {
+    const s = m.months[month - 1];
+    return s === "paid" || s === "prepaid";
+  });
+  return {
+    termLabel: r.term?.title ?? (r.summary.termNumber ? `الدورة ${r.summary.termNumber}` : null),
+    year: r.year,
+    balance: r.summary.balance,
+    collectedThisYear: r.summary.collectedThisYear,
+    spentThisYear: r.summary.spentThisYear,
+    paidCount: paid.length,
+    activeCount: active.length,
+    month,
+    months: r.monthly.map(({ month, expected, collected }) => ({ month, expected, collected })),
+    asOfLabel: formatDay(asOf, { year: true, weekday: true }),
+  };
+}
+
 export function paidLine(d: Pick<ReportSummaryData, "paidCount" | "activeCount" | "month">) {
   return `${d.paidCount} من ${d.activeCount} دفعوا رسوم ${monthName(d.month)}`;
 }
+
+/** The share functions take Lane A's ReportData as is (or an already-built card). */
+export type ReportSource = ReportData | ReportSummaryData;
+
+const toCard = (d: ReportSource): ReportSummaryData => ("summary" in d ? reportSummary(d) : d);
 
 /** Share page: `<origin>/report`. */
 export function reportUrl(origin: string): string {
@@ -55,7 +88,8 @@ export function reportFileName(year: number, month: number): string {
   return `ملخص-صندوق-الشباب-${year}-${String(month).padStart(2, "0")}.png`;
 }
 
-export function reportShareText(d: ReportSummaryData, url: string): string {
+export function reportShareText(src: ReportSource, url: string): string {
+  const d = toCard(src);
   return [
     `*ملخص ${FUND_NAME}*`,
     d.termLabel ?? ASSOC_NAME,
@@ -247,33 +281,38 @@ export function drawReportSummary(x: Ctx, d: ReportSummaryData, o: ReportDrawOpt
 /* ─────────────── browser ─────────────── */
 
 export async function renderReportSummaryPng(
-  d: ReportSummaryData,
+  d: ReportSource,
   url = reportUrl(location.origin),
 ): Promise<Blob> {
+  const card = toCard(d);
   const [fonts, logo] = await Promise.all([
     appFonts(),
     loadImage("/icons/icon-512.png").catch(() => null),
   ]);
   // Already 1080 px wide: draw at 1×.
-  return renderPng(REPORT_W, REPORT_H, 1, (ctx) => drawReportSummary(ctx, d, { url, fonts, logo }));
+  return renderPng(REPORT_W, REPORT_H, 1, (ctx) =>
+    drawReportSummary(ctx, card, { url, fonts, logo }),
+  );
 }
 
 export type { ShareResult };
 
 /** Share the summary card (share sheet with PNG + text; else WhatsApp text with the link). */
 export async function shareReportSummary(
-  d: ReportSummaryData,
+  d: ReportSource,
   url = reportUrl(location.origin),
   opts: ShareImageOptions = {},
 ): Promise<ShareResult> {
+  const card = toCard(d);
   return shareImage(
-    () => renderReportSummaryPng(d, url),
-    reportFileName(d.year, d.month),
-    reportShareText(d, url),
+    () => renderReportSummaryPng(card, url),
+    reportFileName(card.year, card.month),
+    reportShareText(card, url),
     opts,
   );
 }
 
-export async function saveReportSummaryPng(d: ReportSummaryData): Promise<void> {
-  downloadPng(await renderReportSummaryPng(d), reportFileName(d.year, d.month));
+export async function saveReportSummaryPng(d: ReportSource): Promise<void> {
+  const card = toCard(d);
+  downloadPng(await renderReportSummaryPng(card), reportFileName(card.year, card.month));
 }
