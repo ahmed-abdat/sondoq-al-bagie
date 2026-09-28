@@ -2,6 +2,21 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["cdg1"],
-  "git": { "deploymentEnabled": { "main": true, "*": false, "**": false } },
-  "crons": [{ "path": "/api/keepalive", "schedule": "17 6 * * *" }]
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "*": false,
+      "**": false
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/keepalive",
+      "schedule": "17 6 * * *"
+    },
+    {
+      "path": "/api/backup",
+      "schedule": "0 3 * * 0"
+    }
+  ]
 }
