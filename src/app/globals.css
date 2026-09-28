@@ -2457,7 +2457,8 @@
   }
   /* paper: perforated top & bottom via mask; the shadow lives on the parent so it follows it */
   .rc-shadow {
-    filter: drop-shadow(0 1px 1px rgba(16, 40, 24, 0.06)) drop-shadow(0 16px 28px rgba(16, 40, 24, 0.1));
+    filter: drop-shadow(0 1px 1px rgba(16, 40, 24, 0.06))
+      drop-shadow(0 16px 28px rgba(16, 40, 24, 0.1));
   }
   .rc-paper {
     position: relative;
@@ -2693,7 +2694,9 @@
     max-height: 80px;
     object-fit: cover;
     border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(16, 40, 24, 0.08), 0 6px 14px -6px rgba(16, 40, 24, 0.22);
+    box-shadow:
+      0 1px 2px rgba(16, 40, 24, 0.08),
+      0 6px 14px -6px rgba(16, 40, 24, 0.22);
     display: block;
   }
   .rc-proof-t {
@@ -2990,5 +2993,18 @@
   .rc-stamp.is-press .rc-ink,
   .rc-shadow.is-impact {
     animation: none;
+  }
+}
+
+@layer components {
+  .bq-verify-rc summary {
+    list-style: none;
+    cursor: pointer;
+  }
+  .bq-verify-rc summary::-webkit-details-marker {
+    display: none;
+  }
+  .bq-verify-rc[open] summary svg {
+    transform: rotate(180deg);
   }
 }

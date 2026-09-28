@@ -75,7 +75,12 @@ export function MembersView({
             type="search"
           />
           {q && (
-            <button type="button" className="bq-press" onClick={() => setQ("")} aria-label="امسح البحث">
+            <button
+              type="button"
+              className="bq-press"
+              onClick={() => setQ("")}
+              aria-label="امسح البحث"
+            >
               {I.x(20)}
             </button>
           )}
@@ -124,7 +129,11 @@ export function MembersView({
         {list.length === 0 ? (
           <div className="bq-empty">
             <p className="bq-empty-t">
-              {q.trim() ? "لم نجد عضوًا بهذا الرقم أو الاسم" : members.length ? "لا أحد في هذه القائمة" : "لم يُسجَّل أعضاء بعد"}
+              {q.trim()
+                ? "لم نجد عضوًا بهذا الرقم أو الاسم"
+                : members.length
+                  ? "لا أحد في هذه القائمة"
+                  : "لم يُسجَّل أعضاء بعد"}
             </p>
             {members.length > 0 && (
               <button
@@ -169,7 +178,8 @@ export function MembersView({
         ) : (
           <>
             <p className="bq-hint bq-list-count" aria-live="polite">
-              يظهر <Num>{list.length}</Num> {list.length > 2 && list.length <= 10 ? "أعضاء" : "عضوًا"}
+              يظهر <Num>{list.length}</Num>{" "}
+              {list.length > 2 && list.length <= 10 ? "أعضاء" : "عضوًا"}
             </p>
             <ul className="bq-list">
               {list.map((m) => (
@@ -180,7 +190,13 @@ export function MembersView({
         )}
       </div>
       {s && (
-        <Sheet key={s.value.memberId} label={s.value.fullName} vt={s.vt} onDone={sheet.done} tryVTClose={sheet.tryVTClose}>
+        <Sheet
+          key={s.value.memberId}
+          label={s.value.fullName}
+          vt={s.vt}
+          onDone={sheet.done}
+          tryVTClose={sheet.tryVTClose}
+        >
           <MemberSheetBody m={s.value} ctx={ctx} vt={s.vt} />
         </Sheet>
       )}

@@ -36,7 +36,8 @@ export function HomeView({
   const res = useMemo(() => searchMembers(members, q), [members, q]);
   const sheet = useSheet<S>();
   const total = members.filter((m) => m.status === "active").length;
-  const pick = (m: MemberStatus, from: HTMLElement | null) => sheet.open({ t: "member", m }, from, "bq-av");
+  const pick = (m: MemberStatus, from: HTMLElement | null) =>
+    sheet.open({ t: "member", m }, from, "bq-av");
   const openEntry = (e: LedgerEntry, el: HTMLElement) =>
     sheet.open({ t: "entry", e }, e.receipt ? el : null, "bq-rc");
   const s = sheet.state;
@@ -61,7 +62,12 @@ export function HomeView({
             enterKeyHint="search"
           />
           {q && (
-            <button type="button" className="bq-press" onClick={() => setQ("")} aria-label="امسح البحث">
+            <button
+              type="button"
+              className="bq-press"
+              onClick={() => setQ("")}
+              aria-label="امسح البحث"
+            >
               {I.x(20)}
             </button>
           )}
@@ -98,14 +104,19 @@ export function HomeView({
       {total > 0 && (
         <section className="bq-sec bq-rv" data-rv="home-count" aria-labelledby="bq-count-h">
           <h2 id="bq-count-h" className="bq-count">
-            <Num className="bq-count-n">{paidCount}</Num> من <Num>{total}</Num> عضوًا دفعوا رسوم {monthName}
+            <Num className="bq-count-n">{paidCount}</Num> من <Num>{total}</Num> عضوًا دفعوا رسوم{" "}
+            {monthName}
           </h2>
           <Track f={paidCount / total} label={`${paidCount} دفعوا من ${total}`} />
           <p className="bq-track-k">
             <span className="is-ok">{I.check(18)} دفعوا</span>
             <span>{I.clock(18)} لم يدفعوا بعد</span>
           </p>
-          <Link className="bq-link bq-press" href="/members?filter=late" transitionTypes={["tab-fwd"]}>
+          <Link
+            className="bq-link bq-press"
+            href="/members?filter=late"
+            transitionTypes={["tab-fwd"]}
+          >
             عرض المتأخرين
             {I.go(18)}
           </Link>
@@ -130,7 +141,11 @@ export function HomeView({
       </section>
 
       {campaign && (
-        <section className="bq-sec bq-rv bq-sec-tight" data-rv="home-camp" aria-label="الحملة المفتوحة">
+        <section
+          className="bq-sec bq-rv bq-sec-tight"
+          data-rv="home-camp"
+          aria-label="الحملة المفتوحة"
+        >
           <Link className="bq-camp-row bq-press" href="/donations" transitionTypes={["tab-fwd"]}>
             <span className="bq-disc is-gold">{I.heart(22)}</span>
             <span className="bq-row-m">
@@ -144,12 +159,24 @@ export function HomeView({
       )}
 
       {s && sm && (
-        <Sheet key={`m${sm.memberId}`} label={sm.fullName} vt={s.vt} onDone={sheet.done} tryVTClose={sheet.tryVTClose}>
+        <Sheet
+          key={`m${sm.memberId}`}
+          label={sm.fullName}
+          vt={s.vt}
+          onDone={sheet.done}
+          tryVTClose={sheet.tryVTClose}
+        >
           <MemberSheetBody m={sm} ctx={ctx} vt={s.vt} />
         </Sheet>
       )}
       {s && se && (
-        <Sheet key={`e${se.id}`} label={se.title} vt={s.vt} onDone={sheet.done} tryVTClose={sheet.tryVTClose}>
+        <Sheet
+          key={`e${se.id}`}
+          label={se.title}
+          vt={s.vt}
+          onDone={sheet.done}
+          tryVTClose={sheet.tryVTClose}
+        >
           <EntrySheetBody e={se} vt={s.vt} />
         </Sheet>
       )}

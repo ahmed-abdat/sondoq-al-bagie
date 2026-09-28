@@ -24,8 +24,38 @@ const YEAR = 2026;
 const DUE = 9; // September is due (after the 10-day grace)
 export const FX_PRICE: Record<string, number> = { A: 1000, B: 500 };
 
-const first = ["محمد", "أحمد", "سيدي", "الشيخ", "عبد الله", "محمد الأمين", "إبراهيم", "يحيى", "الحسن", "المختار", "عالي", "الداه", "باب", "محمدو", "سيدي محمد", "أحمدو", "عبد الرحمن", "الطالب"];
-const last = ["ولد أحمد", "ولد سيدي", "ولد الشيخ", "ولد محمد", "ولد عبد الله", "ولد المختار", "ولد باب", "ولد الحسن", "ولد إبراهيم", "ولد الطالب"];
+const first = [
+  "محمد",
+  "أحمد",
+  "سيدي",
+  "الشيخ",
+  "عبد الله",
+  "محمد الأمين",
+  "إبراهيم",
+  "يحيى",
+  "الحسن",
+  "المختار",
+  "عالي",
+  "الداه",
+  "باب",
+  "محمدو",
+  "سيدي محمد",
+  "أحمدو",
+  "عبد الرحمن",
+  "الطالب",
+];
+const last = [
+  "ولد أحمد",
+  "ولد سيدي",
+  "ولد الشيخ",
+  "ولد محمد",
+  "ولد عبد الله",
+  "ولد المختار",
+  "ولد باب",
+  "ولد الحسن",
+  "ولد إبراهيم",
+  "ولد الطالب",
+];
 
 function seeded(n: number) {
   let s = n * 9301 + 49297;
@@ -50,7 +80,8 @@ const RAW: Raw[] = Array.from({ length: 71 }, (_, i) => {
   };
 });
 
-const owed = (m: Raw) => Array.from({ length: DUE }, (_, k) => k + 1).filter((k) => !m.paid.includes(k));
+const owed = (m: Raw) =>
+  Array.from({ length: DUE }, (_, k) => k + 1).filter((k) => !m.paid.includes(k));
 
 export function fxMembers(showOwed = false): MemberStatus[] {
   return RAW.map((m) => ({
@@ -91,10 +122,38 @@ export function fxMonthly(): MonthlyCollection[] {
 }
 
 const EXPENSES: Expense[] = [
-  { id: uuid("e", 4), spentOn: "2026-09-05", category: "other", amount: 4500, note: "طباعة وتصوير", campaignId: null },
-  { id: uuid("e", 3), spentOn: "2026-08-20", category: "sports", amount: 28000, note: "كرات وأقمصة للفريق", campaignId: null },
-  { id: uuid("e", 2), spentOn: "2026-08-02", category: "honoring", amount: 35000, note: "تكريم الناجحين في الباكالوريا", campaignId: null },
-  { id: uuid("e", 1), spentOn: "2026-07-14", category: "teaching", amount: 60000, note: "دروس تقوية صيفية", campaignId: null },
+  {
+    id: uuid("e", 4),
+    spentOn: "2026-09-05",
+    category: "other",
+    amount: 4500,
+    note: "طباعة وتصوير",
+    campaignId: null,
+  },
+  {
+    id: uuid("e", 3),
+    spentOn: "2026-08-20",
+    category: "sports",
+    amount: 28000,
+    note: "كرات وأقمصة للفريق",
+    campaignId: null,
+  },
+  {
+    id: uuid("e", 2),
+    spentOn: "2026-08-02",
+    category: "honoring",
+    amount: 35000,
+    note: "تكريم الناجحين في الباكالوريا",
+    campaignId: null,
+  },
+  {
+    id: uuid("e", 1),
+    spentOn: "2026-07-14",
+    category: "teaching",
+    amount: 60000,
+    note: "دروس تقوية صيفية",
+    campaignId: null,
+  },
 ];
 export const fxExpenses = () => EXPENSES;
 export const fxExpenseTotals = (): ExpenseTotal[] =>
@@ -170,7 +229,13 @@ const RECEIPTS: Rc[] = [
     confirmedByName: "سيدي محمد",
     confirmedByRole: "treasurer",
     txnRefLast4: "0452",
-    members: [{ number: 1, fullName: "محمد ولد أحمد", months: [7, 8, 9].map((month) => ({ year: YEAR, month })) }],
+    members: [
+      {
+        number: 1,
+        fullName: "محمد ولد أحمد",
+        months: [7, 8, 9].map((month) => ({ year: YEAR, month })),
+      },
+    ],
     campaignTitles: [],
   },
   {
@@ -185,7 +250,13 @@ const RECEIPTS: Rc[] = [
     confirmedByName: "سيدي محمد",
     confirmedByRole: "treasurer",
     txnRefLast4: "0931",
-    members: [{ number: 30, fullName: "سيدي ولد الشيخ", months: Array.from({ length: 12 }, (_, k) => ({ year: YEAR, month: k + 1 })) }],
+    members: [
+      {
+        number: 30,
+        fullName: "سيدي ولد الشيخ",
+        months: Array.from({ length: 12 }, (_, k) => ({ year: YEAR, month: k + 1 })),
+      },
+    ],
     campaignTitles: [],
   },
   {
@@ -210,28 +281,53 @@ export function fxReceipt(code: string): VerifiedReceipt {
 }
 
 export function fxActivity(): ActivityItem[] {
-  const pay = RECEIPTS.filter((r) => r.status === "valid").map(
-    (r): ActivityItem => ({
-      kind: "payment_confirmed",
-      at: r.confirmedAt,
-      paymentId: r.code,
-      memberNames: r.payerName,
-      months: r.members[0].months.length,
-      amount: r.amount,
-      method: r.method,
-      receiptCode: r.code,
-    }),
-  );
-  const exp = EXPENSES.map(
-    (e): ActivityItem => ({ kind: "expense", at: `${e.spentOn}T12:00:00Z`, amount: e.amount, category: e.category }),
-  );
+  const pay = RECEIPTS.filter((r) => r.status === "valid").map((r): ActivityItem => ({
+    kind: "payment_confirmed",
+    at: r.confirmedAt,
+    paymentId: r.code,
+    memberNames: r.payerName,
+    months: r.members[0].months.length,
+    amount: r.amount,
+    method: r.method,
+    receiptCode: r.code,
+  }));
+  const exp = EXPENSES.map((e): ActivityItem => ({
+    kind: "expense",
+    at: `${e.spentOn}T12:00:00Z`,
+    amount: e.amount,
+    category: e.category,
+  }));
   return [...pay, ...exp].sort((a, b) => b.at.localeCompare(a.at));
 }
 
 const ACCOUNTS: FundAccountAdmin[] = [
-  { id: uuid("f", 1), method: "bankily", accountNumber: "22200000011", holderName: "رابطة شباب البقيع", sortOrder: 0, active: true, note: null },
-  { id: uuid("f", 2), method: "masrvi", accountNumber: "22200000012", holderName: "سيدي محمد ولد أحمد", sortOrder: 1, active: true, note: null },
-  { id: uuid("f", 3), method: "sedad", accountNumber: "22200000013", holderName: "رابطة شباب البقيع", sortOrder: 2, active: false, note: null },
+  {
+    id: uuid("f", 1),
+    method: "bankily",
+    accountNumber: "22200000011",
+    holderName: "رابطة شباب البقيع",
+    sortOrder: 0,
+    active: true,
+    note: null,
+  },
+  {
+    id: uuid("f", 2),
+    method: "masrvi",
+    accountNumber: "22200000012",
+    holderName: "سيدي محمد ولد أحمد",
+    sortOrder: 1,
+    active: true,
+    note: null,
+  },
+  {
+    id: uuid("f", 3),
+    method: "sedad",
+    accountNumber: "22200000013",
+    holderName: "رابطة شباب البقيع",
+    sortOrder: 2,
+    active: false,
+    note: null,
+  },
 ];
 export const fxAccountsAdmin = () => ACCOUNTS;
 export const fxAccounts = () =>
@@ -243,7 +339,11 @@ export const fxAccounts = () =>
     sortOrder: a.sortOrder,
     active: a.active,
   }));
-export const fxInfo = (): FundInfo => ({ whatsappContact: "+22200000000", graceDays: 10, showAmountOwed: false });
+export const fxInfo = (): FundInfo => ({
+  whatsappContact: "+22200000000",
+  graceDays: 10,
+  showAmountOwed: false,
+});
 
 const pend = (
   n: number,
@@ -287,16 +387,24 @@ const pend = (
     receiptNo: null,
   };
 };
-export const fxPending = (): PendingPayment[] => [
-  pend(1, RAW[8].name, "bankily", "26092810120482917", "يحيى", "2026-09-28T10:13:00Z", [{ no: 9, months: [7, 8, 9] }]),
-  pend(2, RAW[28].name, "sedad", "TR20260928391", "المختار", "2026-09-28T09:25:00Z", [
-    { no: 29, months: [9] },
-    { no: 31, months: [9] },
-  ]),
-  pend(3, RAW[47].name, "masrvi", "771204338", "يحيى", "2026-09-28T07:25:00Z", [
-    { no: 48, months: Array.from({ length: 12 }, (_, k) => k + 1).filter((k) => !RAW[47].paid.includes(k)) },
-  ]),
-].filter((p) => p.allocations.length > 0);
+export const fxPending = (): PendingPayment[] =>
+  [
+    pend(1, RAW[8].name, "bankily", "26092810120482917", "يحيى", "2026-09-28T10:13:00Z", [
+      { no: 9, months: [7, 8, 9] },
+    ]),
+    pend(2, RAW[28].name, "sedad", "TR20260928391", "المختار", "2026-09-28T09:25:00Z", [
+      { no: 29, months: [9] },
+      { no: 31, months: [9] },
+    ]),
+    pend(3, RAW[47].name, "masrvi", "771204338", "يحيى", "2026-09-28T07:25:00Z", [
+      {
+        no: 48,
+        months: Array.from({ length: 12 }, (_, k) => k + 1).filter(
+          (k) => !RAW[47].paid.includes(k),
+        ),
+      },
+    ]),
+  ].filter((p) => p.allocations.length > 0);
 
 export function fxArrears(): Arrear[] {
   return RAW.filter((m) => owed(m).length).map((m) => ({

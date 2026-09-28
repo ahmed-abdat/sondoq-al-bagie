@@ -21,8 +21,24 @@ const pending: PendingPayment = {
   receiptCode: null,
   receiptNo: null,
   allocations: [
-    { kind: "months", memberId: "a", number: 7, fullName: "عالي ولد محمد", year: 2026, month: 9, amount: 1000 },
-    { kind: "months", memberId: "b", number: 40, fullName: "الداه ولد محمد", year: 2026, month: 9, amount: 500 },
+    {
+      kind: "months",
+      memberId: "a",
+      number: 7,
+      fullName: "عالي ولد محمد",
+      year: 2026,
+      month: 9,
+      amount: 1000,
+    },
+    {
+      kind: "months",
+      memberId: "b",
+      number: 40,
+      fullName: "الداه ولد محمد",
+      year: 2026,
+      month: 9,
+      amount: 500,
+    },
   ],
 };
 
@@ -47,7 +63,11 @@ describe("receipt model", () => {
       decidedByName: "سيدي محمد",
       decidedAt: "2026-09-28T10:00:00Z",
     });
-    expect(r.status).toMatchObject({ kind: "rejected", reason: "رقم العملية مكرر", by: "سيدي محمد" });
+    expect(r.status).toMatchObject({
+      kind: "rejected",
+      reason: "رقم العملية مكرر",
+      by: "سيدي محمد",
+    });
   });
 
   it("builds a public receipt from verification data", () => {

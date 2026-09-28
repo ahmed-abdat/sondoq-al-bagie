@@ -53,10 +53,18 @@ export function DonationsView({
         </section>
       ) : (
         <>
-          <section className="bq-sec bq-sec-first bq-rv" data-rv="don-camp" aria-labelledby="bq-camp-h">
+          <section
+            className="bq-sec bq-sec-first bq-rv"
+            data-rv="don-camp"
+            aria-labelledby="bq-camp-h"
+          >
             <h2 id="bq-camp-h" className="bq-camp-h">
               {c.title}{" "}
-              {c.deadline && <span className="bq-tag is-ok bq-tag-inline">مفتوحة حتى {dayWords(c.deadline)}</span>}
+              {c.deadline && (
+                <span className="bq-tag is-ok bq-tag-inline">
+                  مفتوحة حتى {dayWords(c.deadline)}
+                </span>
+              )}
             </h2>
             {c.purpose && <p className="bq-lead">{c.purpose}</p>}
             <p className="bq-big bq-big-of">
@@ -77,7 +85,8 @@ export function DonationsView({
               <li>
                 {I.people(20)}
                 <span>
-                  <Num>{c.participantsPaid}</Num> {c.participantsPaid > 2 && c.participantsPaid <= 10 ? "مساهمين" : "مساهمًا"}
+                  <Num>{c.participantsPaid}</Num>{" "}
+                  {c.participantsPaid > 2 && c.participantsPaid <= 10 ? "مساهمين" : "مساهمًا"}
                 </span>
               </li>
               {target > 0 && (
@@ -125,7 +134,12 @@ export function DonationsView({
             </ol>
             {wa && (
               <div className="bq-btn-col">
-                <a className="bq-btn bq-btn-primary bq-btn-lg bq-press" href={wa} target="_blank" rel="noopener noreferrer">
+                <a
+                  className="bq-btn bq-btn-primary bq-btn-lg bq-press"
+                  href={wa}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {I.wa(22)} أرسل صورة التحويل عبر واتساب
                 </a>
               </div>
@@ -158,7 +172,12 @@ export function DonationsView({
               <p className="bq-hint">لم تُؤكَّد مساهمات بعد. كن أول المساهمين.</p>
             )}
             {contributions.length > 4 && (
-              <button type="button" className="bq-link bq-press" onClick={() => setAll((a) => !a)} aria-expanded={all}>
+              <button
+                type="button"
+                className="bq-link bq-press"
+                onClick={() => setAll((a) => !a)}
+                aria-expanded={all}
+              >
                 {all ? "عرض أقل" : "عرض الكل"}
                 {I.chev(18)}
               </button>

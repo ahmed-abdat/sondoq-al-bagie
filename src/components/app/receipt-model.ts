@@ -1,6 +1,11 @@
 // What a receipt («وصل استلام») prints, built from the data layer's VerifiedReceipt (public)
 // or PendingPayment (committee). Pure: no React.
-import type { CommitteeRole, PaymentMethod, PendingPayment, VerifiedReceipt } from "@/lib/data/types";
+import type {
+  CommitteeRole,
+  PaymentMethod,
+  PendingPayment,
+  VerifiedReceipt,
+} from "@/lib/data/types";
 import { METHOD_LABELS } from "@/lib/methods";
 import type { ShareableReceipt } from "@/lib/share-receipt";
 import { dayDate, ROLE_LABEL } from "./derive";
@@ -83,7 +88,10 @@ export function fromPending(
   p: PendingPayment,
   opts: { campaignTitles?: Record<string, string>; deciderRole?: string } = {},
 ): ReceiptView {
-  const members = new Map<string, { fullName: string; months: { year: number; month: number }[] }>();
+  const members = new Map<
+    string,
+    { fullName: string; months: { year: number; month: number }[] }
+  >();
   const campaigns: string[] = [];
   for (const a of p.allocations) {
     if (a.kind === "months") {

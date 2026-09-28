@@ -72,7 +72,15 @@ export function Track({ f, label }: { f: number; label?: string }) {
   );
 }
 
-export function EmptyState({ title, hint, icon }: { title: string; hint?: string; icon?: React.ReactNode }) {
+export function EmptyState({
+  title,
+  hint,
+  icon,
+}: {
+  title: string;
+  hint?: string;
+  icon?: React.ReactNode;
+}) {
   return (
     <div className="bq-empty">
       {icon && <span className="bq-disc is-in">{icon}</span>}

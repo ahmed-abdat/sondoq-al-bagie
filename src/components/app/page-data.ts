@@ -12,7 +12,10 @@ export async function heroData(note?: HeroData["note"]): Promise<HeroData> {
     collected: s.collectedThisYear,
     spent: s.spentThisYear,
     note:
-      note ?? (s.lastActivityAt ? `آخر تحديث: ${updatedLabel(s.lastActivityAt, src.today())}` : "لم تُسجَّل عمليات بعد"),
+      note ??
+      (s.lastActivityAt
+        ? `آخر تحديث: ${updatedLabel(s.lastActivityAt, src.today())}`
+        : "لم تُسجَّل عمليات بعد"),
   };
 }
 

@@ -1,6 +1,11 @@
 "use client";
 import { useState } from "react";
-import type { ExpenseCategory, FundAccount, FundSummary, MonthlyCollection } from "@/lib/data/types";
+import type {
+  ExpenseCategory,
+  FundAccount,
+  FundSummary,
+  MonthlyCollection,
+} from "@/lib/data/types";
 import { categoryLabel, dayWords, fmt } from "../derive";
 import { EntryRow, EntrySheetBody } from "../entries";
 import { MonthRail } from "../month-rail";
@@ -34,7 +39,9 @@ export function AccountsView({
   const sheet = useSheet<LedgerEntry>();
   const color = Object.fromEntries(spentBy.map((x, i) => [x.category, RAMP[i] ?? "var(--n3)"]));
   const spent = spentBy.reduce((s, x) => s + x.total, 0);
-  const shown = ledger.filter((e) => f === "all" || (f === "out" ? e.kind === "expense" : e.kind !== "expense"));
+  const shown = ledger.filter(
+    (e) => f === "all" || (f === "out" ? e.kind === "expense" : e.kind !== "expense"),
+  );
   const expenses = ledger.filter((e) => e.kind === "expense");
   const open = (e: LedgerEntry, el: HTMLElement) => sheet.open(e, e.receipt ? el : null, "bq-rc");
   const s = sheet.state;
@@ -44,7 +51,12 @@ export function AccountsView({
         <h1>الحسابات</h1>
       </header>
 
-      <section className="bq-sec bq-sec-first bq-rv" id="bq-sum" data-rv="acc-sum" aria-labelledby="bq-sum-h">
+      <section
+        className="bq-sec bq-sec-first bq-rv"
+        id="bq-sum"
+        data-rv="acc-sum"
+        aria-labelledby="bq-sum-h"
+      >
         <h2 id="bq-sum-h">كيف حُسب الرصيد؟</h2>
         <dl className="bq-sum">
           <div>
@@ -127,16 +139,25 @@ export function AccountsView({
             <div
               className="bq-stack bq-grow"
               role="img"
-              aria-label={spentBy.map((x) => `${categoryLabel(x.category)} ${fmt(x.total)}`).join("، ")}
+              aria-label={spentBy
+                .map((x) => `${categoryLabel(x.category)} ${fmt(x.total)}`)
+                .join("، ")}
             >
               {spentBy.map((x) => (
-                <span key={x.category} style={{ flexGrow: x.total, background: color[x.category] }} />
+                <span
+                  key={x.category}
+                  style={{ flexGrow: x.total, background: color[x.category] }}
+                />
               ))}
             </div>
             <ul className="bq-list">
               {expenses.map((e) => (
                 <li key={e.id}>
-                  <button type="button" className="bq-row bq-press" onClick={(ev) => open(e, ev.currentTarget)}>
+                  <button
+                    type="button"
+                    className="bq-row bq-press"
+                    onClick={(ev) => open(e, ev.currentTarget)}
+                  >
                     <span
                       className="bq-sw"
                       style={{ background: (e.category && color[e.category]) || "var(--n3)" }}
@@ -185,7 +206,13 @@ export function AccountsView({
       </section>
 
       {s && (
-        <Sheet key={s.value.id} label={s.value.title} vt={s.vt} onDone={sheet.done} tryVTClose={sheet.tryVTClose}>
+        <Sheet
+          key={s.value.id}
+          label={s.value.title}
+          vt={s.vt}
+          onDone={sheet.done}
+          tryVTClose={sheet.tryVTClose}
+        >
           <EntrySheetBody e={s.value} vt={s.vt} />
         </Sheet>
       )}

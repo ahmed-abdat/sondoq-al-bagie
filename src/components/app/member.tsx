@@ -2,7 +2,15 @@
 // Member row (list) and the member sheet body (twelve months in words).
 import type { MemberMonth, MemberStatus } from "@/lib/data/types";
 import { Avatar, StatusTag } from "./bits";
-import { fmt, groupLabel, memberState, monthCells, monthsLabel, monthsWord, MONTHS } from "./derive";
+import {
+  fmt,
+  groupLabel,
+  memberState,
+  monthCells,
+  monthsLabel,
+  monthsWord,
+  MONTHS,
+} from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
 
@@ -62,7 +70,12 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCt
       <div className="bq-mhead">
         <span
           className="bq-av"
-          style={{ width: 56, height: 56, fontSize: 24, viewTransitionName: vt ? "bq-av" : undefined }}
+          style={{
+            width: 56,
+            height: 56,
+            fontSize: 24,
+            viewTransitionName: vt ? "bq-av" : undefined,
+          }}
           aria-hidden="true"
         >
           <Num>{m.number}</Num>
@@ -82,8 +95,8 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCt
       </div>
       {st !== "off" && due > 0 && (
         <p className="bq-mline">
-          دفع رسوم <Num className="bq-strong">{paidDue}</Num> من <Num className="bq-strong">{due}</Num>{" "}
-          {due <= 10 ? "أشهر" : "شهرًا"} مستحقة
+          دفع رسوم <Num className="bq-strong">{paidDue}</Num> من{" "}
+          <Num className="bq-strong">{due}</Num> {due <= 10 ? "أشهر" : "شهرًا"} مستحقة
         </p>
       )}
       {st !== "ok" && (

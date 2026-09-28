@@ -1,48 +1,75 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { OfflineWriteHint, useOnline } from "@/components/providers";
+import { requestPasswordReset } from "@/lib/data/actions";
 import { login, type LoginState } from "./actions";
 
 export function LoginForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(login, {});
+  const online = useOnline();
+  const [email, setEmail] = useState("");
+  const [reset, setReset] = useState<"idle" | "sending" | "sent">("idle");
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={action} className="bq-login">
       <input type="hidden" name="next" value={next ?? ""} />
-      <label className="flex flex-col gap-1.5 text-sm font-medium">
+      <label>
         البريد الإلكتروني
         <input
+          className="bq-input"
           name="email"
           type="email"
           dir="ltr"
           autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
-          className="border-line bg-surface-2 focus:border-primary h-12 rounded-xl border px-3 text-base outline-none"
         />
       </label>
-      <label className="flex flex-col gap-1.5 text-sm font-medium">
+      <label>
         كلمة السر
         <input
+          className="bq-input"
           name="password"
           type="password"
           dir="ltr"
           autoComplete="current-password"
           required
-          className="border-line bg-surface-2 focus:border-primary h-12 rounded-xl border px-3 text-base outline-none"
         />
       </label>
       {state.error && (
-        <p role="alert" className="bg-bad-soft text-bad rounded-xl px-3 py-2 text-sm">
+        <p role="alert" className="bq-alert">
           {state.error}
         </p>
       )}
       <button
         type="submit"
-        disabled={pending}
-        className="bg-primary text-primary-ink h-12 rounded-xl text-base font-bold disabled:opacity-60"
+        disabled={pending || !online}
+        className="bq-btn bq-btn-primary bq-btn-lg bq-press"
       >
         {pending ? "جارٍ الدخول…" : "دخول"}
       </button>
+      <OfflineWriteHint />
+      {reset === "sent" ? (
+        <p className="bq-hint" role="status">
+          إن كان لهذا البريد حساب، ستصله رسالة لتغيير كلمة السر.
+        </p>
+      ) : (
+        <button
+          type="button"
+          className="bq-link bq-link-s bq-press"
+          disabled={reset === "sending" || !online}
+          onClick={async () => {
+            if (!email.includes("@")) return;
+            setReset("sending");
+            await requestPasswordReset({ email });
+            setReset("sent");
+          }}
+        >
+          نسيت كلمة السر؟ {email.includes("@") ? "" : "(اكتب بريدك أولًا)"}
+        </button>
+      )}
     </form>
   );
 }

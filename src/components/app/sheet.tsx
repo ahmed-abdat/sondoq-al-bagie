@@ -144,9 +144,20 @@ export function Sheet({
         tabIndex={-1}
         style={{ viewTransitionName: vt ? "bq-sheet" : undefined }}
       >
-        <div className="bq-drag" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
+        <div
+          className="bq-drag"
+          onPointerDown={down}
+          onPointerMove={move}
+          onPointerUp={up}
+          onPointerCancel={up}
+        >
           <span className="bq-handle" aria-hidden="true" />
-          <button type="button" className="bq-icon-btn bq-sheet-x bq-press" onClick={() => close()} aria-label="إغلاق">
+          <button
+            type="button"
+            className="bq-icon-btn bq-sheet-x bq-press"
+            onClick={() => close()}
+            aria-label="إغلاق"
+          >
             {I.x(22)}
           </button>
           {children}

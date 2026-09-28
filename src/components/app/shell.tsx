@@ -29,12 +29,19 @@ const TABS = [
 
 export function tabIndex(path: string) {
   if (path === "/") return 0;
-  const i = TABS.findIndex((t) => t.href !== "/" && (path === t.href || path.startsWith(`${t.href}/`)));
+  const i = TABS.findIndex(
+    (t) => t.href !== "/" && (path === t.href || path.startsWith(`${t.href}/`)),
+  );
   return i < 0 ? 0 : i;
 }
 
 /* ───────────── snackbar ───────────── */
-type Snack = { id: number; text: string; action?: { label: string; run: () => void }; out?: boolean };
+type Snack = {
+  id: number;
+  text: string;
+  action?: { label: string; run: () => void };
+  out?: boolean;
+};
 type Say = (text: string, action?: Snack["action"]) => void;
 const SnackCtx = createContext<Say>(() => {});
 /** Show a short message above the nav («نُسخ رقم بنكيلي»). */
@@ -54,46 +61,39 @@ function useSnackState() {
 
 /* ───────────── reveal: below the fold only, once per session, 300ms, no blur ───────────── */
 const REVEALED = new Set<string>();
-function useReveal(root: React.RefObject<HTMLElement | null>, key: string) {
-  const first = useRef(true);
-  useLayoutEffect(() => {
-    const el = root.current;
-    if (!el) return;
-    const secs = [...el.querySelectorAll<HTMLElement>(".bq-rv")];
-    const reduce = prefersReduced();
-    const isFirst = first.current;
-    first.current = false;
-    let n = 0;
-    const io =
-      typeof IntersectionObserver === "undefined"
-        ? null
-        : new IntersectionObserver(
-            (ens) =>
-              ens.forEach((en) => {
-                if (!en.isIntersecting) return;
-                const t = en.target as HTMLElement;
-                t.style.transitionDelay = `${(n++ % 3) * 40}ms`;
-                t.classList.add("in");
-                REVEALED.add(t.dataset.rv ?? "");
-                io?.unobserve(t);
-              }),
-            { rootMargin: "0px 0px -6% 0px" },
-          );
-    secs.forEach((s) => {
-      const k = s.dataset.rv ?? "";
-      const above = s.getBoundingClientRect().top < window.innerHeight;
-      if (reduce || !io || REVEALED.has(k) || above) {
-        s.classList.add(isFirst && above && !reduce ? "in" : "seen");
-        s.style.transitionDelay = "0ms";
-        REVEALED.add(k);
-      } else {
-        s.classList.add("hide");
-        io.observe(s);
-      }
-    });
-    el.dataset.rv = "1";
-    return () => io?.disconnect();
-  }, [root, key]);
+function reveal(el: HTMLElement, isFirst: boolean) {
+  const secs = [...el.querySelectorAll<HTMLElement>(".bq-rv")];
+  const reduce = prefersReduced();
+  let n = 0;
+  const io =
+    typeof IntersectionObserver === "undefined"
+      ? null
+      : new IntersectionObserver(
+          (ens) =>
+            ens.forEach((en) => {
+              if (!en.isIntersecting) return;
+              const t = en.target as HTMLElement;
+              t.style.transitionDelay = `${(n++ % 3) * 40}ms`;
+              t.classList.add("in");
+              REVEALED.add(t.dataset.rv ?? "");
+              io?.unobserve(t);
+            }),
+          { rootMargin: "0px 0px -6% 0px" },
+        );
+  secs.forEach((s) => {
+    const k = s.dataset.rv ?? "";
+    const above = s.getBoundingClientRect().top < window.innerHeight;
+    if (reduce || !io || REVEALED.has(k) || above) {
+      s.classList.add(isFirst && above && !reduce ? "in" : "seen");
+      s.style.transitionDelay = "0ms";
+      REVEALED.add(k);
+    } else {
+      s.classList.add("hide");
+      io.observe(s);
+    }
+  });
+  el.setAttribute("data-rv", "1");
+  return () => io?.disconnect();
 }
 
 /* ───────────── compact bar: the hero, collapsed, once its balance leaves (mobile home) ───────────── */
@@ -116,7 +116,15 @@ function useCompact(active: boolean) {
   return active && on;
 }
 
-function NavItems({ idx, badge, onGo }: { idx: number; badge?: number; onGo: (i: number) => void }) {
+function NavItems({
+  idx,
+  badge,
+  onGo,
+}: {
+  idx: number;
+  badge?: number;
+  onGo: (i: number) => void;
+}) {
   return TABS.map((t, i) => (
     <Link
       key={t.href}
@@ -157,7 +165,13 @@ export function AppShell({
   const idx = tapped && tapped.from === path ? tapped.i : real;
   const [snack, say] = useSnackState();
   const main = useRef<HTMLElement>(null);
-  useReveal(main, path);
+  const firstReveal = useRef(true);
+  useLayoutEffect(() => {
+    if (!main.current) return;
+    const cleanup = reveal(main.current, firstReveal.current);
+    firstReveal.current = false;
+    return cleanup;
+  }, [path]);
   const compact = useCompact(path === "/");
 
   const onGo = useCallback((i: number) => setTapped({ from: path, i }), [path]);

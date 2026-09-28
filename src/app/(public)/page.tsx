@@ -13,7 +13,9 @@ export default async function Home() {
     src.campaigns(),
   ]);
   const month = src.today().getUTCMonth() + 1;
-  const paid = new Set(ctx.months.filter((m) => m.month === month && m.state === "paid").map((m) => m.memberId));
+  const paid = new Set(
+    ctx.months.filter((m) => m.month === month && m.state === "paid").map((m) => m.memberId),
+  );
   const open = campaigns.find((c) => c.status === "open");
   return (
     <Tab>
@@ -28,7 +30,9 @@ export default async function Home() {
           open
             ? {
                 title: open.title,
-                pct: open.targetAmount ? Math.min(100, Math.round((open.collected / open.targetAmount) * 100)) : 0,
+                pct: open.targetAmount
+                  ? Math.min(100, Math.round((open.collected / open.targetAmount) * 100))
+                  : 0,
               }
             : null
         }

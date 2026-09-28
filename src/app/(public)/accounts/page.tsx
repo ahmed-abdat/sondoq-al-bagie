@@ -15,7 +15,10 @@ export default async function AccountsPage() {
     src.expenseTotals(),
     src.ledger(),
   ]);
-  const payers = Array.from({ length: 12 }, (_, k) => months.filter((m) => m.month === k + 1 && m.state === "paid").length);
+  const payers = Array.from(
+    { length: 12 },
+    (_, k) => months.filter((m) => m.month === k + 1 && m.state === "paid").length,
+  );
   const spentBy = totals
     .filter((t) => t.year === year && t.total > 0)
     .sort((a, b) => b.total - a.total)

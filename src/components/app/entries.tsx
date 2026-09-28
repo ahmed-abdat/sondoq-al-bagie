@@ -10,7 +10,13 @@ import { ConfirmedMark, Receipt } from "./receipt";
 import { toShareable, type ReceiptView } from "./receipt-model";
 import type { LedgerEntry } from "./types";
 
-export function EntryRow({ e, onOpen }: { e: LedgerEntry; onOpen: (e: LedgerEntry, el: HTMLElement) => void }) {
+export function EntryRow({
+  e,
+  onOpen,
+}: {
+  e: LedgerEntry;
+  onOpen: (e: LedgerEntry, el: HTMLElement) => void;
+}) {
   const inn = e.kind !== "expense";
   const st = e.receipt?.status;
   return (
@@ -35,7 +41,9 @@ export function EntryRow({ e, onOpen }: { e: LedgerEntry; onOpen: (e: LedgerEntr
           {st?.kind === "confirmed" && <ConfirmedMark date={st.at} size={22} />}
         </span>
         <span className="bq-row-e">
-          <Num className={`bq-amt ${inn ? "a-in" : ""}`}>{`${inn ? "+" : "−"}${fmt(e.amount)}`}</Num>
+          <Num
+            className={`bq-amt ${inn ? "a-in" : ""}`}
+          >{`${inn ? "+" : "−"}${fmt(e.amount)}`}</Num>
           <span className={`bq-kind ${inn ? "is-in" : ""}`}>{inn ? "دخل" : "مصروف"}</span>
         </span>
       </button>
@@ -65,7 +73,11 @@ export function ShareBtns({ r, phone }: { r: ReceiptView; phone?: string | null 
       >
         {I.wa(20)} أرسل الإيصال عبر واتساب
       </button>
-      <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={() => void saveReceiptPng(sh)}>
+      <button
+        type="button"
+        className="bq-btn bq-btn-ghost bq-press"
+        onClick={() => void saveReceiptPng(sh)}
+      >
         {I.save(18)} حفظ صورة الوصل
       </button>
     </div>

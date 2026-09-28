@@ -1,0 +1,178 @@
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { logout } from "@/app/login/actions";
+import { logReminder } from "@/lib/data/actions";
+import { usePaymentsRealtime } from "@/lib/data/realtime";
+import { groupReminderText } from "@/lib/data/reminders";
+import type { FundAccount, MemberStatus, PendingPayment } from "@/lib/data/types";
+import { waLink } from "@/lib/whatsapp";
+import { EmptyState } from "../bits";
+import { ShareBtns } from "../entries";
+import { I } from "../icons";
+import type { MemberCtx } from "../member";
+import { Num } from "../num";
+import { Receipt } from "../receipt";
+import type { ReceiptView } from "../receipt-model";
+import { RecordBody } from "../record";
+import { Sheet } from "../sheet";
+import { useSnack } from "../shell";
+import { PendingSlip } from "../slip";
+
+/** Live updates: another committee member recorded or confirmed a payment → refetch the page. */
+export function CommitteeLive() {
+  const router = useRouter();
+  usePaymentsRealtime(() => router.refresh());
+  return null;
+}
+
+export function CommitteeView({
+  pending,
+  me,
+  members,
+  ctx,
+  accounts,
+  whatsapp,
+}: {
+  pending: PendingPayment[];
+  me: { by: string; role: string };
+  members: MemberStatus[];
+  ctx: MemberCtx;
+  accounts: FundAccount[];
+  whatsapp: string | null;
+}) {
+  const say = useSnack();
+  // keep decided slips on screen (collapsed) after the server list drops them
+  const [seen, setSeen] = useState(pending);
+  const fresh = pending.filter((p) => !seen.some((s) => s.id === p.id));
+  if (fresh.length) setSeen([...seen, ...fresh]);
+  const waiting = pending.length;
+  const [sheet, setSheet] = useState<{ t: "record" } | { t: "receipt"; r: ReceiptView } | null>(
+    null,
+  );
+  const [fabMini, setFabMini] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    const on = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < 6) return;
+      setFabMini(y > last && y > 80);
+      last = y;
+    };
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
+  const none = members.filter((m) => m.status === "active" && m.monthsPaidThisYear === 0).length;
+  const late = members.filter((m) => m.status === "active" && m.monthsBehind > 0).length;
+  const group = waLink(
+    null,
+    groupReminderText({
+      accounts,
+      whatsappContact: whatsapp,
+      lateCount: late,
+      publicUrl: typeof window === "undefined" ? undefined : `${window.location.origin}/members`,
+    }),
+  );
+
+  return (
+    <>
+      <div className="bq-com-bar">
+        <span>
+          <strong>بانتظار التأكيد</strong> <Num className="bq-com-n">{waiting}</Num>
+        </span>
+        <span className="bq-com-actions">
+          <Link href="/committee/settings" className="bq-link bq-link-s bq-press">
+            الإعدادات
+          </Link>
+          <form action={logout}>
+            <button type="submit" className="bq-link bq-link-s bq-press">
+              خروج
+            </button>
+          </form>
+        </span>
+      </div>
+
+      <ul className="bq-queue">
+        {seen.map((p) => (
+          <li key={p.id}>
+            <PendingSlip p={p} me={me} onFull={(r) => setSheet({ t: "receipt", r })} />
+          </li>
+        ))}
+      </ul>
+      {waiting === 0 && (
+        <EmptyState
+          icon={I.check(22)}
+          title="راجعت كل الدفعات"
+          hint="ستظهر هنا أي دفعة جديدة يسجّلها المشرفون."
+        />
+      )}
+
+      <section className="bq-sec" aria-labelledby="bq-follow-h">
+        <h2 id="bq-follow-h">للمتابعة</h2>
+        <Link
+          href="/members?filter=none"
+          className="bq-row bq-press"
+          transitionTypes={["tab-back"]}
+        >
+          <span className="bq-disc">{I.people(22)}</span>
+          <span className="bq-row-m">
+            <span className="bq-row-t">لم يدفعوا أي شهر هذا العام</span>
+            <span className="bq-row-s">للمتابعة معهم</span>
+          </span>
+          <Num className="bq-amt">{none}</Num>
+          <span className="bq-chev">{I.go(18)}</span>
+        </Link>
+        <a
+          href={group}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bq-row bq-press"
+          onClick={() => void logReminder({ kind: "group" })}
+        >
+          <span className="bq-disc is-in">{I.wa(22)}</span>
+          <span className="bq-row-m">
+            <span className="bq-row-t">تذكير في مجموعة الواتساب</span>
+            <span className="bq-row-s">
+              بلا أسماء ولا مبالغ · المتأخرون: <Num>{late}</Num>
+            </span>
+          </span>
+          <span className="bq-chev">{I.go(18)}</span>
+        </a>
+      </section>
+
+      {!sheet && (
+        <button
+          type="button"
+          className={`bq-fab bq-press ${fabMini ? "is-mini" : ""}`}
+          onClick={() => setSheet({ t: "record" })}
+          aria-label="سجّل دفعة"
+        >
+          <span className="bq-fab-l">سجّل دفعة</span>
+          {I.plus(26)}
+        </button>
+      )}
+
+      {sheet?.t === "record" && (
+        <Sheet key="record" label="سجّل دفعة" onDone={() => setSheet(null)}>
+          <RecordBody
+            members={members}
+            ctx={ctx}
+            onDone={(t) => {
+              setSheet(null);
+              say(t);
+            }}
+          />
+        </Sheet>
+      )}
+      {sheet?.t === "receipt" && (
+        <Sheet key="receipt" label="وصل استلام" onDone={() => setSheet(null)}>
+          <div className="bq-rc-sheet">
+            <Receipt r={sheet.r} audience="committee" />
+            {sheet.r.status.kind === "confirmed" && <ShareBtns r={sheet.r} />}
+          </div>
+        </Sheet>
+      )}
+    </>
+  );
+}

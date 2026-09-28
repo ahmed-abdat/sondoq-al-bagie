@@ -1,7 +1,12 @@
 // Pure UI helpers: Arabic wording, member state, search, dates. No React, no data fetching.
 import { MONTHS_AR, WEEKDAYS_AR } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
-import type { ExpenseCategory, MemberMonth, MemberStatus, MembershipStatus } from "@/lib/data/types";
+import type {
+  ExpenseCategory,
+  MemberMonth,
+  MemberStatus,
+  MembershipStatus,
+} from "@/lib/data/types";
 
 export const MONTHS = MONTHS_AR;
 export const ASSOC = "رابطة شباب قرية البقيع";
@@ -42,7 +47,10 @@ export function monthsLabel(ms: number[]) {
   const n = r.reduce((s, x) => s + x.length, 0);
   if (n === 12) return "السنة كاملة";
   if (r.length === 1 && n > 1) return `${MONTHS[r[0][0] - 1]}–${MONTHS[r[0][n - 1] - 1]}`;
-  return r.flat().map((m) => MONTHS[m - 1]).join("، ");
+  return r
+    .flat()
+    .map((m) => MONTHS[m - 1])
+    .join("، ");
 }
 
 /** Receipt wording: «يوليو – سبتمبر 2026», «السنة كاملة 2026», runs joined by «، ». */
@@ -237,8 +245,13 @@ export function relativeAgo(iso: string, now: Date = new Date()) {
   const d = Math.floor(h / 24);
   if (min < 1) return "الآن";
   if (min < 60)
-    return min === 1 ? "منذ دقيقة" : min === 2 ? "منذ دقيقتين" : `منذ ${min} ${min <= 10 ? "دقائق" : "دقيقة"}`;
-  if (h < 24) return h === 1 ? "منذ ساعة" : h === 2 ? "منذ ساعتين" : `منذ ${h} ${h <= 10 ? "ساعات" : "ساعة"}`;
+    return min === 1
+      ? "منذ دقيقة"
+      : min === 2
+        ? "منذ دقيقتين"
+        : `منذ ${min} ${min <= 10 ? "دقائق" : "دقيقة"}`;
+  if (h < 24)
+    return h === 1 ? "منذ ساعة" : h === 2 ? "منذ ساعتين" : `منذ ${h} ${h <= 10 ? "ساعات" : "ساعة"}`;
   if (d < 7) return d === 1 ? "أمس" : d === 2 ? "منذ يومين" : `منذ ${d} أيام`;
   return dayWords(iso);
 }

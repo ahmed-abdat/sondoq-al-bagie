@@ -8,7 +8,18 @@ import { proofUrl } from "@/lib/data/actions";
 import { METHOD_LABELS, methodLogo } from "@/lib/methods";
 import { qrMatrix } from "@/lib/qr";
 import { safeReceiptSrc } from "@/lib/receipt";
-import { amountInWords, ASSOC, clock, dayDate, dayWords, dotDate, fmt, FUND, monthCount, monthsInWords } from "./derive";
+import {
+  amountInWords,
+  ASSOC,
+  clock,
+  dayDate,
+  dayWords,
+  dotDate,
+  fmt,
+  FUND,
+  monthCount,
+  monthsInWords,
+} from "./derive";
 import { I } from "./icons";
 import { verifyPath, type ReceiptView } from "./receipt-model";
 
@@ -70,13 +81,55 @@ export function Stamp({
           <path id={top} d={arc(73.45, 1)} />
           <path id={bot} d={arc(79.15, 0)} />
           {/* ink: a hair of edge roughness + uneven density + rare voids — rubber on paper */}
-          <filter id={ink} x="-4%" y="-4%" width="108%" height="108%" colorInterpolationFilters="sRGB">
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed={seed} result="grain" />
-            <feDisplacementMap in="SourceGraphic" in2="grain" scale="1.05" xChannelSelector="R" yChannelSelector="G" result="rough" />
-            <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="3" seed={seed + 7} result="blotch" />
-            <feColorMatrix in="blotch" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -0.75 0 0 0 1.27" result="density" />
-            <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="1" seed={seed + 13} result="speck" />
-            <feColorMatrix in="speck" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -10 0 0 0 7.7" result="voids" />
+          <filter
+            id={ink}
+            x="-4%"
+            y="-4%"
+            width="108%"
+            height="108%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.9"
+              numOctaves="2"
+              seed={seed}
+              result="grain"
+            />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="grain"
+              scale="1.05"
+              xChannelSelector="R"
+              yChannelSelector="G"
+              result="rough"
+            />
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.028"
+              numOctaves="3"
+              seed={seed + 7}
+              result="blotch"
+            />
+            <feColorMatrix
+              in="blotch"
+              type="matrix"
+              values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -0.75 0 0 0 1.27"
+              result="density"
+            />
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="1.6"
+              numOctaves="1"
+              seed={seed + 13}
+              result="speck"
+            />
+            <feColorMatrix
+              in="speck"
+              type="matrix"
+              values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -10 0 0 0 7.7"
+              result="voids"
+            />
             <feComposite in="density" in2="voids" operator="in" result="mask" />
             <feComposite in="rough" in2="mask" operator="in" />
           </filter>
@@ -86,7 +139,10 @@ export function Stamp({
             <circle cx={C} cy={C} r="95" strokeWidth="4.5" />
             <circle cx={C} cy={C} r="89.5" strokeWidth="1.2" />
             <circle cx={C} cy={C} r="63" strokeWidth="1.6" />
-            <path d={`M ${C - 61} 91 H ${C + 61} M ${C - 60.4} 115 H ${C + 60.4}`} strokeWidth="1.4" />
+            <path
+              d={`M ${C - 61} 91 H ${C + 61} M ${C - 60.4} 115 H ${C + 60.4}`}
+              strokeWidth="1.4"
+            />
           </g>
           <g style={{ fontFamily: "var(--font-display)" }} fontWeight="700" fontSize="13">
             <text>
@@ -103,7 +159,14 @@ export function Stamp({
           {SEP.map(([x, y], i) => (
             <polygon key={i} points={star(x, y, 3.6)} />
           ))}
-          <text x={C} y="83" textAnchor="middle" fontSize="22" fontWeight="800" style={{ fontFamily: "var(--font-display)" }}>
+          <text
+            x={C}
+            y="83"
+            textAnchor="middle"
+            fontSize="22"
+            fontWeight="800"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
             {word}
           </text>
           <text
@@ -117,7 +180,14 @@ export function Stamp({
           >
             {dotDate(date)}
           </text>
-          <text x={C} y="132" textAnchor="middle" fontSize="10" fontWeight="600" style={{ fontFamily: "var(--font-display)" }}>
+          <text
+            x={C}
+            y="132"
+            textAnchor="middle"
+            fontSize="10"
+            fontWeight="600"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
             أمين الصندوق
           </text>
         </g>
@@ -132,8 +202,23 @@ export function ConfirmedMark({ date, size = 24 }: { date: string; size?: number
     <span className="rc-mark">
       <svg viewBox="0 0 28 28" width={size} height={size} aria-hidden="true">
         <circle cx="14" cy="14" r="12.6" fill="none" stroke="currentColor" strokeWidth="1.8" />
-        <circle cx="14" cy="14" r="10" fill="none" stroke="currentColor" strokeWidth=".8" strokeDasharray="1.2 1.6" />
-        <path d="m9.6 14.3 3 3 5.8-6.2" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+        <circle
+          cx="14"
+          cy="14"
+          r="10"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth=".8"
+          strokeDasharray="1.2 1.6"
+        />
+        <path
+          d="m9.6 14.3 3 3 5.8-6.2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
       <span>
         مؤكَّد <span aria-hidden="true">·</span> {dayWords(date)}
@@ -146,7 +231,9 @@ function MethodTile({ method }: { method: ReceiptView["method"] }) {
   const logo = methodLogo(method);
   return (
     <span className="rc-wallet">
-      <span className="rc-wallet-tile">{logo ? <Image src={logo} alt="" width={28} height={28} /> : I.cash(18)}</span>
+      <span className="rc-wallet-tile">
+        {logo ? <Image src={logo} alt="" width={28} height={28} /> : I.cash(18)}
+      </span>
       {METHOD_LABELS[method]}
     </span>
   );
@@ -191,12 +278,35 @@ function ShotMock({ amount, method, large }: { amount: number; method: string; l
       <rect width="90" height="160" rx="10" fill="#F2F4F3" />
       <rect width="90" height="34" rx="10" fill="#1A5F2E" />
       <rect y="24" width="90" height="10" fill="#1A5F2E" />
-      <text x="45" y="22" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700" fontFamily="system-ui">
+      <text
+        x="45"
+        y="22"
+        textAnchor="middle"
+        fill="#fff"
+        fontSize="9"
+        fontWeight="700"
+        fontFamily="system-ui"
+      >
         {method}
       </text>
       <circle cx="45" cy="56" r="11" fill="#CFE7D4" />
-      <path d="m40 56 3.5 3.5 6.5-7" stroke="#237A3B" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="45" y="86" textAnchor="middle" fill="#14201A" fontSize="12" fontWeight="700" fontFamily="system-ui">
+      <path
+        d="m40 56 3.5 3.5 6.5-7"
+        stroke="#237A3B"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <text
+        x="45"
+        y="86"
+        textAnchor="middle"
+        fill="#14201A"
+        fontSize="12"
+        fontWeight="700"
+        fontFamily="system-ui"
+      >
         {`${Math.round(amount / 10)} MRU`}
       </text>
       {[98, 108, 118, 128].map((y, i) => (
@@ -207,7 +317,15 @@ function ShotMock({ amount, method, large }: { amount: number; method: string; l
 }
 
 /** Committee only: the transfer screenshot (signed URL, 5 min), tap to enlarge. */
-export function Proof({ path, amount, method }: { path: string | null; amount: number; method: ReceiptView["method"] }) {
+export function Proof({
+  path,
+  amount,
+  method,
+}: {
+  path: string | null;
+  amount: number;
+  method: ReceiptView["method"];
+}) {
   const dlg = useRef<HTMLDialogElement>(null);
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
@@ -224,7 +342,12 @@ export function Proof({ path, amount, method }: { path: string | null; amount: n
   const label = METHOD_LABELS[method];
   return (
     <>
-      <button type="button" className="rc-proof bq-press" onClick={() => dlg.current?.showModal()} aria-haspopup="dialog">
+      <button
+        type="button"
+        className="rc-proof bq-press"
+        onClick={() => dlg.current?.showModal()}
+        aria-haspopup="dialog"
+      >
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL
           <img src={src} alt="" className="rc-shot" />
@@ -233,9 +356,7 @@ export function Proof({ path, amount, method }: { path: string | null; amount: n
         )}
         <span className="rc-proof-t">
           <span>صورة التحويل</span>
-          <span className="rc-proof-s">
-            {I.expand(16)} اضغط للتكبير
-          </span>
+          <span className="rc-proof-s">{I.expand(16)} اضغط للتكبير</span>
         </span>
       </button>
       <dialog
@@ -253,7 +374,11 @@ export function Proof({ path, amount, method }: { path: string | null; amount: n
             <p className="rc-dlg-n">تعذّر تحميل الصورة الآن. حاول مرة أخرى بعد الاتصال.</p>
           </>
         )}
-        <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => dlg.current?.close()}>
+        <button
+          type="button"
+          className="bq-btn bq-btn-soft bq-press"
+          onClick={() => dlg.current?.close()}
+        >
           إغلاق
         </button>
       </dialog>
@@ -263,7 +388,11 @@ export function Proof({ path, amount, method }: { path: string | null; amount: n
 
 const noop = () => () => {};
 function Qr({ code }: { code: string }) {
-  const origin = useSyncExternalStore(noop, () => window.location.origin, () => "");
+  const origin = useSyncExternalStore(
+    noop,
+    () => window.location.origin,
+    () => "",
+  );
   if (!origin) return <span className="rc-qr" aria-hidden="true" />;
   const mx = qrMatrix(origin + verifyPath(code));
   const n = mx.length;
@@ -310,9 +439,7 @@ function StatusBlock({ r, press }: { r: ReceiptView; press: boolean }) {
     body = (
       <div className="rc-st-body has-stamp">
         <div>
-          <p className="rc-st-h is-ok">
-            {I.check(20)} تم الاستلام
-          </p>
+          <p className="rc-st-h is-ok">{I.check(20)} تم الاستلام</p>
           {st.by && (
             <p className="rc-st-p">
               <span className="rc-st-k">أكّدها:</span> <strong className="rc-who">{st.by}</strong>
@@ -327,9 +454,7 @@ function StatusBlock({ r, press }: { r: ReceiptView; press: boolean }) {
     body = (
       <div className="rc-st-body has-stamp">
         <div>
-          <p className="rc-st-h is-rej">
-            {I.xc(20)} مرفوض
-          </p>
+          <p className="rc-st-h is-rej">{I.xc(20)} مرفوض</p>
           {st.reason && (
             <p className="rc-st-p">
               <span className="rc-st-k">السبب:</span> {st.reason}
@@ -360,7 +485,11 @@ function StatusBlock({ r, press }: { r: ReceiptView; press: boolean }) {
       </div>
     );
   return (
-    <section className={`rc-status ${press ? "is-swap" : ""}`} aria-label="حالة الوصل" aria-live="polite">
+    <section
+      className={`rc-status ${press ? "is-swap" : ""}`}
+      aria-label="حالة الوصل"
+      aria-live="polite"
+    >
       {press && (
         <div className="rc-st-layer is-out" aria-hidden="true">
           {pending}
@@ -368,7 +497,13 @@ function StatusBlock({ r, press }: { r: ReceiptView; press: boolean }) {
       )}
       <div className={`rc-st-layer ${press ? "is-in" : ""}`}>{body}</div>
       {(st.kind === "confirmed" || st.kind === "rejected") && (
-        <Stamp variant={st.kind} date={st.at} press={press} seed={Number((r.no ?? "").slice(-2)) || 3} className="rc-st-stamp" />
+        <Stamp
+          variant={st.kind}
+          date={st.at}
+          press={press}
+          seed={Number((r.no ?? "").slice(-2)) || 3}
+          className="rc-st-stamp"
+        />
       )}
     </section>
   );
@@ -437,7 +572,9 @@ export function Receipt({
                 <dd>
                   {r.covers.map((c) => (
                     <span key={`${c.name}-${c.year}`} className="rc-cover">
-                      {(multi || c.name !== r.payer) && <span className="rc-for">عن: {c.name}</span>}
+                      {(multi || c.name !== r.payer) && (
+                        <span className="rc-for">عن: {c.name}</span>
+                      )}
                       <span className="rc-months">{monthsInWords(c.months, c.year)}</span>
                       <span className="rc-count">{monthCount(c.months.length)}</span>
                     </span>
@@ -493,7 +630,8 @@ export function Receipt({
                       {r.recordedBy}
                       {r.recordedAt && (
                         <span className="rc-sub">
-                          {dayWords(r.recordedAt)} <span aria-hidden="true">·</span> <Num>{clock(r.recordedAt)}</Num>
+                          {dayWords(r.recordedAt)} <span aria-hidden="true">·</span>{" "}
+                          <Num>{clock(r.recordedAt)}</Num>
                         </span>
                       )}
                     </dd>
@@ -512,7 +650,9 @@ export function Receipt({
                 <p className="rc-code">
                   <Num>{r.code}</Num>
                 </p>
-                <p className="rc-foot-n">{pub ? "أعطِ هذا الرمز للجنة إن سُئلت عن دفعتك" : "امسح الرمز للتحقق من الوصل"}</p>
+                <p className="rc-foot-n">
+                  {pub ? "أعطِ هذا الرمز للجنة إن سُئلت عن دفعتك" : "امسح الرمز للتحقق من الوصل"}
+                </p>
               </div>
               {!pub && (
                 <figure className="rc-qr-w">

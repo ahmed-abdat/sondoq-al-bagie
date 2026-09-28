@@ -55,7 +55,12 @@ describe("months in words", () => {
     expect(monthsInWords([7, 8, 9], 2026)).toBe("يوليو – سبتمبر 2026");
     expect(monthsInWords([1, 2, 5], 2026)).toBe("يناير – فبراير، مايو 2026");
     expect(monthsInWords([12], 2026)).toBe("ديسمبر 2026");
-    expect(monthsInWords([...Array(12)].map((_, i) => i + 1), 2026)).toBe("السنة كاملة 2026");
+    expect(
+      monthsInWords(
+        [...Array(12)].map((_, i) => i + 1),
+        2026,
+      ),
+    ).toBe("السنة كاملة 2026");
   });
 });
 

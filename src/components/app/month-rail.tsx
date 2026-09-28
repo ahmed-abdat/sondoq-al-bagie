@@ -51,7 +51,8 @@ export function MonthRail({
             )
           ) : (
             <>
-              من <Num>{fmt(expected)}</Num> متوقّعة · دفع <Num>{n}</Num> {n > 2 && n <= 10 ? "أعضاء" : "عضوًا"}
+              من <Num>{fmt(expected)}</Num> متوقّعة · دفع <Num>{n}</Num>{" "}
+              {n > 2 && n <= 10 ? "أعضاء" : "عضوًا"}
             </>
           )}
         </p>
@@ -72,7 +73,10 @@ export function MonthRail({
               aria-label={`${name}: ${fmt(c)} أوقية`}
             >
               <span className="bq-mbar-t">
-                <span className="bq-mbar-f" style={{ transform: `scaleY(${f})`, ["--i" as string]: k }} />
+                <span
+                  className="bq-mbar-f"
+                  style={{ transform: `scaleY(${f})`, ["--i" as string]: k }}
+                />
               </span>
               <span className="bq-mbar-l">{name}</span>
             </button>
