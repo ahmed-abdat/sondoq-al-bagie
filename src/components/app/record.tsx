@@ -12,6 +12,7 @@ import { todayIso } from "@/lib/dates";
 import { MAIN_METHODS, METHOD_LABELS, METHODS } from "@/lib/methods";
 import { parseAmount, toWesternDigits } from "@/lib/money";
 import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
+import { safeStorage } from "@/lib/safe-storage";
 import { rememberMembers, useAct } from "./act";
 import { ShareBtns } from "./entries";
 import { Stamp } from "./receipt";
@@ -55,6 +56,50 @@ function defaultMonths(ctx: MemberCtx, memberId: string) {
   return late.length ? late : open;
 }
 
+const RECENT_KEY = "bq-recent-payers";
+const readRecent = (): string[] => {
+  try {
+    const v = JSON.parse(safeStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 3) : [];
+  } catch {
+    return [];
+  }
+};
+function rememberRecent(ids: string[]) {
+  const next = [...new Set([...ids, ...readRecent()])].slice(0, 3);
+  safeStorage.setItem(RECENT_KEY, JSON.stringify(next));
+}
+
+function PickRow({
+  m,
+  onPick,
+  dim,
+}: {
+  m: MemberStatus;
+  onPick: (m: MemberStatus) => void;
+  dim?: boolean;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        className={`bq-row bq-press ${dim ? "is-dim" : ""}`}
+        onClick={() => onPick(m)}
+      >
+        <Avatar code={memberCode(m)} />
+        <span className="bq-row-m">
+          <span className="bq-row-t">{m.fullName}</span>
+        </span>
+        <StatusTag m={m} />
+      </button>
+    </li>
+  );
+}
+
+/**
+ * Step 1: the whole member list, ready to scroll and tap; the search at the top filters it
+ * (name, «A-12», «ب12», Arabic digits). Active members by group, exempt ones dimmed at the end.
+ */
 function MemberPicker({
   members,
   exclude,
@@ -67,43 +112,70 @@ function MemberPicker({
   autoFocus?: boolean;
 }) {
   const [q, setQ] = useState("");
-  const res = useMemo(
+  const [recentIds] = useState(readRecent);
+  const pool = useMemo(
     () =>
-      searchMembers(
-        members.filter((m) => m.status === "active" && !exclude.has(m.memberId)),
-        q,
-      ).slice(0, 4),
-    [members, exclude, q],
+      members.filter(
+        (m) => (m.status === "active" || m.status === "exempt") && !exclude.has(m.memberId),
+      ),
+    [members, exclude],
   );
+  const res = useMemo(() => (q.trim() ? searchMembers(pool, q) : pool), [pool, q]);
+  const recent = q.trim()
+    ? []
+    : recentIds
+        .map((id) => pool.find((m) => m.memberId === id))
+        .filter((m): m is MemberStatus => !!m);
+  const listOf = (m: MemberStatus) => m.memberRef.split("-")[0];
+  const lists = [...new Set(res.filter((m) => m.status === "active").map(listOf))].sort();
+  const exempt = res.filter((m) => m.status === "exempt");
   return (
-    <>
-      <label className="bq-search bq-search-s">
+    <div className="bq-pick">
+      <label className="bq-search bq-search-s bq-pick-search">
         {I.search(22)}
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="اسم العضو أو رقمه، مثل B-12"
+          placeholder="ابحث بالاسم أو الرقم، مثل B-12"
           aria-label="ابحث عن العضو"
           type="search"
           autoFocus={autoFocus}
         />
       </label>
       {q.trim() && !res.length && <p className="bq-hint">لم نجد عضوًا بهذا الاسم أو الرقم.</p>}
-      <ul className="bq-list">
-        {res.map((m) => (
-          <li key={m.memberId}>
-            <button type="button" className="bq-row bq-press" onClick={() => onPick(m)}>
-              <Avatar code={memberCode(m)} />
-              <span className="bq-row-m">
-                <span className="bq-row-t">{m.fullName}</span>
-                <span className="bq-row-s">المجموعة {groupLabel(m.groupCode)}</span>
-              </span>
-              <StatusTag m={m} />
-            </button>
-          </li>
-        ))}
-      </ul>
-    </>
+      {recent.length > 0 && (
+        <section aria-label="آخر من سجّلت لهم">
+          <h3 className="bq-pick-h">آخر من سجّلت لهم</h3>
+          <ul className="bq-list">
+            {recent.map((m) => (
+              <PickRow key={`r-${m.memberId}`} m={m} onPick={onPick} />
+            ))}
+          </ul>
+        </section>
+      )}
+      {lists.map((l) => (
+        <section key={l} aria-label={`المجموعة ${groupLabel(l)}`}>
+          <h3 className="bq-pick-h">المجموعة {groupLabel(l)}</h3>
+          <ul className="bq-list">
+            {res
+              .filter((m) => m.status === "active" && listOf(m) === l)
+              .map((m) => (
+                <PickRow key={m.memberId} m={m} onPick={onPick} />
+              ))}
+          </ul>
+        </section>
+      ))}
+      {exempt.length > 0 && (
+        <section aria-label="المعفون">
+          <h3 className="bq-pick-h">المعفون من الرسوم</h3>
+          <ul className="bq-list">
+            {exempt.map((m) => (
+              <PickRow key={m.memberId} m={m} onPick={onPick} dim />
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }
 
@@ -391,6 +463,7 @@ export function RecordBody({
       setErr(r.message);
       return;
     }
+    rememberRecent(rows.map((r) => r.m.memberId));
     router.refresh();
     const who =
       rows.length > 1
@@ -693,39 +766,41 @@ export function RecordBody({
         </>
       )}
 
-      <div className="bq-rec-foot">
-        <p className="bq-rec-sum" aria-live="polite">
-          <span className="bq-hint">
-            {rows.length > 1 ? `${rows.length} أعضاء` : "المجموع"}
-            {campAmt > 0 && (
-              <>
-                {" "}
-                + مساهمة <Num>{fmt(campAmt)}</Num>
-              </>
-            )}
-          </span>
-          <span>
-            <Num className="bq-rec-amt">{fmt(total + (diff > 0 && creditFor ? diff : 0))}</Num>{" "}
-            أوقية
-          </span>
-        </p>
-        {err ? (
-          <p className="bq-alert" role="alert">
-            {err}
+      {rows.length > 0 && (
+        <div className="bq-rec-foot">
+          <p className="bq-rec-sum" aria-live="polite">
+            <span className="bq-hint">
+              {rows.length > 1 ? `${rows.length} أعضاء` : "المجموع"}
+              {campAmt > 0 && (
+                <>
+                  {" "}
+                  + مساهمة <Num>{fmt(campAmt)}</Num>
+                </>
+              )}
+            </span>
+            <span>
+              <Num className="bq-rec-amt">{fmt(total + (diff > 0 && creditFor ? diff : 0))}</Num>{" "}
+              أوقية
+            </span>
           </p>
-        ) : (
-          block && rows.length > 0 && <p className={diff < 0 ? "bq-alert" : "bq-hint"}>{block}</p>
-        )}
-        <button
-          type="button"
-          className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-          disabled={!!block || busy || !online}
-          onClick={() => void submit()}
-        >
-          {busy ? "جارٍ الحفظ…" : "سجّل الدفعة"}
-        </button>
-        <OfflineWriteHint />
-      </div>
+          {err ? (
+            <p className="bq-alert" role="alert">
+              {err}
+            </p>
+          ) : (
+            block && rows.length > 0 && <p className={diff < 0 ? "bq-alert" : "bq-hint"}>{block}</p>
+          )}
+          <button
+            type="button"
+            className="bq-btn bq-btn-primary bq-btn-lg bq-press"
+            disabled={!!block || busy || !online}
+            onClick={() => void submit()}
+          >
+            {busy ? "جارٍ الحفظ…" : "سجّل الدفعة"}
+          </button>
+          <OfflineWriteHint />
+        </div>
+      )}
     </div>
   );
 }
