@@ -1,61 +1,53 @@
 # UI port status (Lane C, branch m2-ui)
 
-Porting prototype «M» (proto worktree: src/app/prototype/direction/variant-m.tsx, receipt.tsx)
-into production code. Token source: DESIGN.md + .impeccable/design.json (merged from m2-app).
-Data types: src/lib/data/types.ts (merged from m2-app, Lane A — do not edit).
+Prototype «M» (proto worktree `src/app/prototype/direction/variant-m.tsx`, `receipt.tsx`) ported
+into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app/globals.css`.
 
 ## Done
-- m2-app merged (types.ts, DESIGN.md).
-- `src/app/globals.css`: full token set (green ramp, gold, neutrals, one red, radii, green-tinted
-  shadows, motion vars, type scale 14/17/22/28/40/56 as `text-label/body/title/headline/figure/display`),
-  legacy + shadcn token mapping (providers/offline banner/ui primitives still compile), and every
-  prototype component style ported under a `bq-` prefix (`vm-` → `bq-`, receipt `rc-` not yet).
-  Coordinator drift fixes already applied in CSS: switch off-track #8A968F (≥3:1), one red
-  (#8A3B2F on #F6E9E6), green-tinted snack shadow, no !important, no dead success-screen CSS,
-  month picker sub-label 14px, badge 14px, tab VT via React `<ViewTransition>` classes
-  `tab-fwd`/`tab-back`, nav/aside anchored (`bq-bnav`, `bq-rail`, `bq-aside`).
-- Verified: CSS compiles through @tailwindcss/postcss.
+- Routes: `(public)/` home, `/members` (`?filter=late|none|A|B`), `/accounts` (`#bq-sum`,
+  `#bq-pay`, `#bq-ops` anchors), `/donations`; `(committee)/committee` (queue, follow-up, FAB →
+  record sheet) and `/committee/settings` (amount switch, fund accounts, WhatsApp number, invite,
+  password, logout); `/r/[code]` (network, `connection()`); `/login` restyled (gate look, «نسيت
+  كلمة السر»). Old `src/app/page.tsx` and `src/app/committee/` removed.
+- Components in `src/components/app/`:
+  - `source.ts` — the ONLY data door for pages (server-only). Reads `@/lib/data`; with
+    `SONDOQ_FIXTURES=1` serves `fixtures.ts` (fictional, 71 members, today 28 Sep 2026).
+  - `page-data.ts` (hero + member-sheet context), `derive.ts` (+tests: Arabic wording, member state,
+    search, UTC dates), `receipt-model.ts` (+tests: VerifiedReceipt / PendingPayment → ReceiptView →
+    ShareableReceipt), `types.ts` (LedgerEntry view model).
+  - `shell.tsx` (bottom bar / rail, sliding pill with optimistic index, `Link transitionTypes`
+    tab-fwd/back, desktop aside hero, compact bar on mobile home, reveal, `useSnack`), `tab.tsx`
+    (React `<ViewTransition>` per page), `hero.tsx`, `sheet.tsx` (drag/velocity + avatar/receipt
+    morph via `useSheet`), `receipt.tsx` (Receipt, Stamp, ConfirmedMark, Proof with signed URL,
+    QR from `@/lib/qr`), `slip.tsx`, `record.tsx`, `member.tsx`, `entries.tsx` (rows, sheets,
+    share via `@/lib/share-receipt`), `pay-to.tsx`, `month-rail.tsx`, `segmented.tsx`, `bits.tsx`,
+    `icons.tsx`, `num.tsx`, `views/*`.
+- Confirm/reject: the stamp lands at once, the action is sent after the 5 s inline «تراجع» window
+  (or on pagehide/unmount), so undo never reverses a confirmed payment server-side. Decided slips
+  stay collapsed to one line (with WhatsApp share once the receipt code is back).
+- Record payment: member search, quick month chips, method grid, screenshot → OCR
+  (`@/lib/ocr`: prefill method/ref/date, «تحقق» marks) → compress → `uploadProof` → `recordPayment`.
+- Offline: write buttons disabled via `useOnline()` + `<OfflineWriteHint/>`; `<InstallCard/>` on home.
+- Realtime: `usePaymentsRealtime` in `(committee)/layout.tsx` → `router.refresh()`.
+- Drift fixes: `monthName()`/`formatDay()` use يناير…ديسمبر (Intl ar-MR gave شتمبر/أغشت/دجمبر);
+  receipt `rc-` CSS on the 14/17/22/28/40 scale, slate muted, forest actions, one red, no hairlines.
+- Verified: `pnpm check` + `pnpm build` green; Playwright screenshots 390/1280 of every route and
+  of sheet/confirm/record flows, no console errors, no horizontal overflow.
 
-## Remaining, in order
-1. Pure helpers `src/components/app/derive.ts` (+ tests): month names (standard MSA list — do NOT use
-   `monthName()` from src/lib/dates: Intl ar-MR gives «شتمبر/أغشت/دجمبر»), monthsWord, monthCount,
-   monthsLabel, monthsInWords (runs), amountInWords, memberState (ahead/ok/late from
-   MemberStatus.monthsBehind/monthsPaidThisYear), lateLabel, maskTxn («•••• 2917»), normalizeAr +
-   searchMembers, dayWords/dayDate/clock/dotDate (UTC), relativeAgo, groupLabel, categoryLabel.
-2. `qr.ts` (port qrMatrix from receipt.tsx) + test; `receipt-model.ts`: ReceiptView + mappers from
-   VerifiedReceipt and PendingPayment (+ tests).
-3. `fixtures.ts` (71 fictional members, A 1000 / B 500, ~45% full year, ~37% none, rest partial;
-   today 2026-09-28) returning types.ts shapes; `source.ts` (server-only reads, the ONLY fixture
-   importer, TODO swap to "@/lib/data"): getFundSummary, getFundInfo, listMembers, listMemberMonths,
-   getMonthly, listExpenses, listExpenseTotals, getCampaigns, listContributions, listLedger,
-   listPending, listFundAccounts(+admin), listArrears, verifyReceipt, getCommitteeSession (supabase
-   getUser, role TODO). `mutations.ts` (client, optimistic stubs → ActionResult; TODO Lane A actions):
-   confirm/reject/undo/recordPayment/recordExpense/settings.
-4. Components in `src/components/app/`: icons, Num/Roll, AppShell (Link + usePathname, transitionTypes
-   tab-fwd/back, optimistic pill idx, badge, rail, SnackProvider), Hero (+compact bar IO), Reveal,
-   MemberRow, StatusTag, MethodBadge, Track, Segmented, Sheet (drag/velocity/interruptible, VT morph),
-   MemberSheet, Receipt/Stamp/ConfirmedMark/Proof/Qr (port rc- CSS with the drift fixes: system type
-   scale, muted #4F5C55, primary #1A5F2E, reject chip tonal, nothing <14px, rejected stamp #8A3B2F),
-   PayTo, MonthBars, EmptyState, PendingSlip, RecordPayment/RecordExpense/AddAccount sheets,
-   receipt PNG share (TODO swap to Lane B src/lib/share-receipt.ts).
-5. Routes: move page.tsx → `(public)/page.tsx`; `(public)/{members,accounts,donations}`;
-   `(public)/layout.tsx` + `(committee)/layout.tsx` (AppShell + aside hero); `(committee)/committee`
-   (queue, follow-up, FAB) and `/committee/settings`; `/r/[code]` (dynamic, no-store); restyle
-   `/login` (gate look). Delete old `src/app/committee/page.tsx`. Pages wrap content in
-   `<ViewTransition enter/exit={{'tab-fwd','tab-back',default:'none'}} default="none">`.
-6. Offline: disable writes with `useOnline()` + `<OfflineWriteHint/>`.
-7. pnpm lint / typecheck / test / build; Playwright screenshots at 390 + 1280 on `pnpm dev -p 3400`.
-
-## Known issues / gaps to raise with Lane A (types.ts)
-- No public ledger type with amount/method/receipt code for «آخر العمليات» (ActivityItem.payment_confirmed
-  has no amount, method, id or receipt code) → UI-only `LedgerEntry` type needed.
-- No campaign contributions list type («آخر المساهمات»).
-- VerifiedReceipt lacks confirmedByName/role and masked txn (last 4) used by the public receipt.
-- FundAccount has no `active` flag for the committee settings toggle.
-- PendingPayment has no receipt number/code (fine while pending; confirm action should return them).
-- /committee is behind proxy auth: for screenshots, temporarily patch (do not commit) or log in.
+## Remaining / next
+1. Committee campaign form (createCampaign / updateCampaign / closeCampaign) and campaign
+   allocations in the record sheet — actions exist on m2-app, UI not built.
+2. Expenses: record-expense sheet (`recordExpense`, `uploadProof` kind "expenses") — not built.
+3. Per-member reminders list (`reminderLink` + `logReminder` individual) on /committee; only the
+   group reminder is wired.
+4. Group prices: `source.groupPrices()` is a constant A 1000 / B 500 — TODO(lane-a) public
+   `group_prices` read.
+5. Offline "last updated": pages are Server Components (SW caches the HTML); public data is not
+   yet mirrored into TanStack Query, so the offline banner has no timestamp from them.
+6. Lane A copy: `src/lib/data/reminders.ts` says «حالة الاشتراكات» — must be «الرسوم الشهرية».
 
 ## How to verify
-`pnpm lint && pnpm typecheck && pnpm test && pnpm build`; `pnpm dev -p 3400`, screenshot routes at
-390×844 (dpr 2) and 1280×800 with the pattern in ../foundation/shot.tmp.mjs; compare with
-http://localhost:3100/prototype/direction?variant=M.
+`pnpm check && pnpm build`. Screenshots: `SONDOQ_FIXTURES=1 pnpm dev -p 3400`; /committee needs a
+signed-in committee user, or a temporary UNCOMMITTED bypass in `src/proxy.ts`
+(`process.env.SONDOQ_FIXTURES !== "1" &&` in the redirect condition) — revert before committing.
+Compare with http://localhost:3100/prototype/direction?variant=M.
