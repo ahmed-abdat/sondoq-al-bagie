@@ -1,12 +1,15 @@
 import withSerwistInit from "@serwist/next";
 import type { NextConfig } from "next";
 
+// Intentional: the SW is built by `next build --webpack` only; Turbopack (dev, typegen) skips it.
+process.env.SERWIST_SUPPRESS_TURBOPACK_WARNING ??= "1";
+
 const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
   cacheOnNavigation: true,
   reloadOnOnline: false,
-  disable: process.env.NODE_ENV === "development",
+  disable: process.env.NODE_ENV !== "production",
   // Precache only the app shell (low-end phones, small data plans): no Pages Router runtime.
   exclude: [
     /\.map$/,
