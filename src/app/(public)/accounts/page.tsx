@@ -4,7 +4,7 @@ import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { AccountsView } from "@/components/app/views/accounts";
 
-export const metadata: Metadata = { title: "الحسابات · صندوق البقيع" };
+export const metadata: Metadata = { title: "الحسابات · صندوق الشباب" };
 
 export default async function AccountsPage() {
   const year = src.thisYear();

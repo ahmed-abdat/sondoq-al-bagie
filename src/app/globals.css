@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * صندوق البقيع — design tokens (source: DESIGN.md + .impeccable/design.json).
+ * صندوق الشباب — design tokens (source: DESIGN.md + .impeccable/design.json).
  * The logo only: one green ramp, a hair of gold, cool neutrals. Light only.
  */
 :root {
@@ -3448,5 +3448,70 @@
   /* a filter row with four short options fits 390px without scrolling */
   .bq-seg-fit .bq-seg-b {
     padding-inline: 10px;
+  }
+}
+@layer components {
+  /* donations: title, purpose, then the status pill on its own line (8/12 rhythm) */
+  .bq-camp-head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .bq-camp-head h2 {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .bq-camp-head .bq-lead {
+    margin: 0;
+  }
+  .bq-camp-amt {
+    margin-block-start: 20px;
+  }
+  .bq-camp-amt + .bq-of {
+    margin-block-start: 2px;
+  }
+  .bq-camp-none {
+    margin-block-start: 20px;
+    padding: 14px 16px;
+    border-radius: var(--r-md);
+    background: var(--g0);
+    font-size: 17px;
+  }
+  .bq-track-row .bq-track-p {
+    min-width: 3.5ch;
+    text-align: end;
+  }
+  /* three facts: icon, label, value — same widths and baselines */
+  .bq-facts3 {
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    align-items: start;
+    margin-block: 24px 12px;
+  }
+  .bq-facts3 li {
+    display: grid;
+    grid-template-rows: 20px auto auto;
+    row-gap: 4px;
+    justify-items: start;
+  }
+  .bq-facts3 li .bq-f3-k {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .bq-facts3 li .bq-f3-v {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .bq-steps .bq-step-n {
+    margin-block-start: -2px;
+  }
+  .bq-lead-body {
+    font-size: 17px;
+  }
+  .bq-sec[data-rv="don-how"] {
+    margin-block-start: 56px;
   }
 }

@@ -58,49 +58,65 @@ export function DonationsView({
             data-rv="don-camp"
             aria-labelledby="bq-camp-h"
           >
-            <h2 id="bq-camp-h" className="bq-camp-h">
-              {c.title}{" "}
+            <header className="bq-camp-head">
+              <h2 id="bq-camp-h">{c.title}</h2>
+              {c.purpose && <p className="bq-lead">{c.purpose}</p>}
               {c.deadline && (
                 <span className="bq-tag is-ok bq-tag-inline">
                   مفتوحة حتى {dayWords(c.deadline)}
                 </span>
               )}
-            </h2>
-            {c.purpose && <p className="bq-lead">{c.purpose}</p>}
-            <p className="bq-big bq-big-of">
-              <Num>{fmt(c.collected)}</Num> <span>أوقية</span>
-              {target > 0 && (
-                <span className="bq-of">
-                  من هدف <Num>{fmt(target)}</Num>
-                </span>
-              )}
-            </p>
-            {pct !== null && (
-              <div className="bq-track-row">
-                <Track f={pct / 100} label={`${pct}% من الهدف`} />
-                <Num className="bq-track-p">{pct}%</Num>
-              </div>
+            </header>
+            {c.collected > 0 ? (
+              <>
+                <p className="bq-big bq-camp-amt">
+                  <Num>{fmt(c.collected)}</Num> <span>أوقية</span>
+                </p>
+                {target > 0 && (
+                  <p className="bq-of">
+                    جُمعت من هدف <Num className="bq-strong">{fmt(target)}</Num> أوقية
+                  </p>
+                )}
+                {pct !== null && (
+                  <div className="bq-track-row">
+                    <Track f={pct / 100} label={`${pct}% من الهدف`} />
+                    <Num className="bq-track-p">{pct}%</Num>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="bq-camp-none">
+                لم تُجمع مساهمات بعد
+                {target > 0 && (
+                  <>
+                    {" "}
+                    — الهدف <Num className="bq-strong">{fmt(target)}</Num> أوقية
+                  </>
+                )}
+              </p>
             )}
             <ul className="bq-facts3">
               <li>
                 {I.people(20)}
-                <span>
-                  <Num>{c.participantsPaid}</Num>{" "}
-                  {c.participantsPaid > 2 && c.participantsPaid <= 10 ? "مساهمين" : "مساهمًا"}
+                <span className="bq-f3-k">المساهمون</span>
+                <span className="bq-f3-v">
+                  <Num>{c.participantsPaid}</Num>
                 </span>
               </li>
-              {target > 0 && (
+              {target > 0 && c.collected > 0 && (
                 <li>
                   {I.coins(20)}
-                  <span>
-                    الباقي <Num>{fmt(Math.max(0, target - c.collected))}</Num>
+                  <span className="bq-f3-k">الباقي</span>
+                  <span className="bq-f3-v">
+                    <Num>{fmt(Math.max(0, target - c.collected))}</Num>
                   </span>
                 </li>
               )}
               {c.deadline && (
                 <li>
                   {I.calendar(20)}
-                  <span>ينتهي {dayWords(c.deadline)}</span>
+                  <span className="bq-f3-k">ينتهي</span>
+                  <span className="bq-f3-v">{dayWords(c.deadline)}</span>
                 </li>
               )}
             </ul>
@@ -109,29 +125,45 @@ export function DonationsView({
 
           <section className="bq-sec bq-rv" data-rv="don-how" aria-labelledby="bq-how-h">
             <h2 id="bq-how-h">كيف أساهم؟</h2>
-            <ol className="bq-steps">
-              <li>
-                <span className="bq-step-n">
-                  <Num>1</Num>
-                </span>
-                <div className="bq-grow-1">
-                  <p>أرسل مساهمتك إلى أحد أرقام الصندوق.</p>
-                  <PayTo accounts={accounts} />
-                </div>
-              </li>
-              <li>
-                <span className="bq-step-n">
-                  <Num>2</Num>
-                </span>
-                <p>أرسل صورة التحويل في مجموعة الواتساب أو لأحد أعضاء اللجنة.</p>
-              </li>
-              <li>
-                <span className="bq-step-n">
-                  <Num>3</Num>
-                </span>
-                <p>يؤكدها أمين الصندوق ويظهر اسمك هنا.</p>
-              </li>
-            </ol>
+            {accounts.some((x) => x.active) ? (
+              <ol className="bq-steps">
+                <li>
+                  <span className="bq-step-n">
+                    <Num>1</Num>
+                  </span>
+                  <div className="bq-grow-1">
+                    <p>أرسل مساهمتك إلى أحد أرقام الصندوق.</p>
+                    <PayTo accounts={accounts} />
+                  </div>
+                </li>
+                <li>
+                  <span className="bq-step-n">
+                    <Num>2</Num>
+                  </span>
+                  <p>أرسل صورة التحويل في مجموعة الواتساب أو لأحد أعضاء اللجنة.</p>
+                </li>
+                <li>
+                  <span className="bq-step-n">
+                    <Num>3</Num>
+                  </span>
+                  <p>يؤكدها أمين الصندوق ويظهر اسمك هنا.</p>
+                </li>
+              </ol>
+            ) : (
+              <p className="bq-lead-body">
+                {whatsapp ? (
+                  <>
+                    تواصل مع اللجنة على واتساب{" "}
+                    <bdi dir="ltr" className="bq-num">
+                      {whatsapp}
+                    </bdi>{" "}
+                    لتعرف أين ترسل مساهمتك.
+                  </>
+                ) : (
+                  "تواصل مع أحد أعضاء اللجنة لتعرف أين ترسل مساهمتك."
+                )}
+              </p>
+            )}
             {wa && (
               <div className="bq-btn-col">
                 <a

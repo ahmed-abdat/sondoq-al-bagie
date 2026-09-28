@@ -1,5 +1,5 @@
 ---
-name: صندوق البقيع
+name: صندوق الشباب
 description: The village fund, open to every member — one green, plain words, proof on paper.
 colors:
   forest-deep: "#0E3A1B"
@@ -348,7 +348,7 @@ components:
     size: "20px"
 ---
 
-# Design System: صندوق البقيع
+# Design System: صندوق الشباب
 
 ## Overview
 
@@ -459,7 +459,7 @@ Soft and consistent. Everything tappable that is not a row is a full pill (999px
 ## Components
 
 ### Hero
-The one green field. Brand row (48px logo with gold ring, «صندوق البقيع» at 17px/700 and the association name at 14px On-Green, 14px gap), then «في الصندوق الآن», the rolling balance at Display size with «أوقية» in On-Green 22px, then two stats side by side («جُمع هذا العام», «صُرف هذا العام»), then «آخر تحديث: …» (or the pending count for the committee). No toggles, no link, no decorative marks. On mobile home it collapses into a 56px fixed compact bar (small logo, label, balance) when the hero scrolls out, sliding down in 240ms; no blur. On desktop it is a 28px-radius panel in the sticky aside.
+The one green field. Brand row (48px logo with gold ring, «صندوق الشباب» at 17px/700 and the association name at 14px On-Green, 14px gap), then «في الصندوق الآن», the rolling balance at Display size with «أوقية» in On-Green 22px, then two stats side by side («جُمع هذا العام», «صُرف هذا العام»), then «آخر تحديث: …» (or the pending count for the committee). No toggles, no link, no decorative marks. On mobile home it collapses into a 56px fixed compact bar (small logo, label, balance) when the hero scrolls out, sliding down in 240ms; no blur. On desktop it is a 28px-radius panel in the sticky aside.
 
 ### Navigation
 - **Bottom bar (below 1024px):** fixed, 64px plus safe-area inset, white, Nav-edge shadow, no line. Five equal items in this order: «الرئيسية», «الأعضاء», «الحسابات», «التبرعات», «اللجنة» (lock icon). Each is a 24px line icon over a 14px label; inactive Slate, active Forest Deep with a 700 label. A single 60×32 Green Tint pill slides between items (translateX, 240ms ease-out). Committee badge: 20px Forest circle with a 2px white ring.

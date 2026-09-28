@@ -6,7 +6,7 @@ import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { MembersFromUrl, MembersView } from "@/components/app/views/members";
 
-export const metadata: Metadata = { title: "الأعضاء · صندوق البقيع" };
+export const metadata: Metadata = { title: "الأعضاء · صندوق الشباب" };
 
 export default async function MembersPage() {
   const [all, ctx] = await Promise.all([src.members(), memberCtx()]);
