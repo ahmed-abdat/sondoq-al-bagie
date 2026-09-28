@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { isProofPath } from "./proof";
 import * as read from "./read";
 import type { CommitteeSession } from "./types";
 
@@ -46,3 +47,11 @@ export const getRecentPayments = committee(read.recentPayments, []);
 export const getPayment = committee(read.paymentById, null);
 export const getArrears = committee(read.arrears, []);
 export const getFundAccountsAdmin = committee(read.fundAccountsAdmin, []);
+
+/** 5-minute signed link to a proof image, or null (not a committee member / missing file). */
+export async function getProofUrl(path: string): Promise<string | null> {
+  if (!isProofPath(path)) return null;
+  const c = await createClient();
+  const { data } = (await c?.storage.from("proofs").createSignedUrl(path, 300)) ?? { data: null };
+  return data?.signedUrl ?? null;
+}

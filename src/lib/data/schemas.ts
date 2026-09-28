@@ -150,6 +150,17 @@ export const updateFundAccountSchema = z.object({
   active: z.boolean(),
 });
 
+export const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
+export const passwordSchema = z.object({ password: z.string().min(8).max(72) });
+
+export const inviteCommitteeMemberSchema = z.object({
+  email: emailSchema,
+  displayName: text(80),
+  role: z.enum(E.committee_role),
+  memberId: id.nullish(),
+});
+
+export type InviteCommitteeMemberInput = z.input<typeof inviteCommitteeMemberSchema>;
 export type RecordPaymentInput = z.input<typeof recordPaymentSchema>;
 export type AllocationInput = z.input<typeof allocationSchema>;
 export type RecordExpenseInput = z.input<typeof recordExpenseSchema>;

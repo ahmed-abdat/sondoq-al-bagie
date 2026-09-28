@@ -15,6 +15,8 @@ export const MESSAGES = {
   not_allowed: "لا تملك صلاحية هذه العملية.",
   own_membership: "دفعة تخص اشتراكك يؤكدها عضو آخر من اللجنة.",
   paper_admin_only: "السجل الورقي يدخله المسؤول فقط.",
+  already_registered: "هذا البريد له حساب من قبل. عدّل دوره بدلاً من دعوته.",
+  weak_password: "كلمة السر قصيرة أو ضعيفة (8 أحرف على الأقل).",
   cannot_demote_self: "لا يمكنك سحب صلاحية المسؤول من نفسك.",
   // payments
   not_found: "العنصر غير موجود.",
@@ -22,6 +24,8 @@ export const MESSAGES = {
   month_already_paid: "أحد هذه الأشهر مدفوع من قبل.",
   duplicate_txn_ref: "رقم العملية مسجّل من قبل في دفعة أخرى.",
   duplicate_proof: "صورة الإيصال نفسها مسجّلة من قبل.",
+  proof_too_large: "الصورة كبيرة جداً. التقطها من جديد.",
+  proof_not_image: "الملف ليس صورة (JPG أو PNG أو WEBP).",
   allocations_required: "اختر الأشهر أو المساهمة التي تغطيها الدفعة.",
   allocations_mismatch: "مجموع التوزيع لا يساوي مبلغ الدفعة.",
   future_date: "التاريخ في المستقبل.",
