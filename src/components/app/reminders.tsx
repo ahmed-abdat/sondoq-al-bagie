@@ -10,7 +10,7 @@ import { waLink } from "@/lib/whatsapp";
 import { Avatar } from "./bits";
 import { fmt, monthsWord, remindedLabel, memberCode } from "./derive";
 import { I } from "./icons";
-import { Num } from "./num";
+import { Num, useNow } from "./num";
 
 export function LateList({
   arrears,
@@ -21,6 +21,7 @@ export function LateList({
 }) {
   const router = useRouter();
   const { logReminder } = useAct();
+  const now = useNow();
   // reminded just now (before the server list catches up)
   const [sent, setSent] = useState<Record<string, string>>({});
   const [groupAt, setGroupAt] = useState<string | null>(null);
@@ -79,7 +80,13 @@ export function LateList({
                         متأخر {monthsWord(a.monthsCount)} · <Num>{fmt(a.amountOwed)}</Num> أوقية
                       </span>
                       <span className={`bq-row-s ${sent[a.memberId] ? "is-ok" : ""}`}>
-                        {a.phone ? remindedLabel(last) : "لا يوجد رقم هاتف"}
+                        {a.phone
+                          ? now
+                            ? remindedLabel(last, now)
+                            : last
+                              ? "ذُكّر من قبل"
+                              : "لم يُذكَّر بعد"
+                          : "لا يوجد رقم هاتف"}
                       </span>
                     </span>
                     <button

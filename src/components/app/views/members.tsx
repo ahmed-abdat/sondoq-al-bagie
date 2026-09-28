@@ -95,7 +95,10 @@ export function MembersView({
               k: "all",
               l: (
                 <>
-                  الكل <Num className="bq-seg-n">{count("all")}</Num>
+                  الكل {/* same number as «X من N» on the home page: active members */}
+                  <Num className="bq-seg-n">
+                    {members.filter((m) => m.status === "active").length}
+                  </Num>
                 </>
               ),
             },
@@ -107,7 +110,7 @@ export function MembersView({
                 </>
               ),
             },
-            ...groups.map((g) => ({ k: `g:${g}` as Filter, l: `الفئة ${groupLabel(g)}` })),
+            ...groups.map((g) => ({ k: `g:${g}` as Filter, l: `المجموعة ${groupLabel(g)}` })),
             ...(initial === "none"
               ? [
                   {

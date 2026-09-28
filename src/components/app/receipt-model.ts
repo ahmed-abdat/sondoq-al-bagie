@@ -142,7 +142,8 @@ export function toShareable(r: ReceiptView): ShareableReceipt | null {
   if (!r.code) return null;
   const st = r.status;
   return {
-    no: r.no ?? r.code,
+    // before the number is known, the code's last part (never the whole code twice)
+    no: r.no ?? r.code.split("-").pop() ?? r.code,
     payer: r.payer,
     covers: r.covers,
     amountMro: r.amount,

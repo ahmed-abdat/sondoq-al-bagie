@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ASSOC, dayDate, fmt, monthsInWords } from "@/components/app/derive";
 import { I } from "@/components/app/icons";
@@ -27,6 +28,8 @@ export default async function VerifyPage({ params }: PageProps<"/r/[code]">) {
   const v = await src.receipt(code);
   const r = fromVerified(v);
   const st = r?.status;
+  const demoReceipt = src.demoMode && code.startsWith("BQ-DEMO-");
+  if (!r && !demoReceipt) notFound();
   return (
     <main className="bq-verify">
       <header className="bq-verify-h">
@@ -41,10 +44,11 @@ export default async function VerifyPage({ params }: PageProps<"/r/[code]">) {
 
       {!r || !st ? (
         <section className="bq-verify-s is-none">
-          <span className="bq-verify-i">{I.search(32)}</span>
-          <h1>لم نجد هذا الوصل</h1>
+          <span className="bq-verify-i">{I.clock(32)}</span>
+          <h1>وصل من النسخة التجريبية</h1>
           <p className="bq-lead">
-            تأكّد من الرمز <Num>{code}</Num>، أو اسأل أمين الصندوق.
+            الرمز <Num>{code}</Num> صدر في النسخة التجريبية، وهي لا تحفظ شيئًا. في النسخة الحقيقية
+            تظهر هنا تفاصيل الوصل.
           </p>
         </section>
       ) : st.kind === "cancelled" ? (

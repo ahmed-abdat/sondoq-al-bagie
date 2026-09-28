@@ -7,7 +7,13 @@ import type {
   MonthlyCollection,
 } from "@/lib/data/types";
 import { categoryLabel, dayWords, fmt } from "../derive";
-import { EntryRow, EntrySheetBody } from "../entries";
+import dynamic from "next/dynamic";
+import { EntryRow } from "../entry-row";
+
+// the receipt, its stamp, QR and share code load only when a row is opened
+const EntrySheetBody = dynamic(() => import("../entries").then((m) => m.EntrySheetBody), {
+  ssr: false,
+});
 import { MonthRail } from "../month-rail";
 import { Num, Roll } from "../num";
 import { PayTo } from "../pay-to";

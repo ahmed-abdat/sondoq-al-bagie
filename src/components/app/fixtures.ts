@@ -6,6 +6,7 @@ import type {
   Arrear,
   CampaignContribution,
   CampaignProgress,
+  CommitteeAccount,
   CommitteeSession,
   MemberAdmin,
   MembershipStatus,
@@ -322,15 +323,6 @@ const RECEIPTS: Rc[] = [
   },
 ];
 export function fxReceipt(code: string): VerifiedReceipt {
-  // demo mode confirms payments locally with BQ-DEMO-0001… codes: show them as a sample receipt
-  if (/^BQ-DEMO-\d{4}$/i.test(code.trim()))
-    return {
-      ...RECEIPTS[0],
-      code: code.trim().toUpperCase(),
-      receiptNo: "DEMO",
-      confirmedByName: "مستخدم تجريبي",
-      confirmedByRole: "admin",
-    };
   const r = RECEIPTS.find((x) => x.code.toUpperCase() === code.trim().toUpperCase());
   return r ?? { status: "not_found" };
 }
@@ -506,3 +498,36 @@ export const fxMembersAdmin = (): MemberAdmin[] =>
     amountOwed: amountOwed ?? 0,
     joinedMonth: "2020-01-01",
   }));
+
+export const fxCommitteeAccounts = (): CommitteeAccount[] => [
+  {
+    userId: uuid("9", 1),
+    displayName: "مستخدم تجريبي",
+    role: "admin",
+    active: true,
+    memberId: null,
+    login: "demo@example.com",
+    lastSignInAt: "2026-09-28T09:00:00Z",
+    createdAt: "2026-09-01T09:00:00Z",
+  },
+  {
+    userId: uuid("9", 2),
+    displayName: "سيدي محمد",
+    role: "treasurer",
+    active: true,
+    memberId: RAW[2].id,
+    login: "+22236123456",
+    lastSignInAt: "2026-09-27T18:30:00Z",
+    createdAt: "2026-09-01T09:00:00Z",
+  },
+  {
+    userId: uuid("9", 3),
+    displayName: "يحيى",
+    role: "committee",
+    active: true,
+    memberId: null,
+    login: "+22246123457",
+    lastSignInAt: null,
+    createdAt: "2026-09-20T09:00:00Z",
+  },
+];

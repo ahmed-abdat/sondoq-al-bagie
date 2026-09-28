@@ -12,6 +12,7 @@ import type {
   MemberAdmin,
   PendingPayment,
 } from "@/lib/data/types";
+import { generatePassword, parseLogin } from "@/lib/data/logins";
 import { DEMO_USER } from "./demo";
 
 type Actions = typeof real;
@@ -54,6 +55,15 @@ export function useDemoState(): DemoState {
 }
 
 /* ───────────── simulated actions ───────────── */
+/** Demo only: names of the members a screen is about to record for (the real server knows them). */
+const known = new Map<string, { fullName: string; listCode: string; number: number }>();
+export function rememberMembers(
+  list: { memberId: string; fullName: string; listCode: string; number: number }[],
+) {
+  for (const m of list) known.set(m.memberId, m);
+}
+const nameOf = (id: string | null | undefined, fallback: string) =>
+  (id && known.get(id)) || { fullName: fallback, listCode: "", number: 0 };
 const wait = () => new Promise((r) => setTimeout(r, 400));
 const ok = async <T,>(data: T): Promise<ActionResult<T>> => {
   await wait();
@@ -73,7 +83,7 @@ const demo: Partial<Actions> = {
       amount: p.amount,
       paidOn: p.paidOn,
       txnRef: p.txnRef ?? null,
-      proofPath: null,
+      proofPath: p.proofPath ?? null,
       note: p.note ?? null,
       createdAt: now(),
       createdByName: DEMO_USER,
@@ -85,7 +95,7 @@ const demo: Partial<Actions> = {
       receiptNo: null,
       allocations: p.allocations.map((a) =>
         a.kind === "months"
-          ? { ...a, listCode: "", number: 0, fullName: p.payerName, year: a.year ?? 0 }
+          ? { ...a, ...nameOf(a.memberId, p.payerName), year: a.year ?? 0 }
           : a.kind === "campaign"
             ? {
                 kind: "campaign",
@@ -93,15 +103,13 @@ const demo: Partial<Actions> = {
                 memberId: a.memberId ?? null,
                 listCode: null,
                 number: null,
-                fullName: p.payerName,
+                fullName: nameOf(a.memberId, p.payerName).fullName,
                 amount: a.amount,
               }
             : {
                 kind: "credit",
                 memberId: a.memberId,
-                listCode: "",
-                number: 0,
-                fullName: p.payerName,
+                ...nameOf(a.memberId, p.payerName),
                 amount: a.amount,
               },
       ),
@@ -120,11 +128,15 @@ const demo: Partial<Actions> = {
   rejectPayment: async () => ok(undefined),
   cancelPayment: async () => ok(undefined),
   undoPayment: async () => ok(undefined),
-  async uploadProof() {
-    return ok({ path: "demo/proof.jpg", hash: "0".repeat(64) });
+  async uploadProof(form) {
+    // keep the picked image on this phone so the new slip can show it
+    const file = form.get("file");
+    const path = file instanceof Blob ? `demo:${URL.createObjectURL(file)}` : "demo:";
+    return ok({ path, hash: "0".repeat(64) });
   },
-  async proofUrl() {
+  async proofUrl({ path }) {
     await wait();
+    if (path.startsWith("demo:blob:")) return { ok: true, data: path.slice(5) };
     return { ok: false, code: "demo", message: "صورة تجريبية" };
   },
   async recordExpense(p) {
@@ -202,6 +214,18 @@ const demo: Partial<Actions> = {
   },
   updateFundAccount: async () => ok(undefined),
   inviteCommitteeMember: async () => ok({ userId: "demo" }),
+  async createCommitteeAccount(p) {
+    const login = parseLogin(p.login);
+    if (!login) {
+      await wait();
+      return { ok: false, code: "bad_login", message: "اكتب رقم هاتف أو بريدًا صحيحًا." };
+    }
+    return ok({ userId: crypto.randomUUID(), login: login.display, password: generatePassword() });
+  },
+  async resetCommitteePassword() {
+    return ok({ userId: "demo", login: "+22236123456", password: generatePassword() });
+  },
+  setCommitteeActive: async () => ok(undefined),
   setPassword: async () => ok(undefined),
   requestPasswordReset: async () => ok(undefined),
   async addMember(p) {

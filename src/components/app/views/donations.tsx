@@ -7,7 +7,7 @@ import { dayWords, fmt } from "../derive";
 import { I } from "../icons";
 import { Num } from "../num";
 import { PayTo } from "../pay-to";
-import { ConfirmedMark } from "../receipt";
+import { ConfirmedMark } from "../mark";
 
 export function DonationsView({
   campaign,

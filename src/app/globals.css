@@ -97,8 +97,8 @@
   --d-press: 120ms;
   --d-fast: 160ms;
   --d-ui: 240ms;
-  --d-slide: 320ms;
-  --d-sheet-in: 400ms;
+  --d-slide: 240ms;
+  --d-sheet-in: 320ms;
   --d-sheet-out: 220ms;
   --d-roll: 600ms;
 
@@ -465,16 +465,16 @@
   }
   .bq-rv {
     transition:
-      opacity 300ms var(--ease-out),
-      transform 300ms var(--ease-out);
+      opacity 240ms var(--ease-out),
+      transform 240ms var(--ease-out);
   }
   .bq-rv.in .bq-grow > span,
   .bq-rv.in .bq-grow .bq-mbar-f {
-    animation: bq-grow 700ms var(--ease-out) both;
+    animation: bq-grow 450ms var(--ease-out) both;
   }
   .bq-rv.in .bq-grow .bq-mbar-f {
     animation-name: bq-grow-y;
-    animation-delay: calc(var(--i, 0) * 30ms);
+    animation-delay: calc(var(--i, 0) * 20ms);
   }
 
   /* ───── search ───── */
@@ -885,7 +885,7 @@
     background: var(--g8);
     border-radius: 999px;
     clip-path: inset(0 100% 0 0 round 999px);
-    transition: clip-path 300ms var(--ease-out);
+    transition: clip-path 220ms var(--ease-out);
   }
   .bq-seg-b {
     position: relative;
@@ -1901,7 +1901,7 @@
     inset: 0;
     background: rgba(10, 30, 18, 0.42);
     opacity: 0;
-    transition: opacity 300ms var(--ease-out);
+    transition: opacity 240ms var(--ease-out);
   }
   .bq-sheet {
     position: relative;
@@ -2315,11 +2315,11 @@
 }
 ::view-transition-new(.tab-fwd) {
   --vt-from: -20px;
-  animation: bq-vt-in 260ms var(--ease-out) both;
+  animation: bq-vt-in 220ms var(--ease-out) both;
 }
 ::view-transition-new(.tab-back) {
   --vt-from: 20px;
-  animation: bq-vt-in 260ms var(--ease-out) both;
+  animation: bq-vt-in 220ms var(--ease-out) both;
 }
 /* the nav and the balance panel stay live so the pill slides for real */
 ::view-transition-group(bq-bnav),
@@ -2410,7 +2410,7 @@
   .bq-sheet {
     transform: none;
     opacity: 0;
-    transition: opacity 200ms linear;
+    transition: opacity 200ms var(--ease-out);
   }
   .bq-sheet-wrap[data-open="true"] .bq-sheet {
     opacity: 1;
@@ -2419,7 +2419,7 @@
   .bq-compact {
     transform: none;
     opacity: 0;
-    transition: opacity 200ms linear;
+    transition: opacity 200ms var(--ease-out);
   }
   .bq-compact.is-on {
     opacity: 1;
@@ -2526,7 +2526,7 @@
     white-space: nowrap;
     font-size: 28px;
     font-weight: 700;
-    line-height: 1.1;
+    line-height: 1.3;
     color: var(--g8);
   }
   .rc-no {
@@ -3021,5 +3021,322 @@
     font-size: 14px;
     font-weight: 600;
     text-align: center;
+  }
+}
+
+/* ───── round 4: committee polish ───── */
+@layer components {
+  /* before the indicator is measured (first paint, slow phones) the pressed option paints itself */
+  .bq-seg-in:not([data-ready]) .bq-seg-b[aria-pressed="true"] {
+    background: var(--g8);
+  }
+  /* a row that scrolls shows it: soft fade at both ends */
+  .bq-seg[data-over="true"] {
+    -webkit-mask-image: linear-gradient(
+      to left,
+      transparent 0,
+      #000 18px,
+      #000 calc(100% - 18px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to left,
+      transparent 0,
+      #000 18px,
+      #000 calc(100% - 18px),
+      transparent 100%
+    );
+  }
+  /* committee header: title, who is signed in, actions, and the section switcher stay in reach */
+  .bq-com-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin-inline: -20px;
+    padding: calc(8px + var(--safe-t)) 20px 10px;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: var(--sh-sticky);
+  }
+  .bq-com-head .bq-com-bar {
+    position: static;
+    margin: 0;
+    padding: 0 0 6px;
+    background: none;
+    box-shadow: none;
+  }
+  .bq-com-title {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+    min-width: 0;
+  }
+  .bq-com-me {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .bq-com-head + .bq-queue,
+  .bq-com-head + .bq-sec {
+    margin-block-start: 20px;
+  }
+  @media (min-width: 1024px) {
+    .bq-com-head {
+      margin-inline: 0;
+      padding-inline: 0;
+      padding-block-start: 24px;
+      box-shadow: 0 10px 20px -18px rgba(16, 40, 24, 0.35);
+    }
+    .bq-com-head .bq-com-bar {
+      padding: 0 0 8px;
+    }
+  }
+}
+@layer components {
+  .bq-group-static {
+    cursor: default;
+    margin-block-end: 4px;
+  }
+  .bq-link-quiet {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .bq-mline + .bq-link {
+    margin-block-start: 0;
+  }
+}
+@layer components {
+  .bq-skel {
+    border-radius: var(--r-card);
+    background: var(--n1);
+    animation: bq-skel 1.2s var(--ease-out) infinite alternate;
+  }
+  .bq-skel-seg {
+    height: 52px;
+    border-radius: 999px;
+  }
+  .bq-skel-slip {
+    height: 280px;
+  }
+  .bq-queue > .bq-skel-slip + .bq-skel-slip {
+    margin-block-start: 16px;
+  }
+}
+@keyframes bq-skel {
+  to {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bq-skel {
+    animation: none;
+  }
+}
+
+/* ───── round 4: interaction details ───── */
+@layer components {
+  /* disabled controls do not pretend to be pressed */
+  .bq-press:disabled:active,
+  .bq-press[aria-disabled="true"]:active {
+    transform: none;
+  }
+  /* the proof thumbnail keeps its box while the signed image arrives: no jump */
+  .rc-shot {
+    width: 44px;
+    height: 78px;
+    max-height: none;
+    object-fit: cover;
+  }
+  /* the snack leaves the way it came, a touch faster */
+  .bq-snack.is-out {
+    transform: translateY(6px);
+    transition:
+      opacity 150ms var(--ease-out),
+      transform 150ms var(--ease-out);
+  }
+  /* a decided slip settles into its one-line form instead of popping */
+  .bq-slip-one {
+    animation: bq-settle 220ms var(--ease-out) both;
+  }
+}
+@keyframes bq-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bq-slip-one {
+    animation: bq-vt-fade-in 160ms ease-out both;
+  }
+  .bq-snack.is-out {
+    transform: none;
+  }
+}
+@layer components {
+  /* inline save state under a setting */
+  .bq-save {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 22px;
+    margin-block-start: 6px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .bq-save.is-idle {
+    min-height: 0;
+    margin: 0;
+  }
+  .bq-save.is-saved {
+    color: var(--g8);
+    font-weight: 600;
+    animation: bq-vt-fade-in 160ms var(--ease-out) both;
+  }
+  .bq-save.is-error {
+    padding: 10px 14px;
+    border-radius: var(--r-md);
+    background: var(--rej-tint);
+    color: var(--rej-ink);
+  }
+  .bq-spin {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 2px solid var(--n3);
+    border-block-start-color: var(--g8);
+    animation: bq-spin 700ms linear infinite;
+  }
+  .bq-switch[aria-busy="true"],
+  .bq-mini-switch[aria-busy="true"] {
+    opacity: 0.7;
+  }
+}
+@keyframes bq-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@layer components {
+  .bq-h-count {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bq-h-count .bq-com-n,
+  .bq-com-n {
+    display: inline-grid;
+    place-items: center;
+    min-width: 32px;
+    height: 32px;
+    padding-inline: 8px;
+    border-radius: 999px;
+    background: var(--g8);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .bq-back {
+    margin-inline-start: -8px;
+    padding-inline: 8px;
+  }
+}
+@layer components {
+  .bq-mline .bq-row-s {
+    display: block;
+  }
+}
+@layer components {
+  /* record payment: one card per member in the transfer */
+  .bq-rec-row {
+    padding: 12px 14px 6px;
+    border-radius: var(--r-lg);
+    background: var(--g0);
+    margin-block-end: 10px;
+  }
+  .bq-rec-row .bq-rec-who {
+    padding: 0;
+    background: none;
+  }
+  .bq-rec-row .bq-mstrip,
+  .bq-rec-row .bq-chips {
+    margin-block-start: 10px;
+  }
+  .bq-rec-add {
+    width: 100%;
+  }
+  .bq-rec-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 48px;
+    font-weight: 600;
+  }
+  .bq-rec-credit {
+    margin-block-start: 10px;
+  }
+  .bq-rec-k .bq-tag-inline {
+    margin-inline-start: 8px;
+  }
+}
+
+@layer components {
+  /* the FAB steps aside while a slip is being decided, so it never covers «ارفض الدفعة» */
+  .bq-app:has(.bq-slip .bq-rej, .bq-slip-after) .bq-fab {
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+    transition:
+      opacity 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+  /* hints that start with an icon keep it on the same line */
+  .bq-hint:has(> svg:first-child) {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .bq-hint > svg:first-child {
+    flex: none;
+    margin-block-start: 3px;
+  }
+  /* the sheet's close button never sits on the receipt */
+  .bq-sheet .bq-rc-sheet {
+    padding-block-start: 44px;
+  }
+  /* preview banner: keep the desktop rail's logo clear of it */
+  @media (min-width: 1024px) {
+    body:has(.bq-demo) .bq-rail {
+      padding-block-start: 64px;
+    }
+  }
+}
+
+@layer components {
+  .bq-rec-done {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    padding-block: 12px 8px;
+  }
+  .bq-rec-done .bq-share,
+  .bq-rec-done > .bq-btn {
+    width: 100%;
+  }
+}
+
+@layer components {
+  .bq-flip {
+    transform: scaleX(-1);
+  }
+  /* numbers and refs are typed left-to-right but sit on the reading side, with Arabic hints */
+  .bq-input[dir="ltr"],
+  .bq-search input[dir="ltr"] {
+    text-align: right;
+  }
+  .bq-input[dir="ltr"]::placeholder,
+  .bq-search input[dir="ltr"]::placeholder {
+    direction: rtl;
   }
 }

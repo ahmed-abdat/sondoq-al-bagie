@@ -1,4 +1,5 @@
 "use client";
+import { toWesternDigits } from "@/lib/money";
 // Committee «الأعضاء»: find a member, add one, edit details, change state, move between lists.
 // Two lists, each numbered from 1 (A-12, B-12). States: نشط · معفى · غادر · متوفى.
 import { useRouter } from "next/navigation";
@@ -11,6 +12,7 @@ import {
   fmt,
   groupLabel,
   memberCode,
+  monthsWord,
   MONTHS,
   nextFreeNumber,
   searchMembers,
@@ -33,6 +35,7 @@ const ymLabel = (ym: string) => {
   return `${MONTHS[m - 1]} ${y}`;
 };
 
+/** Month picker in Arabic words (the native month input shows the phone's locale, often English). */
 function MonthField({
   value,
   onChange,
@@ -42,15 +45,25 @@ function MonthField({
   onChange: (v: string) => void;
   label: string;
 }) {
+  const [y0, m0] = value.split("-").map(Number);
+  // from a year back to a year ahead of the chosen month
+  const opts = Array.from({ length: 25 }, (_, i) => {
+    const d = new Date(Date.UTC(y0, m0 - 1 - 12 + i, 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
   return (
-    <input
+    <select
       className="bq-input"
-      type="month"
-      dir="ltr"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={label}
-    />
+    >
+      {opts.map((o) => (
+        <option key={o} value={o}>
+          {ymLabel(o)}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -98,8 +111,8 @@ export function AddMemberBody({
   return (
     <div className="bq-rec">
       <h2>إضافة عضو</h2>
-      <p className="bq-rec-k">القائمة</p>
-      <div className="bq-chips" role="radiogroup" aria-label="القائمة">
+      <p className="bq-rec-k">المجموعة</p>
+      <div className="bq-chips" role="radiogroup" aria-label="المجموعة">
         {LISTS.map((g) => (
           <button
             key={g}
@@ -109,7 +122,7 @@ export function AddMemberBody({
             className="bq-chip bq-press"
             onClick={() => pickList(g)}
           >
-            قائمة {g} · الفئة {groupLabel(g)}
+            المجموعة {groupLabel(g)}
             {prices[g] ? (
               <>
                 {" "}
@@ -119,20 +132,20 @@ export function AddMemberBody({
           </button>
         ))}
       </div>
-      <p className="bq-rec-k">الرقم في القائمة</p>
+      <p className="bq-rec-k">الرقم</p>
       <div className="bq-field" dir="ltr">
         <Num className="bq-strong">{list}-</Num>
         <input
           className="bq-input"
           value={num}
-          onChange={(e) => setNum(e.target.value.replace(/[^\d]/g, ""))}
+          onChange={(e) => setNum(toWesternDigits(e.target.value).replace(/[^\d]/g, ""))}
           inputMode="numeric"
           dir="ltr"
           aria-label="رقم العضو"
         />
       </div>
       <p className="bq-hint">
-        {taken ? "هذا الرقم مأخوذ في هذه القائمة." : "أول رقم فارغ في القائمة."}
+        {taken ? "هذا الرقم مأخوذ في هذه المجموعة." : "أول رقم فارغ في المجموعة."}
       </p>
       <p className="bq-rec-k">الاسم الكامل</p>
       <input
@@ -232,31 +245,50 @@ export function MemberAdminBody({
         <div>
           <h2>{m.fullName}</h2>
           <p className="bq-hint">
-            <Num>{memberCode(m)}</Num> · الفئة {groupLabel(m.groupCode)} ·{" "}
+            <Num>{memberCode(m)}</Num> · المجموعة {groupLabel(m.groupCode)} ·{" "}
             {STATE_LABEL[m.status as State] ?? m.status}
           </p>
-          {m.phone && (
-            <p className="bq-hint">
-              <bdi dir="ltr" className="bq-num">
-                {m.phone}
-              </bdi>
-            </p>
-          )}
         </div>
       </div>
+      <p className="bq-mline">
+        {m.status === "active" ? (
+          <>
+            دفع رسوم <Num className="bq-strong">{m.monthsPaidThisYear}</Num> من 12 شهرًا هذا العام
+            {m.monthsBehind > 0 && (
+              <span className="bq-row-s">
+                متأخر {monthsWord(m.monthsBehind)} · <Num>{fmt(m.amountOwed)}</Num> أوقية
+              </span>
+            )}
+          </>
+        ) : (
+          "لا تُحسب عليه رسوم الآن."
+        )}
+      </p>
+      {m.phone ? (
+        <a className="bq-link bq-press" href={`tel:${m.phone}`}>
+          {I.phone(18)}
+          <bdi dir="ltr" className="bq-num">
+            {m.phone}
+          </bdi>
+        </a>
+      ) : (
+        <p className="bq-hint">لا يوجد رقم هاتف. أضِفه من «تعديل البيانات» ليصله التذكير.</p>
+      )}
 
       {mode === "view" && (
         <div className="bq-btn-col bq-small-top">
           <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("edit")}>
-            تعديل البيانات
+            تعديل الاسم أو الهاتف
           </button>
           <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("state")}>
             تغيير الحالة
           </button>
-          <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("move")}>
-            نقل إلى الفئة {groupLabel(other)}
-          </button>
         </div>
+      )}
+      {mode === "view" && (
+        <button type="button" className="bq-link bq-link-quiet bq-press" onClick={() => go("move")}>
+          نقله إلى المجموعة {groupLabel(other)} (الرسوم الشهرية)
+        </button>
       )}
 
       {mode === "edit" && (
@@ -348,11 +380,17 @@ export function MemberAdminBody({
           />
           <div className="bq-rec-foot">
             <Err text={err} />
+            {!err && (!state || !reason.trim()) && (
+              <p className="bq-hint" id="bq-state-need">
+                {!state ? "اختر الحالة الجديدة." : "اكتب السبب ليُحفظ في السجل."}
+              </p>
+            )}
             <div className="bq-slip-btns">
               <button
                 type="button"
                 className="bq-btn bq-btn-primary bq-press"
                 disabled={!state || !reason.trim() || busy || !online}
+                aria-describedby="bq-state-need"
                 onClick={() => {
                   if (state === "left" || state === "deceased") return setConfirming(true);
                   void run(
@@ -424,7 +462,7 @@ export function MemberAdminBody({
       {mode === "move" && (
         <>
           <p className="bq-lead bq-small-top">
-            يبقى رقمه <Num>{memberCode(m)}</Num> في قائمته. تتغيّر رسومه الشهرية إلى رسوم الفئة{" "}
+            يبقى رقمه <Num>{memberCode(m)}</Num> كما هو. تتغيّر رسومه الشهرية إلى رسوم المجموعة{" "}
             {groupLabel(other)} ابتداءً من الشهر الذي تختاره.
           </p>
           <p className="bq-rec-k">ابتداءً من شهر</p>
@@ -452,7 +490,7 @@ export function MemberAdminBody({
                         groupCode: other,
                         reason: reason.trim() || undefined,
                       }),
-                    `صار ${m.fullName} في الفئة ${groupLabel(other)}`,
+                    `صار ${m.fullName} في المجموعة ${groupLabel(other)}`,
                   )
                 }
               >
@@ -474,8 +512,10 @@ export function MemberAdminBody({
   );
 }
 
-type GF = "all" | "A" | "B";
-type SF = "all" | State;
+/** One filter: who is shown. Active first; the rest is one tap away. */
+type SF = "active" | "exempt" | "gone" | "all";
+const inFilter = (m: MemberAdmin, f: SF) =>
+  f === "all" || (f === "gone" ? m.status === "left" || m.status === "deceased" : m.status === f);
 
 export function MembersAdmin({
   members: server,
@@ -496,15 +536,11 @@ export function MembersAdmin({
     [server, demo.members, demo.memberPatch],
   );
   const [q, setQ] = useState("");
-  const [g, setG] = useState<GF>("all");
-  const [st, setSt] = useState<SF>("all");
+  const [st, setSt] = useState<SF>("active");
   const [sheet, setSheet] = useState<{ t: "add" } | { t: "member"; id: string } | null>(null);
-  const list = (q.trim() ? searchMembers(members, q) : members).filter(
-    (m) => (g === "all" || m.listCode === g) && (st === "all" || m.status === st),
-  );
-  const count = (s: SF) =>
-    members.filter((m) => (g === "all" || m.listCode === g) && (s === "all" || m.status === s))
-      .length;
+  // a search looks through everyone; the filter applies when browsing
+  const list = q.trim() ? searchMembers(members, q) : members.filter((m) => inFilter(m, st));
+  const count = (f: SF) => members.filter((m) => inFilter(m, f)).length;
   const open = sheet?.t === "member" ? members.find((m) => m.memberId === sheet.id) : null;
   const done = (t: string) => {
     setSheet(null);
@@ -531,65 +567,99 @@ export function MembersAdmin({
         />
       </label>
       <div className="bq-gap-12" />
-      <Segmented<GF>
-        label="القائمة"
-        value={g}
-        onChange={setG}
-        items={[
-          { k: "all", l: "كل القوائم" },
-          { k: "A", l: "قائمة A" },
-          { k: "B", l: "قائمة B" },
-        ]}
-      />
-      <div className="bq-gap-12" />
-      <Segmented<SF>
-        label="الحالة"
-        value={st}
-        onChange={setSt}
-        items={[
-          {
-            k: "all",
-            l: (
-              <>
-                الكل <Num className="bq-seg-n">{count("all")}</Num>
-              </>
-            ),
-          },
-          ...STATES.map((s) => ({
-            k: s as SF,
-            l: (
-              <>
-                {STATE_LABEL[s]} <Num className="bq-seg-n">{count(s)}</Num>
-              </>
-            ),
-          })),
-        ]}
-      />
+      {!q.trim() && (
+        <Segmented<SF>
+          label="من يظهر"
+          value={st}
+          onChange={setSt}
+          items={[
+            {
+              k: "active",
+              l: (
+                <>
+                  النشطون <Num className="bq-seg-n">{count("active")}</Num>
+                </>
+              ),
+            },
+            {
+              k: "exempt",
+              l: (
+                <>
+                  المعفون <Num className="bq-seg-n">{count("exempt")}</Num>
+                </>
+              ),
+            },
+            {
+              k: "gone",
+              l: (
+                <>
+                  غادروا أو توفوا <Num className="bq-seg-n">{count("gone")}</Num>
+                </>
+              ),
+            },
+            {
+              k: "all",
+              l: (
+                <>
+                  الكل <Num className="bq-seg-n">{count("all")}</Num>
+                </>
+              ),
+            },
+          ]}
+        />
+      )}
       {list.length ? (
-        <ul className="bq-list bq-gap-top">
-          {list.map((m) => (
-            <li key={m.memberId}>
-              <button
-                type="button"
-                className="bq-row bq-press"
-                onClick={() => setSheet({ t: "member", id: m.memberId })}
-                aria-label={`${memberCode(m)}، ${m.fullName}`}
-              >
-                <Avatar code={memberCode(m)} />
-                <span className="bq-row-m">
-                  <span className="bq-row-t">{m.fullName}</span>
-                  <span className="bq-row-s">
-                    الفئة {groupLabel(m.groupCode)}
-                    {m.phone ? " · له رقم هاتف" : ""}
-                  </span>
-                </span>
-                <StatusTag m={m} />
-              </button>
-            </li>
-          ))}
-        </ul>
+        (!q.trim() ? LISTS : [null]).map((l) => {
+          const items = l ? list.filter((m) => m.listCode === l) : list;
+          if (!items.length) return null;
+          return (
+            <section
+              key={l ?? "all"}
+              className="bq-group"
+              aria-label={l ? `المجموعة ${groupLabel(l)}` : "النتائج"}
+            >
+              <h3 className="bq-group-h bq-group-static">
+                <span className="bq-group-t">{l ? `المجموعة ${groupLabel(l)}` : "النتائج"}</span>
+                <Num className="bq-group-n">{items.length}</Num>
+              </h3>
+              <ul className="bq-list">
+                {items.map((m) => (
+                  <li key={m.memberId}>
+                    <button
+                      type="button"
+                      className="bq-row bq-press"
+                      onClick={() => setSheet({ t: "member", id: m.memberId })}
+                      aria-label={`${memberCode(m)}، ${m.fullName}`}
+                    >
+                      <Avatar code={memberCode(m)} />
+                      <span className="bq-row-m">
+                        <span className="bq-row-t">{m.fullName}</span>
+                        <span className="bq-row-s">
+                          {[
+                            m.groupCode !== m.listCode
+                              ? `رسوم المجموعة ${groupLabel(m.groupCode)}`
+                              : "",
+                            m.phone ? "" : "بلا رقم هاتف",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                      </span>
+                      <StatusTag m={m} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })
       ) : (
-        <p className="bq-hint bq-gap-top">لا أحد في هذه القائمة.</p>
+        <div className="bq-empty">
+          <p className="bq-empty-t">
+            {q.trim() ? "لم نجد عضوًا بهذا الاسم أو الرقم" : "لا أحد بهذه الحالة"}
+          </p>
+          <p className="bq-hint">جرّب جزءًا من الاسم، أو رقمًا مثل B-12.</p>
+        </div>
       )}
 
       {sheet?.t === "add" && (

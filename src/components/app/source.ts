@@ -126,4 +126,6 @@ export const arrears = () => pick(fx.fxArrears, () => data.getArrears());
 export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFundAccountsAdmin());
 /** Committee member list: every member, any status, with phone and current group. */
 export const membersAdmin = () => pick(fx.fxMembersAdmin, () => data.getMembersAdmin());
+export const committeeAccounts = () =>
+  pick(fx.fxCommitteeAccounts, () => data.getCommitteeAccounts());
 export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());

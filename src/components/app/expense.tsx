@@ -225,7 +225,7 @@ export function ExpenseAdminList({
                 ) : (
                   <button
                     type="button"
-                    className="bq-link bq-link-s bq-press"
+                    className="bq-link bq-link-s bq-link-quiet bq-press"
                     onClick={() => {
                       setOpen(open === e.id ? null : e.id);
                       setPick("");

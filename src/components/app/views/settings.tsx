@@ -1,10 +1,17 @@
 "use client";
+import { toWesternDigits } from "@/lib/money";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct, useDemoState } from "../act";
-import type { CommitteeRole, FundAccountAdmin, PaymentMethod } from "@/lib/data/types";
+import type {
+  CommitteeAccount,
+  CommitteeRole,
+  FundAccountAdmin,
+  PaymentMethod,
+} from "@/lib/data/types";
+import { CommitteeAccounts } from "../accounts-admin";
 import { METHOD_LABELS, METHODS, methodLogo } from "@/lib/methods";
 import { MethodBadge } from "../bits";
 import { ROLE_LABEL } from "../derive";
@@ -47,7 +54,7 @@ function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
       <input
         className="bq-input"
         value={num}
-        onChange={(e) => setNum(e.target.value.replace(/[^\d]/g, ""))}
+        onChange={(e) => setNum(toWesternDigits(e.target.value).replace(/[^\d]/g, ""))}
         inputMode="tel"
         dir="ltr"
         aria-label="رقم المحفظة"
@@ -95,22 +102,74 @@ function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
   );
 }
 
+type SaveState = { status: "idle" | "saving" | "saved" | "error"; message?: string };
+const IDLE: SaveState = { status: "idle" };
+
+/** Runs one save and reports saving → saved (fades after 2.5 s) or error (stays, with the reason). */
+async function runSave(
+  set: (s: SaveState) => void,
+  fn: () => Promise<{ ok: true } | { ok: false; message: string }>,
+): Promise<boolean> {
+  set({ status: "saving" });
+  let r: { ok: true } | { ok: false; message: string };
+  try {
+    r = await fn();
+  } catch {
+    r = { ok: false, message: "تعذّر الاتصال. تحقّق من الإنترنت وحاول مرة أخرى." };
+  }
+  if (!r.ok) {
+    set({ status: "error", message: `لم يُحفظ: ${r.message}` });
+    return false;
+  }
+  set({ status: "saved" });
+  window.setTimeout(() => set(IDLE), 2500);
+  return true;
+}
+
+/** Inline status under a setting: «جارٍ الحفظ…», «تم الحفظ», or why it failed. */
+function SaveNote({ s, id }: { s: SaveState; id?: string }) {
+  return (
+    <p
+      id={id}
+      className={`bq-save is-${s.status}`}
+      role={s.status === "error" ? "alert" : "status"}
+      aria-live="polite"
+    >
+      {s.status === "saving" && (
+        <>
+          <span className="bq-spin" aria-hidden="true" /> جارٍ الحفظ…
+        </>
+      )}
+      {s.status === "saved" && <>{I.check(16)} تم الحفظ</>}
+      {s.status === "error" && s.message}
+    </p>
+  );
+}
+
 export function SettingsView({
   role,
   displayName,
   showOwed,
   whatsapp,
+  openingBalance,
   accounts,
+  committee,
+  members,
+  selfId,
 }: {
   role: CommitteeRole;
   displayName: string;
   showOwed: boolean;
   whatsapp: string | null;
+  openingBalance: number;
+  committee: CommitteeAccount[];
+  members: { memberId: string; memberRef: string }[];
+  selfId: string | null;
   accounts: FundAccountAdmin[];
 }) {
   const router = useRouter();
   const online = useOnline();
-  const { inviteCommitteeMember, setPassword, updateFundAccount, updateSettings } = useAct();
+  const { setPassword, updateFundAccount, updateSettings } = useAct();
   const say = useSnack();
   const [owed, setOwed] = useState(showOwed);
   const [over, setOver] = useState<Record<string, boolean>>({});
@@ -120,18 +179,31 @@ export function SettingsView({
     active: over[a.id] ?? a.active,
   }));
   const [wa, setWa] = useState(whatsapp ?? "");
+  const [savedWa, setSavedWa] = useState(whatsapp ?? "");
+  const [opening, setOpening] = useState(String(openingBalance));
+  const [savedOpening, setSavedOpening] = useState(openingBalance);
+  const openingNum = Number(opening.replace(/\s/g, "")) || 0;
+  const [confirmOwed, setConfirmOwed] = useState(false);
+  const [owedSave, setOwedSave] = useState<SaveState>(IDLE);
+  const [waSave, setWaSave] = useState<SaveState>(IDLE);
+  const [openSave, setOpenSave] = useState<SaveState>(IDLE);
+  const [accSave, setAccSave] = useState<Record<string, SaveState>>({});
+  const [pwSave, setPwSave] = useState<SaveState>(IDLE);
+  const saveOwed = async (next: boolean) => {
+    setOwed(next);
+    if (!(await runSave(setOwedSave, () => updateSettings({ showAmountOwed: next }))))
+      setOwed(!next);
+    else router.refresh();
+  };
   const [pw, setPw] = useState("");
-  const [inv, setInv] = useState({ email: "", name: "", role: "committee" as CommitteeRole });
   const [adding, setAdding] = useState(false);
   const admin = role === "admin";
-
-  const fail = (msg: string) => say(msg);
 
   return (
     <>
       <header className="bq-page-h">
         <Link href="/committee" className="bq-link bq-link-s bq-press">
-          {I.go(18)} رجوع إلى اللجنة
+          {I.back(18)} رجوع إلى اللجنة
         </Link>
         <h1>الإعدادات</h1>
         <p className="bq-lead">
@@ -142,31 +214,60 @@ export function SettingsView({
       <section className="bq-sec bq-sec-first" aria-labelledby="bq-pub-h">
         <h2 id="bq-pub-h">ما يراه الأعضاء</h2>
         {!admin && <p className="bq-lead">يغيّرها المسؤول فقط.</p>}
-        <button
-          type="button"
-          role="switch"
-          aria-checked={owed}
-          className="bq-switch bq-press"
-          disabled={!admin || !online}
-          onClick={async () => {
-            const next = !owed;
-            setOwed(next);
-            const r = await updateSettings({ showAmountOwed: next });
-            if (!r.ok) {
-              setOwed(!next);
-              return fail(r.message);
-            }
-            router.refresh();
-          }}
-        >
-          <span className="bq-switch-t">
-            <strong>إظهار المبالغ المتأخرة</strong>
-            <span>لم تقرّر اللجنة بعد. عند التشغيل يظهر المبلغ المتأخر في صفحة كل عضو.</span>
-          </span>
-          <span className="bq-switch-k" aria-hidden="true">
-            <span />
-          </span>
-        </button>
+        {confirmOwed ? (
+          <div className="bq-rej" role="group" aria-labelledby="bq-owed-q">
+            <p className="bq-rej-l" id="bq-owed-q">
+              إظهار المبالغ المتأخرة للجميع؟
+            </p>
+            <p className="bq-lead">
+              سيرى كل من يفتح صفحة الأعضاء المبلغ المتأخر على كل عضو. يمكن إخفاؤه مرة أخرى في أي
+              وقت.
+            </p>
+            <div className="bq-slip-btns bq-small-top">
+              <button
+                type="button"
+                className="bq-btn bq-btn-primary bq-press"
+                onClick={() => {
+                  setConfirmOwed(false);
+                  void saveOwed(true);
+                }}
+              >
+                نعم، أظهرها
+              </button>
+              <button
+                type="button"
+                className="bq-btn bq-btn-ghost bq-press"
+                onClick={() => setConfirmOwed(false)}
+              >
+                رجوع
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={owed}
+            aria-describedby="bq-owed-note"
+            aria-busy={owedSave.status === "saving"}
+            className="bq-switch bq-press"
+            disabled={!admin || !online || owedSave.status === "saving"}
+            onClick={() => (owed ? void saveOwed(false) : setConfirmOwed(true))}
+          >
+            <span className="bq-switch-t">
+              <strong>إظهار المبالغ المتأخرة</strong>
+              <span>
+                {owed
+                  ? "يرى كل عضو المبلغ المتأخر عليه في صفحته."
+                  : "المبالغ مخفية عن الأعضاء — يظهر فقط منتظم أو متأخر."}
+              </span>
+            </span>
+            <span className="bq-switch-k" aria-hidden="true">
+              <span />
+            </span>
+          </button>
+        )}
+        <SaveNote id="bq-owed-note" s={owedSave} />
 
         <h3 className="bq-h3">أرقام الصندوق</h3>
         <ul className="bq-pay">
@@ -180,29 +281,32 @@ export function SettingsView({
                 <span className="bq-row-s">
                   باسم {a.holderName} · {a.active ? "ظاهر للأعضاء" : "مخفي"}
                 </span>
+                <SaveNote s={accSave[a.id] ?? IDLE} />
               </span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={a.active}
+                aria-busy={accSave[a.id]?.status === "saving"}
                 aria-label={`${METHOD_LABELS[a.method]} ${a.accountNumber}: ${a.active ? "ظاهر للأعضاء" : "مخفي"}`}
                 className="bq-mini-switch bq-press"
-                disabled={!admin || !online}
+                disabled={!admin || !online || accSave[a.id]?.status === "saving"}
                 onClick={async () => {
                   const next = !a.active;
                   setOver((o) => ({ ...o, [a.id]: next }));
-                  const r = await updateFundAccount({
-                    id: a.id,
-                    holderName: a.holderName,
-                    note: a.note,
-                    sortOrder: a.sortOrder,
-                    active: next,
-                  });
-                  if (!r.ok) {
-                    setOver((o) => ({ ...o, [a.id]: !next }));
-                    return fail(r.message);
-                  }
-                  router.refresh();
+                  const ok = await runSave(
+                    (st) => setAccSave((m) => ({ ...m, [a.id]: st })),
+                    () =>
+                      updateFundAccount({
+                        id: a.id,
+                        holderName: a.holderName,
+                        note: a.note,
+                        sortOrder: a.sortOrder,
+                        active: next,
+                      }),
+                  );
+                  if (!ok) setOver((o) => ({ ...o, [a.id]: !next }));
+                  else router.refresh();
                 }}
               >
                 <span className="bq-switch-k" aria-hidden="true">
@@ -225,105 +329,89 @@ export function SettingsView({
             {I.wa(22)}
             <input
               value={wa}
-              onChange={(e) => setWa(e.target.value.replace(/[^\d+]/g, ""))}
+              onChange={(e) => setWa(toWesternDigits(e.target.value).replace(/[^\d+]/g, ""))}
               inputMode="tel"
               dir="ltr"
               aria-label="رقم واتساب اللجنة"
+              aria-describedby="bq-wa-note"
               disabled={!admin}
             />
           </label>
-          {admin && (
+          {admin && wa !== savedWa && (
             <button
               type="button"
-              className="bq-btn bq-btn-soft bq-press"
-              disabled={!online || wa === (whatsapp ?? "")}
+              className="bq-btn bq-btn-primary bq-press"
+              disabled={!online || waSave.status === "saving"}
               onClick={async () => {
-                const r = await updateSettings({ whatsappContact: wa });
-                if (!r.ok) return fail(r.message);
-                say("حُفظ رقم واتساب اللجنة");
-                router.refresh();
+                if (await runSave(setWaSave, () => updateSettings({ whatsappContact: wa }))) {
+                  setSavedWa(wa);
+                  router.refresh();
+                }
               }}
             >
               حفظ
             </button>
           )}
         </div>
+        <SaveNote id="bq-wa-note" s={waSave} />
+
+        <h3 className="bq-h3">رصيد البداية</h3>
+        <p className="bq-hint">
+          المبلغ الذي كان في الصندوق قبل أول دفعة مسجّلة هنا (بالأوقية القديمة).
+        </p>
+        <div className="bq-field">
+          <input
+            className="bq-input bq-grow-1"
+            value={opening}
+            onChange={(e) => setOpening(toWesternDigits(e.target.value).replace(/[^\d\s]/g, ""))}
+            inputMode="numeric"
+            dir="ltr"
+            aria-label="رصيد البداية بالأوقية"
+            aria-describedby="bq-open-note"
+            disabled={!admin}
+          />
+          {admin && openingNum !== savedOpening && (
+            <button
+              type="button"
+              className="bq-btn bq-btn-primary bq-press"
+              disabled={!online || openingNum < 0 || openSave.status === "saving"}
+              onClick={async () => {
+                if (
+                  await runSave(setOpenSave, () => updateSettings({ openingBalance: openingNum }))
+                ) {
+                  setSavedOpening(openingNum);
+                  router.refresh();
+                }
+              }}
+            >
+              حفظ
+            </button>
+          )}
+        </div>
+        <SaveNote id="bq-open-note" s={openSave} />
         <OfflineWriteHint />
       </section>
 
       {admin && (
-        <section className="bq-sec" aria-labelledby="bq-inv-h">
-          <h2 id="bq-inv-h">إضافة عضو إلى اللجنة</h2>
-          <p className="bq-lead">نرسل له رسالة على بريده ليختار كلمة السر.</p>
-          <form
-            className="bq-login"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const r = await inviteCommitteeMember({
-                email: inv.email,
-                displayName: inv.name,
-                role: inv.role,
-              });
-              if (!r.ok) return fail(r.message);
-              setInv({ email: "", name: "", role: "committee" });
-              say("أُرسلت الدعوة");
-            }}
-          >
-            <label>
-              الاسم
-              <input
-                className="bq-input"
-                value={inv.name}
-                onChange={(e) => setInv({ ...inv, name: e.target.value })}
-                required
-              />
-            </label>
-            <label>
-              البريد الإلكتروني
-              <input
-                className="bq-input"
-                type="email"
-                dir="ltr"
-                value={inv.email}
-                onChange={(e) => setInv({ ...inv, email: e.target.value })}
-                required
-              />
-            </label>
-            <label>
-              الدور
-              <select
-                className="bq-input"
-                value={inv.role}
-                onChange={(e) => setInv({ ...inv, role: e.target.value as CommitteeRole })}
-              >
-                {(["committee", "deputy", "treasurer", "admin"] as const).map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABEL[r]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit" className="bq-btn bq-btn-primary bq-press" disabled={!online}>
-              أرسل الدعوة
-            </button>
-          </form>
+        <section className="bq-sec" aria-labelledby="bq-acc-h">
+          <h2 id="bq-acc-h">حسابات اللجنة</h2>
+          <p className="bq-lead">من يدخل إلى صفحة اللجنة، ودور كل واحد.</p>
+          <CommitteeAccounts accounts={committee} members={members} selfId={selfId} />
         </section>
       )}
 
       <section className="bq-sec" aria-labelledby="bq-pw-h">
-        <h2 id="bq-pw-h">كلمة السر</h2>
+        <h2 id="bq-pw-h">حسابك</h2>
+        <p className="bq-lead">{displayName} · غيّر كلمة السر التي تدخل بها أنت.</p>
         <form
           className="bq-login"
           onSubmit={async (e) => {
             e.preventDefault();
-            const r = await setPassword({ password: pw });
-            if (!r.ok) return fail(r.message);
-            setPw("");
-            say("غُيّرت كلمة السر");
+            if (await runSave(setPwSave, () => setPassword({ password: pw }))) setPw("");
           }}
         >
           <label>
-            كلمة سر جديدة (8 أحرف على الأقل)
+            كلمة سر جديدة (8 أحرف أو أكثر)
             <input
               className="bq-input"
               type="password"
@@ -338,10 +426,11 @@ export function SettingsView({
           <button
             type="submit"
             className="bq-btn bq-btn-soft bq-press"
-            disabled={!online || pw.length < 8}
+            disabled={!online || pw.length < 8 || pwSave.status === "saving"}
           >
-            احفظ كلمة السر
+            غيّر كلمة السر
           </button>
+          <SaveNote s={pwSave} />
         </form>
         <div className="bq-small-top">
           <LogoutButton className="bq-btn bq-btn-ghost bq-press">

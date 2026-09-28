@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { fmt } from "./derive";
 
 export const prefersReduced = () =>
@@ -46,4 +46,28 @@ export function Roll({ value, className }: { value: number; className?: string }
       <span ref={ref}>{fmt(first)}</span>
     </Num>
   );
+}
+
+const noSub = () => () => {};
+/**
+ * "Now" for relative times («منذ 12 دقيقة»): null during the server render and hydration (so the
+ * HTML matches), then the phone's clock. Callers show a fixed date until it is known.
+ */
+export function useNow(): Date | null {
+  return useSyncExternalStore(
+    noSub,
+    () => nowSnapshot(),
+    () => null,
+  );
+}
+let snap: Date | null = null;
+let snapAt = 0;
+function nowSnapshot() {
+  const t = Date.now();
+  // one stable object per minute so React does not loop
+  if (!snap || t - snapAt > 60_000) {
+    snap = new Date(t);
+    snapAt = t;
+  }
+  return snap;
 }

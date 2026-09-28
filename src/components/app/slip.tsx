@@ -9,10 +9,10 @@ import { useAct } from "./act";
 import type { PendingPayment } from "@/lib/data/types";
 import { shareReceipt } from "@/lib/share-receipt";
 import { MethodBadge } from "./bits";
-import { fmt, monthsInWords, relativeAgo } from "./derive";
+import { dayWords, fmt, monthsInWords, relativeAgo } from "./derive";
 import { ShareBtns } from "./entries";
 import { I } from "./icons";
-import { Num, prefersReduced } from "./num";
+import { Num, prefersReduced, useNow } from "./num";
 import { ConfirmedMark, Proof, Stamp } from "./receipt";
 import { fromPending, toShareable, type ReceiptView } from "./receipt-model";
 
@@ -28,6 +28,8 @@ type St =
       sent: boolean;
       code?: string | null;
       by?: string;
+      /** the server refused or could not be reached: keep the card, say why, offer a retry */
+      failed?: string;
     };
 
 export function PendingSlip({
@@ -37,14 +39,15 @@ export function PendingSlip({
   onDecided,
 }: {
   p: PendingPayment;
-  /** who is deciding: name + role label */
-  me: { by: string; role: string };
+  /** who is deciding: name + role label; may they confirm, and their own member id */
+  me: { by: string; role: string; canConfirm?: boolean; memberId?: string | null };
   onFull: (r: ReceiptView) => void;
   /** true once decided here (for the waiting count), false after undo or a failed send */
   onDecided?: (decided: boolean) => void;
 }) {
   const router = useRouter();
   const online = useOnline();
+  const now = useNow();
   const { confirmPayment, rejectPayment } = useAct();
   const [st, setSt] = useState<St>({ s: "pending" });
   const [rejecting, setRejecting] = useState(false);
@@ -88,8 +91,8 @@ export function PendingSlip({
           ? await confirmPayment({ id: p.id })
           : await rejectPayment({ id: p.id, reason: why ?? "" });
       if (!res.ok) {
-        setSt({ s: "pending", error: res.message });
-        onDecided?.(false);
+        setCollapsed(false);
+        setSt((cur) => (cur.s === s ? { ...cur, failed: res.message } : cur));
         return;
       }
       const d = res.data as
@@ -99,6 +102,7 @@ export function PendingSlip({
         cur.s === s
           ? {
               ...cur,
+              failed: undefined,
               sent: true,
               code: d?.receiptCode ?? null,
               by: d?.already ? (d.decidedByName ?? undefined) : undefined,
@@ -113,6 +117,12 @@ export function PendingSlip({
       void send.current?.();
     }, UNDO_MS);
   };
+  const retry = () => {
+    setSt((cur) => (cur.s === "pending" ? cur : { ...cur, failed: undefined }));
+    void send.current?.();
+  };
+  const own = !!me.memberId && p.allocations.some((a) => a.memberId === me.memberId);
+  const mayDecide = (me.canConfirm ?? true) && !own;
   const undo = () => {
     onDecided?.(false);
     if (timer.current !== null) clearTimeout(timer.current);
@@ -133,7 +143,7 @@ export function PendingSlip({
         }
       : null;
 
-  if (collapsed && st.s !== "pending")
+  if (collapsed && st.s !== "pending" && !st.failed)
     return (
       <div className="bq-slip-one">
         {st.s === "confirmed" ? (
@@ -194,7 +204,7 @@ export function PendingSlip({
         <p className="bq-hint">
           {p.createdByName ? <>سجّلها {p.createdByName}</> : "سُجّلت"}
           <br />
-          {relativeAgo(p.createdAt)}
+          {now ? relativeAgo(p.createdAt, now) : dayWords(p.createdAt)}
         </p>
       </div>
       {st.s !== "pending" && (
@@ -209,7 +219,22 @@ export function PendingSlip({
         </p>
       )}
 
-      {st.s === "pending" && !rejecting && (
+      {st.s === "pending" && !rejecting && !mayDecide && (
+        <>
+          <p className="bq-slip-hint">
+            {I.clock(18)}
+            <span>
+              {own
+                ? "هذه الدفعة عنك؛ يؤكدها عضو آخر من اللجنة."
+                : "التأكيد لأمين الصندوق أو نائبه."}
+            </span>
+          </p>
+          <button type="button" className="bq-link bq-press" onClick={() => onFull(base)}>
+            عرض الوصل كاملًا {I.go(18)}
+          </button>
+        </>
+      )}
+      {st.s === "pending" && !rejecting && mayDecide && (
         <>
           <p className="bq-slip-hint">
             {I.search(18)}
@@ -282,7 +307,27 @@ export function PendingSlip({
           </div>
         </div>
       )}
-      {st.s === "confirmed" && done && (
+      {st.s !== "pending" && st.failed && (
+        <div className="bq-slip-after">
+          <p className="bq-alert" role="alert">
+            لم يُحفظ {st.s === "confirmed" ? "التأكيد" : "الرفض"}: {st.failed}
+          </p>
+          <div className="bq-slip-btns">
+            <button
+              type="button"
+              className="bq-btn bq-btn-primary bq-press"
+              disabled={!online}
+              onClick={retry}
+            >
+              إعادة المحاولة
+            </button>
+            <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={undo}>
+              رجوع
+            </button>
+          </div>
+        </div>
+      )}
+      {st.s === "confirmed" && done && !st.failed && (
         <div className="bq-slip-after">
           <p className="bq-slip-done">
             {I.check(18)}{" "}
@@ -302,7 +347,7 @@ export function PendingSlip({
           )}
         </div>
       )}
-      {st.s === "rejected" && (
+      {st.s === "rejected" && !st.failed && (
         <div className="bq-slip-after">
           <p className="bq-slip-done is-rej">رُفضت: {st.reason}</p>
           {!st.sent && (

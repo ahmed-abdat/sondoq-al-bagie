@@ -21,8 +21,11 @@ export function MonthRail({
   useLayoutEffect(() => {
     const r = rail.current;
     const on = r?.querySelector<HTMLElement>(`[data-m="${current}"]`);
-    if (r && on && r.scrollWidth > r.clientWidth)
-      r.scrollLeft = on.offsetLeft - (r.clientWidth - on.offsetWidth) / 2;
+    if (!r || !on || r.scrollWidth <= r.clientWidth) return;
+    // RTL-safe: scroll the rail itself (not the page) so this month sits in the middle
+    const rr = r.getBoundingClientRect();
+    const or = on.getBoundingClientRect();
+    r.scrollLeft += or.left + or.width / 2 - (rr.left + rr.width / 2);
   }, [current]);
   const byMonth = (n: number) => months.find((m) => m.month === n);
   const row = byMonth(sel);
