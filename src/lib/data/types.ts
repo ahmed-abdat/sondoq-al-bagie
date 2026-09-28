@@ -211,6 +211,14 @@ export type FundInfo = {
 
 /* ───────────── committee only ───────────── */
 
+/** Fund settings as the admin edits them (committee read of the settings row). */
+export type FundSettings = FundInfo & {
+  /** money in the fund on `openingBalanceOn`, MRO */
+  openingBalance: number;
+  /** YYYY-MM-DD */
+  openingBalanceOn: string;
+};
+
 export type Allocation =
   | {
       kind: "months";

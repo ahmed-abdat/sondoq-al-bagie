@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { DataError, fundInfo, memberMonths, members, verifyReceipt } from "./read";
+import { DataError, fundInfo, fundSettings, memberMonths, members, verifyReceipt } from "./read";
 import type { Client } from "./read";
 
 /** Minimal PostgREST builder stand-in: every chain method returns itself; awaiting gives `res`. */
@@ -56,5 +56,23 @@ describe("read", () => {
     expect(f.rpc).not.toHaveBeenCalled();
     await verifyReceipt(f.client, " bq-abcd-1234 ");
     expect(f.rpc).toHaveBeenCalledWith("verify_receipt", { p_code: "BQ-ABCD-1234" });
+  });
+
+  it("reads the settings row with the opening balance date", async () => {
+    const row = {
+      whatsapp_contact: null,
+      grace_days: 10,
+      show_amount_owed: false,
+      opening_balance: 229000,
+      opening_balance_on: "2026-01-01",
+    };
+    expect(await fundSettings(fake({ data: row, error: null }).client)).toEqual({
+      whatsappContact: null,
+      graceDays: 10,
+      showAmountOwed: false,
+      openingBalance: 229000,
+      openingBalanceOn: "2026-01-01",
+    });
+    expect(await fundSettings(fake({ data: null, error: null }).client)).toBeNull();
   });
 });
