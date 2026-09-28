@@ -1,0 +1,3 @@
+# Real sheets, phones and generated SQL hold members' personal data: keep them here, never commit.
+/data/
+*.sql

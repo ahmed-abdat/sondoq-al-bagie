@@ -49,4 +49,18 @@ for f in "$ROOT"/supabase/migrations/*.sql; do
   "${PSQL[@]}" -d sb -f "$f"
 done
 echo "re-apply after rollback: ok"
+echo "import   paper sheet (sample)"
+node --test "$ROOT/supabase/import/import-paper.test.mts" 2>&1 | grep -E "^. (pass|fail) [0-9]+$" | sed "s/^. /  /"
+test "${PIPESTATUS[0]}" -eq 0
+S="$ROOT/supabase/import/sample"
+node "$ROOT/supabase/import/import-paper.mts" --sheet "$S/sheet.csv" --phones "$S/phones.csv" \
+  --page-totals "$S/page_totals.csv" --sql "$DIR/import.sql" >/dev/null
+"${PSQL[@]}" -d sb -o /dev/null -f "$DIR/import.sql"
+"${PSQL[@]}" -d sb -o /dev/null -f "$DIR/import.sql"   # a second run must add nothing
+got="$("${PSQL[@]}" -d sb -At -c "select concat_ws(' ',
+  (select count(*) from public.members), (select count(*) from public.payments where method = 'paper' and status = 'confirmed'),
+  (select sum(amount) from public.payments), (select count(*) from public.payment_months),
+  (select count(*) from public.members where phone is not null))")"
+test "$got" = "8 7 39000 43 3" || { echo "FAIL import counts: $got"; exit 1; }
+echo "  ok  8 members, 7 confirmed paper payments, 39000 MRO, 43 paid months; re-run adds nothing"
 echo "OK"

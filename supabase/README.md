@@ -50,6 +50,32 @@ select public.set_committee_member('<auth user id>', 'AHMED', 'admin');
 
 After that the admin adds members, prices and committee roles from the app.
 
+## Import the paper sheets
+
+`import/import-paper.mts` turns the yearly paper sheet into members and confirmed `paper` payments
+(one per member, covering every ticked month). Put the real CSVs in `supabase/import/data/`
+(gitignored); fictional examples of each format are in `import/sample/`.
+
+```sh
+node supabase/import/import-paper.mts --sheet supabase/import/data/sheet.csv \
+  --phones supabase/import/data/phones.csv --page-totals supabase/import/data/page_totals.csv
+# check the summary and warnings, then add: --sql supabase/import/data/import.sql
+```
+
+| CSV | Columns |
+|---|---|
+| sheet | `number,name,group,m1..m12` (group `A`/`B` or `أ`/`ب`; any non-empty month cell = paid) |
+| phones (optional) | `number,phone` (8 local digits become `+222…`) |
+| page totals (optional) | `page,from_number,to_number,m1..m12`: the total written on each page, in MRO |
+
+Errors (duplicate number, unknown group, bad phone, …) stop it; warnings (numbering gaps, an
+unticked month between ticks, a page total that does not match the ticks) are for the owner to
+check against the paper. Prices default to A=1000, B=500 (`--price A=1000`); the SQL refuses to run
+if the database prices differ. Paste the generated file into the SQL editor: it is one transaction,
+and running it again adds nothing (payment ids are derived from year + member number). The file
+holds names and phones: do not commit or share it. Tests: `node --test supabase/import/import-paper.test.mts`
+(also run by `tests/local/run.sh`, which applies the sample import twice to a throwaway database).
+
 ## Types
 
 After a schema change regenerate `src/lib/supabase/database.types.ts`
