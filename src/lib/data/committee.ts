@@ -52,6 +52,7 @@ export const getPayment = committee(read.paymentById, null);
 export const getMembersAdmin = committee(read.membersAdmin, []);
 export const getArrears = committee(read.arrears, []);
 export const getExpensesAdmin = committee(read.expensesAdmin, []);
+export const getCommitteeAccounts = committee(read.committeeAccounts, []);
 export const getHandovers = committee(read.handovers, []);
 export const getHandover = committee(read.handoverById, null);
 export const getFundAccountsAdmin = committee(read.fundAccountsAdmin, []);

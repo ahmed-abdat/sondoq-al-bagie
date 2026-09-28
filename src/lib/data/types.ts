@@ -305,6 +305,22 @@ export type MemberAdmin = {
 export const MEMBER_STATUSES = ["active", "exempt", "left", "deceased"] as const;
 export type SettableStatus = (typeof MEMBER_STATUSES)[number];
 
+/** Admin list of committee accounts (settings). */
+export type CommitteeAccount = {
+  userId: string;
+  displayName: string;
+  role: CommitteeRole;
+  active: boolean;
+  memberId: string | null;
+  /** email, or "+222XXXXXXXX" for phone logins */
+  login: string;
+  lastSignInAt: string | null;
+  createdAt: string;
+};
+
+/** Shown ONCE after creating an account or resetting its password. */
+export type IssuedCredentials = { userId: string; login: string; password: string };
+
 /** Signed-in committee member, for the UI (null when signed out). */
 export type CommitteeSession = {
   userId: string;

@@ -15,7 +15,8 @@ create table auth.users (
   id uuid primary key default gen_random_uuid(),
   phone text,
   email text,
-  is_anonymous boolean not null default false
+  is_anonymous boolean not null default false,
+  last_sign_in_at timestamptz
 );
 
 create function auth.jwt() returns jsonb language sql stable as $$

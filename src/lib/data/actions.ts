@@ -8,12 +8,13 @@ import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { codeOf, failure, MESSAGES } from "./errors";
+import { generatePassword, parseLogin } from "./logins";
 import { isProofPath, PROOF_MAX_BYTES, proofPath, sha256Hex, sniffImage } from "./proof";
 import type { Client } from "./read";
 import * as s from "./schemas";
 import { getCommitteeSession } from "./committee";
 import { PUBLIC_TAG } from "./tags";
-import type { ActionResult } from "./types";
+import type { ActionResult, IssuedCredentials } from "./types";
 
 type RpcResult = {
   data: unknown;
@@ -569,6 +570,7 @@ async function siteOrigin(): Promise<string> {
 export type InviteResult = { userId: string };
 
 /**
+ * DEPRECATED (owner: no email invites) — use createCommitteeAccount. Kept for reference.
  * Admin: email an invitation to a new committee member and give them their role. They follow
  * the link (→ /auth/confirm), land on /committee/settings and choose a password. Needs the
  * server secret key (SUPABASE_SECRET_KEY) for the invite itself; the role is set as the admin.
@@ -638,4 +640,93 @@ export async function requestPasswordReset(input: { email: string }): Promise<Ac
     return failure("network");
   }
   return { ok: true, data: undefined };
+}
+
+/* ───────────── committee accounts without emails ───────────── */
+
+/**
+ * Admin creates a committee login (email or phone) with a generated password, shown once; the
+ * admin sends it himself (WhatsApp). Needs SUPABASE_SECRET_KEY on the server.
+ */
+export async function createCommitteeAccount(
+  input: s.CreateCommitteeAccountInput,
+): Promise<ActionResult<IssuedCredentials>> {
+  const parsed = s.createCommitteeAccountSchema.safeParse(input);
+  if (!parsed.success) return failure("invalid_input");
+  const login = parseLogin(parsed.data.login);
+  if (!login) return failure("bad_login");
+  const me = await getCommitteeSession();
+  if (!me) return failure("not_signed_in");
+  if (me.role !== "admin") return failure("not_admin");
+  const admin = tryCreateAdminClient();
+  if (!admin) return failure("not_configured");
+  const password = generatePassword();
+  let userId: string;
+  try {
+    const { data, error } = await admin.auth.admin.createUser({
+      email: login.authEmail,
+      password,
+      email_confirm: true,
+      user_metadata: { display_name: parsed.data.displayName, login: login.display },
+    });
+    if (error || !data.user) {
+      return failure(
+        error && /already|registered|exists/i.test(error.message) ? "login_taken" : "unknown",
+      );
+    }
+    userId = data.user.id;
+  } catch {
+    return failure("network");
+  }
+  const role = await setCommitteeMember({
+    userId,
+    displayName: parsed.data.displayName,
+    role: parsed.data.role,
+    memberId: parsed.data.memberId ?? null,
+    active: true,
+  });
+  if (!role.ok) {
+    await admin.auth.admin.deleteUser(userId).catch(() => undefined); // no orphan login
+    return role;
+  }
+  return { ok: true, data: { userId, login: login.display, password } };
+}
+
+/** Admin gives a committee member a new generated password (shown once). Not for himself. */
+export async function resetCommitteePassword(input: {
+  userId: string;
+}): Promise<ActionResult<IssuedCredentials>> {
+  const parsed = s.committeeUserSchema.safeParse(input);
+  if (!parsed.success) return failure("invalid_input");
+  const me = await getCommitteeSession();
+  if (!me) return failure("not_signed_in");
+  if (me.role !== "admin") return failure("not_admin");
+  if (parsed.data.userId === me.userId) return failure("cannot_reset_self");
+  const sb = await createClient();
+  const { data: row } = (await sb
+    ?.from("committee_accounts")
+    .select("login")
+    .eq("user_id", parsed.data.userId)
+    .maybeSingle()) ?? { data: null };
+  if (!row) return failure("not_committee_account");
+  const admin = tryCreateAdminClient();
+  if (!admin) return failure("not_configured");
+  const password = generatePassword();
+  try {
+    const { error } = await admin.auth.admin.updateUserById(parsed.data.userId, { password });
+    if (error) return failure("unknown");
+  } catch {
+    return failure("network");
+  }
+  return { ok: true, data: { userId: parsed.data.userId, login: row.login ?? "", password } };
+}
+
+/** Deactivate (no more committee access) or reactivate an account. Never deleted. */
+export async function setCommitteeActive(input: s.SetCommitteeActiveInput) {
+  return run(
+    s.setCommitteeActiveSchema,
+    input,
+    (sb, p) => sb.rpc("set_committee_active", { p_user_id: p.userId, p_active: p.active }),
+    { touchesPublic: false },
+  );
 }
