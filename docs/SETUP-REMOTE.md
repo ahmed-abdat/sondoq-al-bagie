@@ -7,23 +7,10 @@ Never paste a secret key into a chat, a file in the repo, or a screenshot.
 ## 1. Supabase → Authentication
 
 - **Sign In / Providers → Email**: turn **off** "Allow new users to sign up". Committee accounts
-  are created only by invitation. (Until this is off, anyone can create a login; they still see
+  are created only by the admin in the app. (Until this is off, anyone can create a login; they still see
   no member data, but turn it off before sharing the link.)
-- **URL Configuration**
-  - Site URL: the production address, e.g. `https://sondoq-albaqie.vercel.app`.
-  - Redirect URLs: `https://sondoq-albaqie.vercel.app/auth/confirm**` and
-    `http://localhost:3000/auth/confirm**` (add a preview address only if you test invites there).
-- **Emails → templates**: the app checks links on the server (`/auth/confirm`), so replace the
-  button link in these three templates:
-
-  | Template | Link |
-  |---|---|
-  | Invite user | `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/committee/settings` |
-  | Reset password | `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/committee/settings` |
-  | Change email address | `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next=/committee` |
-
-  Arabic invite text, for example: «دُعيت إلى لجنة صندوق البقيع. اضغط الرابط واختر كلمة سر.»
-  The free Supabase mailer sends only a few emails per hour: enough for inviting the committee.
+- No email templates or redirect URLs are needed: committee accounts are created by the admin in
+  the app (email **or** phone number + a generated password), not by invitation emails.
 
 ## 2. Supabase → API keys
 
@@ -36,9 +23,9 @@ Settings → API Keys: copy the **Project URL**, the **publishable** key (`sb_pu
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Project URL | every page |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` | every page (safe in the browser) |
-| `SUPABASE_SECRET_KEY` | `sb_secret_…` | committee invitations and the weekly backup; server only |
+| `SUPABASE_SECRET_KEY` | `sb_secret_…` | creating committee accounts, resetting their passwords, the weekly backup; server only |
 | `CRON_SECRET` | any long random string (e.g. from a password manager) | protects the daily keep-alive and weekly backup |
-| `NEXT_PUBLIC_SITE_URL` | `https://sondoq-albaqie.vercel.app` | links inside emails and WhatsApp messages |
+| `NEXT_PUBLIC_SITE_URL` | `https://sondoq-albaqie.vercel.app` | links inside WhatsApp messages |
 
 Do **not** set `SONDOQ_FIXTURES` in production (it switches the app to demo data).
 Redeploy after changing variables. Crons (`vercel.json`, production only): keep-alive daily at
@@ -54,12 +41,15 @@ Redeploy after changing variables. Crons (`vercel.json`, production only): keep-
    select public.set_committee_member('<user id>', 'AHMED', 'admin');
    ```
 
-3. Open `https://<site>/login` and sign in. You should see the committee pages.
+3. Open `https://<site>/login` and sign in with that email. You should see the committee pages.
 
-Then invite the others from the app (committee settings, `/committee/settings`): name, email, role
-(`treasurer` أمين الصندوق, `deputy` نائبه, `committee` عضو لجنة, `admin`). Each gets an email to
-choose a password (this needs `SUPABASE_SECRET_KEY` on Vercel). Link a committee member to their own member row so nobody confirms their own
-payment. Only the treasurer or deputy confirm money.
+Then add the others in the app (committee settings, `/committee/settings` → accounts): name, email
+**or** Mauritanian phone number, role (`treasurer` أمين الصندوق, `deputy` نائبه, `committee` عضو لجنة,
+`admin`). The app shows a generated password **once**: send the login and password to the person
+yourself (WhatsApp). They sign in on `/login` with the email or the phone number. If a password is
+lost, the admin resets it there (a new one is shown once). Accounts are deactivated, never deleted.
+This needs `SUPABASE_SECRET_KEY` on Vercel. Link a committee member to their own member row so
+nobody confirms their own payment. The admin, the treasurer and the deputy confirm money.
 
 ## 5. Settings in the app (admin, `/committee/settings`)
 
@@ -83,7 +73,7 @@ computer after the import, never commit or share them.
 ## 7. Before sharing the public link
 
 - [ ] Sign-ups off (step 1).
-- [ ] Sign in as admin works; an invited member received the email and set a password.
+- [ ] Sign in as admin works; a committee account created in the app can sign in with its phone number.
 - [ ] Public page shows 91 members and the right totals; «X من N» counts active members.
 - [ ] Record a small test payment as treasurer, check the receipt link `/r/<code>`, then cancel it
       with a reason.
@@ -94,14 +84,14 @@ computer after the import, never commit or share them.
 
 `/api/backup` writes every table to one JSON file in the private `backups` bucket
 (`<year>/<date>.json`) and keeps the latest 12. To read one: Supabase → Storage → backups →
-download. Committee logins are not in the file (re-invite them); proof images stay in the
+download. Committee logins are not in the file (recreate them in the app); proof images stay in the
 `proofs` bucket.
 
 ## 9. End of a committee term («تسليم الصندوق»)
 
 The outgoing treasurer/admin starts the handover in the app, enters the money actually held
 (cash and each wallet) and submits it. A **different admin** — the incoming one — accepts it:
-invite them as `admin` first (needs `SUPABASE_SECRET_KEY` on Vercel). Acceptance closes the term,
+create their account as `admin` first (needs `SUPABASE_SECRET_KEY` on Vercel). Acceptance closes the term,
 opens the next one with the counted money, books any difference publicly as «فرق عند التسليم»,
 and deactivates the committee accounts that were not kept.
 

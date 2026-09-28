@@ -7,12 +7,19 @@ let configured = true;
 vi.mock("next/cache", () => ({ updateTag: (t: string) => updateTag(t) }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ host: "app.test" }) }));
-let session: { role: string } | null = null;
+let session: { role: string; userId?: string } | null = null;
 vi.mock("./committee", () => ({ getCommitteeSession: async () => session }));
 const inviteUserByEmail = vi.fn();
+const createUser = vi.fn();
+const deleteUser = vi.fn(async () => ({}));
+const updateUserById = vi.fn();
+let accountRow: { login: string } | null = null;
 let secret = true;
 vi.mock("@/lib/supabase/admin", () => ({
-  tryCreateAdminClient: () => (secret ? { auth: { admin: { inviteUserByEmail } } } : null),
+  tryCreateAdminClient: () =>
+    secret
+      ? { auth: { admin: { inviteUserByEmail, createUser, deleteUser, updateUserById } } }
+      : null,
 }));
 const updateUser = vi.fn();
 const getUser = vi.fn();
@@ -26,6 +33,7 @@ const query = {
   in: () => query,
   neq: () => query,
   limit: async () => ({ data: dupRows, error: null }),
+  maybeSingle: async () => ({ data: accountRow, error: null }),
 };
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () =>
@@ -50,6 +58,8 @@ const {
   inviteCommitteeMember,
   setPassword,
   requestPasswordReset,
+  createCommitteeAccount,
+  resetCommitteePassword,
 } = await import("./actions");
 
 const id = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -64,6 +74,10 @@ const payment = {
 };
 
 beforeEach(() => {
+  createUser.mockReset();
+  deleteUser.mockClear();
+  updateUserById.mockReset();
+  accountRow = null;
   session = null;
   secret = true;
   inviteUserByEmail.mockReset();
@@ -269,5 +283,76 @@ describe("actions", () => {
     expect(await requestPasswordReset({ email: "not-an-email" })).toMatchObject({
       code: "invalid_input",
     });
+  });
+
+  const uid = "0f8fad5b-d9cb-469f-a165-70867728950e";
+
+  it("creates a phone login with a generated password, then sets the role", async () => {
+    session = { role: "admin", userId: "me" };
+    createUser.mockResolvedValue({ data: { user: { id: uid } }, error: null });
+    rpc.mockResolvedValue({ data: null, error: null });
+    const r = await createCommitteeAccount({
+      displayName: "أمين الصندوق",
+      login: "36 12 34 56",
+      role: "treasurer",
+    });
+    expect(r.ok).toBe(true);
+    const data = r.ok ? r.data : null;
+    expect(data).toMatchObject({ userId: uid, login: "+22236123456" });
+    expect(data?.password).toMatch(/^[a-z2-9]{12}$/);
+    expect(createUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "22236123456@phone.sondoq.invalid",
+        email_confirm: true,
+        password: data?.password,
+      }),
+    );
+    expect(rpc).toHaveBeenCalledWith(
+      "set_committee_member",
+      expect.objectContaining({ p_user_id: uid, p_role: "treasurer" }),
+    );
+  });
+
+  it("refuses bad logins, non-admins, taken logins; removes the login if the role fails", async () => {
+    session = { role: "admin", userId: "me" };
+    expect(
+      await createCommitteeAccount({ displayName: "x", login: "123", role: "committee" }),
+    ).toMatchObject({ code: "bad_login" });
+    createUser.mockResolvedValue({
+      data: { user: null },
+      error: { message: "A user with this email address has already been registered" },
+    });
+    expect(
+      await createCommitteeAccount({ displayName: "x", login: "a@b.co", role: "committee" }),
+    ).toMatchObject({ code: "login_taken" });
+    createUser.mockResolvedValue({ data: { user: { id: uid } }, error: null });
+    rpc.mockResolvedValue({
+      data: null,
+      error: { code: "P0001", hint: "not_admin", message: "x" },
+    });
+    expect(
+      await createCommitteeAccount({ displayName: "x", login: "a@b.co", role: "committee" }),
+    ).toMatchObject({ code: "not_admin" });
+    expect(deleteUser).toHaveBeenCalledWith(uid);
+    session = { role: "treasurer" };
+    expect(
+      await createCommitteeAccount({ displayName: "x", login: "a@b.co", role: "committee" }),
+    ).toMatchObject({ code: "not_admin" });
+  });
+
+  it("resets another committee member's password, never the admin's own", async () => {
+    session = { role: "admin", userId: uid };
+    expect(await resetCommitteePassword({ userId: uid })).toMatchObject({
+      code: "cannot_reset_self",
+    });
+    session = { role: "admin", userId: "me" };
+    expect(await resetCommitteePassword({ userId: uid })).toMatchObject({
+      code: "not_committee_account",
+    });
+    accountRow = { login: "+22236123456" };
+    updateUserById.mockResolvedValue({ error: null });
+    const r = await resetCommitteePassword({ userId: uid });
+    expect(r).toMatchObject({ ok: true, data: { userId: uid, login: "+22236123456" } });
+    expect(updateUserById).toHaveBeenCalledWith(uid, { password: r.ok ? r.data.password : "" });
   });
 });

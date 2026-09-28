@@ -229,6 +229,18 @@ export const inviteCommitteeMemberSchema = z.object({
   memberId: id.nullish(),
 });
 
+export const createCommitteeAccountSchema = z.object({
+  displayName: text(80),
+  /** email or phone number; checked with parseLogin() */
+  login: z.string().trim().min(3).max(120),
+  role: z.enum(E.committee_role),
+  memberId: id.nullish(),
+});
+export const committeeUserSchema = z.object({ userId: id });
+export const setCommitteeActiveSchema = z.object({ userId: id, active: z.boolean() });
+
+export type CreateCommitteeAccountInput = z.input<typeof createCommitteeAccountSchema>;
+export type SetCommitteeActiveInput = z.input<typeof setCommitteeActiveSchema>;
 export type InviteCommitteeMemberInput = z.input<typeof inviteCommitteeMemberSchema>;
 export type RecordPaymentInput = z.input<typeof recordPaymentSchema>;
 export type AllocationInput = z.input<typeof allocationSchema>;

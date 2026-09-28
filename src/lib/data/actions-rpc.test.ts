@@ -194,6 +194,13 @@ const cases: Case[] = [
     { p_id: id, p_reason: "خطأ" },
     false,
   ],
+  [
+    "setCommitteeActive",
+    () => a.setCommitteeActive({ userId: id, active: false }),
+    "set_committee_active",
+    { p_user_id: id, p_active: false },
+    false,
+  ],
 ];
 
 describe("every RPC action", () => {
