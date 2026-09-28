@@ -3,9 +3,9 @@ import { updateSession } from "@/lib/supabase/proxy";
 
 // صفحات اللجنة تحتاج تسجيل دخول، والصفحة العامة مفتوحة للجميع.
 export async function proxy(request: NextRequest) {
-  const { response, user } = await updateSession(request);
+  const { response, claims } = await updateSession(request);
 
-  if (!user && request.nextUrl.pathname.startsWith("/committee")) {
+  if (!claims && request.nextUrl.pathname.startsWith("/committee")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);
