@@ -267,7 +267,13 @@ export function CommitteeView({
 
       {sheet?.t === "record" && (
         <Sheet key="record" label="سجّل دفعة" onDone={() => setSheet(null)}>
-          <RecordBody members={members} ctx={ctx} accounts={accounts} onDone={doneSay} />
+          <RecordBody
+            members={members}
+            ctx={ctx}
+            accounts={accounts}
+            campaigns={campaigns}
+            onDone={doneSay}
+          />
         </Sheet>
       )}
       {sheet?.t === "expense" && (

@@ -6,12 +6,19 @@ import { memberState, statusLabel } from "./derive";
 import { I } from "./icons";
 
 /** The member code («A-12») is the avatar: it is the identifier people already use. */
-export function Avatar({ code, size = 40 }: { code: string; size?: number }) {
-  const k = code.length <= 2 ? 0.44 : code.length <= 3 ? 0.4 : 0.35;
+export function Avatar({ code, size: s }: { code: string; size?: number }) {
+  // «A-12» needs a little more room than a bare number: 44px for four characters
+  const size = s ?? (code.length >= 4 ? 44 : 40);
+  const k = code.length <= 2 ? 0.44 : code.length <= 3 ? 0.4 : 0.33;
   return (
     <span
       className="bq-av"
-      style={{ width: size, height: size, fontSize: Math.max(14, Math.round(size * k)) }}
+      style={{
+        width: size,
+        height: size,
+        fontSize: Math.max(14, Math.round(size * k)),
+        letterSpacing: code.length >= 4 ? "-0.03em" : undefined,
+      }}
       aria-hidden="true"
     >
       <bdi dir="ltr" className="bq-num">

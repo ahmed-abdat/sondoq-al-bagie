@@ -116,7 +116,7 @@ export function AddMemberBody({
         ))}
       </div>
       <p className="bq-rec-k">الرقم في القائمة</p>
-      <div className="bq-field">
+      <div className="bq-field" dir="ltr">
         <Num className="bq-strong">{group}-</Num>
         <input
           className="bq-input"
@@ -202,6 +202,13 @@ export function MemberAdminBody({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const other = m.groupCode === "A" ? "B" : "A";
+  const go = (next: typeof mode) => {
+    setMode(next);
+    setReason("");
+    setState(null);
+    setConfirming(false);
+    setErr("");
+  };
 
   const run = async (f: () => Promise<{ ok: boolean; message?: string }>, done: string) => {
     setBusy(true);
@@ -238,21 +245,21 @@ export function MemberAdminBody({
           <button
             type="button"
             className="bq-btn bq-btn-soft bq-press"
-            onClick={() => setMode("edit")}
+            onClick={() => go("edit")}
           >
             تعديل البيانات
           </button>
           <button
             type="button"
             className="bq-btn bq-btn-soft bq-press"
-            onClick={() => setMode("state")}
+            onClick={() => go("state")}
           >
             تغيير الحالة
           </button>
           <button
             type="button"
             className="bq-btn bq-btn-soft bq-press"
-            onClick={() => setMode("move")}
+            onClick={() => go("move")}
           >
             نقل إلى الفئة {groupLabel(other)}
           </button>
@@ -309,7 +316,7 @@ export function MemberAdminBody({
               <button
                 type="button"
                 className="bq-btn bq-btn-ghost bq-press"
-                onClick={() => setMode("view")}
+                onClick={() => go("view")}
               >
                 رجوع
               </button>
@@ -372,7 +379,7 @@ export function MemberAdminBody({
               <button
                 type="button"
                 className="bq-btn bq-btn-ghost bq-press"
-                onClick={() => setMode("view")}
+                onClick={() => go("view")}
               >
                 رجوع
               </button>
@@ -464,7 +471,7 @@ export function MemberAdminBody({
               <button
                 type="button"
                 className="bq-btn bq-btn-ghost bq-press"
-                onClick={() => setMode("view")}
+                onClick={() => go("view")}
               >
                 رجوع
               </button>
