@@ -30,6 +30,7 @@ export {
   getCommitteeSession,
   getExpensesAdmin,
   getFundAccountsAdmin,
+  getFundSettings,
   getCommitteeAccounts,
   getHandover,
   getHandovers,
