@@ -83,7 +83,27 @@ export function Sheet({
       document.body.style.overflow = "hidden";
       ref.current?.focus({ preventScroll: true });
     });
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return closeRef.current();
+      // keep Tab inside the sheet (it is modal)
+      if (e.key !== "Tab" || !ref.current) return;
+      const f = [
+        ...ref.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]),a[href],input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])',
+        ),
+      ].filter((el) => el.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === ref.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     window.addEventListener("keydown", onKey);
     return () => {
       cancelAnimationFrame(raf);

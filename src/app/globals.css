@@ -97,8 +97,8 @@
   --d-press: 120ms;
   --d-fast: 160ms;
   --d-ui: 240ms;
-  --d-slide: 320ms;
-  --d-sheet-in: 400ms;
+  --d-slide: 240ms;
+  --d-sheet-in: 320ms;
   --d-sheet-out: 220ms;
   --d-roll: 600ms;
 
@@ -885,7 +885,7 @@
     background: var(--g8);
     border-radius: 999px;
     clip-path: inset(0 100% 0 0 round 999px);
-    transition: clip-path 300ms var(--ease-out);
+    transition: clip-path 220ms var(--ease-out);
   }
   .bq-seg-b {
     position: relative;
@@ -1901,7 +1901,7 @@
     inset: 0;
     background: rgba(10, 30, 18, 0.42);
     opacity: 0;
-    transition: opacity 300ms var(--ease-out);
+    transition: opacity 240ms var(--ease-out);
   }
   .bq-sheet {
     position: relative;
@@ -3128,5 +3128,46 @@
 @media (prefers-reduced-motion: reduce) {
   .bq-skel {
     animation: none;
+  }
+}
+
+/* ───── round 4: interaction details ───── */
+@layer components {
+  /* disabled controls do not pretend to be pressed */
+  .bq-press:disabled:active,
+  .bq-press[aria-disabled="true"]:active {
+    transform: none;
+  }
+  /* the proof thumbnail keeps its box while the signed image arrives: no jump */
+  .rc-shot {
+    width: 44px;
+    height: 78px;
+    max-height: none;
+    object-fit: cover;
+  }
+  /* the snack leaves the way it came, a touch faster */
+  .bq-snack.is-out {
+    transform: translateY(6px);
+    transition:
+      opacity 150ms var(--ease-out),
+      transform 150ms var(--ease-out);
+  }
+  /* a decided slip settles into its one-line form instead of popping */
+  .bq-slip-one {
+    animation: bq-settle 220ms var(--ease-out) both;
+  }
+}
+@keyframes bq-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bq-slip-one {
+    animation: bq-vt-fade-in 160ms ease-out both;
+  }
+  .bq-snack.is-out {
+    transform: none;
   }
 }
