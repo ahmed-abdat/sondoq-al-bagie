@@ -6,14 +6,14 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["minute", 60_000],
 ];
 
-/** "قبل 5 دقائق", "قبل ساعتين", "أمس"… for how old the saved data is. Under a minute: "الآن". */
+/** "قبل 5 دقائق", "قبل ساعتين", "أمس"… for how old the saved data is. Under a minute: "قبل لحظات". */
 export function timeAgo(then: number, now: number = Date.now()): string {
   const diff = Math.max(0, now - then);
   const rtf = new Intl.RelativeTimeFormat(LOCALE, { numeric: "auto" });
   for (const [unit, ms] of UNITS) {
     if (diff >= ms) return rtf.format(-Math.floor(diff / ms), unit);
   }
-  return rtf.format(0, "second");
+  return "قبل لحظات";
 }
 
 /** Text of the offline banner. `lastUpdated` = newest saved public data (ms), if any. */
