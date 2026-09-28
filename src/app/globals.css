@@ -3215,3 +3215,32 @@
     transform: rotate(360deg);
   }
 }
+@layer components {
+  .bq-h-count {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bq-h-count .bq-com-n,
+  .bq-com-n {
+    display: inline-grid;
+    place-items: center;
+    min-width: 32px;
+    height: 32px;
+    padding-inline: 8px;
+    border-radius: 999px;
+    background: var(--g8);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .bq-back {
+    margin-inline-start: -8px;
+    padding-inline: 8px;
+  }
+}
+@layer components {
+  .bq-mline .bq-row-s {
+    display: block;
+  }
+}

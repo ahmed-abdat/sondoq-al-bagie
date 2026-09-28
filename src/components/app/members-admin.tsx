@@ -266,15 +266,17 @@ export function MemberAdminBody({
       {mode === "view" && (
         <div className="bq-btn-col bq-small-top">
           <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("edit")}>
-            تعديل البيانات
+            تعديل الاسم أو الهاتف
           </button>
           <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("state")}>
             تغيير الحالة
           </button>
-          <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("move")}>
-            نقل إلى الفئة {groupLabel(other)}
-          </button>
         </div>
+      )}
+      {mode === "view" && (
+        <button type="button" className="bq-link bq-link-quiet bq-press" onClick={() => go("move")}>
+          تغيير الفئة إلى {groupLabel(other)} (الرسوم الشهرية)
+        </button>
       )}
 
       {mode === "edit" && (
@@ -492,8 +494,10 @@ export function MemberAdminBody({
   );
 }
 
-type GF = "all" | "A" | "B";
-type SF = "all" | State;
+/** One filter: who is shown. Active first; the rest is one tap away. */
+type SF = "active" | "exempt" | "gone" | "all";
+const inFilter = (m: MemberAdmin, f: SF) =>
+  f === "all" || (f === "gone" ? m.status === "left" || m.status === "deceased" : m.status === f);
 
 export function MembersAdmin({
   members: server,
@@ -514,15 +518,11 @@ export function MembersAdmin({
     [server, demo.members, demo.memberPatch],
   );
   const [q, setQ] = useState("");
-  const [g, setG] = useState<GF>("all");
-  const [st, setSt] = useState<SF>("all");
+  const [st, setSt] = useState<SF>("active");
   const [sheet, setSheet] = useState<{ t: "add" } | { t: "member"; id: string } | null>(null);
-  const list = (q.trim() ? searchMembers(members, q) : members).filter(
-    (m) => (g === "all" || m.listCode === g) && (st === "all" || m.status === st),
-  );
-  const count = (s: SF) =>
-    members.filter((m) => (g === "all" || m.listCode === g) && (s === "all" || m.status === s))
-      .length;
+  // a search looks through everyone; the filter applies when browsing
+  const list = q.trim() ? searchMembers(members, q) : members.filter((m) => inFilter(m, st));
+  const count = (f: SF) => members.filter((m) => inFilter(m, f)).length;
   const open = sheet?.t === "member" ? members.find((m) => m.memberId === sheet.id) : null;
   const done = (t: string) => {
     setSheet(null);
@@ -549,42 +549,49 @@ export function MembersAdmin({
         />
       </label>
       <div className="bq-gap-12" />
-      <Segmented<GF>
-        label="القائمة"
-        value={g}
-        onChange={setG}
-        items={[
-          { k: "all", l: "كل القوائم" },
-          { k: "A", l: "قائمة A" },
-          { k: "B", l: "قائمة B" },
-        ]}
-      />
-      <div className="bq-gap-12" />
-      <Segmented<SF>
-        label="الحالة"
-        value={st}
-        onChange={setSt}
-        items={[
-          {
-            k: "all",
-            l: (
-              <>
-                الكل <Num className="bq-seg-n">{count("all")}</Num>
-              </>
-            ),
-          },
-          ...STATES.map((s) => ({
-            k: s as SF,
-            l: (
-              <>
-                {STATE_LABEL[s]} <Num className="bq-seg-n">{count(s)}</Num>
-              </>
-            ),
-          })),
-        ]}
-      />
+      {!q.trim() && (
+        <Segmented<SF>
+          label="من يظهر"
+          value={st}
+          onChange={setSt}
+          items={[
+            {
+              k: "active",
+              l: (
+                <>
+                  النشطون <Num className="bq-seg-n">{count("active")}</Num>
+                </>
+              ),
+            },
+            {
+              k: "exempt",
+              l: (
+                <>
+                  المعفون <Num className="bq-seg-n">{count("exempt")}</Num>
+                </>
+              ),
+            },
+            {
+              k: "gone",
+              l: (
+                <>
+                  غادروا أو توفوا <Num className="bq-seg-n">{count("gone")}</Num>
+                </>
+              ),
+            },
+            {
+              k: "all",
+              l: (
+                <>
+                  الكل <Num className="bq-seg-n">{count("all")}</Num>
+                </>
+              ),
+            },
+          ]}
+        />
+      )}
       {list.length ? (
-        (g === "all" && !q.trim() ? LISTS : [null]).map((l) => {
+        (!q.trim() ? LISTS : [null]).map((l) => {
           const items = l ? list.filter((m) => m.listCode === l) : list;
           if (!items.length) return null;
           return (

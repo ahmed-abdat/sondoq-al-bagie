@@ -27,6 +27,7 @@ export function CampaignFormBody({
   const [deadline, setDeadline] = useState(campaign?.deadline ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [closing, setClosing] = useState(false);
   const t = target.trim() ? Math.round(parseAmount(target) ?? 0) : null;
   const ok = title.trim().length > 2 && (t === null || t > 0);
 
@@ -55,6 +56,10 @@ export function CampaignFormBody({
     onDone(campaign ? "حُفظت الحملة" : `فُتحت حملة «${title.trim()}»`);
   };
 
+  if (campaign && closing)
+    return (
+      <CloseCampaignBody campaign={campaign} onDone={onDone} onBack={() => setClosing(false)} />
+    );
   return (
     <div className="bq-rec">
       <h2>{campaign ? "تعديل الحملة" : "حملة جديدة"}</h2>
@@ -109,6 +114,15 @@ export function CampaignFormBody({
           {busy ? "جارٍ الحفظ…" : campaign ? "احفظ التعديل" : "افتح الحملة"}
         </button>
         <OfflineWriteHint />
+        {campaign && (
+          <button
+            type="button"
+            className="bq-link bq-link-quiet bq-press"
+            onClick={() => setClosing(true)}
+          >
+            انتهت الحملة؟ إغلاقها
+          </button>
+        )}
       </div>
     </div>
   );
@@ -117,9 +131,11 @@ export function CampaignFormBody({
 export function CloseCampaignBody({
   campaign,
   onDone,
+  onBack,
 }: {
   campaign: CampaignProgress;
   onDone: (t: string) => void;
+  onBack?: () => void;
 }) {
   const router = useRouter();
   const online = useOnline();
@@ -207,28 +223,32 @@ export function CloseCampaignBody({
         >
           أغلق الحملة
         </button>
+        {onBack && (
+          <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={onBack}>
+            رجوع
+          </button>
+        )}
         <OfflineWriteHint />
       </div>
     </div>
   );
 }
 
-/** Committee list of campaigns with edit/close for open ones. */
+/** Committee list of campaigns; an open one opens its sheet (edit, and close at the bottom). */
 export function CampaignAdminList({
   campaigns,
   onEdit,
-  onClose,
 }: {
   campaigns: CampaignProgress[];
   onEdit: (c: CampaignProgress) => void;
-  onClose: (c: CampaignProgress) => void;
 }) {
-  if (!campaigns.length) return <p className="bq-hint">لا توجد حملات بعد.</p>;
+  if (!campaigns.length)
+    return <p className="bq-hint">لا توجد حملات بعد. اضغط «حملة جديدة» لتفتح أول حملة.</p>;
   return (
     <ul className="bq-list">
-      {campaigns.map((c) => (
-        <li key={c.campaignId}>
-          <div className="bq-row">
+      {campaigns.map((c) => {
+        const body = (
+          <>
             <span className="bq-disc is-gold">{I.heart(22)}</span>
             <span className="bq-row-m">
               <span className="bq-row-t">{c.title}</span>
@@ -247,28 +267,22 @@ export function CampaignAdminList({
                     : "مفتوحة"
                   : "مغلقة"}
               </span>
-              {c.status === "open" && (
-                <span className="bq-com-actions">
-                  <button
-                    type="button"
-                    className="bq-link bq-link-s bq-press"
-                    onClick={() => onEdit(c)}
-                  >
-                    تعديل
-                  </button>
-                  <button
-                    type="button"
-                    className="bq-link bq-link-s bq-press"
-                    onClick={() => onClose(c)}
-                  >
-                    إغلاق
-                  </button>
-                </span>
-              )}
             </span>
-          </div>
-        </li>
-      ))}
+          </>
+        );
+        return (
+          <li key={c.campaignId}>
+            {c.status === "open" ? (
+              <button type="button" className="bq-row bq-press" onClick={() => onEdit(c)}>
+                {body}
+                <span className="bq-chev">{I.go(18)}</span>
+              </button>
+            ) : (
+              <div className="bq-row">{body}</div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
