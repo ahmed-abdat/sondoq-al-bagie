@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 import { toFundInfo, toFundSummary } from "./map";
 import * as read from "./read";
+import { assembleReport, loadReport, type ReportOptions } from "./report";
 import { PUBLIC_TAG } from "./tags";
 
 /**
@@ -49,3 +50,36 @@ export const getTerms = cached("terms", read.terms, []);
 export const getCurrentTerm = cached("current_term", read.currentTerm, null);
 export const getFundAccounts = cached("fund_accounts_public", read.fundAccounts, []);
 export const getFundInfo = cached("fund_info", read.fundInfo, toFundInfo(null));
+
+const cachedReport = unstable_cache(
+  async (opts: ReportOptions) => {
+    const c = createPublicClient();
+    return c ? loadReport(c, opts) : null;
+  },
+  ["public", "report"],
+  { tags: [PUBLIC_TAG], revalidate: 60 },
+);
+
+/**
+ * The shareable fund report (public data only): summary, term, monthly collection, member grid,
+ * expenses of the year, campaigns. Default: this year and the open term.
+ */
+export async function getReport(opts: ReportOptions = {}) {
+  const now = new Date();
+  return (
+    (await cachedReport({ year: opts.year, term: opts.term })) ??
+    assembleReport({
+      year: opts.year ?? now.getUTCFullYear(),
+      term: opts.term,
+      summary: toFundSummary(null),
+      terms: [],
+      monthly: [],
+      members: [],
+      months: [],
+      expenses: [],
+      campaigns: [],
+      info: toFundInfo(null),
+      now,
+    })
+  );
+}

@@ -214,6 +214,14 @@ export async function recentPayments(c: Client, limit = 50) {
   ).map(map.toPendingPayment);
 }
 
+/** Every payment of any status, oldest first (committee CSV export; paged past 1000 rows). */
+export async function allPayments(c: Client) {
+  const rows = await paged("payment_queue", (from, to) =>
+    c.from("payment_queue").select("*").order("created_at").order("id").range(from, to),
+  );
+  return rows.map(map.toPendingPayment);
+}
+
 export async function paymentById(c: Client, id: string) {
   const row = must(
     "payment_queue",
@@ -245,7 +253,11 @@ export async function expensesAdmin(c: Client, limit = 100): Promise<ExpenseAdmi
       .order("created_at", { ascending: false })
       .limit(limit),
   );
-  return rows.map((r) => ({
+  return rows.map(toExpenseAdmin);
+}
+
+function toExpenseAdmin(r: Database["public"]["Tables"]["expenses"]["Row"]): ExpenseAdmin {
+  return {
     id: r.id,
     spentOn: r.spent_on,
     category: r.category,
@@ -256,7 +268,21 @@ export async function expensesAdmin(c: Client, limit = 100): Promise<ExpenseAdmi
     createdAt: r.created_at,
     cancelledAt: r.cancelled_at,
     cancelReason: r.cancel_reason,
-  }));
+  };
+}
+
+/** Every expense (also cancelled), oldest first (committee CSV export; paged). */
+export async function allExpenses(c: Client): Promise<ExpenseAdmin[]> {
+  const rows = await paged("expenses", (from, to) =>
+    c
+      .from("expenses")
+      .select("*")
+      .order("spent_on")
+      .order("created_at")
+      .order("id")
+      .range(from, to),
+  );
+  return rows.map(toExpenseAdmin);
 }
 
 /** Every member (any status) with phone, current group and status, by list then number. */
