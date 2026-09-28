@@ -5,12 +5,32 @@ const updateTag = vi.fn();
 let configured = true;
 
 vi.mock("next/cache", () => ({ updateTag: (t: string) => updateTag(t) }));
+const upload = vi.fn();
+const createSignedUrl = vi.fn();
+let dupRows: { id: string }[] = [];
+const query = {
+  select: () => query,
+  eq: () => query,
+  in: () => query,
+  neq: () => query,
+  limit: async () => ({ data: dupRows, error: null }),
+};
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => (configured ? { rpc } : null),
+  createClient: async () =>
+    configured
+      ? { rpc, from: () => query, storage: { from: () => ({ upload, createSignedUrl }) } }
+      : null,
 }));
 
-const { recordPayment, confirmPayment, rejectPayment, undoPayment, updateSettings } =
-  await import("./actions");
+const {
+  recordPayment,
+  confirmPayment,
+  rejectPayment,
+  undoPayment,
+  updateSettings,
+  uploadProof,
+  proofUrl,
+} = await import("./actions");
 
 const id = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const member = "0f8fad5b-d9cb-469f-a165-70867728950e";
@@ -24,6 +44,9 @@ const payment = {
 };
 
 beforeEach(() => {
+  upload.mockReset();
+  createSignedUrl.mockReset();
+  dupRows = [];
   rpc.mockReset();
   updateTag.mockReset();
   configured = true;
@@ -109,6 +132,55 @@ describe("actions", () => {
       p_grace_days: undefined,
       p_show_amount_owed: undefined,
       p_whatsapp_contact: "",
+    });
+  });
+
+  const proofForm = (bytes: number[], kind = "payments") => {
+    const f = new FormData();
+    f.set("file", new Blob([new Uint8Array(bytes)]));
+    f.set("kind", kind);
+    f.set("id", id);
+    return f;
+  };
+  const JPEG = [0xff, 0xd8, 0xff, 0xe0, 1, 2, 3];
+
+  it("uploads a real image under a hash-based path", async () => {
+    upload.mockResolvedValue({ data: {}, error: null });
+    const r = await uploadProof(proofForm(JPEG));
+    expect(r.ok).toBe(true);
+    const path = r.ok ? r.data.path : "";
+    expect(path).toMatch(new RegExp(`^payments/${id}-[0-9a-f]{12}\\.jpg$`));
+    expect(upload).toHaveBeenCalledWith(
+      path,
+      expect.any(Uint8Array),
+      expect.objectContaining({ contentType: "image/jpeg" }),
+    );
+  });
+
+  it("refuses non-images, reused screenshots and bad input", async () => {
+    expect(await uploadProof(proofForm([0x3c, 0x73, 0x76, 0x67]))).toMatchObject({
+      code: "proof_not_image",
+    });
+    dupRows = [{ id: "other" }];
+    expect(await uploadProof(proofForm(JPEG))).toMatchObject({ code: "duplicate_proof" });
+    expect(await uploadProof(proofForm(JPEG, "avatars"))).toMatchObject({ code: "invalid_input" });
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it("treats an already-uploaded identical file as success", async () => {
+    upload.mockResolvedValue({ data: null, error: { message: "The resource already exists" } });
+    expect((await uploadProof(proofForm(JPEG))).ok).toBe(true);
+  });
+
+  it("signs only app proof paths", async () => {
+    expect(await proofUrl({ path: "../x" })).toMatchObject({ code: "invalid_input" });
+    createSignedUrl.mockResolvedValue({
+      data: { signedUrl: "https://x.supabase.co/storage/v1/s" },
+      error: null,
+    });
+    expect(await proofUrl({ path: `payments/${id}-0123456789ab.jpg` })).toEqual({
+      ok: true,
+      data: "https://x.supabase.co/storage/v1/s",
     });
   });
 });

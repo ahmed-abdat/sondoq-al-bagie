@@ -22,6 +22,8 @@ export const MESSAGES = {
   month_already_paid: "أحد هذه الأشهر مدفوع من قبل.",
   duplicate_txn_ref: "رقم العملية مسجّل من قبل في دفعة أخرى.",
   duplicate_proof: "صورة الإيصال نفسها مسجّلة من قبل.",
+  proof_too_large: "الصورة كبيرة جداً. التقطها من جديد.",
+  proof_not_image: "الملف ليس صورة (JPG أو PNG أو WEBP).",
   allocations_required: "اختر الأشهر أو المساهمة التي تغطيها الدفعة.",
   allocations_mismatch: "مجموع التوزيع لا يساوي مبلغ الدفعة.",
   future_date: "التاريخ في المستقبل.",
