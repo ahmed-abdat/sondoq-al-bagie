@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Try a paper-sheet import on a throwaway local Postgres (never the real project) and print a
-# report without names: members, payments, money, members up to date / behind, re-run check.
+# report without names: members per list, payments, money, up to date / behind, re-run check.
+# Runs step 1 (members) then step 2 (payments) exactly like the real import, then both again.
 #   supabase/import/check-local.sh --sheet data/sheet-2026.csv [--phones …] [--page-totals …]
 # Same flags as import-paper.mts. Needs Postgres 15+ tools on PATH (see tests/local/run.sh).
 set -euo pipefail
@@ -12,7 +13,7 @@ trap cleanup EXIT
 
 echo "── dry run ──"
 node "$ROOT/supabase/import/import-paper.mts" "$@"
-node "$ROOT/supabase/import/import-paper.mts" "$@" --sql "$DIR/import.sql" >/dev/null
+node "$ROOT/supabase/import/import-paper.mts" "$@" --members-sql "$DIR/1-members.sql" --payments-sql "$DIR/2-payments.sql" >/dev/null
 
 initdb -D "$DIR/data" -U postgres --auth=trust >/dev/null
 pg_ctl -D "$DIR/data" -o "-p $PORT -k $DIR -c wal_level=logical" -l "$DIR/log" start >/dev/null
@@ -22,9 +23,11 @@ PSQL=(psql -h "$DIR" -p "$PORT" -U postgres -v ON_ERROR_STOP=1 -q -X)
 "${PSQL[@]}" -d sb -f "$ROOT/supabase/tests/local/00_supabase_shim.sql"
 for f in "$ROOT"/supabase/migrations/*.sql; do "${PSQL[@]}" -d sb -o /dev/null -f "$f" 2>/dev/null; done
 
-"${PSQL[@]}" -d sb -o /dev/null -f "$DIR/import.sql"
+"${PSQL[@]}" -d sb -o /dev/null -f "$DIR/1-members.sql"
+"${PSQL[@]}" -d sb -o /dev/null -f "$DIR/2-payments.sql"
 first="$("${PSQL[@]}" -d sb -At -c "select count(*) || '/' || (select count(*) from public.payments) from public.members")"
-"${PSQL[@]}" -d sb -o /dev/null -f "$DIR/import.sql"
+"${PSQL[@]}" -d sb -o /dev/null -f "$DIR/1-members.sql"
+"${PSQL[@]}" -d sb -o /dev/null -f "$DIR/2-payments.sql"
 second="$("${PSQL[@]}" -d sb -At -c "select count(*) || '/' || (select count(*) from public.payments) from public.members")"
 
 echo
@@ -37,9 +40,9 @@ select (select count(*) from public.members) as members,
        (select members_ok from public.fund_summary) as up_to_date,
        (select members_behind from public.fund_summary) as behind"
 "${PSQL[@]}" -d sb -P footer=off -c "
-select group_code as grp, count(*) as members,
+select list_code as list, group_code as grp, count(*) as members,
        count(*) filter (where months_paid_this_year = 12) as paid_12,
        count(*) filter (where months_paid_this_year = 0) as paid_0,
        count(*) filter (where months_behind > 0) as behind
-from public.member_status group by group_code order by 1"
+from public.member_status group by list_code, group_code order by 1, 2"
 test "$first" = "$second" && echo "re-run adds nothing: ok ($first members/payments)" || { echo "FAIL re-run changed $first → $second"; exit 1; }

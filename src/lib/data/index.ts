@@ -22,6 +22,7 @@ export {
 } from "./public";
 export {
   getArrears,
+  getMembersAdmin,
   getCommitteeSession,
   getExpensesAdmin,
   getFundAccountsAdmin,

@@ -279,6 +279,7 @@ export async function addMember(input: s.AddMemberInput) {
         p_phone: p.phone,
         p_note: p.note,
         p_status: p.status,
+        p_list_code: p.listCode,
       }),
     { touchesPublic: true, result: (d) => d as string },
   );
@@ -295,9 +296,40 @@ export async function updateMember(input: s.UpdateMemberInput) {
         // generated types mark these non-null; the SQL accepts null (clears the field)
         p_phone: p.phone as string,
         p_note: p.note as string,
+        p_number: p.number,
       }),
     { touchesPublic: true },
   );
+}
+
+/** Move a member to another group (price) from a month on; status unchanged. */
+export async function changeMemberGroup(input: s.ChangeMemberGroupInput) {
+  return run(
+    s.changeMemberGroupSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("change_member_group", {
+        p_member_id: p.memberId,
+        p_from_month: p.fromMonth,
+        p_group_code: p.groupCode,
+        p_reason: p.reason,
+      }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
+/** Suggested number for a new member of list A or B. */
+export async function nextMemberNumber(input: { listCode: string }): Promise<ActionResult<number>> {
+  const code = String(input?.listCode ?? "")
+    .trim()
+    .toUpperCase();
+  if (!/^[A-Z]$/.test(code)) return failure("invalid_input");
+  const sb = await createClient();
+  if (!sb) return failure("not_configured");
+  const { data, error } = await sb.rpc("next_member_number", { p_list_code: code });
+  if (error) return failure(codeOf(error));
+  if (data === null) return failure("not_committee");
+  return { ok: true, data: Number(data) };
 }
 
 export async function changeMemberStatus(input: s.ChangeMemberStatusInput) {

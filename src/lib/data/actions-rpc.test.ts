@@ -69,9 +69,22 @@ const cases: Case[] = [
   ],
   [
     "addMember",
-    () => a.addMember({ number: 71, fullName: "عضو", groupCode: "B", fromMonth: "2026-10-01" }),
+    () =>
+      a.addMember({
+        listCode: "B",
+        number: 71,
+        fullName: "عضو",
+        groupCode: "B",
+        fromMonth: "2026-10-01",
+      }),
     "add_member",
-    { p_number: 71, p_group_code: "B", p_from_month: "2026-10-01", p_status: "active" },
+    {
+      p_number: 71,
+      p_group_code: "B",
+      p_from_month: "2026-10-01",
+      p_status: "active",
+      p_list_code: "B",
+    },
     true,
   ],
   [
@@ -87,11 +100,11 @@ const cases: Case[] = [
       a.changeMemberStatus({
         memberId: member,
         fromMonth: "2026-10-01",
-        status: "away",
+        status: "left",
         reason: "سفر",
       }),
     "change_member_status",
-    { p_member_id: member, p_status: "away", p_reason: "سفر" },
+    { p_member_id: member, p_status: "left", p_reason: "سفر" },
     true,
   ],
   [

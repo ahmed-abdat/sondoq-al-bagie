@@ -97,13 +97,21 @@ describe("map", () => {
         {
           kind: "months",
           member_id: "m1",
+          list_code: "B",
           number: 7,
           full_name: "عضو",
           year: 2026,
           month: 9,
           amount: 1000,
         },
-        { kind: "credit", member_id: "m1", number: 7, full_name: "عضو", amount: 500 },
+        {
+          kind: "credit",
+          member_id: "m1",
+          list_code: "B",
+          number: 7,
+          full_name: "عضو",
+          amount: 500,
+        },
         { kind: "bogus", amount: 1 },
       ],
     });
@@ -111,13 +119,14 @@ describe("map", () => {
       {
         kind: "months",
         memberId: "m1",
+        listCode: "B",
         number: 7,
         fullName: "عضو",
         year: 2026,
         month: 9,
         amount: 1000,
       },
-      { kind: "credit", memberId: "m1", number: 7, fullName: "عضو", amount: 500 },
+      { kind: "credit", memberId: "m1", listCode: "B", number: 7, fullName: "عضو", amount: 500 },
     ]);
     expect(p.createdByName).toBe("مشرف");
   });
@@ -137,7 +146,9 @@ describe("map", () => {
       confirmed_by_name: "الأمين",
       confirmed_by_role: "treasurer",
       txn_ref_last4: "1234",
-      members: [{ number: 7, full_name: "عضو", months: [{ year: 2026, month: 9 }] }],
+      members: [
+        { list_code: "B", number: 7, full_name: "عضو", months: [{ year: 2026, month: 9 }] },
+      ],
       campaign_titles: [],
     });
     expect(r).toMatchObject({
@@ -147,6 +158,7 @@ describe("map", () => {
       txnRefLast4: "1234",
     });
     expect(r.status === "valid" && r.members[0]).toEqual({
+      listCode: "B",
       number: 7,
       fullName: "عضو",
       months: [{ year: 2026, month: 9 }],

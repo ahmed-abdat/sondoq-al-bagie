@@ -45,6 +45,7 @@ function committee<A extends unknown[], R>(
 export const getPendingPayments = committee(read.pendingPayments, []);
 export const getRecentPayments = committee(read.recentPayments, []);
 export const getPayment = committee(read.paymentById, null);
+export const getMembersAdmin = committee(read.membersAdmin, []);
 export const getArrears = committee(read.arrears, []);
 export const getExpensesAdmin = committee(read.expensesAdmin, []);
 export const getFundAccountsAdmin = committee(read.fundAccountsAdmin, []);

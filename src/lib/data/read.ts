@@ -46,9 +46,10 @@ export async function groupPrices(c: Client, year: number = thisYear()) {
 }
 
 export async function members(c: Client) {
-  return many("member_status", await c.from("member_status").select("*").order("number")).map(
-    map.toMemberStatus,
-  );
+  return many(
+    "member_status",
+    await c.from("member_status").select("*").order("list_code").order("number"),
+  ).map(map.toMemberStatus);
 }
 
 /**
@@ -61,6 +62,7 @@ export async function lateMembers(c: Client) {
     await c
       .from("member_status")
       .select("*")
+      .eq("member_status", "active")
       .gt("months_behind", 0)
       .order("months_behind", { ascending: false })
       .order("number"),
@@ -217,6 +219,14 @@ export async function expensesAdmin(c: Client, limit = 100): Promise<ExpenseAdmi
     cancelledAt: r.cancelled_at,
     cancelReason: r.cancel_reason,
   }));
+}
+
+/** Every member (any status) with phone, current group and status, by list then number. */
+export async function membersAdmin(c: Client) {
+  return many(
+    "members_admin",
+    await c.from("members_admin").select("*").order("list_code").order("number"),
+  ).map(map.toMemberAdmin);
 }
 
 export async function fundAccountsAdmin(c: Client): Promise<FundAccountAdmin[]> {
