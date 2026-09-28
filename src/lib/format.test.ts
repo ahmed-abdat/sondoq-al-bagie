@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMro, formatMru, formatNumber, percent, THIN } from "./format";
+import { formatMro, formatMru, formatNumber, ltr, percent, THIN } from "./format";
 
 describe("formatNumber", () => {
   it("groups thousands with a narrow no-break space", () => {
@@ -28,5 +28,11 @@ describe("percent", () => {
   it("rounds to a whole number", () => {
     expect(percent(11, 12)).toBe(92);
     expect(percent(0, 0)).toBe(0);
+  });
+});
+
+describe("ltr", () => {
+  it("wraps text in LTR isolates", () => {
+    expect(ltr("BQ-7K2M-0231")).toBe("\u2066BQ-7K2M-0231\u2069");
   });
 });

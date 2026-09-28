@@ -30,3 +30,11 @@ export function percent(part: number, whole: number): number {
   if (whole <= 0) return 0;
   return Math.round((part / whole) * 100);
 }
+
+/**
+ * Wraps text in Unicode LTR isolates (U+2066 … U+2069) so numbers, codes and references
+ * such as "BQ-7K2M-0231" or "36 12 34 56" keep their order inside Arabic text (WhatsApp, share).
+ */
+export function ltr(text: string): string {
+  return `\u2066${text}\u2069`;
+}

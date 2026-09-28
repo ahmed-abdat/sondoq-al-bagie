@@ -4,7 +4,7 @@
  * Ported from prototype «M» (variant-m.tsx). Drawing and text are split out so they are testable.
  */
 import { monthName } from "./dates";
-import { formatNumber } from "./format";
+import { formatNumber, ltr } from "./format";
 import { mroToMru } from "./money";
 import { qrMatrix } from "./qr";
 import { waLink } from "./whatsapp";
@@ -88,16 +88,17 @@ export function receiptShareText(r: ShareableReceipt, url: string): string {
     `*وصل استلام — ${FUND_NAME}*`,
     ASSOC_NAME,
     "",
-    `رقم الوصل: ${r.no}`,
+    `رقم الوصل: ${ltr(r.no)}`,
     `استلمنا من: ${r.payer}`,
     `المبلغ: ${formatNumber(r.amountMro)} أوقية (${formatNumber(mroToMru(r.amountMro))} أوقية جديدة)`,
     ...r.covers.map((c) => coverLine(c, r.payer, many)),
-    `الوسيلة: ${r.methodLabel}${r.txnRef ? ` · ${r.txnRef}` : ""}`,
+    `الوسيلة: ${r.methodLabel}${r.txnRef ? ` · ${ltr(r.txnRef)}` : ""}`,
   ];
   if (r.dateLabel) lines.push(`التاريخ: ${r.dateLabel}`);
   if (r.status.kind === "confirmed") lines.push(`أكّدها: ${r.status.by}، ${r.status.role}`);
   else lines.push(STATUS_LINE[r.status.kind]);
-  lines.push(`رمز التحقق: ${r.code}`, `للتحقق: ${url}`);
+  // The URL stays unwrapped so WhatsApp still detects it as a link.
+  lines.push(`رمز التحقق: ${ltr(r.code)}`, `للتحقق: ${url}`);
   return lines.join("\n");
 }
 
@@ -258,6 +259,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+/** Arabic letters, digits and Latin code characters: all must be loaded before drawing. */
+const FONT_SAMPLE = "وصل 0123456789 BQ-№";
+
 /** App fonts (next/font CSS variables on <html>), loaded before drawing so Arabic shapes right. */
 async function appFonts(): Promise<DrawOptions["fonts"]> {
   const cs = getComputedStyle(document.documentElement);
@@ -265,8 +269,8 @@ async function appFonts(): Promise<DrawOptions["fonts"]> {
   const display = cs.getPropertyValue("--font-display-face").trim() || body;
   try {
     await Promise.all([
-      document.fonts.load(`700 30px ${display}`, "وصل"),
-      document.fonts.load(`400 20px ${body}`, "وصل"),
+      document.fonts.load(`700 30px ${display}`, FONT_SAMPLE),
+      document.fonts.load(`400 20px ${body}`, FONT_SAMPLE),
     ]);
   } catch {
     /* fall back to whatever is available */
