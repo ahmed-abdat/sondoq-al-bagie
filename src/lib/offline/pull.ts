@@ -67,6 +67,6 @@ export function isVerticalPull(dx: number, dy: number, slop = 8): boolean | null
   return dy > 0 && dy > Math.abs(dx);
 }
 
-export const OFFLINE_PULL_MESSAGE = "غير متصل — تُعرض آخر بيانات محفوظة";
+export const OFFLINE_PULL_MESSAGE = "غير متصل. تُعرض آخر بيانات محفوظة";
 /** Keep the spinner at least this long so a fast refresh does not flash. */
 export const MIN_REFRESH_MS = 400;

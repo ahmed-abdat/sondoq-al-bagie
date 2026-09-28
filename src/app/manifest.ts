@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "صندوق الشباب",
     short_name: "صندوق الشباب",
-    description: "صندوق الشباب — رابطة شباب قرية البقيع: الرسوم الشهرية والمصاريف بشفافية",
+    description: "صندوق الشباب، رابطة شباب قرية البقيع: الرسوم الشهرية والمصاريف بشفافية",
     lang: "ar",
     dir: "rtl",
     start_url: "/",

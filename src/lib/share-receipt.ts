@@ -51,7 +51,7 @@ export interface ShareableReceipt {
 
 /* ─────────────── text (pure) ─────────────── */
 
-/** [7,8,9] → «يوليو – سبتمبر 2026»; runs joined by «، »; all 12 → «السنة كاملة 2026». */
+/** [7,8,9] → «من يوليو إلى سبتمبر 2026»; runs joined by «، »; all 12 → «السنة كاملة 2026». */
 export function monthsInWords(months: number[], year: number): string {
   const sorted = [...new Set(months)].sort((a, b) => a - b);
   if (sorted.length === 12) return `السنة كاملة ${year}`;
@@ -63,15 +63,15 @@ export function monthsInWords(months: number[], year: number): string {
   }
   const txt = runs
     .map((r) =>
-      r.length === 1 ? monthName(r[0]) : `${monthName(r[0])} – ${monthName(r[r.length - 1])}`,
+      r.length === 1 ? monthName(r[0]) : `من ${monthName(r[0])} إلى ${monthName(r[r.length - 1])}`,
     )
     .join("، ");
   return `${txt} ${year}`;
 }
 
-/** «عن: رسوم يوليو – سبتمبر 2026», naming the member when it is not (only) the payer. */
+/** «عن: رسوم من يوليو إلى سبتمبر 2026», naming the member when it is not (only) the payer. */
 export function coverLine(c: ReceiptCover, payer: string, manyCovers: boolean): string {
-  const who = c.name !== payer || manyCovers ? `${c.name} — ` : "";
+  const who = c.name !== payer || manyCovers ? `${c.name}، ` : "";
   return `عن: ${who}رسوم ${monthsInWords(c.months, c.year)}`;
 }
 
@@ -94,7 +94,7 @@ const STATUS_LINE: Record<ReceiptStatus["kind"], string> = {
 export function receiptShareText(r: ShareableReceipt, url: string): string {
   const many = r.covers.length > 1;
   const lines = [
-    `*وصل استلام — ${FUND_NAME}*`,
+    `*وصل استلام من ${FUND_NAME}*`,
     ASSOC_NAME,
     "",
     `رقم الوصل: ${ltr(r.no)}`,

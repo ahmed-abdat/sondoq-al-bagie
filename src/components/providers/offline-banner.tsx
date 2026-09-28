@@ -36,7 +36,7 @@ function useMinute(active: boolean): number {
   );
 }
 
-/** Thin bar at the top while offline: «غير متصل — آخر تحديث قبل …». */
+/** Thin bar at the top while offline: «غير متصل. آخر تحديث قبل …». */
 export function OfflineBanner() {
   const online = useOnline();
   const last = useLastUpdated();
