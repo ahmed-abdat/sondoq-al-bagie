@@ -60,7 +60,9 @@ export function monthsInWords(ms: number[], year: number) {
   if (r.reduce((s, x) => s + x.length, 0) === 12) return `السنة كاملة ${year}`;
   const txt = r
     .map((x) =>
-      x.length === 1 ? MONTHS[x[0] - 1] : `من ${MONTHS[x[0] - 1]} إلى ${MONTHS[x[x.length - 1] - 1]}`,
+      x.length === 1
+        ? MONTHS[x[0] - 1]
+        : `من ${MONTHS[x[0] - 1]} إلى ${MONTHS[x[x.length - 1] - 1]}`,
     )
     .join("، ");
   return `${txt} ${year}`;
@@ -136,12 +138,11 @@ const OFF_LABEL: Record<Exclude<MembershipStatus, "active">, string> = {
   deceased: "متوفى، رحمه الله",
 };
 
-/** States the committee can set (no "away"/paused, owner 2026-09-28). */
+/** States the committee can set (no "away"/paused, no «متوفى»; owner 2026-09-28). */
 export const STATE_LABEL: Record<SettableStatus, string> = {
   active: "نشط",
   exempt: "معفى",
   left: "غادر",
-  deceased: "متوفى",
 };
 
 /** Hidden from public lists by default. */

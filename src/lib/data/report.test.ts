@@ -57,7 +57,7 @@ const base = (over: Partial<ReportInput> = {}): ReportInput => ({
   monthly: [{ year: 2026, month: 3, expected: 1000, collected: 500 }],
   members: [
     member({}),
-    member({ memberId: "m2", memberRef: "B-1", status: "deceased", statusLabel: "منتظم" }),
+    member({ memberId: "m2", memberRef: "B-1", status: "left", statusLabel: "منتظم" }),
   ],
   months: [
     { memberId: "m1", year: 2026, month: 1, state: "paid" },
@@ -90,7 +90,7 @@ describe("assembleReport", () => {
       "prepaid",
     ]);
     expect(r.members[0]).toMatchObject({ monthsPaid: 2, monthsBehind: 1 });
-    expect(r.members[1].statusLabel).toBe("متوفى");
+    expect(r.members[1].statusLabel).toBe("غادر");
     expect(r.monthly).toHaveLength(12);
     expect(r.monthly[2]).toEqual({ year: 2026, month: 3, expected: 1000, collected: 500 });
     expect(r.monthly[0]).toEqual({ year: 2026, month: 1, expected: 0, collected: 0 });

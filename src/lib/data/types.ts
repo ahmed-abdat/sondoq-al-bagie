@@ -309,8 +309,8 @@ export type MemberAdmin = {
   joinedMonth: string | null;
 };
 
-/** Statuses the committee can set (the enum's "away" is not used). */
-export const MEMBER_STATUSES = ["active", "exempt", "left", "deceased"] as const;
+/** Statuses the committee can set (the enum's "away" and "deceased" are not used, owner decision). */
+export const MEMBER_STATUSES = ["active", "exempt", "left"] as const;
 export type SettableStatus = (typeof MEMBER_STATUSES)[number];
 
 /** Admin list of committee accounts (settings). */
@@ -378,7 +378,7 @@ export type ReportMember = {
   fullName: string;
   groupCode: string;
   status: MembershipStatus;
-  /** 'منتظم' | 'متأخر' for active members; «معفى» / «غادر» / «متوفى» otherwise */
+  /** 'منتظم' | 'متأخر' for active members; «معفى» / «غادر» otherwise */
   statusLabel: string;
   /** index 0 = January … 11 = December of `ReportData.year` */
   months: ReportMonthState[];
