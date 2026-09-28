@@ -562,7 +562,7 @@ export function Receipt({
             </p>
             <p className="rc-amt-words">{amountInWords(r.amount)} أوقية</p>
             <p className="rc-amt-new">
-              = <Num>{fmt(r.amount / 10)}</Num> أوقية جديدة
+              أي <Num>{fmt(r.amount / 10)}</Num> أوقية جديدة
             </p>
           </div>
 

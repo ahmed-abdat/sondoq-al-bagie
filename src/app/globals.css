@@ -3278,3 +3278,35 @@
     margin-inline-start: 8px;
   }
 }
+
+@layer components {
+  /* the FAB steps aside while a slip is being decided, so it never covers «ارفض الدفعة» */
+  .bq-app:has(.bq-slip .bq-rej, .bq-slip-after) .bq-fab {
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+    transition:
+      opacity 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+  /* hints that start with an icon keep it on the same line */
+  .bq-hint:has(> svg:first-child) {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .bq-hint > svg:first-child {
+    flex: none;
+    margin-block-start: 3px;
+  }
+  /* the sheet's close button never sits on the receipt */
+  .bq-sheet .bq-rc-sheet {
+    padding-block-start: 44px;
+  }
+  /* preview banner: keep the desktop rail's logo clear of it */
+  @media (min-width: 1024px) {
+    body:has(.bq-demo) .bq-rail {
+      padding-block-start: 64px;
+    }
+  }
+}

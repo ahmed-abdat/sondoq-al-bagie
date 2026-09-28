@@ -38,7 +38,8 @@ export function HomeView({
   const [q, setQ] = useState("");
   const res = useMemo(() => searchMembers(members, q), [members, q]);
   const sheet = useSheet<S>();
-  const total = activeCount || members.filter((m) => m.status === "active").length;
+  // same source as the members page: the active members in the list
+  const total = members.filter((m) => m.status === "active").length || activeCount;
   const pick = (m: MemberStatus, from: HTMLElement | null) =>
     sheet.open({ t: "member", m }, from, "bq-av");
   const openEntry = (e: LedgerEntry, el: HTMLElement) =>
@@ -135,7 +136,11 @@ export function HomeView({
             ))}
           </ul>
         ) : (
-          <p className="bq-hint">لا توجد عمليات مؤكَّدة بعد.</p>
+          <p className="bq-hint">
+            {hero.collected > 0
+              ? "سُجّلت دفعات هذا العام من السجل الورقي. ستظهر هنا الدفعات الجديدة."
+              : "لا توجد عمليات مؤكَّدة بعد."}
+          </p>
         )}
         <Link className="bq-link bq-press" href="/accounts#bq-ops" transitionTypes={["tab-fwd"]}>
           عرض كل العمليات
