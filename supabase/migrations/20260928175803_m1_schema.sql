@@ -13,7 +13,7 @@ create extension if not exists pgcrypto with schema extensions;
 create schema if not exists app_private;   -- helpers only; never exposed over the API
 
 create type public.committee_role   as enum ('admin', 'treasurer', 'deputy', 'committee');
-create type public.membership_status    as enum ('active', 'exempt', 'away', 'left', 'deceased');
+create type public.membership_status as enum ('active', 'exempt', 'away', 'left', 'deceased');
 create type public.payment_method   as enum ('bankily', 'masrvi', 'sedad', 'cash', 'other', 'paper');
 create type public.payment_status   as enum ('pending', 'confirmed', 'rejected', 'cancelled');
 create type public.allocation_kind  as enum ('months', 'campaign', 'credit');

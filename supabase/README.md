@@ -6,11 +6,12 @@ and every change lands in `audit_log`.
 
 | File | What |
 |---|---|
-| `…0100_m1_schema.sql` | tables, enums, indexes, `settings` row |
-| `…0200_m1_guards.sql` | role helpers, append-only triggers, payment state machine, allocation checks, audit |
-| `…0300_m1_views.sql` | public views (`member_status`, `member_months`, `fund_summary`, `monthly_collection`, `expense_totals`, `recent_expenses`, `campaign_progress`, `activity_feed`) and committee `arrears` |
-| `…0400_m1_rls.sql` | grants, RLS, private `proofs` bucket, realtime on `payments` |
-| `…0500_m1_rpc.sql` | write RPCs: `record_payment`, `confirm_payment`, `reject_payment`, `cancel_payment`, `record_expense`, `cancel_expense`, `log_reminder`, admin: `add_member`, `update_member`, `change_member_status`, `set_group_price`, `set_committee_member`, `update_settings` |
+| `*_m1_schema.sql` | tables, enums, indexes, `settings` row |
+| `*_m1_guards.sql` | role helpers, append-only triggers, payment state machine, allocation checks, audit |
+| `*_m1_views.sql` | public views (`member_status`, `member_months`, `fund_summary`, `monthly_collection`, `expense_totals`, `recent_expenses`, `campaign_progress`, `activity_feed`) and committee `arrears` |
+| `*_m1_rls.sql` | grants, RLS, private `proofs` bucket, realtime on `payments` |
+| `*_m1_rpc.sql` | write RPCs: `record_payment`, `confirm_payment`, `reject_payment`, `cancel_payment`, `record_expense`, `cancel_expense`, `log_reminder`, admin: `add_member`, `update_member`, `change_member_status`, `set_group_price`, `set_committee_member`, `update_settings` |
+| `*_m1_groups.sql` | groups A (1000) and B (500) with 2026 prices |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the
@@ -53,3 +54,9 @@ After that the admin adds members, prices and committee roles from the app.
 
 After a schema change regenerate `src/lib/supabase/database.types.ts`
 (`supabase gen types typescript --project-id vhcdgxgwdlflmxmqnxzf > src/lib/supabase/database.types.ts`).
+
+## Remote state
+
+Applied to project `vhcdgxgwdlflmxmqnxzf` on 2026-09-28 through the Supabase MCP. The file names
+match the remote migration versions, so `supabase db push` sees them as already applied.
+No seed data was applied remotely: only the groups and 2026 prices (`*_m1_groups.sql`).
