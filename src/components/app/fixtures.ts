@@ -416,19 +416,22 @@ export const fxPending = (): PendingPayment[] =>
   ].filter((p) => p.allocations.length > 0);
 
 export function fxArrears(): Arrear[] {
-  return RAW.filter((m) => owed(m).length).map((m) => ({
-    memberId: m.id,
-    number: m.no,
-    fullName: m.name,
-    phone: `2224${String(1000000 + m.no).slice(1)}`,
-    groupCode: m.group,
-    status: "active",
-    months: owed(m).map((k) => `${YEAR}-${String(k).padStart(2, "0")}`),
-    monthsCount: owed(m).length,
-    amountOwed: owed(m).length * FX_PRICE[m.group],
-    credit: 0,
-    lastRemindedAt: m.no % 5 === 0 ? "2026-09-25T10:00:00Z" : m.no % 7 === 0 ? "2026-09-27T09:00:00Z" : null,
-  }));
+  return RAW.filter((m) => owed(m).length)
+    .sort((a, b) => owed(b).length - owed(a).length || a.no - b.no)
+    .map((m) => ({
+      memberId: m.id,
+      number: m.no,
+      fullName: m.name,
+      phone: `2224${String(1000000 + m.no).slice(1)}`,
+      groupCode: m.group,
+      status: "active",
+      months: owed(m).map((k) => `${YEAR}-${String(k).padStart(2, "0")}`),
+      monthsCount: owed(m).length,
+      amountOwed: owed(m).length * FX_PRICE[m.group],
+      credit: 0,
+      lastRemindedAt:
+        m.no % 5 === 0 ? "2026-09-25T10:00:00Z" : m.no % 7 === 0 ? "2026-09-27T09:00:00Z" : null,
+    }));
 }
 
 export const fxSession = (): CommitteeSession => ({
