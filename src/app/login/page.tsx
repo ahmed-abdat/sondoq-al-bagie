@@ -1,18 +1,36 @@
-import { Brand } from "@/components/brand";
+import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
+import { ASSOC } from "@/components/app/derive";
+import { I } from "@/components/app/icons";
 import { LoginForm } from "./login-form";
+
+export const metadata: Metadata = { title: "دخول اللجنة · صندوق البقيع", robots: { index: false } };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { next } = await searchParams;
-
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-8 px-4">
-      <Brand subtitle="دخول أعضاء اللجنة" />
-      <div className="border-line bg-surface rounded-3xl border p-5 shadow-sm">
-        <LoginForm next={typeof next === "string" ? next : undefined} />
-      </div>
-      <p className="text-muted text-center text-sm">
-        الأعضاء لا يحتاجون حساباً، الصفحة العامة مفتوحة للجميع.
-      </p>
+    <main className="bq-verify">
+      <header className="bq-verify-h">
+        <span className="bq-logo">
+          <Image src="/logo.jpg" alt="شعار الرابطة" width={96} height={96} priority />
+        </span>
+        <span className="bq-brand-t">
+          <strong>صندوق البقيع</strong>
+          <span>{ASSOC}</span>
+        </span>
+      </header>
+      <section className="bq-gate">
+        <span className="bq-gate-i">{I.lock(32)}</span>
+        <h1 className="bq-gate-t">ادخل بحسابك لتأكيد الدفعات</h1>
+        <p className="bq-hint">
+          أمين الصندوق ونائبه والمشرفون فقط. الأعضاء يرون كل شيء في الصفحة العامة.
+        </p>
+      </section>
+      <LoginForm next={typeof next === "string" ? next : undefined} />
+      <Link className="bq-btn bq-btn-ghost bq-press" href="/">
+        {I.home(20)} الصفحة العامة
+      </Link>
     </main>
   );
 }

@@ -10,38 +10,57 @@ function toDate(iso: string): Date {
   return new Date(iso.length === 10 ? `${iso}T12:00:00Z` : iso);
 }
 
-/** "5 أكتوبر", optionally with year / weekday. */
+/**
+ * Standard Arabic month names (يناير…ديسمبر). Written out because Intl "ar-MR" gives the
+ * Maghreb forms («شتمبر، أغشت، دجمبر») that members do not use.
+ */
+export const MONTHS_AR = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+] as const;
+
+export const WEEKDAYS_AR = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+] as const;
+
+/** "5 أكتوبر", optionally with year / weekday ("الاثنين 5 أكتوبر 2026"). */
 export function formatDay(iso: string, opts: { year?: boolean; weekday?: boolean } = {}): string {
-  return new Intl.DateTimeFormat(LOCALE, {
-    day: "numeric",
-    month: "long",
-    year: opts.year ? "numeric" : undefined,
-    weekday: opts.weekday ? "long" : undefined,
-    timeZone: TIME_ZONE,
-  }).format(toDate(iso));
+  const d = toDate(iso);
+  const day = `${d.getUTCDate()} ${MONTHS_AR[d.getUTCMonth()]}`;
+  const withYear = opts.year ? `${day} ${d.getUTCFullYear()}` : day;
+  return opts.weekday ? `${WEEKDAYS_AR[d.getUTCDay()]} ${withYear}` : withYear;
 }
 
 /** "أكتوبر 2026" from "2026-10" or any ISO date. */
 export function formatMonth(isoOrYm: string, withYear = true): string {
-  return new Intl.DateTimeFormat(LOCALE, {
-    month: "long",
-    year: withYear ? "numeric" : undefined,
-    timeZone: TIME_ZONE,
-  }).format(new Date(`${isoOrYm.slice(0, 7)}-15T12:00:00Z`));
+  const [y, m] = isoOrYm.slice(0, 7).split("-").map(Number);
+  return withYear ? `${monthName(m)} ${y}` : monthName(m);
 }
 
 /** Month name for 1–12 (January = 1), as on the paper sheets. */
 export function monthName(month: number): string {
   if (!Number.isInteger(month) || month < 1 || month > 12) throw new RangeError("month 1-12");
-  return new Intl.DateTimeFormat(LOCALE, { month: "long", timeZone: TIME_ZONE }).format(
-    new Date(Date.UTC(2026, month - 1, 15, 12)),
-  );
+  return MONTHS_AR[month - 1];
 }
 
 export function formatWeekday(iso: string): string {
-  return new Intl.DateTimeFormat(LOCALE, { weekday: "long", timeZone: TIME_ZONE }).format(
-    toDate(iso.slice(0, 10)),
-  );
+  return WEEKDAYS_AR[toDate(iso.slice(0, 10)).getUTCDay()];
 }
 
 /** "14:05" (24-hour). */
