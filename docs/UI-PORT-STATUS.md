@@ -103,6 +103,16 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
 - Demo: the handover lives in the act seam's local store (submitted «by someone else» so accept
   can be tried).
 
+## Round 6 (report, export, donations layout)
+- /report (public, no nav): A4 print-ready report — header, summary (carried-over balance → now),
+  «ما جُمع كل شهر», members × 12 months grid per group (repeated headers), expenses, campaigns,
+  footer link. Tools (screen only): «حفظ PDF» (print), «صورة الملخص» (Lane B's PNG card),
+  «مشاركة في واتساب». Linked from /accounts «تقرير كامل» and the committee menu.
+  TODO(lane-a): read from getReport() when it lands (today: the existing getters).
+- /committee/export: CSV links to /api/export/{members,payments,expenses}.csv (Lane A routes).
+- /donations: stacked title/purpose/pill, calm zero state, facts columns, contact line without
+  fund numbers.
+
 ## Remaining / next
 0. «محضر التسليم» as a shareable image (like the receipt PNG) — later; today it is text (WhatsApp/copy).
    The new term's start date and public term line come from the server (`termStartedOn`); the demo
