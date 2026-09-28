@@ -21,7 +21,9 @@ export const thisYear = () => today().getUTCFullYear();
 export async function groupPrices(year = thisYear()): Promise<Record<string, number>> {
   if (usingFixtures) return fx.FX_PRICE;
   const rows = await data.getGroupPrices(year);
-  return Object.fromEntries(rows.filter((r) => r.year === year).map((r) => [r.group, r.monthlyAmount]));
+  return Object.fromEntries(
+    rows.filter((r) => r.year === year).map((r) => [r.group, r.monthlyAmount]),
+  );
 }
 
 /* ───────────── public ───────────── */

@@ -198,16 +198,17 @@ export function normalizeAr(s: string) {
  * Digits search the member number (exact first); «A-12» / «a12» / «أ12» search one list;
  * words search the name.
  */
-export function searchMembers<T extends Pick<MemberStatus, "number" | "fullName"> & { groupCode?: string }>(
-  list: T[],
-  q: string,
-): T[] {
+export function searchMembers<
+  T extends Pick<MemberStatus, "number" | "fullName"> & { groupCode?: string },
+>(list: T[], q: string): T[] {
   const t = q.trim().replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   if (!t) return [];
   const coded = /^([abأب])\s*-?\s*(\d+)$/i.exec(t);
   if (coded) {
-    const g = { a: "A", b: "B", "أ": "A", "ب": "B" }[coded[1].toLowerCase() as "a"] ?? "";
-    return list.filter((m) => (m.groupCode ?? "").toUpperCase() === g && String(m.number) === coded[2]);
+    const g = { a: "A", b: "B", أ: "A", ب: "B" }[coded[1].toLowerCase() as "a"] ?? "";
+    return list.filter(
+      (m) => (m.groupCode ?? "").toUpperCase() === g && String(m.number) === coded[2],
+    );
   }
   if (/^\d+$/.test(t))
     return list

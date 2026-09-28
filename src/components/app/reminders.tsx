@@ -8,7 +8,7 @@ import { groupReminderText, reminderLink, type ReminderContext } from "@/lib/dat
 import type { Arrear } from "@/lib/data/types";
 import { waLink } from "@/lib/whatsapp";
 import { Avatar } from "./bits";
-import { fmt, monthsWord, remindedLabel } from "./derive";
+import { fmt, monthsWord, remindedLabel, memberCode } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
 
@@ -71,7 +71,7 @@ export function LateList({
               return (
                 <li key={a.memberId}>
                   <div className="bq-row">
-                    <Avatar no={a.number} />
+                    <Avatar code={memberCode(a)} />
                     <span className="bq-row-m">
                       <span className="bq-row-t">{a.fullName}</span>
                       <span className="bq-row-s">

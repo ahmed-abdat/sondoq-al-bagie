@@ -131,7 +131,15 @@ describe("search", () => {
     expect(searchMembers(two, "b12").map((x) => x.fullName)).toEqual(["ص"]);
     expect(searchMembers(two, "ب 12").map((x) => x.fullName)).toEqual(["ص"]);
     expect(memberCode({ groupCode: "B", number: 7 })).toBe("B-7");
-    expect(nextFreeNumber([{ groupCode: "A", number: 1 }, { groupCode: "A", number: 3 }], "A")).toBe(2);
+    expect(
+      nextFreeNumber(
+        [
+          { groupCode: "A", number: 1 },
+          { groupCode: "A", number: 3 },
+        ],
+        "A",
+      ),
+    ).toBe(2);
     expect(nextFreeNumber([{ groupCode: "A", number: 1 }], "B")).toBe(1);
   });
   it("normalises Arabic", () => {

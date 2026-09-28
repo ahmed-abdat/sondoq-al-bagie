@@ -5,6 +5,7 @@ import { Avatar, StatusTag } from "./bits";
 import {
   fmt,
   groupLabel,
+  memberCode,
   memberState,
   monthCells,
   monthsLabel,
@@ -27,13 +28,13 @@ export function MemberRow({
         type="button"
         className="bq-row bq-press"
         onClick={(e) => onPick(m, e.currentTarget.querySelector<HTMLElement>(".bq-av"))}
-        aria-label={`رقم ${m.number}، ${m.fullName}`}
+        aria-label={`${memberCode(m)}، ${m.fullName}`}
       >
-        <Avatar no={m.number} />
+        <Avatar code={memberCode(m)} />
         <span className="bq-row-m">
           <span className="bq-row-t">{m.fullName}</span>
           <span className="bq-row-s">
-            رقم <Num>{m.number}</Num> · الفئة {groupLabel(m.groupCode)}
+            رقم <Num>{memberCode(m)}</Num> · الفئة {groupLabel(m.groupCode)}
           </span>
         </span>
         <StatusTag m={m} />
@@ -78,12 +79,12 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCt
           }}
           aria-hidden="true"
         >
-          <Num>{m.number}</Num>
+          <Num>{memberCode(m)}</Num>
         </span>
         <div>
           <h2>{m.fullName}</h2>
           <p className="bq-hint">
-            رقم <Num>{m.number}</Num> · الفئة {groupLabel(m.groupCode)}
+            رقم <Num>{memberCode(m)}</Num> · الفئة {groupLabel(m.groupCode)}
             {price ? (
               <>
                 {" "}

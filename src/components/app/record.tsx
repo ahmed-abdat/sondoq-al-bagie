@@ -10,7 +10,7 @@ import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/oc
 import { MAIN_METHODS, METHOD_LABELS, METHODS } from "@/lib/methods";
 import { todayIso } from "@/lib/dates";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
-import { fmt, groupLabel, MONTHS, monthsWord, searchMembers } from "./derive";
+import { fmt, groupLabel, MONTHS, monthsWord, searchMembers, memberCode } from "./derive";
 import { I } from "./icons";
 import type { MemberCtx } from "./member";
 import { Num } from "./num";
@@ -142,7 +142,7 @@ export function RecordBody({
       <p className="bq-rec-k">العضو</p>
       {who ? (
         <div className="bq-rec-who">
-          <Avatar no={who.number} />
+          <Avatar code={memberCode(who)} />
           <span className="bq-row-m">
             <span className="bq-row-t">{who.fullName}</span>
             <span className="bq-row-s">
@@ -169,7 +169,7 @@ export function RecordBody({
             {res.map((m) => (
               <li key={m.memberId}>
                 <button type="button" className="bq-row bq-press" onClick={() => pickWho(m)}>
-                  <Avatar no={m.number} />
+                  <Avatar code={memberCode(m)} />
                   <span className="bq-row-m">
                     <span className="bq-row-t">{m.fullName}</span>
                     <span className="bq-row-s">الفئة {groupLabel(m.groupCode)}</span>
