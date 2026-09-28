@@ -2436,3 +2436,559 @@
     animation: none;
   }
 }
+
+/* ───── receipt «وصل استلام», stamp, confirmed mark (port of prototype rc-, drift fixed:
+   one type scale ≥14px, muted = slate, filled actions = forest, one red) ───── */
+@layer components {
+  .rc {
+    width: 100%;
+    max-width: 400px;
+    color: var(--ink);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .rc :where(p, h3, dl, dd, figure) {
+    margin: 0;
+  }
+  .rc-num {
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums lining-nums;
+    white-space: nowrap;
+  }
+  /* paper: perforated top & bottom via mask; the shadow lives on the parent so it follows it */
+  .rc-shadow {
+    filter: drop-shadow(0 1px 1px rgba(16, 40, 24, 0.06)) drop-shadow(0 16px 28px rgba(16, 40, 24, 0.1));
+  }
+  .rc-paper {
+    position: relative;
+    background: #fff;
+    padding: 34px 24px 32px;
+    -webkit-mask:
+      radial-gradient(circle 4.2px at 50% 0, #0000 97%, #000) 0 0 / 14px 51% repeat-x,
+      radial-gradient(circle 4.2px at 50% 100%, #0000 97%, #000) 0 100% / 14px 51% repeat-x;
+    mask:
+      radial-gradient(circle 4.2px at 50% 0, #0000 97%, #000) 0 0 / 14px 51% repeat-x,
+      radial-gradient(circle 4.2px at 50% 100%, #0000 97%, #000) 0 100% / 14px 51% repeat-x;
+  }
+  .rc-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .rc-logo {
+    flex: none;
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1.5px #fff,
+      0 0 0 2.5px var(--gold);
+  }
+  .rc-logo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .rc-org {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+  }
+  .rc-org strong {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .rc-org span,
+  .rc-k,
+  .rc-for,
+  .rc-count,
+  .rc-sub,
+  .rc-foot-n,
+  .rc-amt-new,
+  .rc-st-role,
+  .rc-st-s {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .rc-title {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-block: 26px 22px;
+  }
+  .rc-title h3 {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--g8);
+  }
+  .rc-no {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.25;
+  }
+  .rc-no span {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .rc-no .rc-num {
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .rc-k {
+    display: block;
+  }
+  .rc-payer {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-block-start: 2px;
+    text-wrap: balance;
+  }
+  .rc-amount {
+    margin-block: 16px 22px;
+    padding: 14px 16px 16px;
+    border-radius: var(--r-soft);
+    background: var(--g0);
+  }
+  .rc-amt {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-block: 2px 4px;
+    color: var(--g9);
+  }
+  .rc-amt .rc-num {
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .rc-amt-u {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .rc-amt-words {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--g8);
+  }
+  .rc-amt-new .rc-num {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .rc-grid {
+    display: grid;
+    row-gap: 14px;
+    padding-block-end: 22px;
+  }
+  .rc-row {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    column-gap: 14px;
+    align-items: baseline;
+  }
+  .rc-row dt {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .rc-row dd {
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.5;
+    min-width: 0;
+  }
+  .rc-row.is-top {
+    align-items: start;
+  }
+  .rc-cover {
+    display: flex;
+    flex-direction: column;
+  }
+  .rc-cover + .rc-cover {
+    margin-block-start: 10px;
+  }
+  .rc-months {
+    font-weight: 600;
+  }
+  .rc-sub {
+    display: block;
+    font-weight: 400;
+  }
+  .rc-wallet {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-weight: 600;
+  }
+  .rc-wallet-tile {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--muted);
+    box-shadow: var(--sh-tile);
+    overflow: hidden;
+  }
+  .rc-wallet-tile img {
+    display: block;
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+  }
+  .rc-txn-v {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .rc-txn-h {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 2ch;
+  }
+  .rc-txn-t {
+    flex: none;
+    white-space: nowrap;
+  }
+  .rc-copy {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 44px;
+    padding-inline: 8px;
+    margin-inline-start: -8px;
+    margin-block: -4px -10px;
+    border-radius: 999px;
+    color: var(--g8);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .rc-proof {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    text-align: start;
+  }
+  .rc-shot {
+    width: 44px;
+    height: auto;
+    max-height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(16, 40, 24, 0.08), 0 6px 14px -6px rgba(16, 40, 24, 0.22);
+    display: block;
+  }
+  .rc-proof-t {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+  .rc-proof-s {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--g8);
+  }
+  .rc-status {
+    position: relative;
+    display: grid;
+    padding-block: 20px 22px;
+  }
+  .rc-st-layer {
+    grid-area: 1/1;
+  }
+  .rc-st-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 56px;
+  }
+  .rc-st-body.has-stamp {
+    padding-inline-end: 104px;
+    min-height: 112px;
+  }
+  .rc-st-ico {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: var(--n1);
+    color: var(--ink);
+  }
+  .rc-st-ico.is-void {
+    background: var(--rej-tint);
+    color: var(--rej-ink);
+  }
+  .rc-st-h {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .rc-st-h.is-ok {
+    color: var(--g8);
+  }
+  .rc-st-h.is-rej {
+    color: var(--rej-ink);
+  }
+  .rc-st-p {
+    font-size: 17px;
+    line-height: 1.5;
+    margin-block-start: 4px;
+  }
+  .rc-st-k {
+    color: var(--muted);
+  }
+  .rc-who {
+    font-weight: 600;
+  }
+  .rc-st-s {
+    margin-block-start: 2px;
+  }
+  .rc-st-t {
+    display: block;
+  }
+  .rc-st-stamp {
+    position: absolute;
+    inset-inline-end: -8px;
+    top: 50%;
+    margin-block-start: -60px;
+  }
+  .rc-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-block-start: 20px;
+  }
+  .rc-code {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-block: 2px;
+  }
+  .rc-qr-w {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .rc-qr {
+    width: 76px;
+    height: 76px;
+    color: var(--ink);
+    display: block;
+  }
+  .rc-qr-w figcaption {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  /* void receipts: the paper stays legible, the money reads as "not counted" */
+  .rc-paper.is-void .rc-amount {
+    background: var(--n1);
+  }
+  .rc-paper.is-void .rc-amt,
+  .rc-paper.is-void .rc-amt-words {
+    color: var(--muted);
+  }
+  .rc-paper.is-void .rc-amt .rc-num {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    text-decoration-color: rgba(79, 92, 85, 0.55);
+  }
+  /* the stamp */
+  .rc-stamp {
+    display: inline-block;
+    flex: none;
+    color: var(--stamp);
+    mix-blend-mode: multiply;
+    transform: rotate(-10deg);
+    pointer-events: none;
+    line-height: 0;
+  }
+  .rc-stamp.is-rej {
+    color: var(--rej-ink);
+    transform: rotate(-8deg);
+  }
+  .rc-stamp svg {
+    display: block;
+    overflow: visible;
+  }
+  .rc-stamp .rc-ink {
+    opacity: 0.93;
+  }
+  /* compact seal */
+  .rc-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--g7);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .rc-mark svg {
+    flex: none;
+    display: block;
+    transform: rotate(-10deg);
+  }
+  .rc-dlg {
+    border: 0;
+    padding: 20px;
+    border-radius: var(--r-card);
+    background: #fff;
+    max-width: min(360px, calc(100vw - 32px));
+    text-align: center;
+    color: var(--ink);
+    margin: auto;
+  }
+  .rc-dlg::backdrop {
+    background: rgba(10, 30, 18, 0.42);
+  }
+  .rc-dlg[open] {
+    animation: rc-pop 260ms var(--ease-out);
+  }
+  .rc-shot-l {
+    width: 100%;
+    max-width: 300px;
+    max-height: 70dvh;
+    object-fit: contain;
+    height: auto;
+    display: block;
+    margin-inline: auto;
+    border-radius: 16px;
+  }
+  .rc-dlg-n {
+    font-size: 14px;
+    color: var(--muted);
+    margin-block: 12px 14px;
+  }
+  .rc-dlg .bq-btn {
+    width: 100%;
+    margin-block-start: 12px;
+  }
+  .rc-stamp.is-press {
+    animation: rc-press 340ms var(--ease-out) both;
+  }
+  .rc-stamp.is-rej.is-press {
+    animation-name: rc-press-rej;
+  }
+  .rc-stamp.is-press .rc-ink {
+    animation: rc-ink 320ms var(--ease-out) 380ms both;
+  }
+  .rc-shadow.is-impact {
+    animation: rc-impact 200ms var(--ease-out) 230ms;
+  }
+  .rc-st-layer.is-out {
+    animation: rc-out 160ms var(--ease-out) both;
+    pointer-events: none;
+  }
+  .rc-st-layer.is-in {
+    animation: rc-in 240ms var(--ease-out) 200ms both;
+  }
+}
+@keyframes rc-press {
+  0% {
+    opacity: 0;
+    transform: scale(1.35) rotate(-4deg);
+    filter: blur(2px);
+  }
+  76% {
+    opacity: 1;
+    transform: scale(0.975) rotate(-10deg);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-10deg);
+    filter: blur(0);
+  }
+}
+@keyframes rc-press-rej {
+  0% {
+    opacity: 0;
+    transform: scale(1.35) rotate(-3deg);
+    filter: blur(2px);
+  }
+  76% {
+    opacity: 1;
+    transform: scale(0.975) rotate(-8deg);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+    filter: blur(0);
+  }
+}
+@keyframes rc-ink {
+  from {
+    opacity: 0.62;
+  }
+  to {
+    opacity: 0.93;
+  }
+}
+@keyframes rc-impact {
+  0%,
+  100% {
+    transform: none;
+  }
+  45% {
+    transform: translateY(1px) scale(0.996);
+  }
+}
+@keyframes rc-out {
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes rc-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes rc-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc-stamp.is-press,
+  .rc-stamp.is-rej.is-press {
+    animation: bq-vt-fade-in 200ms ease-out both;
+  }
+  .rc-stamp.is-press .rc-ink,
+  .rc-shadow.is-impact {
+    animation: none;
+  }
+}
