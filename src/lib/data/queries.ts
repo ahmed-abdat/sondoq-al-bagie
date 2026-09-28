@@ -17,6 +17,11 @@ export const publicQueries = {
       queryKey: [PUBLIC_KEY, "fund_summary"],
       queryFn: () => read.fundSummary(client()),
     }),
+  groupPrices: (year: number) =>
+    queryOptions({
+      queryKey: [PUBLIC_KEY, "group_prices", year],
+      queryFn: () => read.groupPrices(client(), year),
+    }),
   members: () =>
     queryOptions({
       queryKey: [PUBLIC_KEY, "member_status"],
