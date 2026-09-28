@@ -13,6 +13,8 @@ and every change lands in `audit_log`.
 | `*_m1_rpc.sql` | write RPCs: `record_payment`, `confirm_payment`, `reject_payment`, `cancel_payment`, `record_expense`, `cancel_expense`, `log_reminder`, admin: `add_member`, `update_member`, `change_member_status`, `set_group_price`, `set_committee_member`, `update_settings` |
 | `*_m1_groups.sql` | groups A (1000) and B (500) with 2026 prices |
 | `*_m1_keepalive.sql` | `keepalive` view for the free-tier cron: `GET /rest/v1/keepalive?select=ok` with the publishable key |
+| `*_m2_methods.sql` | wallet methods click, bim, amanty, bamis |
+| `*_m2_accounts.sql` | `fund_accounts` (+ public `fund_accounts_public`), `settings.whatsapp_contact` (+ public `fund_info`), committee `payment_queue`, `undo_payment`, admin `add_fund_account` / `update_fund_account`, `update_settings(… p_whatsapp_contact)`; activity feed shows confirmed payments only |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the
@@ -28,7 +30,7 @@ supabase/tests/local/run.sh
 Needs `initdb`/`pg_ctl`/`psql` (Postgres 15+; on macOS `brew install postgresql@16`). It starts a
 throwaway Postgres, loads a tiny Supabase stand-in (`tests/local/00_supabase_shim.sql`), applies the
 migrations and `seed.sql`, runs `tests/*.sql` (one rolled-back transaction), runs a two-session race
-check, then rolls back (`rollback/m1_down.sql`) and re-applies. Prints `OK` at the end.
+check, then rolls back (`rollback/*_down.sql`, newest first) and re-applies. Prints `OK` at the end.
 
 ## Apply to Supabase
 
