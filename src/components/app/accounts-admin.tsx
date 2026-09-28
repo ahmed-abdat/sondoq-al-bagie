@@ -38,7 +38,7 @@ function CredentialsCard({ c, onClose }: { c: Creds; onClose: () => void }) {
   const url = typeof window === "undefined" ? "/login" : `${window.location.origin}/login`;
   const text = [
     `السلام عليكم ${c.name}،`,
-    "هذه بيانات دخولك إلى صندوق البقيع (اللجنة):",
+    "هذه بيانات دخولك إلى صندوق الشباب (اللجنة):",
     `الرابط: ${url}`,
     `رقم الهاتف أو البريد: ${LTR}${c.login}${PDI}`,
     `كلمة السر: ${LTR}${c.password}${PDI}`,

@@ -27,21 +27,21 @@ const DESCRIPTION = "صندوق رابطة شباب قرية البقيع: ال�
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: "صندوق البقيع",
+  title: "صندوق الشباب",
   description: DESCRIPTION,
   // WhatsApp link previews
   openGraph: {
     type: "website",
     locale: "ar_MR",
-    siteName: "صندوق البقيع",
-    title: "صندوق البقيع",
+    siteName: "صندوق الشباب",
+    title: "صندوق الشباب",
     description: DESCRIPTION,
     images: [
       { url: "/icons/icon-512.png", width: 512, height: 512, alt: "شعار رابطة شباب قرية البقيع" },
     ],
   },
-  applicationName: "صندوق البقيع",
-  appleWebApp: { capable: true, title: "صندوق البقيع", statusBarStyle: "default" },
+  applicationName: "صندوق الشباب",
+  appleWebApp: { capable: true, title: "صندوق الشباب", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

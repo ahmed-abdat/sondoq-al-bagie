@@ -4,7 +4,7 @@ import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { SettingsView } from "@/components/app/views/settings";
 
-export const metadata: Metadata = { title: "الإعدادات · صندوق البقيع", robots: { index: false } };
+export const metadata: Metadata = { title: "الإعدادات · صندوق الشباب", robots: { index: false } };
 
 export default async function SettingsPage() {
   const [session, info, accounts, summary] = await Promise.all([

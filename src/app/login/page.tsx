@@ -5,7 +5,7 @@ import { ASSOC } from "@/components/app/derive";
 import { I } from "@/components/app/icons";
 import { LoginForm } from "./login-form";
 
-export const metadata: Metadata = { title: "دخول اللجنة · صندوق البقيع", robots: { index: false } };
+export const metadata: Metadata = { title: "دخول اللجنة · صندوق الشباب", robots: { index: false } };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { next } = await searchParams;
@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <Image src="/logo.jpg" alt="شعار الرابطة" width={96} height={96} priority />
         </span>
         <span className="bq-brand-t">
-          <strong>صندوق البقيع</strong>
+          <strong>صندوق الشباب</strong>
           <span>{ASSOC}</span>
         </span>
       </header>

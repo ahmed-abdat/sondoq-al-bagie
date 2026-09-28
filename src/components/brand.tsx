@@ -12,7 +12,7 @@ export function Brand({ subtitle }: { subtitle?: string }) {
         priority
       />
       <div>
-        <p className="font-display text-lg leading-tight font-bold">صندوق البقيع</p>
+        <p className="font-display text-lg leading-tight font-bold">صندوق الشباب</p>
         {subtitle && <p className="text-muted text-sm">{subtitle}</p>}
       </div>
     </div>

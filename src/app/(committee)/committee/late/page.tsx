@@ -4,7 +4,7 @@ import { Tab } from "@/components/app/tab";
 import { LatePage } from "@/components/app/views/committee";
 
 export const metadata: Metadata = {
-  title: "تذكير المتأخرين · صندوق البقيع",
+  title: "تذكير المتأخرين · صندوق الشباب",
   robots: { index: false },
 };
 

@@ -1,5 +1,7 @@
 # Product
 
+The app's name is **«صندوق الشباب»** (the fund of رابطة شباب قرية البقيع; owner, 2026-09-28).
+
 <!-- impeccable:product-schema 1 -->
 
 ## Platform

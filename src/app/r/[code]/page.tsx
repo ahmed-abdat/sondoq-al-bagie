@@ -10,7 +10,7 @@ import { fromVerified } from "@/components/app/receipt-model";
 import * as src from "@/components/app/source";
 
 export const metadata: Metadata = {
-  title: "التحقق من وصل · صندوق البقيع",
+  title: "التحقق من وصل · صندوق الشباب",
   robots: { index: false },
 };
 
@@ -122,7 +122,7 @@ export default async function VerifyPage({ params }: PageProps<"/r/[code]">) {
 
       <p className="bq-hint">لا نعرض أرقام الهواتف ولا صور التحويل في هذه الصفحة.</p>
       <Link className="bq-btn bq-btn-soft bq-btn-lg bq-press" href="/">
-        افتح صندوق البقيع
+        افتح صندوق الشباب
       </Link>
     </main>
   );
