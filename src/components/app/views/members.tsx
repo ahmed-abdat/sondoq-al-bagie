@@ -110,7 +110,7 @@ export function MembersView({
                 </>
               ),
             },
-            ...groups.map((g) => ({ k: `g:${g}` as Filter, l: `الفئة ${groupLabel(g)}` })),
+            ...groups.map((g) => ({ k: `g:${g}` as Filter, l: `المجموعة ${groupLabel(g)}` })),
             ...(initial === "none"
               ? [
                   {

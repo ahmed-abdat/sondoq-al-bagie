@@ -485,7 +485,7 @@ Committee only: «سجّل دفعة» with a plus icon, Forest, 56px tall, 20px 
 
 ### Chips and Segmented Control
 - **Chips:** Mist pills, 44px tall, 14/600; selected is Forest with white text. Used for reject reasons and quick month picks.
-- **Segmented:** a Mist pill track with 4px padding; one Forest indicator slides between options by animating clip-path (300ms ease-out). Options can carry a count (14/500, 85% opacity). The row scrolls horizontally on its own, never the page. Filters on الأعضاء: «الكل / المتأخرون / الفئة أ / الفئة ب» (+ «لم يدفع أي شهر» for the committee); operations: «الكل / دفعات / مصاريف».
+- **Segmented:** a Mist pill track with 4px padding; one Forest indicator slides between options by animating clip-path (300ms ease-out). Options can carry a count (14/500, 85% opacity). The row scrolls horizontally on its own, never the page. Filters on الأعضاء: «الكل / المتأخرون / المجموعة أ / المجموعة ب» (+ «لم يدفع أي شهر» for the committee); operations: «الكل / دفعات / مصاريف».
 
 ### List Row
 Open, no box. 40px leading element (member number avatar in Alexandria on Mist, or an icon disc: Mist neutral, Green Tint for money in, Gold Tint for the campaign), a title at Body Strong that wraps to two lines rather than truncating, a 14px Slate subline, and a trailing element (status tag, or amount over a kind tag). Hover (fine pointers) paints a Mist 18px wash extending 10px beyond the row. Member avatars show the member NUMBER, the identifier people already use.

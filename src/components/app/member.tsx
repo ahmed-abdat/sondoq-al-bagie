@@ -34,7 +34,7 @@ export function MemberRow({
         <span className="bq-row-m">
           <span className="bq-row-t">{m.fullName}</span>
           <span className="bq-row-s">
-            رقم <Num>{memberCode(m)}</Num> · الفئة {groupLabel(m.groupCode)}
+            رقم <Num>{memberCode(m)}</Num> · المجموعة {groupLabel(m.groupCode)}
           </span>
         </span>
         <StatusTag m={m} />
@@ -84,7 +84,7 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCt
         <div>
           <h2>{m.fullName}</h2>
           <p className="bq-hint">
-            رقم <Num>{memberCode(m)}</Num> · الفئة {groupLabel(m.groupCode)}
+            رقم <Num>{memberCode(m)}</Num> · المجموعة {groupLabel(m.groupCode)}
             {price ? (
               <>
                 {" "}

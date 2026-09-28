@@ -9,13 +9,13 @@ import "./globals.css";
 const body = Noto_Sans_Arabic({
   variable: "--font-body",
   subsets: ["arabic", "latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
 });
 
 const display = Alexandria({
   variable: "--font-display-face",
   subsets: ["arabic", "latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["600", "700", "800"],
 });
 
 export const metadata: Metadata = {

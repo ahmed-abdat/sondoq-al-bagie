@@ -34,6 +34,7 @@ const ymLabel = (ym: string) => {
   return `${MONTHS[m - 1]} ${y}`;
 };
 
+/** Month picker in Arabic words (the native month input shows the phone's locale, often English). */
 function MonthField({
   value,
   onChange,
@@ -43,15 +44,20 @@ function MonthField({
   onChange: (v: string) => void;
   label: string;
 }) {
+  const [y0, m0] = value.split("-").map(Number);
+  // from a year back to a year ahead of the chosen month
+  const opts = Array.from({ length: 25 }, (_, i) => {
+    const d = new Date(Date.UTC(y0, m0 - 1 - 12 + i, 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
   return (
-    <input
-      className="bq-input"
-      type="month"
-      dir="ltr"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-label={label}
-    />
+    <select className="bq-input" value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
+      {opts.map((o) => (
+        <option key={o} value={o}>
+          {ymLabel(o)}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -99,8 +105,8 @@ export function AddMemberBody({
   return (
     <div className="bq-rec">
       <h2>إضافة عضو</h2>
-      <p className="bq-rec-k">القائمة</p>
-      <div className="bq-chips" role="radiogroup" aria-label="القائمة">
+      <p className="bq-rec-k">المجموعة</p>
+      <div className="bq-chips" role="radiogroup" aria-label="المجموعة">
         {LISTS.map((g) => (
           <button
             key={g}
@@ -110,7 +116,7 @@ export function AddMemberBody({
             className="bq-chip bq-press"
             onClick={() => pickList(g)}
           >
-            قائمة {g} · الفئة {groupLabel(g)}
+            المجموعة {groupLabel(g)}
             {prices[g] ? (
               <>
                 {" "}
@@ -120,7 +126,7 @@ export function AddMemberBody({
           </button>
         ))}
       </div>
-      <p className="bq-rec-k">الرقم في القائمة</p>
+      <p className="bq-rec-k">الرقم</p>
       <div className="bq-field" dir="ltr">
         <Num className="bq-strong">{list}-</Num>
         <input
@@ -133,7 +139,7 @@ export function AddMemberBody({
         />
       </div>
       <p className="bq-hint">
-        {taken ? "هذا الرقم مأخوذ في هذه القائمة." : "أول رقم فارغ في القائمة."}
+        {taken ? "هذا الرقم مأخوذ في هذه المجموعة." : "أول رقم فارغ في المجموعة."}
       </p>
       <p className="bq-rec-k">الاسم الكامل</p>
       <input
@@ -233,7 +239,7 @@ export function MemberAdminBody({
         <div>
           <h2>{m.fullName}</h2>
           <p className="bq-hint">
-            <Num>{memberCode(m)}</Num> · الفئة {groupLabel(m.groupCode)} ·{" "}
+            <Num>{memberCode(m)}</Num> · المجموعة {groupLabel(m.groupCode)} ·{" "}
             {STATE_LABEL[m.status as State] ?? m.status}
           </p>
         </div>
@@ -275,7 +281,7 @@ export function MemberAdminBody({
       )}
       {mode === "view" && (
         <button type="button" className="bq-link bq-link-quiet bq-press" onClick={() => go("move")}>
-          تغيير الفئة إلى {groupLabel(other)} (الرسوم الشهرية)
+          نقله إلى المجموعة {groupLabel(other)} (الرسوم الشهرية)
         </button>
       )}
 
@@ -368,11 +374,17 @@ export function MemberAdminBody({
           />
           <div className="bq-rec-foot">
             <Err text={err} />
+            {!err && (!state || !reason.trim()) && (
+              <p className="bq-hint" id="bq-state-need">
+                {!state ? "اختر الحالة الجديدة." : "اكتب السبب ليُحفظ في السجل."}
+              </p>
+            )}
             <div className="bq-slip-btns">
               <button
                 type="button"
                 className="bq-btn bq-btn-primary bq-press"
                 disabled={!state || !reason.trim() || busy || !online}
+                aria-describedby="bq-state-need"
                 onClick={() => {
                   if (state === "left" || state === "deceased") return setConfirming(true);
                   void run(
@@ -444,7 +456,7 @@ export function MemberAdminBody({
       {mode === "move" && (
         <>
           <p className="bq-lead bq-small-top">
-            يبقى رقمه <Num>{memberCode(m)}</Num> في قائمته. تتغيّر رسومه الشهرية إلى رسوم الفئة{" "}
+            يبقى رقمه <Num>{memberCode(m)}</Num> كما هو. تتغيّر رسومه الشهرية إلى رسوم المجموعة{" "}
             {groupLabel(other)} ابتداءً من الشهر الذي تختاره.
           </p>
           <p className="bq-rec-k">ابتداءً من شهر</p>
@@ -472,7 +484,7 @@ export function MemberAdminBody({
                         groupCode: other,
                         reason: reason.trim() || undefined,
                       }),
-                    `صار ${m.fullName} في الفئة ${groupLabel(other)}`,
+                    `صار ${m.fullName} في المجموعة ${groupLabel(other)}`,
                   )
                 }
               >
@@ -598,10 +610,10 @@ export function MembersAdmin({
             <section
               key={l ?? "all"}
               className="bq-group"
-              aria-label={l ? `قائمة ${l}` : "النتائج"}
+              aria-label={l ? `المجموعة ${groupLabel(l)}` : "النتائج"}
             >
               <h3 className="bq-group-h bq-group-static">
-                <span className="bq-group-t">{l ? `قائمة ${l}` : "النتائج"}</span>
+                <span className="bq-group-t">{l ? `المجموعة ${groupLabel(l)}` : "النتائج"}</span>
                 <Num className="bq-group-n">{items.length}</Num>
               </h3>
               <ul className="bq-list">
@@ -617,7 +629,7 @@ export function MembersAdmin({
                       <span className="bq-row-m">
                         <span className="bq-row-t">{m.fullName}</span>
                         <span className="bq-row-s">
-                          الفئة {groupLabel(m.groupCode)}
+                          المجموعة {groupLabel(m.groupCode)}
                           {m.phone ? "" : " · بلا رقم هاتف"}
                         </span>
                       </span>

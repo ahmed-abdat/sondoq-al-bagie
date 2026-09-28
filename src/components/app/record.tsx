@@ -96,7 +96,7 @@ function MemberPicker({
               <Avatar code={memberCode(m)} />
               <span className="bq-row-m">
                 <span className="bq-row-t">{m.fullName}</span>
-                <span className="bq-row-s">الفئة {groupLabel(m.groupCode)}</span>
+                <span className="bq-row-s">المجموعة {groupLabel(m.groupCode)}</span>
               </span>
               <StatusTag m={m} />
             </button>
