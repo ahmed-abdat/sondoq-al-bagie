@@ -75,6 +75,24 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
   `changeMemberStatus` (MEMBER_STATUSES), `changeMemberGroup` (the list and number stay; only the
   fee group changes), «X من N» from `FundSummary.membersActive`.
 
+## Round 4 (simplify + polish)
+- /committee is a hub: «بانتظار التأكيد» slips + FAB «سجّل دفعة», then a short menu to one-level
+  sub-pages with «رجوع إلى اللجنة»: /committee/late, /expenses, /members, /campaigns, /settings.
+  Rare actions sit inside sheets (close a campaign, change a member's fee group).
+- Record payment: several members in one transfer (rows with smart default months: late, else rest
+  of year), editable payer, optional transfer amount (short → blocked, over → credit for a chosen
+  member), 4 main wallets + «محفظة أخرى», date defaults to today, campaign on demand; OCR fills
+  method/ref/amount/date. Confirmed-at-once recordings show the stamp and share.
+- Slips: confirm only with `canConfirm` and never on one's own payment; failed send keeps the card
+  with the reason and «إعادة المحاولة». Pending badge has one source (`pending-count.ts`).
+- Settings: inline saving/saved/failed per field, confirm before showing amounts owed, opening
+  balance, «حسابات اللجنة» (create account, credentials once via WhatsApp/copy, new password,
+  stop/restart); login takes email or phone.
+- QA: no hydration mismatch (relative times after mount via `useNow`), unknown /r code → 404,
+  «المجموعة أ / ب» wording, Arabic month pickers, Arabic-Indic digits accepted, Open Graph,
+  receipt sheet/receipt copy fixes, lazy receipt/QR/share code on public pages.
+- Motion: 240ms pill/reveal, 320ms sheet, 220ms tab slide, 450ms bars, focus kept inside sheets.
+
 ## Remaining / next
 1. Lane B: `PERSIST_MAX_AGE` (30 days) is used as `gcTime`; it exceeds setTimeout's 2^31 ms, so
    queries without observers are garbage-collected immediately. Use `gcTime: Infinity` (or ≤ 24
