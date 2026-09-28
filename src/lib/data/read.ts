@@ -37,6 +37,14 @@ export async function fundSummary(c: Client) {
   );
 }
 
+/** Monthly fee per group for a year (default: this year), A then B. */
+export async function groupPrices(c: Client, year: number = thisYear()) {
+  return many(
+    "group_prices_public",
+    await c.from("group_prices_public").select("*").eq("year", year).order("group_code"),
+  ).map(map.toGroupPrice);
+}
+
 export async function members(c: Client) {
   return many("member_status", await c.from("member_status").select("*").order("number")).map(
     map.toMemberStatus,

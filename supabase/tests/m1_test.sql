@@ -444,4 +444,8 @@ select tests.login('public');
 select tests.ok((select balance from public.fund_summary) = tests.get('bal6')::int + 2000, 'main fund balance grows by the surplus');
 select tests.ok((select balance from public.campaign_progress where campaign_id = tests.id('c6')) = 0, 'campaign balance is zero after transfer');
 
+select tests.login('public');
+select tests.ok((select monthly_amount from public.group_prices_public
+                 where group_code = 'B' and year = extract(year from current_date)) = 500, 'anon reads group prices');
+
 rollback;

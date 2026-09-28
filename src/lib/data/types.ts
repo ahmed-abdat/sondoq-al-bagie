@@ -30,6 +30,9 @@ export type FundSummary = {
   lastActivityAt: string | null;
 };
 
+/** «الرسوم الشهرية» of one group for one year (MRO per month). */
+export type GroupPrice = { year: number; group: string; groupName: string; monthlyAmount: number };
+
 /** One member card (public: no phone). `amountOwed` is null unless the admin turned it on. */
 export type MemberStatus = {
   memberId: string;
