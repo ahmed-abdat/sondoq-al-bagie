@@ -61,34 +61,39 @@ After that the admin adds members, prices and committee roles from the app.
 
 ## Import the paper sheets
 
-`import/import-paper.mts` turns the yearly paper sheet into members and confirmed `paper` payments
-(one per member, covering every ticked month). Put the real CSVs in `supabase/import/data/`
-(gitignored); fictional examples of each format are in `import/sample/`.
-
-```sh
-node supabase/import/import-paper.mts --sheet supabase/import/data/sheet.csv \
-  --phones supabase/import/data/phones.csv --page-totals supabase/import/data/page_totals.csv
-# check the summary and warnings, then add: --sql supabase/import/data/import.sql
-```
+`import/import-paper.mts` turns the yearly paper sheets into members and confirmed `paper` payments
+(one per member, covering every ticked month). The fund has two lists with their own numbers:
+list A (1000, A-1…A-21) and list B (500, B-1…B-70). Put the real CSVs in `supabase/import/data/`
+(gitignored); fictional examples are in `import/sample/`.
 
 | CSV | Columns |
 |---|---|
-| sheet | `number,name,group,m1..m12` (group `A`/`B` or `أ`/`ب`; any non-empty month cell = paid) |
-| phones (optional) | `number,phone` (8 local digits become `+222…`) |
-| page totals (optional) | `page,from_number,to_number` plus `m1..m12` and/or `total`: amounts written on each page, in MRO (empty = not checked) |
+| sheet (one or more `--sheet`) | `[list,]number,name,group,m1..m12` (list defaults to the group; `A`/`B` or `أ`/`ب`); month cell empty = unpaid, `?` = not readable, anything else = paid |
+| phones (optional) | `[list,]number,phone` (8 local digits become `+222…`) |
+| page totals (optional) | `page,[list,]from_number,to_number` plus `m1..m12` and/or `total`, in MRO |
 
-Errors (duplicate number, unknown group, bad phone, …) stop it; warnings (numbering gaps, an
-unticked month between ticks, a page total that does not match the ticks) are for the owner to
-check against the paper. Prices default to A=1000, B=500 (`--price A=1000`); the SQL refuses to run
-if the database prices differ. Paste the generated file into the SQL editor: it is one transaction,
-and running it again adds nothing (payment ids are derived from year + member number). The file
-holds names and phones: do not commit or share it.
+The real import is two SQL files, each one transaction that can be run again safely:
 
-Before the real import, rehearse it on a throwaway local database (never the real project):
-`supabase/import/check-local.sh --sheet supabase/import/data/sheet-2026.csv [--page-totals …]`
-prints the dry run, then imports twice locally and reports members, payments, money, who is up to
-date or behind per group, and that the second run added nothing. No names are printed. Tests: `node --test supabase/import/import-paper.test.mts`
-(also run by `tests/local/run.sh`, which applies the sample import twice to a throwaway database).
+```sh
+node supabase/import/import-paper.mts --sheet data/sheet-2026.csv --sheet data/list-b-1-27-2026.csv \
+  --page-totals data/page_totals-2026.csv --only A:1-21,B:54-70 \
+  --members-sql data/1-members-2026.sql --payments-sql data/2-payments-2026.sql
+```
+
+1. `1-members…sql`: every member (91), no money. 2. `2-payments…sql`: paper payments only for rows
+the committee confirmed: `--only` limits them to list ranges (e.g. pages whose totals add up), and
+any row with a `?` month is held back. Payments for other rows come later with a new run once the
+committee answers (payment ids come from year + list + number, so nothing is paid twice).
+
+Errors (duplicate list number, unknown group, bad phone …) stop it; warnings (numbering gaps per
+list, unreadable rows, unticked month between ticks, page totals that do not match) are for the
+owner to check against the paper. Prices default to A=1000, B=500 (`--price A=1000`); the SQL
+refuses to run if the database prices differ. The files hold names and phones: do not commit or
+share them.
+
+Rehearse on a throwaway local database first (never the real project): `supabase/import/check-local.sh`
+with the same flags runs the dry run, step 1, step 2, both again, and prints a name-free report.
+Tests: `node --test supabase/import/import-paper.test.mts` (also run by `tests/local/run.sh`).
 
 ## Types
 
