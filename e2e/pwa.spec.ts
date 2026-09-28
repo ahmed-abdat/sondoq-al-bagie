@@ -107,3 +107,23 @@ test("receipt verification is never served from the cache", async ({ page, conte
   await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toBeVisible();
   await context.setOffline(false);
 });
+
+test("public pages visited by in-app navigation open offline", async ({ page, context }) => {
+  await page.goto("/");
+  await waitForServiceWorker(page);
+  const pages = ["/members", "/accounts", "/donations"];
+  for (const path of pages) {
+    await page.locator(`a[href="${path}"]:visible`).first().click();
+    await page.waitForURL(`**${path}`);
+    await expect
+      .poll(() => page.evaluate(async (p) => !!(await (await caches.open("pages")).match(p)), path))
+      .toBe(true);
+  }
+  await context.setOffline(true);
+  for (const path of ["/", ...pages]) {
+    await page.goto(path);
+    await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toHaveCount(0);
+    await expect(page.getByText(/غير متصل/)).toBeVisible();
+  }
+  await context.setOffline(false);
+});

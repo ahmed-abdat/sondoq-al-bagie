@@ -11,6 +11,7 @@ describe("isPublicViewRead", () => {
     expect(isPublicViewRead(sb("/rest/v1/fund_accounts_public"), "GET")).toBe(true);
     expect(isPublicViewRead(sb("/rest/v1/fund_info"), "GET")).toBe(true);
     expect(isPublicViewRead(sb("/rest/v1/campaign_contributions"), "GET")).toBe(true);
+    expect(isPublicViewRead(sb("/rest/v1/group_prices_public"), "GET")).toBe(true);
   });
   it("rejects writes, private views, tables, rpc, auth, storage", () => {
     expect(isPublicViewRead(sb("/rest/v1/fund_summary"), "POST")).toBe(false);
