@@ -448,4 +448,35 @@ select tests.login('public');
 select tests.ok((select monthly_amount from public.group_prices_public
                  where group_code = 'B' and year = extract(year from current_date)) = 500, 'anon reads group prices');
 
+/* ───────────── M7: two member lists, statuses ───────────── */
+
+select tests.login('admin');
+select tests.set('LA', public.add_member(1, 'عضو القائمة أ', 'A', tests.m(-3), null, null, 'active', 'A'));
+select tests.set('LB', public.add_member(1, 'عضو القائمة ب', 'B', tests.m(-3)));
+select tests.ok((select list_code from public.members where id = tests.id('LB')) = 'B', 'list defaults to the group');
+select tests.throws($$select public.add_member(1, 'مكرر', 'A', tests.m(0), null, null, 'active', 'A')$$, 'number_taken',
+  'same number twice in one list');
+select tests.ok(public.next_member_number('a') = (select max(number) + 1 from public.members where list_code = 'A'),
+  'next free number of list A');
+select public.update_member(tests.id('LA'), 'عضو القائمة أ', null, null, 7);
+select tests.ok((select number from public.members where id = tests.id('LA')) = 7, 'admin renumbers a member');
+select tests.throws($$select public.update_member(tests.id('LB'), 'x', null, null, 1002)$$, 'number_taken',
+  'renumbering onto a taken number in the same list');
+select public.change_member_group(tests.id('LB'), tests.m(0), 'A');
+select tests.ok((select group_code from public.members_admin where member_id = tests.id('LB')) = 'A'
+                and (select member_status from public.members_admin where member_id = tests.id('LB')) = 'active',
+  'group change keeps the status');
+select public.change_member_status(tests.id('LA'), tests.m(-1), 'left', 'سافر نهائياً');
+select tests.login('committee');
+select tests.ok(not exists (select 1 from public.arrears where member_id = tests.id('LA')), 'a member who left is not in arrears');
+select tests.ok((select member_ref from public.members_admin where member_id = tests.id('LA')) = 'A-7', 'members_admin shows A-7');
+select tests.login('public');
+select tests.ok((select member_ref || ' ' || status_label from public.member_status where member_id = tests.id('LA')) = 'A-7 غادر',
+  'public status shows list reference and «غادر»');
+select tests.ok((select members_active from public.fund_summary)
+                = (select count(*) from public.member_status where member_status = 'active'), 'active count');
+select tests.ok((select members_ok + members_behind from public.fund_summary) = (select members_active from public.fund_summary),
+  'up to date + late = active members');
+select tests.throws('select * from public.members_admin', '42501', 'anon cannot read members_admin');
+
 rollback;

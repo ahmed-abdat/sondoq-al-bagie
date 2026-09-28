@@ -1,6 +1,6 @@
--- Local/dev seed: 70 FICTIONAL members shaped like the real fund (never run on production;
--- real members come from the paper-sheet import). Groups A = 1000, B = 500 come from the
--- migrations. Deterministic (setseed). Roughly: 45 % paid the whole year, 40 % paid nothing,
+-- Local/dev seed: 91 FICTIONAL members shaped like the real fund (never run on production;
+-- real members come from the paper-sheet import). Two lists like the paper: list A (group A,
+-- 1000) numbered 1–21 and list B (group B, 500) numbered 1–70. Deterministic (setseed). Roughly: 45 % paid the whole year, 40 % paid nothing,
 -- the rest part of the year. January–June came from the paper sheet; later months by wallet.
 -- Committee accounts are not seeded: create a user in Studio → Auth, then
 --   select public.set_committee_member('<user id>', 'مدير تجريبي', 'admin');
@@ -30,10 +30,11 @@ declare
   alloc jsonb;
 begin
   perform setseed(0.2026);
-  for n in 1..70 loop
-    grp := case when random() < 0.6 then 'A' else 'B' end;
+  for n in 1..91 loop
+    grp := case when n <= 21 then 'A' else 'B' end;
     price := case grp when 'A' then 1000 else 500 end;
-    mid := public.add_member(n, firsts[1 + floor(random() * 20)::int] || ' ولد ' || families[1 + floor(random() * 10)::int],
+    mid := public.add_member(case when n <= 21 then n else n - 21 end,
+                             firsts[1 + floor(random() * 20)::int] || ' ولد ' || families[1 + floor(random() * 10)::int],
                              grp, make_date(y, 1, 1),
                              case when random() < 0.8 then '+222000' || lpad(n::text, 5, '0') end);
     r := random();
@@ -89,4 +90,4 @@ select public.record_payment(gen_random_uuid(), 'متبرع من الخارج', 
 select public.record_payment(gen_random_uuid(), m.full_name, 'masrvi', 10000, current_date - 2,
   jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', '00000000-0000-0000-0000-00000000ca01',
                                        'member_id', m.id, 'amount', 10000)))
-from public.members m where m.number in (3, 5);
+from public.members m where m.list_code = 'B' and m.number in (3, 5);

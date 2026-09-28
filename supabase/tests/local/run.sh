@@ -32,9 +32,9 @@ got="$("${PSQL[@]}" -d sb -At -c "select concat_ws(' ', (select count(*) from pu
   (select count(*) from public.payments where receipt_code is not null) > 0,
   (select balance > 0 from public.fund_summary))")"
 set -- $got
-test "$1" = 70 && test "$2" -ge 25 && test "$2" -le 38 && test "$3" -ge 20 && test "$3" -le 36 && test "$4" = 2 \
+test "$1" = 91 && test "$2" -ge 32 && test "$2" -le 50 && test "$3" -ge 27 && test "$3" -le 46 && test "$4" = 2 \
   && test "$5" = t && test "$6" = t || { echo "FAIL seed shape: $got"; exit 1; }
-echo "  ok  70 members: $2 paid the year, $3 paid nothing, 2 pending, receipts issued"
+echo "  ok  91 members (A 1–21, B 1–70): $2 paid the year, $3 paid nothing, 2 pending, receipts issued"
 echo "race     concurrent confirmations"
 "${PSQL[@]}" -d sb -o /dev/null -f "$ROOT/supabase/tests/local/race.sql"
 as_user() {  # $1 = user id, $2 = payment id, $3 = seconds to hold the transaction open
