@@ -20,8 +20,14 @@ describe("export routes", () => {
     expect(membersAdmin).not.toHaveBeenCalled();
   });
 
+  it("refuses the «committee» role, like the export page", async () => {
+    session = { userId: "u", role: "committee" };
+    expect((await exportRoute("members")()).status).toBe(403);
+    expect(membersAdmin).not.toHaveBeenCalled();
+  });
+
   it("returns an uncached CSV download", async () => {
-    session = { userId: "u" };
+    session = { userId: "u", role: "treasurer" };
     membersAdmin.mockResolvedValue([]);
     const res = await exportRoute("members")();
     expect(res.status).toBe(200);
@@ -36,7 +42,7 @@ describe("export routes", () => {
   });
 
   it("hides database errors", async () => {
-    session = { userId: "u" };
+    session = { userId: "u", role: "treasurer" };
     membersAdmin.mockRejectedValue(new Error("boom"));
     vi.spyOn(console, "error").mockImplementation(() => {});
     expect((await exportRoute("members")()).status).toBe(500);
