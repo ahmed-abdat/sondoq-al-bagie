@@ -27,7 +27,7 @@ export default async function CommitteePage() {
           canConfirm: !!session?.canConfirm,
           memberId: session?.memberId ?? null,
         }}
-        members={members.filter((m) => m.status === "active")}
+        members={members.filter((m) => m.status === "active" || m.status === "exempt")}
         ctx={ctx}
         accounts={accounts}
         campaigns={campaigns}

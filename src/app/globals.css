@@ -3736,3 +3736,36 @@
     break-before: page;
   }
 }
+
+@layer components {
+  /* «سجّل دفعة» step 1: a tall sheet with the whole list; search and group names stay in view */
+  .bq-sheet:has(.bq-pick) {
+    min-height: 90dvh;
+  }
+  .bq-pick-search {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    box-shadow: 0 0 0 8px #fff;
+  }
+  .bq-pick-h {
+    position: sticky;
+    top: 60px;
+    z-index: 1;
+    margin-block-start: 12px;
+    padding-block: 8px 4px;
+    background: #fff;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--g8);
+  }
+  .bq-row.is-dim {
+    opacity: 0.7;
+  }
+  /* sheet footer: one soft top shadow, flush with the sheet's bottom edge */
+  .bq-rec-foot {
+    margin-block-end: -32px;
+    box-shadow: 0 -10px 20px -18px rgba(16, 40, 24, 0.3);
+  }
+}
