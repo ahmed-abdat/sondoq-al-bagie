@@ -5,7 +5,13 @@ import { InstallCard } from "@/components/providers";
 import type { MemberStatus } from "@/lib/data/types";
 import { Track } from "../bits";
 import { searchMembers } from "../derive";
-import { EntryRow, EntrySheetBody } from "../entries";
+import dynamic from "next/dynamic";
+import { EntryRow } from "../entry-row";
+
+// the receipt, its stamp, QR and share code load only when a row is opened
+const EntrySheetBody = dynamic(() => import("../entries").then((m) => m.EntrySheetBody), {
+  ssr: false,
+});
 import { Hero, type HeroData } from "../hero";
 import { I } from "../icons";
 import { MemberRow, MemberSheetBody, type MemberCtx } from "../member";
