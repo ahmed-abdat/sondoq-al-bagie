@@ -26,6 +26,8 @@ import { RecordBody } from "../record";
 import { Sheet } from "../sheet";
 import { useDemoState } from "../act";
 import { LogoutButton } from "../logout";
+import { MembersAdmin } from "../members-admin";
+import type { MemberAdmin } from "../types";
 import { useSnack } from "../shell";
 import { PendingSlip } from "../slip";
 
@@ -47,6 +49,8 @@ export function CommitteeView({
   expenses: serverExpenses,
   campaigns: serverCampaigns,
   canCampaign,
+  membersAdmin,
+  thisMonth,
 }: {
   pending: PendingPayment[];
   me: { by: string; role: string };
@@ -57,10 +61,13 @@ export function CommitteeView({
   arrears: Arrear[];
   expenses: ExpenseAdmin[];
   campaigns: CampaignProgress[];
-  /** admin, treasurer, deputy */
+  /** admin, treasurer, deputy: campaigns and member management */
   canCampaign: boolean;
+  membersAdmin: MemberAdmin[];
+  /** "YYYY-MM" */
+  thisMonth: string;
 }) {
-  const [part, setPart] = useState<"pay" | "late" | "exp" | "camp">("pay");
+  const [part, setPart] = useState<"pay" | "late" | "exp" | "camp" | "mem">("pay");
   // demo mode: local additions/changes (empty otherwise)
   const demo = useDemoState();
   const pending = [...serverPending, ...demo.pending];
@@ -137,7 +144,12 @@ export function CommitteeView({
             ),
           },
           { k: "exp", l: "المصاريف" },
-          ...(canCampaign ? [{ k: "camp" as const, l: "الحملات" }] : []),
+          ...(canCampaign
+            ? [
+                { k: "mem" as const, l: "الأعضاء" },
+                { k: "camp" as const, l: "الحملات" },
+              ]
+            : []),
         ]}
       />
 
@@ -214,6 +226,12 @@ export function CommitteeView({
           </button>
           <h2 className="bq-h3">آخر المصاريف</h2>
           <ExpenseAdminList items={expenses} onSay={say} />
+        </section>
+      )}
+
+      {part === "mem" && canCampaign && (
+        <section className="bq-sec bq-sec-first" aria-label="إدارة الأعضاء">
+          <MembersAdmin members={membersAdmin} prices={ctx.prices} thisMonth={thisMonth} />
         </section>
       )}
 

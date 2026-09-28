@@ -246,7 +246,7 @@ const demo: Partial<Actions> = {
         },
       },
     }));
-    return ok(undefined);
+    return ok("demo");
   },
 } as Partial<Actions>;
 

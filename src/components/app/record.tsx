@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import { useAct } from "./act";
-import type { FundAccount, MemberStatus, PaymentMethod } from "@/lib/data/types";
+import type { CampaignProgress, FundAccount, MemberStatus, PaymentMethod } from "@/lib/data/types";
+import { parseAmount } from "@/lib/money";
 import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
 import { MAIN_METHODS, METHOD_LABELS, METHODS } from "@/lib/methods";
 import { todayIso } from "@/lib/dates";
@@ -28,12 +29,15 @@ export function RecordBody({
   members,
   ctx,
   accounts,
+  campaigns = [],
   onDone,
 }: {
   members: MemberStatus[];
   ctx: MemberCtx;
   /** the fund's wallets: the receipt reading checks the money went to one of them */
   accounts: FundAccount[];
+  /** open campaigns: one transfer can also carry a contribution */
+  campaigns?: CampaignProgress[];
   onDone: (text: string) => void;
 }) {
   const router = useRouter();
@@ -54,7 +58,14 @@ export function RecordBody({
     void warmOcr();
     return () => void terminateOcr();
   }, []);
-  const res = useMemo(() => searchMembers(members, q).slice(0, 4), [members, q]);
+  const res = useMemo(
+    () =>
+      searchMembers(
+        members.filter((m) => m.status === "active"),
+        q,
+      ).slice(0, 4),
+    [members, q],
+  );
   const paid = useMemo(
     () =>
       new Set(
@@ -77,7 +88,12 @@ export function RecordBody({
       ]
     : [];
   const same = (a: number[], b: number[]) => a.length === b.length && a.every((x, i) => x === b[i]);
-  const amount = months.length * price;
+  const [camp, setCamp] = useState<string | null>(null);
+  const [campTxt, setCampTxt] = useState("");
+  const campAmt = camp ? Math.max(0, Math.round(parseAmount(campTxt) ?? 0)) : 0;
+  const feeAmt = months.length * price;
+  const amount = feeAmt + campAmt;
+  const open = campaigns.filter((c) => c.status === "open");
 
   const pickWho = (m: MemberStatus) => {
     setWho(m);
@@ -89,7 +105,7 @@ export function RecordBody({
   };
 
   const submit = async () => {
-    if (!who || !meth || !months.length || !price) return;
+    if (!who || !meth || (!months.length && !campAmt) || (months.length && !price)) return;
     setBusy(true);
     setErr("");
     const id = crypto.randomUUID();
@@ -113,13 +129,25 @@ export function RecordBody({
       method: meth,
       amount,
       paidOn,
-      allocations: months.map((month) => ({
-        kind: "months" as const,
-        memberId: who.memberId,
-        year: ctx.year,
-        month,
-        amount: price,
-      })),
+      allocations: [
+        ...months.map((month) => ({
+          kind: "months" as const,
+          memberId: who.memberId,
+          year: ctx.year,
+          month,
+          amount: price,
+        })),
+        ...(camp && campAmt > 0
+          ? [
+              {
+                kind: "campaign" as const,
+                campaignId: camp,
+                memberId: who.memberId,
+                amount: campAmt,
+              },
+            ]
+          : []),
+      ],
       txnRef: txn.trim() || undefined,
       proofPath: proof?.path,
       proofHash: proof?.hash,
@@ -225,6 +253,37 @@ export function RecordBody({
               );
             })}
           </ol>
+
+          {open.length > 0 && (
+            <>
+              <p className="bq-rec-k">مساهمة في حملة مع نفس التحويل (اختياري)</p>
+              <div className="bq-chips" role="radiogroup" aria-label="الحملة">
+                {open.map((c) => (
+                  <button
+                    key={c.campaignId}
+                    type="button"
+                    role="radio"
+                    aria-checked={camp === c.campaignId}
+                    className="bq-chip bq-press"
+                    onClick={() => setCamp(camp === c.campaignId ? null : c.campaignId)}
+                  >
+                    {c.title}
+                  </button>
+                ))}
+              </div>
+              {camp && (
+                <input
+                  className="bq-input"
+                  value={campTxt}
+                  onChange={(e) => setCampTxt(e.target.value)}
+                  inputMode="numeric"
+                  dir="ltr"
+                  placeholder="مبلغ المساهمة بالأوقية"
+                  aria-label="مبلغ المساهمة"
+                />
+              )}
+            </>
+          )}
 
           <p className="bq-rec-k">صورة التحويل</p>
           <label className="bq-btn bq-btn-soft bq-press">
@@ -333,9 +392,17 @@ export function RecordBody({
                 {months.length ? (
                   <>
                     {monthsWord(months.length)} × <Num>{fmt(price)}</Num>
+                    {campAmt > 0 && (
+                      <>
+                        {" "}
+                        + مساهمة <Num>{fmt(campAmt)}</Num>
+                      </>
+                    )}
                   </>
+                ) : campAmt > 0 ? (
+                  "مساهمة في الحملة فقط"
                 ) : (
-                  "اختر شهرًا واحدًا على الأقل"
+                  "اختر شهرًا أو أضف مساهمة"
                 )}
               </span>
               <span>
@@ -350,7 +417,13 @@ export function RecordBody({
             <button
               type="button"
               className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-              disabled={!months.length || !meth || !price || busy || !online}
+              disabled={
+                (!months.length && !campAmt) ||
+                (months.length > 0 && !price) ||
+                !meth ||
+                busy ||
+                !online
+              }
               onClick={() => void submit()}
             >
               {busy ? "جارٍ الحفظ…" : "سجّل الدفعة"}

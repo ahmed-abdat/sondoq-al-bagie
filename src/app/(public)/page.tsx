@@ -1,4 +1,5 @@
 import { memberCtx, heroData } from "@/components/app/page-data";
+import { isGone } from "@/components/app/derive";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { HomeView } from "@/components/app/views/home";
@@ -21,7 +22,7 @@ export default async function Home() {
     <Tab>
       <HomeView
         hero={hero}
-        members={members}
+        members={members.filter((m) => !isGone(m.status))}
         ctx={ctx}
         paidCount={members.filter((m) => m.status === "active" && paid.has(m.memberId)).length}
         monthName={MONTHS[month - 1]}
