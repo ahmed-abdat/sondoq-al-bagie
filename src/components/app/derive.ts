@@ -167,11 +167,17 @@ export function memberState(m: StateInput): MState {
 }
 
 /** Calm, count-only wording for the status tag. Never amounts in public. */
-export function statusLabel(m: StateInput) {
+export function statusLabel(m: StateInput, dueMonth?: number) {
   const st = memberState(m);
   if (st === "off") return OFF_LABEL[m.status as Exclude<MembershipStatus, "active">];
-  if (st === "ahead") return "مدفوع حتى ديسمبر";
-  if (st === "ok") return "منتظم";
+  if (st === "ahead") return "دفع السنة كاملة";
+  if (st === "ok") {
+    // up to date and paid past the due month (months are paid from January on)
+    const due = dueMonth ?? currentDueMonth(new Date(), 10);
+    if (m.monthsPaidThisYear > due && m.monthsPaidThisYear < 12)
+      return `مدفوع مقدَّمًا حتى ${MONTHS[m.monthsPaidThisYear - 1]}`;
+    return "منتظم";
+  }
   if (m.monthsPaidThisYear === 0) return "لم يدفع هذا العام";
   return `متأخر ${monthsWord(m.monthsBehind)}`;
 }

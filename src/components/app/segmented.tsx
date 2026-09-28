@@ -8,7 +8,10 @@ export function Segmented<T extends string>({
   value,
   onChange,
   label,
+  fit = false,
 }: {
+  /** tighter options so a short row fits a phone width */
+  fit?: boolean;
   items: { k: T; l: ReactNode }[];
   value: T;
   onChange: (k: T) => void;
@@ -57,7 +60,7 @@ export function Segmented<T extends string>({
     return () => ro.disconnect();
   }, [value]);
   return (
-    <div className="bq-seg" ref={track} onScroll={markOver}>
+    <div className={`bq-seg ${fit ? "bq-seg-fit" : ""}`} ref={track} onScroll={markOver}>
       <div className="bq-seg-in" role="group" aria-label={label} ref={inner}>
         <span className="bq-seg-ind" ref={ind} aria-hidden="true" />
         {items.map((it) => (

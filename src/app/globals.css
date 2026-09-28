@@ -1987,7 +1987,7 @@
   }
   .bq-months {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
   .bq-mo {
@@ -2005,6 +2005,7 @@
   }
   .bq-mo-s {
     display: inline-flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 4px;
     font-size: 14px;
@@ -2025,12 +2026,16 @@
     background: var(--n1);
     color: var(--muted);
   }
+  /* paid in advance is PAID: the same solid green, with a small «مقدَّمًا» tag */
   .mo-ahead {
-    background: var(--g1);
-    color: var(--g9);
+    background: var(--g7);
+    color: #fff;
   }
-  .mo-ahead .bq-mo-s {
-    color: var(--g8);
+  .bq-mo-tag {
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--g9);
+    font-size: 14px;
   }
   .bq-owed {
     margin-block-start: 18px;
@@ -3436,5 +3441,12 @@
   }
   .bq-link:disabled {
     color: var(--muted);
+  }
+}
+
+@layer components {
+  /* a filter row with four short options fits 390px without scrolling */
+  .bq-seg-fit .bq-seg-b {
+    padding-inline: 10px;
   }
 }

@@ -84,8 +84,9 @@ describe("amountInWords", () => {
 describe("member state", () => {
   it("derives state and a calm label", () => {
     expect(memberState(m({ monthsPaidThisYear: 12 }))).toBe("ahead");
-    expect(statusLabel(m({ monthsPaidThisYear: 12 }))).toBe("مدفوع حتى ديسمبر");
-    expect(statusLabel(m({}))).toBe("منتظم");
+    expect(statusLabel(m({ monthsPaidThisYear: 12 }))).toBe("دفع السنة كاملة");
+    expect(statusLabel(m({}), 9)).toBe("منتظم");
+    expect(statusLabel(m({ monthsPaidThisYear: 11 }), 9)).toBe("مدفوع مقدَّمًا حتى نوفمبر");
     expect(statusLabel(m({ monthsBehind: 2, monthsPaidThisYear: 7 }))).toBe("متأخر شهرين");
     expect(statusLabel(m({ monthsBehind: 9, monthsPaidThisYear: 0 }))).toBe("لم يدفع هذا العام");
     expect(memberState(m({ status: "exempt" }))).toBe("off");
