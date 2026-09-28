@@ -23,7 +23,7 @@ describe("keepalive", () => {
     expect(await (await GET(req())).json()).toEqual({ ok: true, enabled: false });
   });
 
-  it("pings Supabase auth health and never throws", async () => {
+  it("queries the keepalive view and never throws", async () => {
     vi.stubEnv("CRON_SECRET", "s3cret");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://x.supabase.co/");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x");
@@ -31,9 +31,9 @@ describe("keepalive", () => {
     vi.stubGlobal("fetch", fetchMock);
     const res = await GET(req("Bearer s3cret"));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: false, enabled: true, auth: null });
+    expect(await res.json()).toEqual({ ok: false, enabled: true, db: null });
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://x.supabase.co/auth/v1/health",
+      "https://x.supabase.co/rest/v1/keepalive?select=ok",
       expect.anything(),
     );
   });

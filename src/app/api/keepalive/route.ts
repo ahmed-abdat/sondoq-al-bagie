@@ -19,7 +19,7 @@ async function ping(url: string, key: string): Promise<{ ok: boolean; status: nu
 
 /**
  * Daily Vercel cron (vercel.json). Free Supabase projects pause after 7 idle days,
- * so this sends one tiny request with the publishable key. Works on an empty database.
+ * so this runs one tiny real query (the public `keepalive` view) with the publishable key.
  * Never throws: the cron only needs a response.
  */
 export async function GET(request: Request) {
@@ -32,6 +32,6 @@ export async function GET(request: Request) {
   if (!env) return Response.json({ ok: true, enabled: false });
 
   const base = env.url.replace(/\/+$/, "");
-  const auth = await ping(`${base}/auth/v1/health`, env.key);
-  return Response.json({ ok: auth.ok, enabled: true, auth: auth.status });
+  const db = await ping(`${base}/rest/v1/keepalive?select=ok`, env.key);
+  return Response.json({ ok: db.ok, enabled: true, db: db.status });
 }
