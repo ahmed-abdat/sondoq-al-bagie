@@ -10,7 +10,8 @@
 // Inputs (CSV, comma or semicolon, first row = header):
 //   sheet        number,name,group,m1..m12       any non-empty month cell = paid
 //   phones       number,phone                    8 local digits become +222XXXXXXXX
-//   page totals  page,from_number,to_number,m1..m12   amount per month written on the page, MRO
+//   page totals  page,from_number,to_number[,m1..m12][,total]   amounts written on the page, MRO
+//                (per month and/or the page's grand total; empty cells are not checked)
 //
 // One payment per member covers all ticked months. Its id is derived from year + number, so running
 // the same SQL again replays instead of paying twice (record_payment is idempotent on the id).
@@ -21,7 +22,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
 type Member = { line: number; number: number; name: string; group: string; months: number[]; phone: string | null };
-type PageTotal = { line: number; page: string; from: number; to: number; amounts: (number | null)[] };
+type PageTotal = { line: number; page: string; from: number; to: number; amounts: (number | null)[]; total: number | null };
 type Table = { header: string[]; rows: { line: number; cells: string[] }[] };
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -136,7 +137,7 @@ function readPhones(path: string, members: Member[]) {
 }
 
 function readPageTotals(path: string): PageTotal[] {
-  const t = readTable(path, "page totals", ["page", "from_number", "to_number", ...MONTHS.map((m) => `m${m}`)]);
+  const t = readTable(path, "page totals", ["page", "from_number", "to_number"]);
   if (!t) return [];
   const pages: PageTotal[] = [];
   for (const { line, cells } of t.rows) {
@@ -144,16 +145,18 @@ function readPageTotals(path: string): PageTotal[] {
     const from = positiveInt(col(t, cells, "from_number"));
     const to = positiveInt(col(t, cells, "to_number"));
     if (from === null || to === null || to < from) { errors.push(`${where}: bad from_number/to_number`); continue; }
-    const amounts = MONTHS.map((m) => {
-      const raw = col(t, cells, `m${m}`).replace(/[\s,]/g, "");
+    const amount = (name: string) => {
+      const raw = (t.header.includes(name) ? col(t, cells, name) : "").replace(/[\s,]/g, "");
       if (raw === "") return null;
-      if (!/^\d+$/.test(raw)) { errors.push(`${where}: m${m} "${raw}" is not a whole amount in MRO`); return null; }
+      if (!/^\d+$/.test(raw)) { errors.push(`${where}: ${name} "${raw}" is not a whole amount in MRO`); return null; }
       return Number(raw);
-    });
+    };
+    const amounts = MONTHS.map((m) => amount(`m${m}`));
+    const total = amount("total");
     const page = col(t, cells, "page") || `line ${line}`;
     const overlap = pages.find((p) => from <= p.to && p.from <= to);
     if (overlap) errors.push(`${where}: page ${page} overlaps page ${overlap.page}`);
-    pages.push({ line, page, from, to, amounts });
+    pages.push({ line, page, from, to, amounts, total });
   }
   return pages;
 }
@@ -193,6 +196,12 @@ function check(members: Member[], pages: PageTotal[], prices: Record<string, num
       const ticked = onPage.reduce((s, m) => s + (m.months.includes(month) ? (prices[m.group] ?? 0) : 0), 0);
       if (ticked !== written) {
         warnings.push(`page ${p.page} month ${month}: ticks add up to ${ticked} MRO, page says ${written} (diff ${ticked - written})`);
+      }
+    }
+    if (p.total !== null) {
+      const ticked = onPage.reduce((s, m) => s + m.months.length * (prices[m.group] ?? 0), 0);
+      if (ticked !== p.total) {
+        warnings.push(`page ${p.page} total: ticks add up to ${ticked} MRO, page says ${p.total} (diff ${ticked - p.total})`);
       }
     }
   }
