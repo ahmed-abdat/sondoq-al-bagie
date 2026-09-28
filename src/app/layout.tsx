@@ -1,36 +1,38 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans_Arabic, Reem_Kufi } from "next/font/google";
+import { Alexandria, Noto_Sans_Arabic } from "next/font/google";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const body = IBM_Plex_Sans_Arabic({
+const body = Noto_Sans_Arabic({
   variable: "--font-body",
   subsets: ["arabic", "latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-const kufi = Reem_Kufi({
-  variable: "--font-kufi",
+const display = Alexandria({
+  variable: "--font-display-face",
   subsets: ["arabic", "latin"],
-  weight: ["500", "700"],
+  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
   title: "صندوق البقيع",
-  description: "صندوق رابطة شباب قرية البقيع: الاشتراكات والمصاريف بشفافية",
+  description: "صندوق رابطة شباب قرية البقيع: الرسوم والمصاريف بشفافية",
   applicationName: "صندوق البقيع",
+  appleWebApp: { capable: true, title: "صندوق البقيع", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#237a3b" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b120e" },
-  ],
+  themeColor: "#237a3b",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ar" dir="rtl" className={`${body.variable} ${kufi.variable} h-full antialiased`}>
-      <body className="min-h-full font-sans">{children}</body>
+    <html lang="ar" dir="rtl" className={`${body.variable} ${display.variable} h-full antialiased`}>
+      <body className="min-h-full font-sans">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
