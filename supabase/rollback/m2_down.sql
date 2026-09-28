@@ -1,6 +1,9 @@
 -- Undo the M2 migrations (dev/branch only). Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- group prices (m6)
+drop view if exists public.group_prices_public;
+drop function if exists app_private.public_group_prices();
 -- campaigns (m6)
 drop function if exists public.create_campaign(uuid, text, public.campaign_mode, text, integer, date, jsonb),
   public.update_campaign(uuid, text, text, integer, date), public.close_campaign(uuid, public.surplus_action),

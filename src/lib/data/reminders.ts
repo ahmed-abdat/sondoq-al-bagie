@@ -62,7 +62,7 @@ export function reminderText(
     ctx.whatsappContact
       ? `بعد التحويل أرسلوا صورة الإيصال إلى ${ctx.whatsappContact}.`
       : "بعد التحويل أرسلوا صورة الإيصال إلى هذا الرقم.",
-    ...(ctx.publicUrl ? [`حالة الاشتراكات: ${ctx.publicUrl}`] : []),
+    ...(ctx.publicUrl ? [`حالة الرسوم الشهرية: ${ctx.publicUrl}`] : []),
     "جزاكم الله خيراً.",
   ].join("\n");
 }
