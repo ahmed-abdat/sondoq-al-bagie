@@ -13,6 +13,7 @@ import type {
   FundAccount,
   FundInfo,
   FundSummary,
+  GroupPrice,
   MemberMonth,
   MemberStatus,
   MonthlyCollection,
@@ -39,6 +40,15 @@ export function toFundSummary(r: Row<"fund_summary"> | null | undefined): FundSu
     membersOk: num(r?.members_ok),
     membersBehind: num(r?.members_behind),
     lastActivityAt: r?.last_activity_at ?? null,
+  };
+}
+
+export function toGroupPrice(r: Row<"group_prices_public">): GroupPrice {
+  return {
+    year: num(r.year),
+    group: str(r.group_code),
+    groupName: str(r.group_name),
+    monthlyAmount: num(r.monthly_amount),
   };
 }
 

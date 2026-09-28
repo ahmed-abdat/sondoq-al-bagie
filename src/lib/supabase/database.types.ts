@@ -869,6 +869,15 @@ export type Database = {
         }
         Relationships: []
       }
+      group_prices_public: {
+        Row: {
+          group_code: string | null
+          group_name: string | null
+          monthly_amount: number | null
+          year: number | null
+        }
+        Relationships: []
+      }
       keepalive: {
         Row: {
           groups: number | null
