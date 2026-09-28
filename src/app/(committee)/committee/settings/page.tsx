@@ -7,11 +7,12 @@ import { SettingsView } from "@/components/app/views/settings";
 export const metadata: Metadata = { title: "الإعدادات · صندوق الشباب", robots: { index: false } };
 
 export default async function SettingsPage() {
-  const [session, info, accounts, summary] = await Promise.all([
+  const [session, info, accounts, summary, settings] = await Promise.all([
     src.committeeSession(),
     src.fundInfo(),
     src.fundAccountsAdmin(),
     src.fundSummary(),
+    src.fundSettings(),
   ]);
   if (!session) redirect("/login?next=/committee/settings");
   const admin = session.role === "admin";
@@ -25,7 +26,8 @@ export default async function SettingsPage() {
         displayName={session.displayName}
         showOwed={info.showAmountOwed}
         whatsapp={info.whatsappContact}
-        openingBalance={summary.openingBalance}
+        openingBalance={settings?.openingBalance ?? summary.openingBalance}
+        openingBalanceOn={settings?.openingBalanceOn ?? null}
         committee={people}
         members={members.map((m) => ({ memberId: m.memberId, memberRef: m.memberRef }))}
         selfId={session.userId}

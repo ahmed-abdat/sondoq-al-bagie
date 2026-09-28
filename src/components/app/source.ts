@@ -3,8 +3,8 @@ import "server-only";
 // SONDOQ_FIXTURES=1 it serves the fictional fixtures instead (screenshots, dev without a seeded
 // database). This is the ONLY file that imports ./fixtures.
 import * as data from "@/lib/data";
-import type { ActivityItem, Expense } from "@/lib/data/types";
-import { categoryLabel, monthCount, relativeAgo } from "./derive";
+import type { ActivityItem, Expense, ReportData } from "@/lib/data/types";
+import { categoryLabel, currentDueMonth, monthCount, relativeAgo } from "./derive";
 import { DEMO_USER, isDemo } from "./demo";
 import * as fx from "./fixtures";
 import { fromVerified } from "./receipt-model";
@@ -128,6 +128,68 @@ export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFu
 export const membersAdmin = () => pick(fx.fxMembersAdmin, () => data.getMembersAdmin());
 export const committeeAccounts = () =>
   pick(fx.fxCommitteeAccounts, () => data.getCommitteeAccounts());
+/** The fund report (/report). Fixtures assemble the same shape from the fictional data. */
+export async function report(): Promise<ReportData> {
+  if (!usingFixtures) return data.getReport();
+  const year = thisYear();
+  const due = currentDueMonth(today(), fx.fxInfo().graceDays);
+  const months = fx.fxMemberMonths();
+  const summary = fx.fxSummary();
+  return {
+    year,
+    summary,
+    term: fx.fxTerms().find((t) => !t.endedOn) ?? null,
+    monthly: fx.fxMonthly(),
+    members: fx.fxMembers().map((m) => {
+      const mine = months.filter((x) => x.memberId === m.memberId);
+      return {
+        memberId: m.memberId,
+        memberRef: m.memberRef,
+        fullName: m.fullName,
+        groupCode: m.groupCode,
+        status: m.status,
+        statusLabel: m.statusLabel,
+        months: Array.from({ length: 12 }, (_, i) => {
+          const st = mine.find((x) => x.month === i + 1)?.state ?? "upcoming";
+          return st === "paid" && i + 1 > due ? "prepaid" : st;
+        }),
+        monthsPaid: m.monthsPaidThisYear,
+        monthsBehind: m.monthsBehind,
+        amountOwed: null,
+      };
+    }),
+    expenses: fx.fxExpenses().map((e) => ({
+      spentOn: e.spentOn,
+      category: e.category,
+      categoryLabel: categoryLabel(e.category),
+      note: e.note,
+      amount: e.amount,
+      campaignId: e.campaignId,
+    })),
+    expensesComplete: true,
+    campaigns: fx.fxCampaigns().map((c) => ({
+      campaignId: c.campaignId,
+      title: c.title,
+      status: c.status,
+      targetAmount: c.targetAmount,
+      collected: c.collected,
+      spent: c.spent,
+      balance: c.balance,
+    })),
+    showAmountOwed: false,
+    generatedAt: today().toISOString(),
+  };
+}
+/** Committee settings incl. the carried-over balance and its date (null if not readable). */
+export const fundSettings = () =>
+  pick(
+    () => ({
+      ...fx.fxInfo(),
+      openingBalance: fx.fxSummary().openingBalance,
+      openingBalanceOn: "2026-01-01",
+    }),
+    () => data.getFundSettings(),
+  );
 export const terms = () => pick(fx.fxTerms, () => data.getTerms());
 export const handovers = () => pick(fx.fxHandovers, () => data.getHandovers());
 export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());

@@ -3,14 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ASSOC,
-  categoryLabel,
-  currentDueMonth,
   dayDate,
   dayWords,
   fmt,
   groupLabel,
   isGone,
-  memberCode,
   MONTHS,
   statusLabel,
 } from "@/components/app/derive";
@@ -30,34 +27,25 @@ const Num = ({ children }: { children: React.ReactNode }) => (
  * WhatsApp group. TODO(lane-a): read everything from getReport() when it lands.
  */
 export default async function ReportPage() {
-  const year = src.thisYear();
-  const today = src.today();
-  const [summary, info, monthly, members, months, expenses, campaigns, terms] = await Promise.all([
-    src.fundSummary(),
-    src.fundInfo(),
-    src.monthly(year),
-    src.members(),
-    src.memberMonths(year),
-    src.expenses(),
-    src.campaigns(),
-    src.terms(),
-  ]);
-  const due = currentDueMonth(today, info.graceDays);
-  const shown = members.filter((m) => !isGone(m.status));
-  const byMember = new Map<string, Map<number, string>>();
-  for (const x of months) {
-    const row = byMember.get(x.memberId) ?? new Map<number, string>();
-    row.set(x.month, x.state);
-    byMember.set(x.memberId, row);
-  }
-  const payers = (k: number) => months.filter((x) => x.month === k && x.state === "paid").length;
-  const lists = [...new Set(shown.map((m) => m.listCode))].sort();
+  const r = await src.report();
+  const { year, summary } = r;
+  const today = new Date(r.generatedAt);
+  // left / deceased are hidden, as on the public lists
+  const shown = r.members.filter((m) => !isGone(m.status));
+  const listOf = (m: { memberRef: string }) => m.memberRef.split("-")[0];
+  const lists = [...new Set(shown.map(listOf))].sort();
   const month = today.getUTCMonth() + 1;
   const active = shown.filter((m) => m.status === "active");
-  const paidNow = active.filter((m) => byMember.get(m.memberId)?.get(month) === "paid").length;
-  const current = terms.find((t) => !t.endedOn);
+  const paidNow = active.filter(
+    (m) => m.months[month - 1] === "paid" || m.months[month - 1] === "prepaid",
+  ).length;
+  const payers = (k: number) =>
+    shown.filter((m) => m.months[k - 1] === "paid" || m.months[k - 1] === "prepaid").length;
+  const current = r.term;
   const termLabel = summary.termNumber ? `الدورة ${summary.termNumber}` : null;
-  const yearExpenses = expenses.filter((e) => e.spentOn.startsWith(String(year)));
+  const monthly = r.monthly;
+  const yearExpenses = r.expenses;
+  const campaigns = r.campaigns;
 
   return (
     <main className="rp">
@@ -210,35 +198,40 @@ export default async function ReportPage() {
             </thead>
             <tbody>
               {shown
-                .filter((m) => m.listCode === l)
-                .sort((a, b) => a.number - b.number)
+                .filter((m) => listOf(m) === l)
                 .map((m) => {
-                  const row = byMember.get(m.memberId);
                   return (
                     <tr key={m.memberId}>
                       <td>
-                        <Num>{memberCode(m)}</Num>
+                        <Num>{m.memberRef}</Num>
                       </td>
                       <td className="rp-name">{m.fullName}</td>
-                      {MONTHS.map((_, i) => {
-                        const st = row?.get(i + 1);
-                        const cls =
-                          st === "paid"
-                            ? i + 1 > due
-                              ? "is-ahead"
-                              : "is-paid"
-                            : st === "late"
-                              ? "is-late"
-                              : st === "not_owed"
-                                ? "is-off"
-                                : "";
-                        return (
-                          <td key={i} className={`rp-m ${cls}`}>
-                            {st === "paid" ? "✓" : st === "not_owed" ? "–" : ""}
-                          </td>
-                        );
-                      })}
-                      <td className="rp-st">{statusLabel(m, due)}</td>
+                      {m.months.map((st, i) => (
+                        <td
+                          key={i}
+                          className={`rp-m ${st === "paid" ? "is-paid" : st === "prepaid" ? "is-ahead" : st === "late" ? "is-late" : st === "not_owed" ? "is-off" : ""}`}
+                        >
+                          {st === "paid" || st === "prepaid" ? "✓" : st === "not_owed" ? "–" : ""}
+                        </td>
+                      ))}
+                      <td className="rp-st">
+                        {m.status === "active"
+                          ? statusLabel(
+                              {
+                                status: m.status,
+                                monthsBehind: m.monthsBehind,
+                                monthsPaidThisYear: m.monthsPaid,
+                              },
+                              month,
+                            )
+                          : m.statusLabel}
+                        {r.showAmountOwed && m.amountOwed ? (
+                          <>
+                            {" "}
+                            · <Num>{fmt(m.amountOwed)}</Num>
+                          </>
+                        ) : null}
+                      </td>
                     </tr>
                   );
                 })}
@@ -248,7 +241,7 @@ export default async function ReportPage() {
       </section>
 
       <section className="rp-sec">
-        <h2>المصاريف</h2>
+        <h2>المصاريف{!r.expensesComplete ? " (آخر 50 مصروفًا)" : ""}</h2>
         {yearExpenses.length ? (
           <table className="rp-table">
             <thead>
@@ -260,11 +253,11 @@ export default async function ReportPage() {
               </tr>
             </thead>
             <tbody>
-              {yearExpenses.map((e) => (
-                <tr key={e.id}>
+              {yearExpenses.map((e, i) => (
+                <tr key={`${e.spentOn}-${i}`}>
                   <td>{dayWords(e.spentOn)}</td>
-                  <td className="rp-name">{e.note ?? categoryLabel(e.category)}</td>
-                  <td>{categoryLabel(e.category)}</td>
+                  <td className="rp-name">{e.note ?? e.categoryLabel}</td>
+                  <td>{e.categoryLabel}</td>
                   <td>
                     <Num>{fmt(e.amount)}</Num>
                   </td>
