@@ -137,6 +137,16 @@ export const I = {
       <path d="m6 9.5 6 6 6-6" />
     </Ico>
   ),
+  back: (s?: number) => (
+    <Ico size={s}>
+      <path d="m9.5 6 6 6-6 6" />
+    </Ico>
+  ),
+  phone: (s?: number) => (
+    <Ico size={s}>
+      <path d="M6.5 4h3l1.5 4-2 1.2a10 10 0 0 0 4.8 4.8L15 12l4 1.5v3A2 2 0 0 1 17 18.5 13.5 13.5 0 0 1 4.5 7 2 2 0 0 1 6.5 4z" />
+    </Ico>
+  ),
   go: (s?: number) => (
     <Ico size={s}>
       <path d="m14.5 6-6 6 6 6" />

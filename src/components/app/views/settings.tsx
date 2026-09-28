@@ -131,7 +131,7 @@ export function SettingsView({
     <>
       <header className="bq-page-h">
         <Link href="/committee" className="bq-link bq-link-s bq-press">
-          {I.go(18)} رجوع إلى اللجنة
+          {I.back(18)} رجوع إلى اللجنة
         </Link>
         <h1>الإعدادات</h1>
         <p className="bq-lead">

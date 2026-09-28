@@ -110,48 +110,51 @@ export function CommitteeView({
   const none = members.filter((m) => m.status === "active" && m.monthsPaidThisYear === 0).length;
   return (
     <>
-      <div className="bq-com-bar">
-        <span>
-          <strong>بانتظار التأكيد</strong> <Num className="bq-com-n">{waiting}</Num>
-        </span>
-        <span className="bq-com-actions">
-          <Link href="/committee/settings" className="bq-link bq-link-s bq-press">
-            الإعدادات
-          </Link>
-          <LogoutButton className="bq-link bq-link-s bq-press">خروج</LogoutButton>
-        </span>
-      </div>
+      <div className="bq-com-head">
+        <div className="bq-com-bar">
+          <span className="bq-com-title">
+            <strong>اللجنة</strong>
+            <span className="bq-com-me">{me.by}</span>
+          </span>
+          <span className="bq-com-actions">
+            <Link href="/committee/settings" className="bq-link bq-link-s bq-press">
+              الإعدادات
+            </Link>
+            <LogoutButton className="bq-link bq-link-s bq-press">خروج</LogoutButton>
+          </span>
+        </div>
 
-      <Segmented
-        label="أقسام اللجنة"
-        value={part}
-        onChange={setPart}
-        items={[
-          {
-            k: "pay",
-            l: (
-              <>
-                الدفعات <Num className="bq-seg-n">{waiting}</Num>
-              </>
-            ),
-          },
-          {
-            k: "late",
-            l: (
-              <>
-                المتأخرون <Num className="bq-seg-n">{arrears.length}</Num>
-              </>
-            ),
-          },
-          { k: "exp", l: "المصاريف" },
-          ...(canCampaign
-            ? [
-                { k: "mem" as const, l: "الأعضاء" },
-                { k: "camp" as const, l: "الحملات" },
-              ]
-            : []),
-        ]}
-      />
+        <Segmented
+          label="أقسام اللجنة"
+          value={part}
+          onChange={setPart}
+          items={[
+            {
+              k: "pay",
+              l: (
+                <>
+                  الدفعات <Num className="bq-seg-n">{waiting}</Num>
+                </>
+              ),
+            },
+            {
+              k: "late",
+              l: (
+                <>
+                  المتأخرون <Num className="bq-seg-n">{arrears.length}</Num>
+                </>
+              ),
+            },
+            { k: "exp", l: "المصاريف" },
+            ...(canCampaign
+              ? [
+                  { k: "mem" as const, l: "الأعضاء" },
+                  { k: "camp" as const, l: "الحملات" },
+                ]
+              : []),
+          ]}
+        />
+      </div>
 
       {part === "pay" && (
         <>

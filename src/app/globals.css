@@ -3023,3 +3023,110 @@
     text-align: center;
   }
 }
+
+/* ───── round 4: committee polish ───── */
+@layer components {
+  /* before the indicator is measured (first paint, slow phones) the pressed option paints itself */
+  .bq-seg-in:not([data-ready]) .bq-seg-b[aria-pressed="true"] {
+    background: var(--g8);
+  }
+  /* a row that scrolls shows it: soft fade at both ends */
+  .bq-seg[data-over="true"] {
+    -webkit-mask-image: linear-gradient(
+      to left,
+      transparent 0,
+      #000 18px,
+      #000 calc(100% - 18px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to left,
+      transparent 0,
+      #000 18px,
+      #000 calc(100% - 18px),
+      transparent 100%
+    );
+  }
+  /* committee header: title, who is signed in, actions, and the section switcher stay in reach */
+  .bq-com-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin-inline: -20px;
+    padding: calc(8px + var(--safe-t)) 20px 10px;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: var(--sh-sticky);
+  }
+  .bq-com-head .bq-com-bar {
+    position: static;
+    margin: 0;
+    padding: 0 0 6px;
+    background: none;
+    box-shadow: none;
+  }
+  .bq-com-title {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+    min-width: 0;
+  }
+  .bq-com-me {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .bq-com-head + .bq-queue,
+  .bq-com-head + .bq-sec {
+    margin-block-start: 20px;
+  }
+  @media (min-width: 1024px) {
+    .bq-com-head {
+      margin-inline: 0;
+      padding-inline: 0;
+      padding-block-start: 24px;
+      box-shadow: 0 10px 20px -18px rgba(16, 40, 24, 0.35);
+    }
+    .bq-com-head .bq-com-bar {
+      padding: 0 0 8px;
+    }
+  }
+}
+@layer components {
+  .bq-group-static {
+    cursor: default;
+    margin-block-end: 4px;
+  }
+  .bq-link-quiet {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .bq-mline + .bq-link {
+    margin-block-start: 0;
+  }
+}
+@layer components {
+  .bq-skel {
+    border-radius: var(--r-card);
+    background: var(--n1);
+    animation: bq-skel 1.2s var(--ease-out) infinite alternate;
+  }
+  .bq-skel-seg {
+    height: 52px;
+    border-radius: 999px;
+  }
+  .bq-skel-slip {
+    height: 280px;
+  }
+  .bq-queue > .bq-skel-slip + .bq-skel-slip {
+    margin-block-start: 16px;
+  }
+}
+@keyframes bq-skel {
+  to {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bq-skel {
+    animation: none;
+  }
+}

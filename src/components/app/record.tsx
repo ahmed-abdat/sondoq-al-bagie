@@ -256,7 +256,7 @@ export function RecordBody({
 
           {open.length > 0 && (
             <>
-              <p className="bq-rec-k">مساهمة في حملة مع نفس التحويل (اختياري)</p>
+              <p className="bq-rec-k">مساهمة في حملة (اختياري)</p>
               <div className="bq-chips" role="radiogroup" aria-label="الحملة">
                 {open.map((c) => (
                   <button
@@ -413,6 +413,9 @@ export function RecordBody({
               <p className="bq-alert" role="alert">
                 {err}
               </p>
+            )}
+            {!err && (months.length > 0 || campAmt > 0) && !meth && (
+              <p className="bq-hint">بقي أن تختار كيف دفع.</p>
             )}
             <button
               type="button"

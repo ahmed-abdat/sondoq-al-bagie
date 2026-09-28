@@ -27,6 +27,9 @@ export function Segmented<T extends string>({
       const l = on.offsetLeft;
       const r = w.offsetWidth - l - on.offsetWidth;
       i.style.clipPath = `inset(0 ${r}px 0 ${l}px round 999px)`;
+      w.dataset.ready = "";
+      const t = track.current;
+      if (t) t.dataset.over = t.scrollWidth > t.clientWidth + 1 ? "true" : "false";
     };
     place();
     // scroll only the chip row, horizontally — never the page; skip on mount

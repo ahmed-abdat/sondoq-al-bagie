@@ -11,6 +11,7 @@ import {
   fmt,
   groupLabel,
   memberCode,
+  monthsWord,
   MONTHS,
   nextFreeNumber,
   searchMembers,
@@ -235,15 +236,34 @@ export function MemberAdminBody({
             <Num>{memberCode(m)}</Num> · الفئة {groupLabel(m.groupCode)} ·{" "}
             {STATE_LABEL[m.status as State] ?? m.status}
           </p>
-          {m.phone && (
-            <p className="bq-hint">
-              <bdi dir="ltr" className="bq-num">
-                {m.phone}
-              </bdi>
-            </p>
-          )}
         </div>
       </div>
+      <p className="bq-mline">
+        {m.status === "active" ? (
+          <>
+            دفع <Num className="bq-strong">{m.monthsPaidThisYear}</Num> من 12 شهرًا هذا العام
+            {m.monthsBehind > 0 && (
+              <>
+                {" "}
+                · متأخر <Num className="bq-strong">{m.monthsBehind}</Num> ·{" "}
+                <Num>{fmt(m.amountOwed)}</Num> أوقية
+              </>
+            )}
+          </>
+        ) : (
+          "لا تُحسب عليه رسوم الآن."
+        )}
+      </p>
+      {m.phone ? (
+        <a className="bq-link bq-press" href={`tel:${m.phone}`}>
+          {I.phone(18)}
+          <bdi dir="ltr" className="bq-num">
+            {m.phone}
+          </bdi>
+        </a>
+      ) : (
+        <p className="bq-hint">لا يوجد رقم هاتف. أضِفه من «تعديل البيانات» ليصله التذكير.</p>
+      )}
 
       {mode === "view" && (
         <div className="bq-btn-col bq-small-top">
@@ -566,30 +586,51 @@ export function MembersAdmin({
         ]}
       />
       {list.length ? (
-        <ul className="bq-list bq-gap-top">
-          {list.map((m) => (
-            <li key={m.memberId}>
-              <button
-                type="button"
-                className="bq-row bq-press"
-                onClick={() => setSheet({ t: "member", id: m.memberId })}
-                aria-label={`${memberCode(m)}، ${m.fullName}`}
-              >
-                <Avatar code={memberCode(m)} />
-                <span className="bq-row-m">
-                  <span className="bq-row-t">{m.fullName}</span>
-                  <span className="bq-row-s">
-                    الفئة {groupLabel(m.groupCode)}
-                    {m.phone ? " · له رقم هاتف" : ""}
-                  </span>
-                </span>
-                <StatusTag m={m} />
-              </button>
-            </li>
-          ))}
-        </ul>
+        (g === "all" && !q.trim() ? LISTS : [null]).map((l) => {
+          const items = l ? list.filter((m) => m.listCode === l) : list;
+          if (!items.length) return null;
+          return (
+            <section
+              key={l ?? "all"}
+              className="bq-group"
+              aria-label={l ? `قائمة ${l}` : "النتائج"}
+            >
+              <h3 className="bq-group-h bq-group-static">
+                <span className="bq-group-t">{l ? `قائمة ${l}` : "النتائج"}</span>
+                <Num className="bq-group-n">{items.length}</Num>
+              </h3>
+              <ul className="bq-list">
+                {items.map((m) => (
+                  <li key={m.memberId}>
+                    <button
+                      type="button"
+                      className="bq-row bq-press"
+                      onClick={() => setSheet({ t: "member", id: m.memberId })}
+                      aria-label={`${memberCode(m)}، ${m.fullName}`}
+                    >
+                      <Avatar code={memberCode(m)} />
+                      <span className="bq-row-m">
+                        <span className="bq-row-t">{m.fullName}</span>
+                        <span className="bq-row-s">
+                          الفئة {groupLabel(m.groupCode)}
+                          {m.phone ? "" : " · بلا رقم هاتف"}
+                        </span>
+                      </span>
+                      <StatusTag m={m} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })
       ) : (
-        <p className="bq-hint bq-gap-top">لا أحد في هذه القائمة.</p>
+        <div className="bq-empty">
+          <p className="bq-empty-t">
+            {q.trim() ? "لم نجد عضوًا بهذا الاسم أو الرقم" : "لا أحد بهذه الحالة"}
+          </p>
+          <p className="bq-hint">جرّب جزءًا من الاسم، أو رقمًا مثل B-12.</p>
+        </div>
       )}
 
       {sheet?.t === "add" && (
