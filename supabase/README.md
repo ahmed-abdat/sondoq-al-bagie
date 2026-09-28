@@ -72,14 +72,19 @@ node supabase/import/import-paper.mts --sheet supabase/import/data/sheet.csv \
 |---|---|
 | sheet | `number,name,group,m1..m12` (group `A`/`B` or `أ`/`ب`; any non-empty month cell = paid) |
 | phones (optional) | `number,phone` (8 local digits become `+222…`) |
-| page totals (optional) | `page,from_number,to_number,m1..m12`: the total written on each page, in MRO |
+| page totals (optional) | `page,from_number,to_number` plus `m1..m12` and/or `total`: amounts written on each page, in MRO (empty = not checked) |
 
 Errors (duplicate number, unknown group, bad phone, …) stop it; warnings (numbering gaps, an
 unticked month between ticks, a page total that does not match the ticks) are for the owner to
 check against the paper. Prices default to A=1000, B=500 (`--price A=1000`); the SQL refuses to run
 if the database prices differ. Paste the generated file into the SQL editor: it is one transaction,
 and running it again adds nothing (payment ids are derived from year + member number). The file
-holds names and phones: do not commit or share it. Tests: `node --test supabase/import/import-paper.test.mts`
+holds names and phones: do not commit or share it.
+
+Before the real import, rehearse it on a throwaway local database (never the real project):
+`supabase/import/check-local.sh --sheet supabase/import/data/sheet-2026.csv [--page-totals …]`
+prints the dry run, then imports twice locally and reports members, payments, money, who is up to
+date or behind per group, and that the second run added nothing. No names are printed. Tests: `node --test supabase/import/import-paper.test.mts`
 (also run by `tests/local/run.sh`, which applies the sample import twice to a throwaway database).
 
 ## Types
