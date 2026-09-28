@@ -312,6 +312,8 @@ export type CommitteeSession = {
   displayName: string;
   role: CommitteeRole;
   memberId: string | null;
+  /** may confirm/reject payments (admin, treasurer, deputy) — except ones covering memberId */
+  canConfirm: boolean;
 };
 
 /* ───────────── receipts (/r/[code]) ───────────── */

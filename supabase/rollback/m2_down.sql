@@ -1,6 +1,11 @@
 -- Undo the M2 migrations (dev/branch only). Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- admin confirms (m8)
+create or replace function app_private.can_confirm() returns boolean
+language sql stable security definer set search_path = '' as $$
+  select coalesce(app_private.my_role() in ('treasurer', 'deputy'), false) or app_private.is_server();
+$$;
 -- terms and handover (m8)
 drop view if exists public.handovers_admin, public.terms_public, public.fund_summary;
 drop function if exists public.start_handover(uuid, text), public.update_handover_draft(uuid, jsonb, uuid[], text),
