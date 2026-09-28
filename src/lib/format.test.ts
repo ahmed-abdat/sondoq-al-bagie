@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatMro, formatMru, formatNumber, percent, THIN } from "./format";
+import { formatMro, formatMru, formatNumber, ltr, percent, THIN } from "./format";
 
 describe("formatNumber", () => {
   it("groups thousands with a narrow no-break space", () => {
@@ -28,5 +28,12 @@ describe("percent", () => {
   it("rounds to a whole number", () => {
     expect(percent(11, 12)).toBe(92);
     expect(percent(0, 0)).toBe(0);
+  });
+});
+
+describe("ltr", () => {
+  it("isolates a left-to-right run with U+2066…U+2069", () => {
+    expect(ltr("+222 36 12 34 56")).toBe("\u2066+222 36 12 34 56\u2069");
+    expect(ltr(22000001)).toBe("\u206622000001\u2069");
   });
 });

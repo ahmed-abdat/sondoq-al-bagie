@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { monthName } from "@/lib/dates";
-import { formatMro } from "@/lib/format";
+import { formatNumber, ltr } from "@/lib/format";
 import { groupReminderText, monthsList, reminderLink, reminderText } from "./reminders";
 import type { Arrear } from "./types";
 
@@ -44,10 +44,10 @@ describe("reminders", () => {
     expect(t).toContain("محمد ولد أحمد");
     expect(t).toContain("الرسوم الشهرية");
     expect(t).toContain("شهران");
-    expect(t).toContain(`${formatMro(2000)} (`);
-    expect(t).toContain("MRU)");
-    expect(t).toContain("بنكيلي: 22000001 (رابطة البقيع)");
-    expect(t).toContain("+22200000000");
+    expect(t).toContain(`${formatNumber(2000)} أوقية (${formatNumber(200)} أوقية جديدة)`);
+    expect(t).not.toContain("MRU");
+    expect(t).toContain(`بنكيلي: ${ltr("22000001")} (رابطة البقيع)`);
+    expect(t).toContain(ltr("+22200000000"));
   });
 
   it("links to the member's WhatsApp", () => {
