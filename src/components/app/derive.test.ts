@@ -18,6 +18,7 @@ import {
   monthsWord,
   normalizeAr,
   relativeAgo,
+  remindedLabel,
   searchMembers,
   statusLabel,
 } from "./derive";
@@ -141,6 +142,9 @@ describe("dates and money", () => {
     expect(relativeAgo("2026-09-28T09:00:00Z", now)).toBe("منذ ساعة");
     expect(relativeAgo("2026-09-25T10:00:00Z", now)).toBe("منذ 3 أيام");
     expect(relativeAgo("2026-09-01T10:00:00Z", now)).toBe("1 سبتمبر");
+    expect(remindedLabel("2026-09-25T10:00:00Z", now)).toBe("ذُكّر قبل 3 أيام");
+    expect(remindedLabel("2026-09-27T09:00:00Z", now)).toBe("ذُكّر أمس");
+    expect(remindedLabel(null, now)).toBe("لم يُذكَّر بعد");
   });
   it("groups thousands and masks refs", () => {
     expect(fmt(249000)).toBe("249 000");

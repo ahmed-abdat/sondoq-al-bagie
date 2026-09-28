@@ -34,17 +34,29 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
 - Verified: `pnpm check` + `pnpm build` green; Playwright screenshots 390/1280 of every route and
   of sheet/confirm/record flows, no console errors, no horizontal overflow.
 
+## Round 2 (done)
+- Fixture mode shows «بيانات تجريبية — ليست أرقام الصندوق الحقيقية» on every page (root layout).
+- Group prices from `getGroupPrices(year)` (`source.groupPrices`, fixtures keep A 1000 / B 500).
+- /committee is split by a segmented control: الدفعات · المتأخرون · المصاريف · الحملات
+  (الحملات for admin/treasurer/deputy only).
+  - المتأخرون (`reminders.tsx`): group reminder (`groupReminderText`, logged as "group") and one
+    WhatsApp button per member (`reminderLink`, logged as "individual"), «ذُكّر قبل 3 أيام».
+  - المصاريف (`expense.tsx`): record sheet (category chips, note, amount, date, main fund or an
+    open campaign, invoice photo → `uploadProof` kind "expenses" → `recordExpense`); recent list
+    (`getExpensesAdmin`) with «إلغاء» + reason chips → `cancelExpense`.
+  - الحملات (`campaign-form.tsx`): new (`createCampaign`, amountMode "open"), edit
+    (`updateCampaign`), close with surplus choice (`closeCampaign` to_fund/keep).
+- Offline banner time: `cache-seed.tsx` (public layout) writes the server-read fund summary into
+  the persisted public query cache with its read time, so the banner says «آخر تحديث قبل …».
+
 ## Remaining / next
-1. Committee campaign form (createCampaign / updateCampaign / closeCampaign) and campaign
-   allocations in the record sheet — actions exist on m2-app, UI not built.
-2. Expenses: record-expense sheet (`recordExpense`, `uploadProof` kind "expenses") — not built.
-3. Per-member reminders list (`reminderLink` + `logReminder` individual) on /committee; only the
-   group reminder is wired.
-4. Group prices: `source.groupPrices()` is a constant A 1000 / B 500 — TODO(lane-a) public
-   `group_prices` read.
-5. Offline "last updated": pages are Server Components (SW caches the HTML); public data is not
-   yet mirrored into TanStack Query, so the offline banner has no timestamp from them.
-6. Lane A copy: `src/lib/data/reminders.ts` says «حالة الاشتراكات» — must be «الرسوم الشهرية».
+1. Lane B: `PERSIST_MAX_AGE` (30 days) is used as `gcTime`; it exceeds setTimeout's 2^31 ms, so
+   queries without observers are garbage-collected immediately. Use `gcTime: Infinity` (or ≤ 24
+   days) in `src/components/providers/index.tsx`. `cache-seed.tsx` works around it with a
+   disabled observer.
+2. Campaign allocations in the record-payment sheet (a transfer split between months and a
+   campaign) and participants for fixed/per-group campaigns — not built.
+3. Lane A copy: `src/lib/data/reminders.ts` still says «حالة الاشتراكات» (must be «الرسوم الشهرية»).
 
 ## How to verify
 `pnpm check && pnpm build`. Screenshots: `SONDOQ_FIXTURES=1 pnpm dev -p 3400`; /committee needs a

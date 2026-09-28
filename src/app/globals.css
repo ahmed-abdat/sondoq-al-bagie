@@ -3009,3 +3009,17 @@
     transform: rotate(180deg);
   }
 }
+
+@layer components {
+  /* preview deploys with fictional data: never mistaken for the fund's real figures */
+  .bq-demo {
+    position: relative;
+    z-index: 45;
+    padding: calc(6px + var(--safe-t)) 16px 6px;
+    background: var(--n1);
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+  }
+}

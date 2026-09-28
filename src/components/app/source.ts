@@ -17,11 +17,12 @@ const pick = <T>(fixture: () => T, real: () => Promise<T>): Promise<T> =>
 export const today = () => (usingFixtures ? fx.FX_TODAY : new Date());
 export const thisYear = () => today().getUTCFullYear();
 
-/**
- * Monthly fee per group, MRO. TODO(lane-a): expose group_prices publicly; until then the
- * association's current rule (A 1000 / B 500) is used for the record sheet and the member sheet.
- */
-export const groupPrices = (): Record<string, number> => fx.FX_PRICE;
+/** Monthly fee per group code for a year, MRO ({ A: 1000, B: 500 }). */
+export async function groupPrices(year = thisYear()): Promise<Record<string, number>> {
+  if (usingFixtures) return fx.FX_PRICE;
+  const rows = await data.getGroupPrices(year);
+  return Object.fromEntries(rows.filter((r) => r.year === year).map((r) => [r.group, r.monthlyAmount]));
+}
 
 /* ───────────── public ───────────── */
 export const fundSummary = () => pick(fx.fxSummary, () => data.getFundSummary());
@@ -114,3 +115,4 @@ export const committeeSession = () => pick(fx.fxSession, () => data.getCommittee
 export const pendingPayments = () => pick(fx.fxPending, () => data.getPendingPayments());
 export const arrears = () => pick(fx.fxArrears, () => data.getArrears());
 export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFundAccountsAdmin());
+export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());

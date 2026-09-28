@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Alexandria, Noto_Sans_Arabic } from "next/font/google";
+import { usingFixtures } from "@/components/app/source";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -31,6 +32,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ar" dir="rtl" className={`${body.variable} ${display.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">
+        {usingFixtures && (
+          <p className="bq-demo" role="note">
+            بيانات تجريبية — ليست أرقام الصندوق الحقيقية
+          </p>
+        )}
         <Providers>{children}</Providers>
       </body>
     </html>

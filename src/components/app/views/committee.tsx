@@ -3,11 +3,19 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/app/login/actions";
-import { logReminder } from "@/lib/data/actions";
 import { usePaymentsRealtime } from "@/lib/data/realtime";
-import { groupReminderText } from "@/lib/data/reminders";
-import type { FundAccount, MemberStatus, PendingPayment } from "@/lib/data/types";
-import { waLink } from "@/lib/whatsapp";
+import type {
+  Arrear,
+  CampaignProgress,
+  ExpenseAdmin,
+  FundAccount,
+  MemberStatus,
+  PendingPayment,
+} from "@/lib/data/types";
+import { CampaignAdminList, CampaignFormBody, CloseCampaignBody } from "../campaign-form";
+import { ExpenseAdminList, RecordExpenseBody } from "../expense";
+import { LateList } from "../reminders";
+import { Segmented } from "../segmented";
 import { EmptyState } from "../bits";
 import { ShareBtns } from "../entries";
 import { I } from "../icons";
@@ -34,6 +42,10 @@ export function CommitteeView({
   ctx,
   accounts,
   whatsapp,
+  arrears,
+  expenses,
+  campaigns,
+  canCampaign,
 }: {
   pending: PendingPayment[];
   me: { by: string; role: string };
@@ -41,16 +53,31 @@ export function CommitteeView({
   ctx: MemberCtx;
   accounts: FundAccount[];
   whatsapp: string | null;
+  arrears: Arrear[];
+  expenses: ExpenseAdmin[];
+  campaigns: CampaignProgress[];
+  /** admin, treasurer, deputy */
+  canCampaign: boolean;
 }) {
+  const [part, setPart] = useState<"pay" | "late" | "exp" | "camp">("pay");
   const say = useSnack();
   // keep decided slips on screen (collapsed) after the server list drops them
   const [seen, setSeen] = useState(pending);
   const fresh = pending.filter((p) => !seen.some((s) => s.id === p.id));
   if (fresh.length) setSeen([...seen, ...fresh]);
   const waiting = pending.length;
-  const [sheet, setSheet] = useState<{ t: "record" } | { t: "receipt"; r: ReceiptView } | null>(
-    null,
-  );
+  const [sheet, setSheet] = useState<
+    | { t: "record" }
+    | { t: "receipt"; r: ReceiptView }
+    | { t: "expense" }
+    | { t: "campaign"; c?: CampaignProgress }
+    | { t: "close"; c: CampaignProgress }
+    | null
+  >(null);
+  const doneSay = (t: string) => {
+    setSheet(null);
+    say(t);
+  };
   const [fabMini, setFabMini] = useState(false);
   useEffect(() => {
     let last = window.scrollY;
@@ -64,18 +91,6 @@ export function CommitteeView({
     return () => window.removeEventListener("scroll", on);
   }, []);
   const none = members.filter((m) => m.status === "active" && m.monthsPaidThisYear === 0).length;
-  const late = members.filter((m) => m.status === "active" && m.monthsBehind > 0).length;
-  const sendGroup = () => {
-    const text = groupReminderText({
-      accounts,
-      whatsappContact: whatsapp,
-      lateCount: late,
-      publicUrl: `${window.location.origin}/members`,
-    });
-    window.open(waLink(null, text), "_blank", "noopener");
-    void logReminder({ kind: "group" });
-  };
-
   return (
     <>
       <div className="bq-com-bar">
@@ -94,49 +109,115 @@ export function CommitteeView({
         </span>
       </div>
 
-      <ul className="bq-queue">
-        {seen.map((p) => (
-          <li key={p.id}>
-            <PendingSlip p={p} me={me} onFull={(r) => setSheet({ t: "receipt", r })} />
-          </li>
-        ))}
-      </ul>
-      {waiting === 0 && (
-        <EmptyState
-          icon={I.check(22)}
-          title="راجعت كل الدفعات"
-          hint="ستظهر هنا أي دفعة جديدة يسجّلها المشرفون."
-        />
+      <Segmented
+        label="أقسام اللجنة"
+        value={part}
+        onChange={setPart}
+        items={[
+          {
+            k: "pay",
+            l: (
+              <>
+                الدفعات <Num className="bq-seg-n">{waiting}</Num>
+              </>
+            ),
+          },
+          {
+            k: "late",
+            l: (
+              <>
+                المتأخرون <Num className="bq-seg-n">{arrears.length}</Num>
+              </>
+            ),
+          },
+          { k: "exp", l: "المصاريف" },
+          ...(canCampaign ? [{ k: "camp" as const, l: "الحملات" }] : []),
+        ]}
+      />
+
+      {part === "pay" && (
+        <>
+          <ul className="bq-queue">
+            {seen.map((p) => (
+              <li key={p.id}>
+                <PendingSlip p={p} me={me} onFull={(r) => setSheet({ t: "receipt", r })} />
+              </li>
+            ))}
+          </ul>
+          {waiting === 0 && (
+            <EmptyState
+              icon={I.check(22)}
+              title="راجعت كل الدفعات"
+              hint="ستظهر هنا أي دفعة جديدة يسجّلها المشرفون."
+            />
+          )}
+          <section className="bq-sec" aria-labelledby="bq-follow-h">
+            <h2 id="bq-follow-h">للمتابعة</h2>
+            <Link
+              href="/members?filter=none"
+              className="bq-row bq-press"
+              transitionTypes={["tab-back"]}
+            >
+              <span className="bq-disc">{I.people(22)}</span>
+              <span className="bq-row-m">
+                <span className="bq-row-t">لم يدفعوا أي شهر هذا العام</span>
+                <span className="bq-row-s">للمتابعة معهم</span>
+              </span>
+              <Num className="bq-amt">{none}</Num>
+              <span className="bq-chev">{I.go(18)}</span>
+            </Link>
+            <button type="button" className="bq-row bq-press" onClick={() => setPart("late")}>
+              <span className="bq-disc is-in">{I.wa(22)}</span>
+              <span className="bq-row-m">
+                <span className="bq-row-t">تذكير المتأخرين</span>
+                <span className="bq-row-s">واحدًا واحدًا أو في المجموعة</span>
+              </span>
+              <Num className="bq-amt">{arrears.length}</Num>
+              <span className="bq-chev">{I.go(18)}</span>
+            </button>
+          </section>
+        </>
       )}
 
-      <section className="bq-sec" aria-labelledby="bq-follow-h">
-        <h2 id="bq-follow-h">للمتابعة</h2>
-        <Link
-          href="/members?filter=none"
-          className="bq-row bq-press"
-          transitionTypes={["tab-back"]}
-        >
-          <span className="bq-disc">{I.people(22)}</span>
-          <span className="bq-row-m">
-            <span className="bq-row-t">لم يدفعوا أي شهر هذا العام</span>
-            <span className="bq-row-s">للمتابعة معهم</span>
-          </span>
-          <Num className="bq-amt">{none}</Num>
-          <span className="bq-chev">{I.go(18)}</span>
-        </Link>
-        <button type="button" className="bq-row bq-press" onClick={sendGroup}>
-          <span className="bq-disc is-in">{I.wa(22)}</span>
-          <span className="bq-row-m">
-            <span className="bq-row-t">تذكير في مجموعة الواتساب</span>
-            <span className="bq-row-s">
-              بلا أسماء ولا مبالغ · المتأخرون: <Num>{late}</Num>
-            </span>
-          </span>
-          <span className="bq-chev">{I.go(18)}</span>
-        </button>
-      </section>
+      {part === "late" && (
+        <section className="bq-sec bq-sec-first" aria-label="المتأخرون">
+          <LateList arrears={arrears} ctx={{ accounts, whatsappContact: whatsapp }} />
+        </section>
+      )}
 
-      {!sheet && (
+      {part === "exp" && (
+        <section className="bq-sec bq-sec-first" aria-label="المصاريف">
+          <button
+            type="button"
+            className="bq-btn bq-btn-primary bq-btn-lg bq-press"
+            onClick={() => setSheet({ t: "expense" })}
+          >
+            {I.plus(20)} سجّل مصروفًا
+          </button>
+          <h2 className="bq-h3">آخر المصاريف</h2>
+          <ExpenseAdminList items={expenses} onSay={say} />
+        </section>
+      )}
+
+      {part === "camp" && canCampaign && (
+        <section className="bq-sec bq-sec-first" aria-label="الحملات">
+          <button
+            type="button"
+            className="bq-btn bq-btn-primary bq-btn-lg bq-press"
+            onClick={() => setSheet({ t: "campaign" })}
+          >
+            {I.plus(20)} حملة جديدة
+          </button>
+          <h2 className="bq-h3">الحملات</h2>
+          <CampaignAdminList
+            campaigns={campaigns}
+            onEdit={(c) => setSheet({ t: "campaign", c })}
+            onClose={(c) => setSheet({ t: "close", c })}
+          />
+        </section>
+      )}
+
+      {!sheet && part === "pay" && (
         <button
           type="button"
           className={`bq-fab bq-press ${fabMini ? "is-mini" : ""}`}
@@ -150,15 +231,26 @@ export function CommitteeView({
 
       {sheet?.t === "record" && (
         <Sheet key="record" label="سجّل دفعة" onDone={() => setSheet(null)}>
-          <RecordBody
-            members={members}
-            ctx={ctx}
-            accounts={accounts}
-            onDone={(t) => {
-              setSheet(null);
-              say(t);
-            }}
-          />
+          <RecordBody members={members} ctx={ctx} accounts={accounts} onDone={doneSay} />
+        </Sheet>
+      )}
+      {sheet?.t === "expense" && (
+        <Sheet key="expense" label="سجّل مصروفًا" onDone={() => setSheet(null)}>
+          <RecordExpenseBody campaigns={campaigns} onDone={doneSay} />
+        </Sheet>
+      )}
+      {sheet?.t === "campaign" && (
+        <Sheet
+          key="campaign"
+          label={sheet.c ? "تعديل الحملة" : "حملة جديدة"}
+          onDone={() => setSheet(null)}
+        >
+          <CampaignFormBody campaign={sheet.c} onDone={doneSay} />
+        </Sheet>
+      )}
+      {sheet?.t === "close" && (
+        <Sheet key="close" label="إغلاق الحملة" onDone={() => setSheet(null)}>
+          <CloseCampaignBody campaign={sheet.c} onDone={doneSay} />
         </Sheet>
       )}
       {sheet?.t === "receipt" && (
