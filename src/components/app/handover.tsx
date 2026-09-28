@@ -9,7 +9,7 @@ import type { CommitteeAccount, CountedLine, FundAccountAdmin, Handover } from "
 import { METHOD_LABELS } from "@/lib/methods";
 import { parseAmount, toWesternDigits } from "@/lib/money";
 import { waLink } from "@/lib/whatsapp";
-import { useAct, useDemoState } from "./act";
+import { useAct, useDemoState, useIsDemo } from "./act";
 import { dayDate, fmt, ROLE_LABEL } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
@@ -79,6 +79,7 @@ export function HandoverView({
   const online = useOnline();
   const act = useAct();
   const demo = useDemoState();
+  const demoOn = useIsDemo();
   const h = demo.handover ?? server;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -177,6 +178,12 @@ export function HandoverView({
         {h.acceptedAt ? ` يوم ${dayDate(h.acceptedAt)}` : ""}.
       </p>
       <Summary h={h} computed={h.computedBalance ?? balance} />
+      {demoOn && (
+        <p className="bq-hint">
+          في النسخة التجريبية لا تتغيّر الصفحات العامة؛ في النسخة الحقيقية تبدأ الدورة الجديدة من
+          اليوم.
+        </p>
+      )}
       <div className="bq-share">
         <a
           className="bq-btn bq-btn-primary bq-press"

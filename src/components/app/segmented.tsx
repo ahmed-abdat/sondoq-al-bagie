@@ -18,6 +18,17 @@ export function Segmented<T extends string>({
   const inner = useRef<HTMLDivElement>(null);
   const ind = useRef<HTMLSpanElement>(null);
   const mounted = useRef(false);
+  /** which ends hide more options (RTL: scrollLeft is 0 at the start, negative toward the end) */
+  const markOver = () => {
+    const t = track.current;
+    if (!t) return;
+    const hidden = t.scrollWidth - t.clientWidth;
+    if (hidden <= 1) return void (t.dataset.over = "false");
+    const fromStart = Math.abs(t.scrollLeft);
+    const start = fromStart > 2;
+    const end = fromStart < hidden - 2;
+    t.dataset.over = start && end ? "both" : start ? "start" : "end";
+  };
   useLayoutEffect(() => {
     const place = () => {
       const w = inner.current;
@@ -28,8 +39,7 @@ export function Segmented<T extends string>({
       const r = w.offsetWidth - l - on.offsetWidth;
       i.style.clipPath = `inset(0 ${r}px 0 ${l}px round 999px)`;
       w.dataset.ready = "";
-      const t = track.current;
-      if (t) t.dataset.over = t.scrollWidth > t.clientWidth + 1 ? "true" : "false";
+      markOver();
     };
     place();
     // scroll only the chip row, horizontally — never the page; skip on mount
@@ -47,7 +57,7 @@ export function Segmented<T extends string>({
     return () => ro.disconnect();
   }, [value]);
   return (
-    <div className="bq-seg" ref={track}>
+    <div className="bq-seg" ref={track} onScroll={markOver}>
       <div className="bq-seg-in" role="group" aria-label={label} ref={inner}>
         <span className="bq-seg-ind" ref={ind} aria-hidden="true" />
         {items.map((it) => (

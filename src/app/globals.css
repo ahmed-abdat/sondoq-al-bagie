@@ -3036,19 +3036,28 @@
     background: var(--g8);
   }
   /* a row that scrolls shows it: soft fade at both ends */
-  .bq-seg[data-over="true"] {
+  /* fade only the end that hides more options (RTL: the end is on the left) */
+  .bq-seg[data-over="end"] {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px);
+    mask-image: linear-gradient(to right, transparent 0, #000 22px);
+  }
+  .bq-seg[data-over="start"] {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
+  }
+  .bq-seg[data-over="both"] {
     -webkit-mask-image: linear-gradient(
-      to left,
+      to right,
       transparent 0,
-      #000 18px,
-      #000 calc(100% - 18px),
+      #000 22px,
+      #000 calc(100% - 22px),
       transparent 100%
     );
     mask-image: linear-gradient(
-      to left,
+      to right,
       transparent 0,
-      #000 18px,
-      #000 calc(100% - 18px),
+      #000 22px,
+      #000 calc(100% - 22px),
       transparent 100%
     );
   }
