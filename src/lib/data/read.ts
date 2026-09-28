@@ -4,7 +4,13 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import * as map from "./map";
-import type { ActivityItem, CommitteeAccount, ExpenseAdmin, FundAccountAdmin } from "./types";
+import type {
+  ActivityItem,
+  CommitteeAccount,
+  ExpenseAdmin,
+  FundAccountAdmin,
+  FundSettings,
+} from "./types";
 
 export type Client = SupabaseClient<Database>;
 
@@ -321,6 +327,20 @@ export async function committeeAccounts(c: Client): Promise<CommitteeAccount[]> 
     lastSignInAt: r.last_sign_in_at,
     createdAt: r.created_at ?? "",
   }));
+}
+
+/** The settings row (committee), with the opening balance and its date. */
+export async function fundSettings(c: Client): Promise<FundSettings | null> {
+  const r = must("settings", await c.from("settings").select("*").maybeSingle());
+  return r
+    ? {
+        whatsappContact: r.whatsapp_contact,
+        graceDays: r.grace_days,
+        showAmountOwed: r.show_amount_owed,
+        openingBalance: r.opening_balance,
+        openingBalanceOn: r.opening_balance_on,
+      }
+    : null;
 }
 
 export async function fundAccountsAdmin(c: Client): Promise<FundAccountAdmin[]> {

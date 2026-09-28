@@ -56,6 +56,8 @@ export const getCommitteeAccounts = committee(read.committeeAccounts, []);
 export const getHandovers = committee(read.handovers, []);
 export const getHandover = committee(read.handoverById, null);
 export const getFundAccountsAdmin = committee(read.fundAccountsAdmin, []);
+/** Settings row with opening balance + date (null when signed out / not committee). */
+export const getFundSettings = committee(read.fundSettings, null);
 
 /** 5-minute signed link to a proof image, or null (not a committee member / missing file). */
 export async function getProofUrl(path: string): Promise<string | null> {
