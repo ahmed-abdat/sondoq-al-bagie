@@ -1,0 +1,737 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-28T00:00:00Z",
+  "title": "Design System: صندوق البقيع",
+  "extensions": {
+    "colorMeta": {
+      "forest-deep": {
+        "role": "primary",
+        "displayName": "Forest Deep",
+        "canonical": "#0E3A1B (--g9)",
+        "tonalRamp": [
+          "#0E3A1B",
+          "#1A5F2E",
+          "#237A3B",
+          "#30A848",
+          "#8CCB9A",
+          "#CFE7D4",
+          "#E7F3EA",
+          "#F3F9F4"
+        ]
+      },
+      "forest": {
+        "role": "primary",
+        "displayName": "Forest",
+        "canonical": "#1A5F2E (--g8)",
+        "tonalRamp": [
+          "#0E3A1B",
+          "#1A5F2E",
+          "#237A3B",
+          "#30A848",
+          "#8CCB9A",
+          "#CFE7D4",
+          "#E7F3EA",
+          "#F3F9F4"
+        ]
+      },
+      "association-green": {
+        "role": "primary",
+        "displayName": "Association Green",
+        "canonical": "#237A3B (--g7)",
+        "tonalRamp": [
+          "#0E3A1B",
+          "#1A5F2E",
+          "#237A3B",
+          "#30A848",
+          "#8CCB9A",
+          "#CFE7D4",
+          "#E7F3EA",
+          "#F3F9F4"
+        ]
+      },
+      "logo-green": {
+        "role": "primary",
+        "displayName": "Logo Green",
+        "canonical": "#30A848 (--g5)",
+        "tonalRamp": [
+          "#0E3A1B",
+          "#1A5F2E",
+          "#237A3B",
+          "#30A848",
+          "#8CCB9A",
+          "#CFE7D4",
+          "#E7F3EA",
+          "#F3F9F4"
+        ]
+      },
+      "green-mist": {
+        "role": "primary",
+        "displayName": "Green Mist",
+        "canonical": "#CFE7D4 (--g2)",
+        "tonalRamp": [
+          "#0E3A1B",
+          "#1A5F2E",
+          "#237A3B",
+          "#30A848",
+          "#8CCB9A",
+          "#CFE7D4",
+          "#E7F3EA",
+          "#F3F9F4"
+        ]
+      },
+      "green-tint": {
+        "role": "primary",
+        "displayName": "Green Tint",
+        "canonical": "#E7F3EA (--g1)",
+        "tonalRamp": [
+          "#0E3A1B",
+          "#1A5F2E",
+          "#237A3B",
+          "#30A848",
+          "#8CCB9A",
+          "#CFE7D4",
+          "#E7F3EA",
+          "#F3F9F4"
+        ]
+      },
+      "green-wash": {
+        "role": "primary",
+        "displayName": "Green Wash",
+        "canonical": "#F3F9F4 (--g0)",
+        "tonalRamp": [
+          "#0E3A1B",
+          "#1A5F2E",
+          "#237A3B",
+          "#30A848",
+          "#8CCB9A",
+          "#CFE7D4",
+          "#E7F3EA",
+          "#F3F9F4"
+        ]
+      },
+      "stamp-green": {
+        "role": "primary",
+        "displayName": "Stamp Green",
+        "canonical": "#1B6A33 (receipt --stamp)",
+        "tonalRamp": [
+          "#0E3A1B",
+          "#1A5F2E",
+          "#237A3B",
+          "#30A848",
+          "#8CCB9A",
+          "#CFE7D4",
+          "#E7F3EA",
+          "#F3F9F4"
+        ]
+      },
+      "logo-gold": {
+        "role": "secondary",
+        "displayName": "Logo Gold",
+        "canonical": "#D9AA2B (--gold)",
+        "tonalRamp": [
+          "#3D2E08",
+          "#6E5410",
+          "#A07B18",
+          "#D9AA2B",
+          "#E6C766",
+          "#F1EAD6",
+          "#F6EFD9",
+          "#FBF7EA"
+        ]
+      },
+      "gold-tint": {
+        "role": "secondary",
+        "displayName": "Gold Tint",
+        "canonical": "#F6EFD9",
+        "tonalRamp": [
+          "#3D2E08",
+          "#6E5410",
+          "#A07B18",
+          "#D9AA2B",
+          "#E6C766",
+          "#F1EAD6",
+          "#F6EFD9",
+          "#FBF7EA"
+        ]
+      },
+      "gold-track": {
+        "role": "secondary",
+        "displayName": "Gold Track",
+        "canonical": "#F1EAD6",
+        "tonalRamp": [
+          "#3D2E08",
+          "#6E5410",
+          "#A07B18",
+          "#D9AA2B",
+          "#E6C766",
+          "#F1EAD6",
+          "#F6EFD9",
+          "#FBF7EA"
+        ]
+      },
+      "gold-ink": {
+        "role": "secondary",
+        "displayName": "Gold Ink",
+        "canonical": "#6E5410",
+        "tonalRamp": [
+          "#3D2E08",
+          "#6E5410",
+          "#A07B18",
+          "#D9AA2B",
+          "#E6C766",
+          "#F1EAD6",
+          "#F6EFD9",
+          "#FBF7EA"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#FFFFFF (--bg)",
+        "tonalRamp": [
+          "#14201A",
+          "#2E3A33",
+          "#4F5C55",
+          "#7F8A84",
+          "#CDD5D0",
+          "#E8ECEA",
+          "#F2F4F3",
+          "#FFFFFF"
+        ]
+      },
+      "mist": {
+        "role": "neutral",
+        "displayName": "Mist",
+        "canonical": "#F2F4F3 (--n1)",
+        "tonalRamp": [
+          "#14201A",
+          "#2E3A33",
+          "#4F5C55",
+          "#7F8A84",
+          "#CDD5D0",
+          "#E8ECEA",
+          "#F2F4F3",
+          "#FFFFFF"
+        ]
+      },
+      "stone": {
+        "role": "neutral",
+        "displayName": "Stone",
+        "canonical": "#E8ECEA (--n2)",
+        "tonalRamp": [
+          "#14201A",
+          "#2E3A33",
+          "#4F5C55",
+          "#7F8A84",
+          "#CDD5D0",
+          "#E8ECEA",
+          "#F2F4F3",
+          "#FFFFFF"
+        ]
+      },
+      "pebble": {
+        "role": "neutral",
+        "displayName": "Pebble",
+        "canonical": "#CDD5D0 (--n3)",
+        "tonalRamp": [
+          "#14201A",
+          "#2E3A33",
+          "#4F5C55",
+          "#7F8A84",
+          "#CDD5D0",
+          "#E8ECEA",
+          "#F2F4F3",
+          "#FFFFFF"
+        ]
+      },
+      "slate": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "canonical": "#4F5C55 (--muted)",
+        "tonalRamp": [
+          "#14201A",
+          "#2E3A33",
+          "#4F5C55",
+          "#7F8A84",
+          "#CDD5D0",
+          "#E8ECEA",
+          "#F2F4F3",
+          "#FFFFFF"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#14201A (--ink)",
+        "tonalRamp": [
+          "#14201A",
+          "#2E3A33",
+          "#4F5C55",
+          "#7F8A84",
+          "#CDD5D0",
+          "#E8ECEA",
+          "#F2F4F3",
+          "#FFFFFF"
+        ]
+      },
+      "on-green": {
+        "role": "neutral",
+        "displayName": "On-Green",
+        "canonical": "#EEF5EF (--on-g)",
+        "tonalRamp": [
+          "#14201A",
+          "#2E3A33",
+          "#4F5C55",
+          "#7F8A84",
+          "#CDD5D0",
+          "#E8ECEA",
+          "#F2F4F3",
+          "#FFFFFF"
+        ]
+      },
+      "reject-tint": {
+        "role": "tertiary",
+        "displayName": "Reject Tint",
+        "canonical": "#F6E9E6",
+        "tonalRamp": [
+          "#4A1D16",
+          "#8A3B2F",
+          "#9E4436",
+          "#C27A6D",
+          "#E3B9B0",
+          "#F0D6D0",
+          "#F6E9E6",
+          "#FBF4F2"
+        ]
+      },
+      "reject-ink": {
+        "role": "tertiary",
+        "displayName": "Reject Ink",
+        "canonical": "#8A3B2F",
+        "tonalRamp": [
+          "#4A1D16",
+          "#8A3B2F",
+          "#9E4436",
+          "#C27A6D",
+          "#E3B9B0",
+          "#F0D6D0",
+          "#F6E9E6",
+          "#FBF4F2"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero balance only; wraps before clipping; 52px in the desktop panel."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "The one big number of a section (month total, slip amount, campaign collected)."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles, sum total, home paid-count numerals."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings, sheet titles, slip payer."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All reading text; 17px floor."
+      },
+      "body-strong": {
+        "displayName": "Body Strong",
+        "purpose": "Row titles, text links, stat values."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "Every button label (Alexandria)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Hints, sublines, units, nav labels; 14px floor."
+      },
+      "label-strong": {
+        "displayName": "Label Strong",
+        "purpose": "Tags, chips, segmented options."
+      }
+    },
+    "shadows": [
+      {
+        "name": "slip-lift",
+        "value": "0 1px 2px rgba(16,40,24,.05), 0 12px 32px -14px rgba(16,40,24,.16)",
+        "purpose": "Pending slips, receipt reject panel."
+      },
+      {
+        "name": "nav-edge",
+        "value": "0 -10px 28px -16px rgba(16,40,24,.22)",
+        "purpose": "Top edge of the bottom bar."
+      },
+      {
+        "name": "rail-edge",
+        "value": "10px 0 28px -22px rgba(16,40,24,.3)",
+        "purpose": "Desktop rail edge."
+      },
+      {
+        "name": "sticky-bar",
+        "value": "0 10px 20px -18px rgba(16,40,24,.35)",
+        "purpose": "Committee sticky header."
+      },
+      {
+        "name": "sticky-foot",
+        "value": "0 -12px 24px -18px rgba(16,40,24,.3)",
+        "purpose": "Record-sheet sticky footer."
+      },
+      {
+        "name": "compact-bar",
+        "value": "0 8px 20px -14px rgba(14,58,27,.6)",
+        "purpose": "Collapsed hero bar on mobile home."
+      },
+      {
+        "name": "fab",
+        "value": "0 1px 2px rgba(14,58,27,.2), 0 12px 28px -12px rgba(14,58,27,.55)",
+        "purpose": "Extended FAB."
+      },
+      {
+        "name": "focus-lift",
+        "value": "0 0 0 2px #237A3B, 0 12px 32px -12px rgba(16,40,24,.12)",
+        "purpose": "Search field on focus."
+      },
+      {
+        "name": "tile",
+        "value": "0 0 0 1px rgba(20,32,26,.06), 0 2px 6px -2px rgba(16,40,24,.18)",
+        "purpose": "Wallet-logo tile in method badges."
+      },
+      {
+        "name": "paper-drop",
+        "value": "drop-shadow(0 1px 1px rgba(16,40,24,.06)) drop-shadow(0 16px 28px rgba(16,40,24,.10))",
+        "purpose": "Receipt paper (filter on parent, follows the torn-edge mask)."
+      },
+      {
+        "name": "logo-ring",
+        "value": "0 0 0 2px #fff, 0 0 0 3.5px #D9AA2B",
+        "purpose": "Logo double ring (1.5px/3px at 32px size)."
+      },
+      {
+        "name": "list-hairline",
+        "value": "1px rgba(20,32,26,.06), inset 56px from inline-start",
+        "purpose": "Optional separator between list rows."
+      },
+      {
+        "name": "sum-rule",
+        "value": "inset 0 1.5px 0 rgba(20,32,26,.22)",
+        "purpose": "The equals rule above the balance total; the only drawn line."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 3px solid #30A848; outline-offset: 2px; border-radius: 12px (white on the hero)",
+        "purpose": "Every :focus-visible."
+      },
+      {
+        "name": "scrim",
+        "value": "rgba(10,30,18,.42)",
+        "purpose": "Behind sheets."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Default for every UI transition."
+      },
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Sheet entry and shared-element morphs."
+      },
+      {
+        "name": "spring",
+        "value": "linear(0, 0.063 2.4%, 0.25 5.2%, 0.529 8.8%, 0.796 12.6%, 0.967 16.1%, 1.068 19.8%, 1.105 23%, 1.107 26.6%, 1.074 31.4%, 1.028 37.2%, 1.001 43.6%, 0.99 51%, 0.995 63%, 1)",
+        "purpose": "Press release only (420ms); nav icon and FAB."
+      },
+      {
+        "name": "press",
+        "value": "scale(.97) in 120ms ease-out; release 420ms spring",
+        "purpose": "Every tappable (nav icon .92)."
+      },
+      {
+        "name": "color-change",
+        "value": "180ms ease-out",
+        "purpose": "Background/colour state changes."
+      },
+      {
+        "name": "tab-vt",
+        "value": "old 160ms fade; new 260ms fade + translateX(±20px) reading direction",
+        "purpose": "Tab change via View Transition; fallback 180ms fade + 6px rise."
+      },
+      {
+        "name": "nav-pill",
+        "value": "transform 320ms ease-out",
+        "purpose": "Sliding active pill (bar X, rail Y)."
+      },
+      {
+        "name": "segmented",
+        "value": "clip-path 300ms ease-out",
+        "purpose": "Segmented indicator."
+      },
+      {
+        "name": "sheet",
+        "value": "in 400ms ease-drawer; out 220ms ease-out; scrim 300/220ms",
+        "purpose": "Bottom sheet; drag-to-dismiss by velocity, rubber-band upward."
+      },
+      {
+        "name": "shared-element",
+        "value": "400ms ease-drawer (group); 240ms cross-fade",
+        "purpose": "Avatar → member sheet, row → receipt."
+      },
+      {
+        "name": "compact-bar",
+        "value": "transform 240ms ease-out",
+        "purpose": "Hero collapse into compact bar."
+      },
+      {
+        "name": "reveal",
+        "value": "opacity + translateY(12px), 300ms ease-out, once, below fold only",
+        "purpose": "Section reveal; visible by default without JS/IO."
+      },
+      {
+        "name": "bar-grow",
+        "value": "700ms ease-out; month bars stagger 30ms",
+        "purpose": "Progress / month / stack bars on reveal."
+      },
+      {
+        "name": "number-roll",
+        "value": "600ms, quartic ease-out, rAF textContent",
+        "purpose": "Balance and collected totals."
+      },
+      {
+        "name": "stamp-press",
+        "value": "340ms ease-out (scale 1.35→.975→1, blur 2px→0, rotate −4→−10°); ink 320ms @380ms; paper impact 200ms @230ms; haptic 12ms @250ms",
+        "purpose": "The confirmation peak."
+      },
+      {
+        "name": "slip-after",
+        "value": "200ms fade @40ms; collapse to one line after 5000ms",
+        "purpose": "Post-decision content on slips."
+      },
+      {
+        "name": "fab",
+        "value": "clip-path 260ms ease-out; label opacity 160ms; enter 260ms",
+        "purpose": "FAB collapse on scroll-down."
+      },
+      {
+        "name": "snack",
+        "value": "in 220ms (opacity + 10px); out 150ms",
+        "purpose": "Snackbar."
+      },
+      {
+        "name": "switch",
+        "value": "knob 240ms, track 200ms ease-out",
+        "purpose": "Switches."
+      },
+      {
+        "name": "fold",
+        "value": "grid-template-rows 240ms + opacity 200ms ease-out",
+        "purpose": "Progressive disclosure."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animations 1ms, transitions 160ms, sheet/compact fade 200ms linear, VT off, no press scale",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone-min-verified",
+        "value": "320px"
+      },
+      {
+        "name": "desktop",
+        "value": "1024px"
+      }
+    ],
+    "rtl": [
+      "Root is dir=rtl lang=ar; all layout uses logical properties.",
+      "Figures are <bdi dir=ltr>, Alexandria, tabular lining, Western digits (ar-MR-u-nu-latn), grouped with U+00A0.",
+      "Fills and bars grow from the right (start) edge: transform-origin:right.",
+      "Forward chevrons point left; link hover nudges translateX(-3px).",
+      "Tab slide ±20px follows reading direction.",
+      "Rail sits at inline-start (right) on desktop; FAB at inline-end."
+    ],
+    "accessibility": [
+      "Body 17px, UI floor 14px, balance up to 56px.",
+      "Targets ≥44×44 (nav items 64px tall, chips/segments 44px, month bars 58px wide).",
+      "Status = icon + word, never colour alone.",
+      "Focus: 3px Logo Green outline, offset 2px; white inside the hero.",
+      "Measured contrast: Slate/Paper 7.0, Slate/Mist 6.4, On-Green/Assoc. Green 4.8, White/Forest 7.7, Forest/Green Tint 6.8, Reject Ink/Reject Tint 6.5, Gold Ink/Gold Tint 6.2.",
+      "Reveal content visible without JS/IntersectionObserver; reduced motion = fades only."
+    ],
+    "copy": [
+      "Monthly obligation: «الرسوم الشهرية»; kind label «رسوم»; never «اشتراك».",
+      "Donations: «مساهمة / ساهِم».",
+      "Chart heading «ما جُمع كل شهر»; expenses heading «المصاريف».",
+      "Status words: منتظم · مدفوع حتى ديسمبر · متأخر شهرين · لم يدفع هذا العام; month cells: مدفوع · مدفوع مسبقًا · متأخر · لم يحن.",
+      "Kind tags: دخل · مصروف · مرفوض (committee only)."
+    ]
+  },
+  "components": [
+    {
+      "name": "Hero",
+      "kind": "custom",
+      "refersTo": "hero",
+      "description": "The one green field: brand row, balance, two yearly stats, last-updated line.",
+      "html": "<section dir=\"rtl\" lang=\"ar\" class=\"ds-hero\"><div class=\"ds-hero-brand\"><span class=\"ds-hero-logo\"></span><span><strong>صندوق البقيع</strong><small>رابطة شباب قرية البقيع</small></span></div><p class=\"ds-hero-l\">في الصندوق الآن</p><p class=\"ds-hero-n\"><bdi dir=\"ltr\" class=\"ds-num\">249 000</bdi><span>أوقية</span></p><dl class=\"ds-hero-s\"><div><dt>جُمع هذا العام</dt><dd><bdi dir=\"ltr\" class=\"ds-num\">331 500</bdi></dd></div><div><dt>صُرف هذا العام</dt><dd><bdi dir=\"ltr\" class=\"ds-num\">127 500</bdi></dd></div></dl><p class=\"ds-hero-t\">آخر تحديث: اليوم، الساعة <bdi dir=\"ltr\">10:42</bdi></p></section>",
+      "css": ":host{--g9:#0E3A1B;--g8:#1A5F2E;--g7:#237A3B;--g5:#30A848;--g2:#CFE7D4;--g1:#E7F3EA;--g0:#F3F9F4;--gold:#D9AA2B;--n1:#F2F4F3;--n2:#E8ECEA;--n3:#CDD5D0;--ink:#14201A;--muted:#4F5C55;--on-g:#EEF5EF;--ease-out:cubic-bezier(0.23,1,0.32,1)} .ds-hero{font-family:'Noto Sans Arabic',system-ui,sans-serif;background:var(--g7);color:#fff;padding:18px 20px 32px;border-end-start-radius:36px;border-end-end-radius:36px;max-width:390px} .ds-hero p,.ds-hero dl,.ds-hero dd{margin:0} .ds-hero-brand{display:flex;align-items:center;gap:14px} .ds-hero-brand>span:last-child{display:flex;flex-direction:column;line-height:1.35} .ds-hero-brand strong{font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif;font-size:17px;font-weight:700} .ds-hero-brand small{font-size:14px;color:var(--on-g)} .ds-hero-logo{width:48px;height:48px;margin-inline-start:4px;border-radius:999px;background:#fff;box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--gold)} .ds-hero-l{margin-block-start:28px!important;font-size:17px;color:var(--on-g)} .ds-hero-n{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;line-height:1.1;margin-block-start:4px!important} .ds-num{font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap;} .ds-hero-n .ds-num{font-size:clamp(40px,14vw,56px);font-weight:700;letter-spacing:-0.02em} .ds-hero-n span{font-size:22px;font-weight:600;color:var(--on-g)} .ds-hero-s{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 16px;margin-block-start:18px!important} .ds-hero-s dt{font-size:14px;color:var(--on-g)} .ds-hero-s dd{font-size:17px;font-weight:600} .ds-hero-t{margin-block-start:12px!important;font-size:14px;color:var(--on-g)}"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "nav-bottom",
+      "description": "Five destinations, icon + word, sliding Green Tint pill, soft top shadow, no line.",
+      "html": "<nav dir=\"rtl\" lang=\"ar\" class=\"ds-bnav\" aria-label=\"التنقل\"><span class=\"ds-pill\" aria-hidden=\"true\"></span><a class=\"ds-nav-i on\" href=\"#\" aria-current=\"page\"><span class=\"ds-nav-ic\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z\"/></svg></span><span class=\"ds-nav-l\">الرئيسية</span></a><a class=\"ds-nav-i\" href=\"#\"><span class=\"ds-nav-ic\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"8.5\" r=\"3.5\"/><path d=\"M2.5 19.5c.8-3.3 3.4-5 6.5-5s5.7 1.7 6.5 5\"/><path d=\"M15.5 5.2a3.5 3.5 0 0 1 0 6.6M18 14.8c1.8.7 3 2.3 3.5 4.7\"/></svg></span><span class=\"ds-nav-l\">الأعضاء</span></a><a class=\"ds-nav-i\" href=\"#\"><span class=\"ds-nav-ic\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 4.5h11.5a2 2 0 0 1 2 2V20H7a2 2 0 0 1-2-2z\"/><path d=\"M5 18a2 2 0 0 1 2-2h11.5\"/><path d=\"M9 8.5h6M9 11.5h4\"/></svg></span><span class=\"ds-nav-l\">الحسابات</span></a><a class=\"ds-nav-i\" href=\"#\"><span class=\"ds-nav-ic\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z\"/></svg></span><span class=\"ds-nav-l\">التبرعات</span></a><a class=\"ds-nav-i\" href=\"#\"><span class=\"ds-nav-ic\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"5\" y=\"10.5\" width=\"14\" height=\"10\" rx=\"2.5\"/><path d=\"M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5\"/><path d=\"M12 14.5v2\"/></svg><b class=\"ds-badge\">3</b></span><span class=\"ds-nav-l\">اللجنة</span></a></nav>",
+      "css": ":host{--g9:#0E3A1B;--g8:#1A5F2E;--g7:#237A3B;--g5:#30A848;--g2:#CFE7D4;--g1:#E7F3EA;--g0:#F3F9F4;--gold:#D9AA2B;--n1:#F2F4F3;--n2:#E8ECEA;--n3:#CDD5D0;--ink:#14201A;--muted:#4F5C55;--on-g:#EEF5EF;--ease-out:cubic-bezier(0.23,1,0.32,1)} .ds-bnav{font-family:'Noto Sans Arabic',system-ui,sans-serif;position:relative;display:grid;grid-template-columns:repeat(5,1fr);height:64px;max-width:390px;background:#fff;box-shadow:0 -10px 28px -16px rgba(16,40,24,.22)} .ds-pill{position:absolute;top:8px;right:0;width:20%;height:32px;display:grid;place-items:center;pointer-events:none;transition:transform 320ms var(--ease-out)} .ds-pill::before{content:'';width:60px;height:32px;border-radius:999px;background:var(--g1)} .ds-nav-i{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);text-decoration:none;transition:color 200ms var(--ease-out)} .ds-nav-i:hover{color:var(--ink)} .ds-nav-i:focus-visible{outline:3px solid var(--g5);outline-offset:-3px;border-radius:12px} .ds-nav-ic{position:relative;display:grid;place-items:center;width:56px;height:32px;transition:transform 420ms var(--ease-out)} .ds-nav-i:active .ds-nav-ic{transform:scale(.92);transition-duration:120ms} .ds-nav-l{font-size:14px;font-weight:500;line-height:1.2;white-space:nowrap} .ds-nav-i.on{color:var(--g9)} .ds-nav-i.on .ds-nav-l{font-weight:700} .ds-badge{position:absolute;top:-4px;inset-inline-end:6px;min-width:20px;height:20px;padding-inline:5px;border-radius:999px;background:var(--g8);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;box-shadow:0 0 0 2px #fff}"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Forest pill, verb-first label; one per screen.",
+      "html": "<button dir=\"rtl\" class=\"ds-btn-primary ds-press\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12.5 4.5 4.5L19 7.5\"/></svg> تأكيد الاستلام</button>",
+      "css": ":host{--g9:#0E3A1B;--g8:#1A5F2E;--g7:#237A3B;--g5:#30A848;--g2:#CFE7D4;--g1:#E7F3EA;--g0:#F3F9F4;--gold:#D9AA2B;--n1:#F2F4F3;--n2:#E8ECEA;--n3:#CDD5D0;--ink:#14201A;--muted:#4F5C55;--on-g:#EEF5EF;--ease-out:cubic-bezier(0.23,1,0.32,1)} .ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 22px;border:0;border-radius:999px;background:var(--g8);color:#fff;font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif;font-size:17px;font-weight:600;cursor:pointer} .ds-btn-primary:hover{background:var(--g9)} .ds-btn-primary:focus-visible{outline:3px solid var(--g5);outline-offset:2px;border-radius:12px} .ds-btn-primary:disabled{opacity:.45;cursor:not-allowed} .ds-press{transition:transform 420ms linear(0,0.25 5.2%,0.796 12.6%,1.068 19.8%,1.107 26.6%,1.028 37.2%,0.99 51%,1),background-color 180ms var(--ease-out)} .ds-press:active{transform:scale(.97);transition-duration:120ms;transition-timing-function:var(--ease-out)}"
+    },
+    {
+      "name": "Tonal Button",
+      "kind": "button",
+      "refersTo": "button-tonal",
+      "description": "Stone pill for the negative/secondary choice beside a primary (never black).",
+      "html": "<button dir=\"rtl\" class=\"ds-btn-tonal ds-press\">رفض</button>",
+      "css": ":host{--g9:#0E3A1B;--g8:#1A5F2E;--g7:#237A3B;--g5:#30A848;--g2:#CFE7D4;--g1:#E7F3EA;--g0:#F3F9F4;--gold:#D9AA2B;--n1:#F2F4F3;--n2:#E8ECEA;--n3:#CDD5D0;--ink:#14201A;--muted:#4F5C55;--on-g:#EEF5EF;--ease-out:cubic-bezier(0.23,1,0.32,1)} .ds-btn-tonal{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 22px;border:0;border-radius:999px;background:var(--n2);color:var(--ink);font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif;font-size:17px;font-weight:600;cursor:pointer} .ds-btn-tonal:hover{background:var(--n3)} .ds-btn-tonal:focus-visible{outline:3px solid var(--g5);outline-offset:2px;border-radius:12px} .ds-press{transition:transform 420ms linear(0,0.25 5.2%,0.796 12.6%,1.068 19.8%,1.107 26.6%,1.028 37.2%,0.99 51%,1),background-color 180ms var(--ease-out)} .ds-press:active{transform:scale(.97);transition-duration:120ms;transition-timing-function:var(--ease-out)}"
+    },
+    {
+      "name": "Soft Button",
+      "kind": "button",
+      "refersTo": "button-soft",
+      "description": "Green Tint pill for secondary positive actions.",
+      "html": "<button dir=\"rtl\" class=\"ds-btn-soft ds-press\">عرض كل الأعضاء</button>",
+      "css": ":host{--g9:#0E3A1B;--g8:#1A5F2E;--g7:#237A3B;--g5:#30A848;--g2:#CFE7D4;--g1:#E7F3EA;--g0:#F3F9F4;--gold:#D9AA2B;--n1:#F2F4F3;--n2:#E8ECEA;--n3:#CDD5D0;--ink:#14201A;--muted:#4F5C55;--on-g:#EEF5EF;--ease-out:cubic-bezier(0.23,1,0.32,1)} .ds-btn-soft{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border:0;border-radius:999px;background:var(--g1);color:var(--g8);font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif;font-size:17px;font-weight:600;cursor:pointer} .ds-btn-soft:hover{background:var(--g2)} .ds-btn-soft:focus-visible{outline:3px solid var(--g5);outline-offset:2px;border-radius:12px} .ds-press{transition:transform 420ms linear(0,0.25 5.2%,0.796 12.6%,1.068 19.8%,1.107 26.6%,1.028 37.2%,0.99 51%,1),background-color 180ms var(--ease-out)} .ds-press:active{transform:scale(.97);transition-duration:120ms;transition-timing-function:var(--ease-out)}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "Big filled field, no outline until focus; one ring on focus.",
+      "html": "<label dir=\"rtl\" class=\"ds-search\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"m16 16 4.5 4.5\"/></svg><input type=\"search\" placeholder=\"اكتب اسمك أو رقمك\" aria-label=\"ابحث باسمك أو رقم عضويتك\"></label>",
+      "css": ":host{--g9:#0E3A1B;--g8:#1A5F2E;--g7:#237A3B;--g5:#30A848;--g2:#CFE7D4;--g1:#E7F3EA;--g0:#F3F9F4;--gold:#D9AA2B;--n1:#F2F4F3;--n2:#E8ECEA;--n3:#CDD5D0;--ink:#14201A;--muted:#4F5C55;--on-g:#EEF5EF;--ease-out:cubic-bezier(0.23,1,0.32,1)} .ds-search{font-family:'Noto Sans Arabic',system-ui,sans-serif;display:flex;align-items:center;gap:10px;height:60px;max-width:390px;padding-inline:18px 8px;border-radius:20px;background:var(--n1);color:var(--muted);transition:box-shadow 180ms var(--ease-out),background-color 180ms var(--ease-out)} .ds-search:focus-within{background:#fff;box-shadow:0 0 0 2px var(--g7),0 12px 32px -12px rgba(16,40,24,.12)} .ds-search input{flex:1;min-width:0;height:100%;border:0;background:none;font:inherit;font-size:17px;color:var(--ink);outline:none;caret-color:var(--g7)} .ds-search input::placeholder{color:#5E6A63}"
+    },
+    {
+      "name": "Segmented Filter",
+      "kind": "chip",
+      "refersTo": "segmented",
+      "description": "Mist pill track with one Forest indicator (moved by clip-path in the build).",
+      "html": "<div dir=\"rtl\" class=\"ds-seg\" role=\"group\" aria-label=\"تصفية الأعضاء\"><button class=\"ds-seg-b on ds-press\" aria-pressed=\"true\">الكل <bdi dir=\"ltr\">71</bdi></button><button class=\"ds-seg-b ds-press\" aria-pressed=\"false\">المتأخرون <bdi dir=\"ltr\">39</bdi></button><button class=\"ds-seg-b ds-press\" aria-pressed=\"false\">الفئة أ</button><button class=\"ds-seg-b ds-press\" aria-pressed=\"false\">الفئة ب</button></div>",
+      "css": ":host{--g9:#0E3A1B;--g8:#1A5F2E;--g7:#237A3B;--g5:#30A848;--g2:#CFE7D4;--g1:#E7F3EA;--g0:#F3F9F4;--gold:#D9AA2B;--n1:#F2F4F3;--n2:#E8ECEA;--n3:#CDD5D0;--ink:#14201A;--muted:#4F5C55;--on-g:#EEF5EF;--ease-out:cubic-bezier(0.23,1,0.32,1)} .ds-seg{font-family:'Noto Sans Arabic',system-ui,sans-serif;display:inline-flex;padding:4px;border-radius:999px;background:var(--n1)} .ds-seg-b{min-height:44px;padding-inline:16px;border:0;border-radius:999px;background:transparent;color:var(--ink);font:inherit;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer} .ds-seg-b bdi{font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap;font-weight:500;opacity:.85} .ds-seg-b[aria-pressed=true]{background:var(--g8);color:#fff} .ds-seg-b[aria-pressed=false]:hover{background:var(--n2)} .ds-seg-b:focus-visible{outline:3px solid var(--g5);outline-offset:2px;border-radius:12px} .ds-press{transition:transform 420ms linear(0,0.25 5.2%,0.796 12.6%,1.068 19.8%,1.107 26.6%,1.028 37.2%,0.99 51%,1),background-color 180ms var(--ease-out)} .ds-press:active{transform:scale(.97);transition-duration:120ms;transition-timing-function:var(--ease-out)}"
+    },
+    {
+      "name": "Member List Row",
+      "kind": "card",
+      "refersTo": "list-row",
+      "description": "Open row: number avatar, name that wraps, group line, icon + word status tag.",
+      "html": "<ul dir=\"rtl\" lang=\"ar\" class=\"ds-list\"><li><button class=\"ds-row ds-press\"><span class=\"ds-av\"><bdi dir=\"ltr\">12</bdi></span><span class=\"ds-row-m\"><span class=\"ds-row-t\">محمد ولد أحمد</span><span class=\"ds-row-s\">رقم <bdi dir=\"ltr\">12</bdi> · الفئة أ</span></span><span class=\"ds-tag is-ok\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12.5 4.5 4.5L19 7.5\"/></svg>منتظم</span></button></li><li><button class=\"ds-row ds-press\"><span class=\"ds-av\"><bdi dir=\"ltr\">27</bdi></span><span class=\"ds-row-m\"><span class=\"ds-row-t\">المختار ولد سيدي</span><span class=\"ds-row-s\">رقم <bdi dir=\"ltr\">27</bdi> · الفئة ب</span></span><span class=\"ds-tag is-late\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M12 7.5V12l3 2\"/></svg>متأخر شهرين</span></button></li></ul>",
+      "css": ":host{--g9:#0E3A1B;--g8:#1A5F2E;--g7:#237A3B;--g5:#30A848;--g2:#CFE7D4;--g1:#E7F3EA;--g0:#F3F9F4;--gold:#D9AA2B;--n1:#F2F4F3;--n2:#E8ECEA;--n3:#CDD5D0;--ink:#14201A;--muted:#4F5C55;--on-g:#EEF5EF;--ease-out:cubic-bezier(0.23,1,0.32,1)} .ds-list{font-family:'Noto Sans Arabic',system-ui,sans-serif;list-style:none;margin:0;padding:0;max-width:390px} .ds-list>li{position:relative} .ds-list>li+li::before{content:'';position:absolute;top:0;inset-inline:56px 0;height:1px;background:rgba(20,32,26,.06)} .ds-row{position:relative;isolation:isolate;display:flex;align-items:center;gap:16px;width:100%;min-height:72px;padding:12px 0;border:0;background:none;font:inherit;color:var(--ink);text-align:start;cursor:pointer} .ds-row::after{content:'';position:absolute;inset:2px -10px;border-radius:18px;z-index:-1;transition:background-color 160ms var(--ease-out)} .ds-row:hover::after{background:var(--n1)} .ds-row:focus-visible{outline:3px solid var(--g5);outline-offset:2px;border-radius:12px} .ds-av{flex:none;width:40px;height:40px;border-radius:999px;display:grid;place-items:center;background:var(--n1);font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap;font-weight:700;font-size:18px} .ds-row-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px} .ds-row-t{font-size:17px;font-weight:600;line-height:1.4;overflow-wrap:anywhere} .ds-row-s{font-size:14px;color:var(--muted);line-height:1.5} .ds-tag{flex:none;display:inline-flex;align-items:center;gap:4px;font-size:14px;font-weight:600;padding:4px 10px 4px 12px;border-radius:999px;white-space:nowrap} .ds-tag.is-ok{background:var(--g1);color:var(--g8)} .ds-tag.is-late{background:var(--n1);color:var(--muted)} .ds-press{transition:transform 420ms linear(0,0.25 5.2%,0.796 12.6%,1.068 19.8%,1.107 26.6%,1.028 37.2%,0.99 51%,1),background-color 180ms var(--ease-out)} .ds-press:active{transform:scale(.97);transition-duration:120ms;transition-timing-function:var(--ease-out)}"
+    },
+    {
+      "name": "Paid-Count Progress",
+      "kind": "custom",
+      "refersTo": "progress-track",
+      "description": "Count headline, one filled track from the start edge, both ends labelled.",
+      "html": "<section dir=\"rtl\" lang=\"ar\" class=\"ds-count\"><h2><bdi dir=\"ltr\" class=\"ds-n\">32</bdi> من <bdi dir=\"ltr\">71</bdi> عضوًا دفعوا رسوم سبتمبر</h2><div class=\"ds-track\" role=\"img\" aria-label=\"32 دفعوا من 71\"><span style=\"transform:scaleX(.45)\"></span></div><p class=\"ds-k\"><span class=\"is-ok\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12.5 4.5 4.5L19 7.5\"/></svg> دفعوا</span><span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M12 7.5V12l3 2\"/></svg> لم يدفعوا بعد</span></p></section>",
+      "css": ":host{--g9:#0E3A1B;--g8:#1A5F2E;--g7:#237A3B;--g5:#30A848;--g2:#CFE7D4;--g1:#E7F3EA;--g0:#F3F9F4;--gold:#D9AA2B;--n1:#F2F4F3;--n2:#E8ECEA;--n3:#CDD5D0;--ink:#14201A;--muted:#4F5C55;--on-g:#EEF5EF;--ease-out:cubic-bezier(0.23,1,0.32,1)} .ds-count{font-family:'Noto Sans Arabic',system-ui,sans-serif;max-width:390px;color:var(--ink)} .ds-count h2{font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif;font-size:22px;font-weight:700;line-height:1.35;margin:0 0 16px} .ds-count bdi{font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap;font-size:28px} .ds-count .ds-n{color:var(--g7)} .ds-track{position:relative;height:12px;border-radius:999px;background:var(--n2);overflow:hidden} .ds-track>span{position:absolute;inset:0;border-radius:999px;background:var(--g7);transform-origin:right;animation:ds-grow 700ms var(--ease-out) both} @keyframes ds-grow{from{transform:scaleX(0)}} .ds-k{display:flex;justify-content:space-between;margin:8px 0 0;font-size:14px;color:var(--muted)} .ds-k span{display:inline-flex;align-items:center;gap:6px} .ds-k .is-ok{color:var(--g8);font-weight:600}"
+    },
+    {
+      "name": "Operation Row with Confirmed Mark",
+      "kind": "custom",
+      "refersTo": "confirmed-mark",
+      "description": "Money-in row: green disc, title, method + sub, confirmed seal, signed amount over a kind tag.",
+      "html": "<div dir=\"rtl\" lang=\"ar\" class=\"ds-op\"><span class=\"ds-disc\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 22 22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><ellipse cx=\"12\" cy=\"7\" rx=\"6.5\" ry=\"2.8\"/><path d=\"M5.5 7v5c0 1.5 2.9 2.8 6.5 2.8s6.5-1.3 6.5-2.8V7\"/><path d=\"M5.5 12v5c0 1.5 2.9 2.8 6.5 2.8s6.5-1.3 6.5-2.8v-5\"/></svg></span><span class=\"ds-m\"><span class=\"ds-t\">محمد ولد أحمد</span><span class=\"ds-s\">رسوم يوليو–سبتمبر · منذ ساعة</span><span class=\"ds-mark\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 28 28\" aria-hidden=\"true\" style=\"transform:rotate(-10deg)\"><circle cx=\"14\" cy=\"14\" r=\"12.6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"/><circle cx=\"14\" cy=\"14\" r=\"10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\".8\" stroke-dasharray=\"1.2 1.6\"/><path d=\"m9.6 14.3 3 3 5.8-6.2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><span>مؤكَّد · 28 سبتمبر</span></span></span><span class=\"ds-e\"><bdi dir=\"ltr\" class=\"ds-amt\">+3 000</bdi><span class=\"ds-kind\">دخل</span></span></div>",
+      "css": ":host{--g9:#0E3A1B;--g8:#1A5F2E;--g7:#237A3B;--g5:#30A848;--g2:#CFE7D4;--g1:#E7F3EA;--g0:#F3F9F4;--gold:#D9AA2B;--n1:#F2F4F3;--n2:#E8ECEA;--n3:#CDD5D0;--ink:#14201A;--muted:#4F5C55;--on-g:#EEF5EF;--ease-out:cubic-bezier(0.23,1,0.32,1)} .ds-op{font-family:'Noto Sans Arabic',system-ui,sans-serif;display:flex;align-items:center;gap:16px;max-width:390px;min-height:72px;padding:12px 0;color:var(--ink)} .ds-disc{flex:none;width:40px;height:40px;border-radius:999px;display:grid;place-items:center;background:var(--g1);color:var(--g7)} .ds-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px} .ds-t{font-size:17px;font-weight:600;line-height:1.4} .ds-s{font-size:14px;color:var(--muted)} .ds-mark{display:inline-flex;align-items:center;gap:6px;color:var(--g7);font-size:14px;font-weight:600} .ds-e{display:flex;flex-direction:column;align-items:flex-end;gap:2px} .ds-amt{font-family:Alexandria,'Noto Sans Arabic',system-ui,sans-serif;font-variant-numeric:tabular-nums lining-nums;white-space:nowrap;font-size:17px;font-weight:700;color:var(--g7)} .ds-kind{font-size:14px;font-weight:600;padding:1px 10px;border-radius:999px;background:var(--g1);color:var(--g8)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Open Ledger on the Village Wall",
+    "overview": "**Creative North Star: \"The Open Ledger on the Village Wall\"**\n\nThe fund reads like a notice everyone in the village can walk up to: one green field at the top telling you what is in the box, then plain questions answered in plain words underneath. The palette is the association's logo and nothing else: one green in a tonal ramp, a hair of gold, and cool near-white neutrals. Hierarchy comes from type size, spacing and alignment, not from boxes. Most of each screen sits directly on white paper as open sections separated by generous space; only the hero, sheets and receipt slips are contained surfaces.\n\nThe system is built for cheap Android phones, mixed literacy and older eyes: body text is 17px, key figures 40px and the balance up to 56px; every number sits next to a two-to-four-word label; every status is an icon plus a word; months are always written as words. One primary action per screen, labelled with a verb. The single moment of theatre is the rubber stamp landing on a confirmed payment; everything else moves quietly, from one motion vocabulary.\n\nConfirmed rejections from the owner: no cards-and-borders layouts, no 1px grey outlines, no extra hues (teal, blue, yellow pills, pink paper, multi-colour category codes), no red fills for lateness, no decorative gold dashes, no full-screen success takeovers.",
+    "keyCharacteristics": [
+      "Logo-only palette: one green ramp, gold as a hairline accent, neutrals.",
+      "Soft structuralism: at most two to three contained surfaces per screen; lists are open rows.",
+      "Two faces: Alexandria for headings and every figure, Noto Sans Arabic for reading.",
+      "RTL-native with LTR-isolated Western-digit figures.",
+      "Five destinations, always within thumb reach (bottom bar on phones, start-side rail on desktop).",
+      "Proof as a visual object: receipts are paper, confirmation is a stamp."
+    ],
+    "rules": [
+      {
+        "name": "The Logo-Only Rule",
+        "body": "Every colour on screen comes from the logo: the green ramp, the gold, and neutrals. Adding a hue for a category, a chart series or a state is forbidden; expense categories use green steps and Pebble.",
+        "section": "colors"
+      },
+      {
+        "name": "The Grey-Is-Late Rule",
+        "body": "Lateness is neutral: Mist fills, Slate text, a clock icon and hatched month cells. Red never marks a late member; it is reserved for the «مرفوض» word and the rejected stamp.",
+        "section": "colors"
+      },
+      {
+        "name": "The Hairline-Gold Rule",
+        "body": "Gold appears only as the logo ring and the campaign bar. If gold is carrying text, a button or a background larger than a 40px disc, it is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Figures-Are-Alexandria Rule",
+        "body": "Every number (amounts, counts, dates in digits, member numbers, transaction refs) is set in Alexandria with tabular lining numerals, no wrapping, inside an LTR-isolated span. Thousands are grouped with a non-breaking space (249 000), never a comma.",
+        "section": "typography"
+      },
+      {
+        "name": "The Label-Next-To-Number Rule",
+        "body": "No bare numbers. Each figure has a two-to-four-word label beside or above it («في الصندوق الآن», «جُمع هذا العام»), and counts are written as counts («32 من 71 عضوًا»), never percentages alone (the campaign % sits beside its amounts).",
+        "section": "typography"
+      },
+      {
+        "name": "The No-Line Rule",
+        "body": "No 1px grey borders anywhere. Separation is whitespace; lists may carry a 6% ink hairline inset from the avatar (56px from the start edge), nothing more. The balance sum's total rule (1.5px, 22% ink) is the only drawn line, because it means \"equals\".",
+        "section": "elevation"
+      },
+      {
+        "name": "The Three-Surface Rule",
+        "body": "At most two or three contained surfaces per screen: the hero, a sheet, and receipt slips. Everything else sits on the page.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** build every screen from the logo palette: the green ramp, gold only as the logo ring and campaign bar, neutrals.",
+      "**Do** use Forest for every filled button and white text; keep Association Green for fields, fills and large figures.",
+      "**Do** group with whitespace (48px between sections, 16px under headings) and leave lists as open 72px rows.",
+      "**Do** pair every status with an icon and a word, every number with a short label, and write months as words.",
+      "**Do** set every figure in Alexandria, tabular, inside an LTR-isolated span, grouped with a non-breaking space.",
+      "**Do** keep text at 17px for reading and never below 14px for UI labels; keep every target at least 44×44.",
+      "**Do** use logical properties (inline-start/end, block-start/end) so layout follows RTL; fills and bars grow from the start (right) edge; forward chevrons point left.",
+      "**Do** call the monthly obligation «الرسوم الشهرية» (group line «الرسوم الشهرية: 1000 أوقية», member «دفع رسوم 8 من 9 أشهر», «متأخر عن رسوم شهرين», receipts «عن: رسوم يوليو – سبتمبر 2026», payment kind «رسوم»).",
+      "**Do** keep donations in their own words: «مساهمة / ساهِم / كيف أساهم؟ / آخر المساهمات».",
+      "**Do** title the monthly chart «ما جُمع كل شهر» and the expenses section «المصاريف», led by «صُرف هذا العام … أوقية على:».",
+      "**Do** keep the stamp as the single peak moment of a confirmation; confirmation stays inline on the slip.",
+      "**Do** respect `prefers-reduced-motion` with fades only, and keep hover effects behind `(hover:hover) and (pointer:fine)`."
+    ],
+    "donts": [
+      "**Don't** draw 1px grey outlines or boxed cards; a surface gets a tonal fill or a soft shadow, never both.",
+      "**Don't** add hues: no teal, blue, yellow pills, pink paper, or multi-colour category codes.",
+      "**Don't** mark lateness in red; red is only for «مرفوض».",
+      "**Don't** put gold on text, buttons or backgrounds, and don't add decorative gold dashes.",
+      "**Don't** use «اشتراك / اشتراكات» anywhere.",
+      "**Don't** show rejected or cancelled operations, receipt images, phone numbers or amounts owed on public surfaces; public receipts mask the ref to its last four digits.",
+      "**Don't** show a bare percentage without the count or amounts beside it.",
+      "**Don't** use full-screen success screens after confirming; don't stack a snackbar undo on top of an inline undo.",
+      "**Don't** animate width, height or left; don't use `transition: all`, ease-in, or linear (except progress); keep sticky and compact bars solid (97% white or green), not blurred.",
+      "**Don't** truncate names with ellipsis in lists; let them wrap to two lines.",
+      "**Don't** use initials in member avatars; the member number is the avatar."
+    ]
+  }
+}
