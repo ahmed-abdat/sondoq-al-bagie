@@ -230,6 +230,48 @@ export type Database = {
           },
         ]
       }
+      fund_accounts: {
+        Row: {
+          account_number: string
+          active: boolean
+          created_at: string
+          created_by: string | null
+          holder_name: string
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          note: string | null
+          sort_order: number
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          account_number: string
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          holder_name: string
+          id?: string
+          method: Database["public"]["Enums"]["payment_method"]
+          note?: string | null
+          sort_order?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          account_number?: string
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          holder_name?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          note?: string | null
+          sort_order?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       group_prices: {
         Row: {
           created_at: string
@@ -434,6 +476,13 @@ export type Database = {
             foreignKeyName: "payment_allocations_payment_id_fkey"
             columns: ["payment_id"]
             isOneToOne: false
+            referencedRelation: "payment_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
             referencedRelation: "payments"
             referencedColumns: ["id"]
           },
@@ -480,6 +529,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_months_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payment_queue"
             referencedColumns: ["id"]
           },
           {
@@ -611,6 +667,13 @@ export type Database = {
             foreignKeyName: "reminders_payment_id_fkey"
             columns: ["payment_id"]
             isOneToOne: false
+            referencedRelation: "payment_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
             referencedRelation: "payments"
             referencedColumns: ["id"]
           },
@@ -625,6 +688,7 @@ export type Database = {
           show_amount_owed: boolean
           updated_at: string
           updated_by: string | null
+          whatsapp_contact: string | null
         }
         Insert: {
           grace_days?: number
@@ -634,6 +698,7 @@ export type Database = {
           show_amount_owed?: boolean
           updated_at?: string
           updated_by?: string | null
+          whatsapp_contact?: string | null
         }
         Update: {
           grace_days?: number
@@ -643,6 +708,7 @@ export type Database = {
           show_amount_owed?: boolean
           updated_at?: string
           updated_by?: string | null
+          whatsapp_contact?: string | null
         }
         Relationships: []
       }
@@ -733,6 +799,24 @@ export type Database = {
         }
         Relationships: []
       }
+      fund_accounts_public: {
+        Row: {
+          account_number: string | null
+          holder_name: string | null
+          id: string | null
+          method: Database["public"]["Enums"]["payment_method"] | null
+          sort_order: number | null
+        }
+        Relationships: []
+      }
+      fund_info: {
+        Row: {
+          grace_days: number | null
+          show_amount_owed: boolean | null
+          whatsapp_contact: string | null
+        }
+        Relationships: []
+      }
       fund_summary: {
         Row: {
           balance: number | null
@@ -787,6 +871,30 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_queue: {
+        Row: {
+          allocations: Json | null
+          amount: number | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          created_at: string | null
+          created_by: string | null
+          created_by_name: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decided_by_name: string | null
+          id: string | null
+          method: Database["public"]["Enums"]["payment_method"] | null
+          note: string | null
+          paid_on: string | null
+          payer_name: string | null
+          proof_path: string | null
+          reject_reason: string | null
+          status: Database["public"]["Enums"]["payment_status"] | null
+          txn_ref: string | null
+        }
+        Relationships: []
+      }
       recent_expenses: {
         Row: {
           amount: number | null
@@ -800,6 +908,16 @@ export type Database = {
       }
     }
     Functions: {
+      add_fund_account: {
+        Args: {
+          p_account_number: string
+          p_holder_name: string
+          p_method: Database["public"]["Enums"]["payment_method"]
+          p_note?: string
+          p_sort_order?: number
+        }
+        Returns: string
+      }
       add_member: {
         Args: {
           p_from_month: string
@@ -885,6 +1003,17 @@ export type Database = {
         Args: { p_group_code: string; p_monthly_amount: number; p_year: number }
         Returns: undefined
       }
+      undo_payment: { Args: { p_payment_id: string }; Returns: undefined }
+      update_fund_account: {
+        Args: {
+          p_active: boolean
+          p_holder_name: string
+          p_id: string
+          p_note: string
+          p_sort_order: number
+        }
+        Returns: undefined
+      }
       update_member: {
         Args: {
           p_full_name: string
@@ -900,6 +1029,7 @@ export type Database = {
           p_opening_balance?: number
           p_opening_balance_on?: string
           p_show_amount_owed?: boolean
+          p_whatsapp_contact?: string
         }
         Returns: undefined
       }
@@ -915,6 +1045,10 @@ export type Database = {
         | "bankily"
         | "masrvi"
         | "sedad"
+        | "click"
+        | "bim"
+        | "amanty"
+        | "bamis"
         | "cash"
         | "other"
         | "paper"
@@ -1054,7 +1188,18 @@ export const Constants = {
       committee_role: ["admin", "treasurer", "deputy", "committee"],
       expense_category: ["teaching", "honoring", "sports", "other"],
       membership_status: ["active", "exempt", "away", "left", "deceased"],
-      payment_method: ["bankily", "masrvi", "sedad", "cash", "other", "paper"],
+      payment_method: [
+        "bankily",
+        "masrvi",
+        "sedad",
+        "click",
+        "bim",
+        "amanty",
+        "bamis",
+        "cash",
+        "other",
+        "paper",
+      ],
       payment_status: ["pending", "confirmed", "rejected", "cancelled"],
       reminder_kind: ["individual", "group", "receipt", "campaign"],
       surplus_action: ["to_fund", "keep"],

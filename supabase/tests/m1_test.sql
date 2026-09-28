@@ -291,4 +291,70 @@ select tests.login('server');
 select tests.ok(exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'payments'),
   'payments are published to realtime');
 
+/* ───────────── M2: fund accounts, contact, payment queue, undo ───────────── */
+
+select tests.login('admin');
+select tests.set('acc', public.add_fund_account('bankily', '2222 3333', 'صندوق البقيع', null, 1));
+select tests.ok((select account_number from public.fund_accounts where id = tests.id('acc')) = '22223333', 'account number stored without spaces');
+select tests.throws($$select public.add_fund_account('bankily', '22223333', 'x')$$, 'account_exists', 'same active wallet number twice');
+select tests.throws($$select public.add_fund_account('cash', '22223333', 'x')$$, 'not_a_wallet', 'cash is not a wallet account');
+select tests.set('acc2', public.add_fund_account('click', '44445555', 'أمين الصندوق', 'رقم ثان', 2));
+select public.update_settings(p_whatsapp_contact => '+222 3333 4444');
+select tests.login('committee');
+select tests.throws($$select public.add_fund_account('masrvi', '11112222', 'x')$$, 'not_admin', 'committee cannot add accounts');
+select tests.throws($$select public.update_settings(p_whatsapp_contact => '+22200000000')$$, 'not_admin', 'committee cannot change settings');
+select tests.login('public');
+select tests.ok((select count(*) from public.fund_accounts_public) = 2, 'anon reads active fund accounts');
+select tests.ok((select whatsapp_contact from public.fund_info) = '+22233334444', 'anon reads the WhatsApp contact');
+select tests.throws('select * from public.fund_accounts', '42501', 'anon cannot read the fund_accounts table');
+select tests.throws('select * from public.payment_queue', '42501', 'anon cannot read the payment queue');
+select tests.login('admin');
+select public.update_fund_account(tests.id('acc2'), 'أمين الصندوق', null, 2, false);
+select tests.login('public');
+select tests.ok((select count(*) from public.fund_accounts_public) = 1, 'deactivated account hidden from the public');
+select tests.login('server');
+select tests.throws($$delete from public.fund_accounts where id = tests.id('acc2')$$, 'append_only', 'fund accounts are never deleted');
+select tests.throws($$update public.fund_accounts set account_number = '99998888' where id = tests.id('acc')$$, 'append_only',
+  'account number cannot be edited');
+select tests.ok(exists (select 1 from public.audit_log where table_name = 'fund_accounts' and action = 'deactivate_fund_account'),
+  'deactivation is audited');
+select tests.login('admin');
+select public.update_settings(p_whatsapp_contact => '');
+select tests.ok((select whatsapp_contact from public.fund_info) is null, 'empty contact clears it');
+select public.update_settings(p_grace_days => 10);
+select tests.ok((select grace_days from public.fund_info) = 10, 'null contact leaves it (other settings still update)');
+
+-- the new wallets are payment methods
+select tests.login('treasurer');
+select tests.ok((public.record_payment(gen_random_uuid(), 'دافع', 'click', 1000, current_date,
+  jsonb_build_array(tests.month('K', 0, 1000))) ->> 'status') = 'confirmed', 'click payment recorded and confirmed');
+
+select tests.login('committee');
+select tests.set('u1', tests.pay('u1', 1000, jsonb_build_array(tests.month('E', 0, 1000))) ->> 'id');
+select tests.ok((select allocations -> 0 ->> 'number' from public.payment_queue where id = tests.id('u1')) = '1001',
+  'payment queue shows the member number in allocations');
+select tests.ok((select created_by_name from public.payment_queue where id = tests.id('u1')) = 'مشرف', 'queue shows who recorded it');
+select tests.login('deputy');
+select tests.throws($$select public.undo_payment(tests.id('u1'))$$, 'undo_expired', 'only the recorder can undo');
+select tests.login('committee');
+select public.undo_payment(tests.id('u1'));
+select tests.ok((select status from public.payments where id = tests.id('u1')) = 'cancelled', 'undo cancels the payment');
+select tests.ok((select cancel_reason from public.payments where id = tests.id('u1')) = 'undo', 'undo reason recorded');
+select public.undo_payment(tests.id('u1'));   -- repeat is a no-op
+select tests.login('deputy');
+select tests.set('u2', (public.record_payment(gen_random_uuid(), 'دافع', 'cash', 1000, current_date,
+  jsonb_build_array(tests.month('E', 0, 1000))) ->> 'id'));
+select tests.ok((select status from public.payments where id = tests.id('u2')) = 'confirmed', 'deputy payment confirmed');
+select public.undo_payment(tests.id('u2'));
+select tests.ok(not exists (select 1 from public.payment_months where payment_id = tests.id('u2') and released_at is null),
+  'undo of a confirmed payment releases its months');
+select tests.login('server');
+select tests.set('n_conf', (select count(*) from public.payments where status = 'confirmed' and method <> 'paper'));
+select tests.login('public');
+select tests.ok((select count(*) from public.activity_feed where kind = 'payment_confirmed') = least(30, tests.get('n_conf')::int),
+  'activity feed lists confirmed payments only (undone/cancelled ones drop out)');
+select tests.login('deputy');
+select tests.ok((public.record_payment(gen_random_uuid(), 'دافع', 'cash', 1000, current_date,
+  jsonb_build_array(tests.month('E', 0, 1000))) ->> 'status') = 'confirmed', 'the released month can be paid again');
+
 rollback;

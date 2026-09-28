@@ -62,7 +62,7 @@
   --color-bad: var(--bad);
   --color-bad-soft: var(--bad-soft);
   --font-sans: var(--font-body), "Segoe UI", Tahoma, Arial, sans-serif;
-  --font-display: var(--font-kufi), var(--font-body), Tahoma, sans-serif;
+  --font-display: var(--font-display-face), var(--font-body), Tahoma, sans-serif;
 }
 
 body {
