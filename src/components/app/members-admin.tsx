@@ -1,4 +1,5 @@
 "use client";
+import { toWesternDigits } from "@/lib/money";
 // Committee «الأعضاء»: find a member, add one, edit details, change state, move between lists.
 // Two lists, each numbered from 1 (A-12, B-12). States: نشط · معفى · غادر · متوفى.
 import { useRouter } from "next/navigation";
@@ -51,7 +52,12 @@ function MonthField({
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
   });
   return (
-    <select className="bq-input" value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
+    <select
+      className="bq-input"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label={label}
+    >
       {opts.map((o) => (
         <option key={o} value={o}>
           {ymLabel(o)}
@@ -132,7 +138,7 @@ export function AddMemberBody({
         <input
           className="bq-input"
           value={num}
-          onChange={(e) => setNum(e.target.value.replace(/[^\d]/g, ""))}
+          onChange={(e) => setNum(toWesternDigits(e.target.value).replace(/[^\d]/g, ""))}
           inputMode="numeric"
           dir="ltr"
           aria-label="رقم العضو"

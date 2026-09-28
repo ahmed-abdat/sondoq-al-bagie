@@ -159,8 +159,9 @@ export const I = {
       <path d="m20 16-4.5-4.5L7 19" />
     </Ico>
   ),
+  // mirrored for RTL: the arrow turns back toward the reading start (right)
   undo: (s?: number) => (
-    <Ico size={s}>
+    <Ico size={s} className="bq-flip">
       <path d="M9 14 4 9l5-5" />
       <path d="M4 9h10a6 6 0 0 1 0 12h-3" />
     </Ico>

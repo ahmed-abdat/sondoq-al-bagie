@@ -2526,7 +2526,7 @@
     white-space: nowrap;
     font-size: 28px;
     font-weight: 700;
-    line-height: 1.1;
+    line-height: 1.3;
     color: var(--g8);
   }
   .rc-no {
@@ -3323,5 +3323,20 @@
   .bq-rec-done .bq-share,
   .bq-rec-done > .bq-btn {
     width: 100%;
+  }
+}
+
+@layer components {
+  .bq-flip {
+    transform: scaleX(-1);
+  }
+  /* numbers and refs are typed left-to-right but sit on the reading side, with Arabic hints */
+  .bq-input[dir="ltr"],
+  .bq-search input[dir="ltr"] {
+    text-align: right;
+  }
+  .bq-input[dir="ltr"]::placeholder,
+  .bq-search input[dir="ltr"]::placeholder {
+    direction: rtl;
   }
 }

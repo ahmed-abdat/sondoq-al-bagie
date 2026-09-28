@@ -1,4 +1,5 @@
 "use client";
+import { toWesternDigits } from "@/lib/money";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -47,7 +48,7 @@ function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
       <input
         className="bq-input"
         value={num}
-        onChange={(e) => setNum(e.target.value.replace(/[^\d]/g, ""))}
+        onChange={(e) => setNum(toWesternDigits(e.target.value).replace(/[^\d]/g, ""))}
         inputMode="tel"
         dir="ltr"
         aria-label="رقم المحفظة"
@@ -318,7 +319,7 @@ export function SettingsView({
             {I.wa(22)}
             <input
               value={wa}
-              onChange={(e) => setWa(e.target.value.replace(/[^\d+]/g, ""))}
+              onChange={(e) => setWa(toWesternDigits(e.target.value).replace(/[^\d+]/g, ""))}
               inputMode="tel"
               dir="ltr"
               aria-label="رقم واتساب اللجنة"
@@ -352,7 +353,7 @@ export function SettingsView({
           <input
             className="bq-input bq-grow-1"
             value={opening}
-            onChange={(e) => setOpening(e.target.value.replace(/[^\d\s]/g, ""))}
+            onChange={(e) => setOpening(toWesternDigits(e.target.value).replace(/[^\d\s]/g, ""))}
             inputMode="numeric"
             dir="ltr"
             aria-label="رصيد البداية بالأوقية"
