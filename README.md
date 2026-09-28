@@ -6,14 +6,16 @@ A PWA for the Al-Baqie youth association fund: member subscriptions, arrears, pa
 
 ## Stack
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Supabase (Postgres, Auth, Storage) · Vitest · Vercel.
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · shadcn/ui · Supabase (Postgres, Auth, Storage) · Serwist (PWA) · Vitest · Playwright · Vercel.
 
 ## Run locally
 
+Needs Node 22+ and pnpm 10 (`corepack enable` installs the version pinned in `package.json`).
+
 ```bash
 cp .env.example .env.local   # fill in your Supabase URL and publishable key
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 The public page works without Supabase settings; committee login needs them.
@@ -21,11 +23,15 @@ The public page works without Supabase settings; committee login needs them.
 ## Checks
 
 ```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
+pnpm check        # typecheck + lint + unit tests
+pnpm build        # production build (webpack, generates the service worker)
+pnpm test:e2e     # Playwright smoke tests (after pnpm build; first run: pnpm exec playwright install chromium)
+pnpm format       # Prettier
 ```
+
+## Deploy
+
+Vercel (`vercel.json`): region `cdg1`, only `main` deploys. A daily cron calls `/api/keepalive` so the free Supabase project does not pause. Set `CRON_SECRET` in Vercel. `SUPABASE_SECRET_KEY` is server-only and stays in Vercel settings.
 
 ## Notes
 
