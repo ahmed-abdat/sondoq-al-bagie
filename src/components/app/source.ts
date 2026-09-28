@@ -180,6 +180,16 @@ export async function report(): Promise<ReportData> {
     generatedAt: today().toISOString(),
   };
 }
+/** Committee settings incl. the carried-over balance and its date (null if not readable). */
+export const fundSettings = () =>
+  pick(
+    () => ({
+      ...fx.fxInfo(),
+      openingBalance: fx.fxSummary().openingBalance,
+      openingBalanceOn: "2026-01-01",
+    }),
+    () => data.getFundSettings(),
+  );
 export const terms = () => pick(fx.fxTerms, () => data.getTerms());
 export const handovers = () => pick(fx.fxHandovers, () => data.getHandovers());
 export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());

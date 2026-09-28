@@ -152,6 +152,7 @@ export function SettingsView({
   showOwed,
   whatsapp,
   openingBalance,
+  openingBalanceOn,
   accounts,
   committee,
   members,
@@ -162,6 +163,8 @@ export function SettingsView({
   showOwed: boolean;
   whatsapp: string | null;
   openingBalance: number;
+  /** "YYYY-MM-DD"; null when unknown */
+  openingBalanceOn: string | null;
   committee: CommitteeAccount[];
   members: { memberId: string; memberRef: string }[];
   selfId: string | null;
@@ -182,8 +185,7 @@ export function SettingsView({
   const [savedWa, setSavedWa] = useState(whatsapp ?? "");
   const [opening, setOpening] = useState(String(openingBalance));
   const [savedOpening, setSavedOpening] = useState(openingBalance);
-  // TODO(lane-a): read the saved opening date; the association's rule is the start of the year
-  const yearStart = `${new Date().getFullYear()}-01-01`;
+  const yearStart = openingBalanceOn ?? `${new Date().getFullYear()}-01-01`;
   const [openingOn, setOpeningOn] = useState(yearStart);
   const [savedOpeningOn, setSavedOpeningOn] = useState(yearStart);
   const openingNum = Number(opening.replace(/\s/g, "")) || 0;
