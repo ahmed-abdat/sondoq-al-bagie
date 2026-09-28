@@ -6,12 +6,12 @@ import {
   reportShareText,
   reportUrl,
   shareReportSummary,
-  type ReportSummaryData,
+  type ReportSource,
 } from "@/lib/share-report";
 import { waLink } from "@/lib/whatsapp";
 import { I } from "./icons";
 
-export function ReportTools({ data }: { data: ReportSummaryData }) {
+export function ReportTools({ data }: { data: ReportSource }) {
   const [busy, setBusy] = useState(false);
   return (
     <div className="rp-tools" role="group" aria-label="حفظ التقرير ومشاركته">
@@ -37,18 +37,15 @@ export function ReportTools({ data }: { data: ReportSummaryData }) {
       >
         {I.image(20)} صورة الملخص
       </button>
-      <a
+      <button
+        type="button"
         className="bq-btn bq-btn-soft bq-press"
-        href={
-          typeof window === "undefined"
-            ? "#"
-            : waLink(null, reportShareText(data, reportUrl(window.location.origin)))
+        onClick={() =>
+          window.open(waLink(null, reportShareText(data, reportUrl(window.location.origin))), "_blank", "noopener")
         }
-        target="_blank"
-        rel="noopener noreferrer"
       >
         {I.wa(20)} مشاركة في واتساب
-      </a>
+      </button>
     </div>
   );
 }
