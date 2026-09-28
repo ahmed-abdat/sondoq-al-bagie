@@ -40,3 +40,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# other sessions' worktrees
+.claude/worktrees/
+
+# serwist (generated at build)
+public/sw.js
+public/sw.js.map
+public/swe-worker-*.js
+
+# playwright
+/playwright-report
+/test-results
