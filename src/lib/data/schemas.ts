@@ -79,8 +79,8 @@ export const logReminderSchema = z.object({
   paymentId: id.optional(),
 });
 
-/** Statuses the committee sets (نشط، معفى، غادر، متوفى); the enum's "away" is not offered. */
-const settableStatus = z.enum(["active", "exempt", "left", "deceased"]);
+/** Statuses the committee sets (نشط، معفى، غادر); the enum's "away" and "deceased" are not offered. */
+const settableStatus = z.enum(["active", "exempt", "left"]);
 const listCode = z
   .string()
   .trim()

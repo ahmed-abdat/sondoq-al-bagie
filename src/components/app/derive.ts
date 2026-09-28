@@ -138,13 +138,11 @@ const OFF_LABEL: Record<Exclude<MembershipStatus, "active">, string> = {
   deceased: "غادر",
 };
 
-/** States the committee can set (no "away"/paused, owner 2026-09-28). */
+/** States the committee can set (no "away"/paused, no «متوفى»; owner 2026-09-28). */
 export const STATE_LABEL: Record<SettableStatus, string> = {
   active: "نشط",
   exempt: "معفى",
   left: "غادر",
-  // kept for old rows; not offered as a choice (owner, 2026-09-28)
-  deceased: "غادر",
 };
 /** The states the committee can choose: نشط / معفى / غادر. */
 export const STATE_CHOICES = ["active", "exempt", "left"] as const;

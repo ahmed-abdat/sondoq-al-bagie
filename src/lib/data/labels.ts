@@ -1,5 +1,5 @@
-// Arabic labels the data layer writes into reports and CSV exports (same words as the UI).
-import type { ExpenseCategory, MembershipStatus, PaymentStatus } from "./types";
+// Arabic labels the data layer writes into reports (same words as the UI).
+import type { ExpenseCategory, MembershipStatus } from "./types";
 
 export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   teaching: "التدريس",
@@ -13,12 +13,6 @@ export const STATUS_LABELS: Record<MembershipStatus, string> = {
   exempt: "معفى",
   away: "مسافر",
   left: "غادر",
+  // not offered any more (owner decision); kept for the enum
   deceased: "متوفى",
-};
-
-export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  pending: "بانتظار التأكيد",
-  confirmed: "مؤكدة",
-  rejected: "مرفوضة",
-  cancelled: "ملغاة",
 };
