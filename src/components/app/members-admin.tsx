@@ -392,7 +392,7 @@ export function MemberAdminBody({
                 disabled={!state || !reason.trim() || busy || !online}
                 aria-describedby="bq-state-need"
                 onClick={() => {
-                  if (state === "left" || state === "deceased") return setConfirming(true);
+                  if (state === "left") return setConfirming(true);
                   void run(
                     () =>
                       changeMemberStatus({
@@ -422,7 +422,7 @@ export function MemberAdminBody({
 
       {mode === "state" && confirming && state && (
         <div className="bq-rej bq-small-top">
-          <p className="bq-rej-l">{state === "deceased" ? "رحمه الله." : "تأكيد المغادرة"}</p>
+          <p className="bq-rej-l">تأكيد المغادرة</p>
           <p className="bq-lead">
             لن تُحسب على {m.fullName} رسوم من {ymLabel(from)}، ولن يظهر في قوائم الأعضاء العامة.
             يبقى سجلّه ودفعاته السابقة كما هي.
