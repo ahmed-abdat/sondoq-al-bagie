@@ -3769,3 +3769,17 @@
     box-shadow: 0 -10px 20px -18px rgba(16, 40, 24, 0.3);
   }
 }
+@layer components {
+  /* the sheet footer is solid paper above everything that scrolls under it */
+  .bq-rec-foot {
+    z-index: 3;
+    background: var(--paper);
+  }
+  /* the last section can scroll fully above the footer */
+  .bq-rec-foot {
+    scroll-margin-block-end: 0;
+  }
+  .bq-rec > :nth-last-child(2) {
+    margin-block-end: 12px;
+  }
+}
