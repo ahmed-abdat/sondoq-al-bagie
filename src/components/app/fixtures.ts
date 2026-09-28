@@ -8,6 +8,7 @@ import type {
   CampaignProgress,
   CommitteeSession,
   Expense,
+  ExpenseAdmin,
   ExpenseTotal,
   FundAccountAdmin,
   FundInfo,
@@ -156,6 +157,14 @@ const EXPENSES: Expense[] = [
   },
 ];
 export const fxExpenses = () => EXPENSES;
+export const fxExpensesAdmin = (): ExpenseAdmin[] =>
+  EXPENSES.map((e) => ({
+    ...e,
+    receiptPath: null,
+    createdAt: `${e.spentOn}T12:00:00Z`,
+    cancelledAt: null,
+    cancelReason: null,
+  }));
 export const fxExpenseTotals = (): ExpenseTotal[] =>
   (["teaching", "honoring", "sports", "other"] as const).map((category) => ({
     year: YEAR,
@@ -411,14 +420,14 @@ export function fxArrears(): Arrear[] {
     memberId: m.id,
     number: m.no,
     fullName: m.name,
-    phone: null,
+    phone: `2224${String(1000000 + m.no).slice(1)}`,
     groupCode: m.group,
     status: "active",
     months: owed(m).map((k) => `${YEAR}-${String(k).padStart(2, "0")}`),
     monthsCount: owed(m).length,
     amountOwed: owed(m).length * FX_PRICE[m.group],
     credit: 0,
-    lastRemindedAt: null,
+    lastRemindedAt: m.no % 5 === 0 ? "2026-09-25T10:00:00Z" : m.no % 7 === 0 ? "2026-09-27T09:00:00Z" : null,
   }));
 }
 

@@ -288,3 +288,9 @@ export const ROLE_LABEL = {
   deputy: "نائب أمين الصندوق",
   committee: "مشرف",
 } as const;
+
+/** «ذُكّر قبل 3 أيام» / «ذُكّر أمس» / «لم يُذكَّر بعد». */
+export function remindedLabel(iso: string | null, now: Date = new Date()) {
+  if (!iso) return "لم يُذكَّر بعد";
+  return `ذُكّر ${relativeAgo(iso, now).replace(/^منذ /, "قبل ")}`;
+}

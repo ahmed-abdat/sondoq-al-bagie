@@ -114,3 +114,4 @@ export const committeeSession = () => pick(fx.fxSession, () => data.getCommittee
 export const pendingPayments = () => pick(fx.fxPending, () => data.getPendingPayments());
 export const arrears = () => pick(fx.fxArrears, () => data.getArrears());
 export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFundAccountsAdmin());
+export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());
