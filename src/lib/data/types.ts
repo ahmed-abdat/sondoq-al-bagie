@@ -99,6 +99,9 @@ export type FundAccount = {
   sortOrder: number;
 };
 
+/** Admin view of a fund account (includes inactive ones). */
+export type FundAccountAdmin = FundAccount & { active: boolean; note: string | null };
+
 /** Public fund settings. */
 export type FundInfo = {
   /** Committee WhatsApp number for transfer screenshots, e.g. "+22233334444"; null = not set. */
