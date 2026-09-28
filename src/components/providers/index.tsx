@@ -16,12 +16,14 @@ export { InstallCard, IosInstallSheet, useInstallPrompt } from "./install";
 // Bump when the shape of saved public data changes, so old copies are dropped.
 const CACHE_VERSION = "1";
 
-function makeClient() {
+export function makeClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
         staleTime: 60_000,
-        gcTime: PERSIST_MAX_AGE, // keep data around long enough to be saved and restored
+        // Never garbage-collect: the saved copy must survive until it is persisted/restored.
+        // (30 days as a timer would overflow setTimeout's 2^31 ms limit and fire at once.)
+        gcTime: Infinity,
         retry: 1,
         // Offline: show what we have, fetch again when the connection comes back.
         networkMode: "offlineFirst",
