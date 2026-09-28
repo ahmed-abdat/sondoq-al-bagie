@@ -6,9 +6,12 @@ import { useState, type ReactNode } from "react";
 import { createIdbPersister, isPersistable, PERSIST_MAX_AGE } from "@/lib/offline/persister";
 import { OfflineBanner } from "./offline-banner";
 import { OnlineSync } from "./online";
+import { SaveVisitedPages, ServiceWorkerUpdates } from "./sw-update";
+import { Toaster } from "@/components/ui/sonner";
 
 export { useOnline } from "./online";
 export { OfflineBanner, OfflineWriteHint } from "./offline-banner";
+export { InstallCard, IosInstallSheet, useInstallPrompt } from "./install";
 
 // Bump when the shape of saved public data changes, so old copies are dropped.
 const CACHE_VERSION = "1";
@@ -28,7 +31,10 @@ function makeClient() {
   });
 }
 
-/** App-wide client state: TanStack Query (public data saved to IndexedDB) + online status. */
+/**
+ * App-wide client state: TanStack Query (public data saved to IndexedDB), online status,
+ * offline banner, update toast, and the toast container (do not mount another <Toaster>).
+ */
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(makeClient);
   const [persister] = useState(createIdbPersister);
@@ -44,7 +50,10 @@ export function Providers({ children }: { children: ReactNode }) {
     >
       <OnlineSync />
       <OfflineBanner />
+      <ServiceWorkerUpdates />
+      <SaveVisitedPages />
       {children}
+      <Toaster position="top-center" />
     </PersistQueryClientProvider>
   );
 }

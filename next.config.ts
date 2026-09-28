@@ -7,7 +7,8 @@ process.env.SERWIST_SUPPRESS_TURBOPACK_WARNING ??= "1";
 const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
-  cacheOnNavigation: true,
+  // Off: it would also save logged-in pages. SaveVisitedPages (providers) saves public ones only.
+  cacheOnNavigation: false,
   reloadOnOnline: false,
   disable: process.env.NODE_ENV !== "production",
   // Precache only the app shell (low-end phones, small data plans): no Pages Router runtime.

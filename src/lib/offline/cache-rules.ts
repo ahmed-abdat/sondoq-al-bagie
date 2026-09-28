@@ -11,10 +11,16 @@ export const PUBLIC_VIEWS = [
   "recent_expenses",
   "campaign_progress",
   "activity_feed",
+  "fund_accounts_public",
+  "fund_info",
+  "campaign_contributions",
 ] as const;
 
-/** Pages that need a login: never cached, so nothing private stays on a shared phone. */
-export const PRIVATE_PREFIXES = ["/committee", "/login", "/auth", "/api"] as const;
+/**
+ * Never cached: pages that need a login (nothing private stays on a shared phone), and receipt
+ * verification `/r/<code>`, which must always be fresh (a cancelled receipt must show as cancelled).
+ */
+export const PRIVATE_PREFIXES = ["/committee", "/login", "/auth", "/api", "/r"] as const;
 
 function underPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);

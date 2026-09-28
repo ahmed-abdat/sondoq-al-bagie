@@ -8,12 +8,16 @@ describe("isPublicViewRead", () => {
   it("allows GET of public views", () => {
     expect(isPublicViewRead(sb("/rest/v1/fund_summary?select=*"), "GET")).toBe(true);
     expect(isPublicViewRead(sb("/rest/v1/member_status"), "GET")).toBe(true);
+    expect(isPublicViewRead(sb("/rest/v1/fund_accounts_public"), "GET")).toBe(true);
+    expect(isPublicViewRead(sb("/rest/v1/fund_info"), "GET")).toBe(true);
+    expect(isPublicViewRead(sb("/rest/v1/campaign_contributions"), "GET")).toBe(true);
   });
   it("rejects writes, private views, tables, rpc, auth, storage", () => {
     expect(isPublicViewRead(sb("/rest/v1/fund_summary"), "POST")).toBe(false);
     expect(isPublicViewRead(sb("/rest/v1/arrears"), "GET")).toBe(false);
     expect(isPublicViewRead(sb("/rest/v1/payments"), "GET")).toBe(false);
     expect(isPublicViewRead(sb("/rest/v1/rpc/verify_receipt"), "GET")).toBe(false);
+    expect(isPublicViewRead(sb("/rest/v1/rpc/verify_receipt"), "POST")).toBe(false);
     expect(isPublicViewRead(sb("/auth/v1/user"), "GET")).toBe(false);
     expect(isPublicViewRead(sb("/storage/v1/object/proofs/x.jpg"), "GET")).toBe(false);
   });
@@ -23,12 +27,17 @@ describe("isPublicViewRead", () => {
 });
 
 describe("isPrivatePath", () => {
-  it.each(["/committee", "/committee/pending", "/login", "/auth/confirm", "/api/keepalive"])(
-    "%s is private",
-    (p) => expect(isPrivatePath(p)).toBe(true),
-  );
-  it.each(["/", "/members", "/r/BQ-AB12-0001", "/committees-info"])("%s is public", (p) =>
-    expect(isPrivatePath(p)).toBe(false),
+  it.each([
+    "/committee",
+    "/committee/pending",
+    "/login",
+    "/auth/confirm",
+    "/api/keepalive",
+    "/r/BQ-AB12-0001",
+  ])("%s is private", (p) => expect(isPrivatePath(p)).toBe(true));
+  it.each(["/", "/members", "/accounts", "/donations", "/rules", "/committees-info"])(
+    "%s is public",
+    (p) => expect(isPrivatePath(p)).toBe(false),
   );
 });
 
