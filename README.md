@@ -30,4 +30,5 @@ npm run build
 ## Notes
 
 - Money is stored as whole numbers in old ouguiya (MRO). Receipts usually show new ouguiya (MRU): 1 MRU = 10 MRO. See `src/lib/money.ts`.
+- Project docs, decisions and the handoff for new contributors are in [`docs/`](docs/README.md).
 - `/committee/*` requires a signed-in committee member (`src/proxy.ts`). Members use the public page without an account.

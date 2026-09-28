@@ -1,0 +1,5 @@
+<!doctype html><meta charset=utf-8><script src="/tjs/tesseract.min.js"></script><script src="/common.js"></script><script>
+window.init=async(langs)=>{const t=performance.now();window.w=await Tesseract.createWorker(langs,1,{workerPath:'/tjs/worker.min.js',corePath:'/tcore/',langPath:'/lang',cacheMethod:'none'});return performance.now()-t};
+window.ocr=async(f,pre)=>{const im=await loadImg('/img/'+f);const t=performance.now();const input=pre?prep(im):im;const {data}=await w.recognize(input);
+ const words=(data.words||[]).map(x=>({t:x.text,c:Math.round(x.confidence)}));return {ms:performance.now()-t,text:data.text,conf:data.confidence,words}};
+</script>

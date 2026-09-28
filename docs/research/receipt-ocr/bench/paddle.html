@@ -1,0 +1,7 @@
+<!doctype html><meta charset=utf-8><script src="/common.js"></script><script type=module>
+import {PaddleOCR} from '/pbundle/p.mjs';
+window.init=async(threads)=>{const t=performance.now();window.po=await PaddleOCR.create({textDetectionModelName:'my_det',textDetectionModelAsset:{url:'/models/det.tar'},textRecognitionModelName:'my_rec',textRecognitionModelAsset:{url:'/models/rec.tar'},worker:true,ortOptions:{backend:'wasm',wasmPaths:'/ort/',numThreads:threads,simd:true}});return performance.now()-t};
+window.ocr=async(f,pre)=>{const im=await loadImg('/img/'+f);const t=performance.now();const input=pre?prep(im):im;const bmp=await createImageBitmap(input);const [r]=await po.predict(bmp);
+ return {ms:performance.now()-t,items:r.items.map(i=>({text:i.text,score:i.score,poly:i.poly}))}};
+window.ready=true;
+</script>
