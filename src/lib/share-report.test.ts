@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { ReportData, ReportMember, ReportMonthState } from "./data/types";
 import { monthName } from "./dates";
 import { THIN } from "./format";
 import {
@@ -6,6 +7,7 @@ import {
   monthBars,
   paidLine,
   reportFileName,
+  reportSummary,
   reportShareText,
   reportUrl,
   shareReportSummary,
@@ -95,4 +97,104 @@ it("shareReportSummary falls back to WhatsApp text with the link", async () => {
   const res = await shareReportSummary(D, "https://x.app/report", { nav: {} as never, open });
   expect(res).toBe("whatsapp");
   expect(decodeURIComponent(open.mock.calls[0][0])).toContain("https://x.app/report");
+});
+
+describe("reportSummary (ReportData → card)", () => {
+  const member = (
+    id: string,
+    status: ReportMember["status"],
+    months: Partial<Record<number, ReportMonthState>>,
+  ): ReportMember => ({
+    memberId: id,
+    memberRef: id,
+    fullName: id,
+    groupCode: "A",
+    status,
+    statusLabel: "",
+    months: Array.from({ length: 12 }, (_, i) => months[i + 1] ?? "not_owed"),
+    monthsPaid: 0,
+    monthsBehind: 0,
+    amountOwed: null,
+  });
+  const R = (over: Partial<ReportData> = {}): ReportData => ({
+    year: 2026,
+    summary: {
+      openingBalance: 0,
+      moneyIn: 0,
+      moneyOut: 0,
+      transfersIn: 0,
+      balance: 290500,
+      collectedThisYear: 294000,
+      spentThisYear: 1500,
+      membersOk: 0,
+      membersBehind: 0,
+      lastActivityAt: null,
+      membersActive: 3,
+      adjustments: 0,
+      termNumber: 2,
+      termStartedOn: null,
+    },
+    term: null,
+    monthly: Array.from({ length: 12 }, (_, i) => ({
+      year: 2026,
+      month: i + 1,
+      expected: 1000,
+      collected: i < 9 ? 1000 : 0,
+    })),
+    members: [
+      member("a", "active", { 9: "paid" }),
+      member("b", "active", { 9: "late", 10: "prepaid" }),
+      member("c", "active", { 9: "prepaid" }),
+      member("d", "exempt", { 9: "paid" }),
+    ],
+    expenses: [],
+    expensesComplete: true,
+    campaigns: [],
+    showAmountOwed: false,
+    generatedAt: "2026-09-28T10:00:00.000Z",
+    ...over,
+  });
+
+  it("maps totals, month bars, and paid-this-month among active members", () => {
+    const d = reportSummary(R());
+    expect(d).toMatchObject({
+      termLabel: "الدورة 2",
+      year: 2026,
+      balance: 290500,
+      collectedThisYear: 294000,
+      spentThisYear: 1500,
+      month: 9,
+      paidCount: 2,
+      activeCount: 3,
+    });
+    expect(d.months).toHaveLength(12);
+    expect(d.months[0]).toEqual({ month: 1, expected: 1000, collected: 1000 });
+    expect(d.asOfLabel).toBe(`الاثنين 28 ${monthName(9)} 2026`);
+  });
+
+  it("the share text takes ReportData as is", () => {
+    expect(reportShareText(R(), "u")).toBe(reportShareText(reportSummary(R()), "u"));
+  });
+
+  it("uses the term title when present, December for a past year", () => {
+    const d = reportSummary(
+      R({
+        year: 2025,
+        term: {
+          number: 1,
+          title: "الدورة الأولى",
+          startedOn: "2025-01-01",
+          endedOn: null,
+          openingBalance: 0,
+          closingBalance: null,
+          collected: 0,
+          spent: 0,
+          adjustment: 0,
+        },
+      }),
+    );
+    expect(d.termLabel).toBe("الدورة الأولى");
+    expect(d.month).toBe(12);
+    expect(d.paidCount).toBe(0);
+  });
 });
