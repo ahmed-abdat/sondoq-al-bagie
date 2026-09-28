@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { toActivityItem, toFundInfo, toFundSummary, toMemberMonth, toPendingPayment } from "./map";
+import {
+  toActivityItem,
+  toFundInfo,
+  toFundSummary,
+  toMemberMonth,
+  toPendingPayment,
+  toVerifiedReceipt,
+} from "./map";
 
 describe("map", () => {
   it("fills an empty fund summary with zeros", () => {
@@ -30,14 +37,30 @@ describe("map", () => {
       months: null,
       amount: null,
       category: null,
+      payment_id: null,
+      method: null,
+      receipt_code: null,
     };
     expect(
-      toActivityItem({ ...base, kind: "payment_confirmed", member_names: "أ، ب", months: 2 }),
+      toActivityItem({
+        ...base,
+        kind: "payment_confirmed",
+        member_names: "أ، ب",
+        months: 2,
+        amount: 2000,
+        payment_id: "p1",
+        method: "bankily",
+        receipt_code: "BQ-ABCD-1234",
+      }),
     ).toEqual({
       kind: "payment_confirmed",
       at: base.at,
+      paymentId: "p1",
       memberNames: "أ، ب",
       months: 2,
+      amount: 2000,
+      method: "bankily",
+      receiptCode: "BQ-ABCD-1234",
     });
     expect(
       toActivityItem({ ...base, kind: "expense", amount: 300, category: "sports" }),
@@ -68,6 +91,8 @@ describe("map", () => {
       reject_reason: null,
       cancelled_at: null,
       cancel_reason: null,
+      receipt_code: null,
+      receipt_no: null,
       allocations: [
         {
           kind: "months",
@@ -95,5 +120,36 @@ describe("map", () => {
       { kind: "credit", memberId: "m1", number: 7, fullName: "عضو", amount: 500 },
     ]);
     expect(p.createdByName).toBe("مشرف");
+  });
+
+  it("reads verify_receipt JSON and treats anything odd as not found", () => {
+    expect(toVerifiedReceipt({ status: "not_found" })).toEqual({ status: "not_found" });
+    expect(toVerifiedReceipt(null)).toEqual({ status: "not_found" });
+    const r = toVerifiedReceipt({
+      status: "valid",
+      code: "BQ-ABCD-1234",
+      receipt_no: "2026-0001",
+      payer_name: "دافع",
+      amount: 1000,
+      method: "sedad",
+      paid_on: "2026-09-01",
+      confirmed_at: "2026-09-01T10:00:00Z",
+      confirmed_by_name: "الأمين",
+      confirmed_by_role: "treasurer",
+      txn_ref_last4: "1234",
+      members: [{ number: 7, full_name: "عضو", months: [{ year: 2026, month: 9 }] }],
+      campaign_titles: [],
+    });
+    expect(r).toMatchObject({
+      status: "valid",
+      receiptNo: "2026-0001",
+      confirmedByRole: "treasurer",
+      txnRefLast4: "1234",
+    });
+    expect(r.status === "valid" && r.members[0]).toEqual({
+      number: 7,
+      fullName: "عضو",
+      months: [{ year: 2026, month: 9 }],
+    });
   });
 });

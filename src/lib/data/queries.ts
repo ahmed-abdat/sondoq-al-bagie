@@ -57,6 +57,16 @@ export const publicQueries = {
       queryKey: [PUBLIC_KEY, "activity_feed"],
       queryFn: () => read.activity(client()),
     }),
+  campaignContributions: (campaignId: string, limit = 20) =>
+    queryOptions({
+      queryKey: [PUBLIC_KEY, "campaign_contributions", campaignId, limit],
+      queryFn: () => read.campaignContributions(client(), campaignId, limit),
+    }),
+  receipt: (code: string) =>
+    queryOptions({
+      queryKey: [PUBLIC_KEY, "receipt", code.trim().toUpperCase()],
+      queryFn: () => read.verifyReceipt(client(), code),
+    }),
   fundAccounts: () =>
     queryOptions({
       queryKey: [PUBLIC_KEY, "fund_accounts"],

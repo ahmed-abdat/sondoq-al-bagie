@@ -36,7 +36,10 @@ describe("actions", () => {
       error: null,
     });
     const r = await recordPayment(payment);
-    expect(r).toEqual({ ok: true, data: { id, status: "confirmed", replay: false } });
+    expect(r).toEqual({
+      ok: true,
+      data: { id, status: "confirmed", replay: false, receiptCode: null },
+    });
     expect(rpc).toHaveBeenCalledWith(
       "record_payment",
       expect.objectContaining({
@@ -81,7 +84,12 @@ describe("actions", () => {
     });
     expect(await confirmPayment({ id })).toEqual({
       ok: true,
-      data: { already: true, decidedByName: "الأمين", decidedAt: "2026-09-01T10:00:00Z" },
+      data: {
+        already: true,
+        decidedByName: "الأمين",
+        decidedAt: "2026-09-01T10:00:00Z",
+        receiptCode: null,
+      },
     });
   });
 

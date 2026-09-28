@@ -5,7 +5,9 @@ import type {
   ActivityItem,
   Allocation,
   Arrear,
+  CampaignContribution,
   CampaignProgress,
+  CommitteeRole,
   Expense,
   ExpenseTotal,
   FundAccount,
@@ -15,7 +17,9 @@ import type {
   MemberStatus,
   MonthlyCollection,
   MonthState,
+  PaymentMethod,
   PendingPayment,
+  VerifiedReceipt,
 } from "./types";
 
 type Row<V extends keyof Database["public"]["Views"]> = Database["public"]["Views"][V]["Row"];
@@ -106,7 +110,16 @@ export function toActivityItem(r: Row<"activity_feed">): ActivityItem | null {
   const at = str(r.at);
   switch (r.kind) {
     case "payment_confirmed":
-      return { kind: r.kind, at, memberNames: str(r.member_names), months: num(r.months) };
+      return {
+        kind: r.kind,
+        at,
+        paymentId: str(r.payment_id),
+        memberNames: str(r.member_names),
+        months: num(r.months),
+        amount: num(r.amount),
+        method: r.method ?? "other",
+        receiptCode: r.receipt_code,
+      };
     case "expense":
       return { kind: r.kind, at, amount: num(r.amount), category: r.category ?? "other" };
     case "campaign_opened":
@@ -123,6 +136,58 @@ export function toFundAccount(r: Row<"fund_accounts_public">): FundAccount {
     accountNumber: str(r.account_number),
     holderName: str(r.holder_name),
     sortOrder: num(r.sort_order),
+    active: true,
+  };
+}
+
+export function toCampaignContribution(r: Row<"campaign_contributions">): CampaignContribution {
+  return {
+    paymentId: str(r.payment_id),
+    campaignId: str(r.campaign_id),
+    at: str(r.at),
+    contributorName: str(r.contributor_name),
+    amount: num(r.amount),
+  };
+}
+
+type RawReceipt = {
+  status?: string;
+  code?: string;
+  receipt_no?: string;
+  payer_name?: string;
+  amount?: number;
+  method?: PaymentMethod;
+  paid_on?: string;
+  confirmed_at?: string;
+  confirmed_by_name?: string | null;
+  confirmed_by_role?: CommitteeRole | null;
+  txn_ref_last4?: string | null;
+  members?: { number: number; full_name: string; months: { year: number; month: number }[] }[];
+  campaign_titles?: string[];
+};
+
+/** verify_receipt() JSON → VerifiedReceipt. Anything unexpected reads as not_found. */
+export function toVerifiedReceipt(raw: unknown): VerifiedReceipt {
+  const r = (raw ?? {}) as RawReceipt;
+  if ((r.status !== "valid" && r.status !== "cancelled") || !r.code) return { status: "not_found" };
+  return {
+    status: r.status,
+    code: r.code,
+    receiptNo: str(r.receipt_no),
+    payerName: str(r.payer_name),
+    amount: num(r.amount),
+    method: r.method ?? "other",
+    paidOn: str(r.paid_on),
+    confirmedAt: str(r.confirmed_at),
+    confirmedByName: r.confirmed_by_name ?? null,
+    confirmedByRole: r.confirmed_by_role ?? null,
+    txnRefLast4: r.txn_ref_last4 ?? null,
+    members: (r.members ?? []).map((m) => ({
+      number: m.number,
+      fullName: m.full_name,
+      months: m.months ?? [],
+    })),
+    campaignTitles: r.campaign_titles ?? [],
   };
 }
 
@@ -199,6 +264,8 @@ export function toPendingPayment(r: Row<"payment_queue">): PendingPayment {
     rejectReason: r.reject_reason,
     cancelReason: r.cancel_reason,
     allocations: raw.map(toAllocation).filter((a): a is Allocation => a !== null),
+    receiptCode: r.receipt_code,
+    receiptNo: r.receipt_no,
   };
 }
 

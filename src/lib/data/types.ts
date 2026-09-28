@@ -86,21 +86,42 @@ export type CampaignProgress = {
 };
 
 export type ActivityItem =
-  | { kind: "payment_confirmed"; at: string; memberNames: string; months: number }
+  | {
+      kind: "payment_confirmed";
+      at: string;
+      paymentId: string;
+      memberNames: string;
+      months: number;
+      amount: number;
+      method: PaymentMethod;
+      /** verification code for /r/[code]; null for old payments confirmed before receipts existed */
+      receiptCode: string | null;
+    }
   | { kind: "expense"; at: string; amount: number; category: ExpenseCategory }
   | { kind: "campaign_opened"; at: string; targetAmount: number | null };
 
-/** Active wallet number members send money to (public). */
+/** «آخر المساهمات» of a campaign (public). */
+export type CampaignContribution = {
+  paymentId: string;
+  campaignId: string;
+  at: string;
+  /** member name, or the payer's name for an outside donor */
+  contributorName: string;
+  amount: number;
+};
+
+/** Wallet number members send money to. The public list holds active ones only. */
 export type FundAccount = {
   id: string;
   method: PaymentMethod;
   accountNumber: string;
   holderName: string;
   sortOrder: number;
+  active: boolean;
 };
 
 /** Admin view of a fund account (includes inactive ones). */
-export type FundAccountAdmin = FundAccount & { active: boolean; note: string | null };
+export type FundAccountAdmin = FundAccount & { note: string | null };
 
 /** Public fund settings. */
 export type FundInfo = {
@@ -151,6 +172,10 @@ export type PendingPayment = {
   rejectReason: string | null;
   cancelReason: string | null;
   allocations: Allocation[];
+  /** set once confirmed (not for paper imports) */
+  receiptCode: string | null;
+  /** e.g. "2026-0042" */
+  receiptNo: string | null;
 };
 
 /** Committee arrears row (has the phone for WhatsApp). */
@@ -192,7 +217,10 @@ export type VerifiedReceipt =
       method: PaymentMethod;
       paidOn: string;
       confirmedAt: string;
-      /** e.g. [{ memberName, number, months: [{year, month}] }] */
+      confirmedByName: string | null;
+      confirmedByRole: CommitteeRole | null;
+      /** last 4 characters of the wallet transaction number, if any */
+      txnRefLast4: string | null;
       members: { number: number; fullName: string; months: { year: number; month: number }[] }[];
       campaignTitles: string[];
     };

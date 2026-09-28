@@ -96,6 +96,28 @@ export async function activity(c: Client) {
     .filter((a): a is ActivityItem => a !== null);
 }
 
+/** Latest confirmed contributions to one campaign, newest first. */
+export async function campaignContributions(c: Client, campaignId: string, limit = 20) {
+  return many(
+    "campaign_contributions",
+    await c
+      .from("campaign_contributions")
+      .select("*")
+      .eq("campaign_id", campaignId)
+      .order("at", { ascending: false })
+      .limit(limit),
+  ).map(map.toCampaignContribution);
+}
+
+/** Public receipt check for /r/[code]. */
+export async function verifyReceipt(c: Client, code: string) {
+  const clean = code.trim().toUpperCase();
+  if (!/^BQ-[A-Z]{4}-[0-9]{4}$/.test(clean)) return map.toVerifiedReceipt(null);
+  return map.toVerifiedReceipt(
+    must("verify_receipt", await c.rpc("verify_receipt", { p_code: clean })),
+  );
+}
+
 export async function fundAccounts(c: Client) {
   return many("fund_accounts_public", await c.from("fund_accounts_public").select("*")).map(
     map.toFundAccount,
