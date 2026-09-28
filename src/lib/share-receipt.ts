@@ -18,7 +18,7 @@ import {
   type ShareResult,
 } from "./canvas-share";
 
-export const FUND_NAME = "صندوق البقيع";
+export const FUND_NAME = "صندوق الشباب";
 export const ASSOC_NAME = "رابطة شباب قرية البقيع";
 
 export interface ReceiptCover {

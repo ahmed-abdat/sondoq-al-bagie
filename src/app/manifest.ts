@@ -4,9 +4,9 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "صندوق البقيع",
-    short_name: "صندوق البقيع",
-    description: "صندوق رابطة شباب قرية البقيع: الرسوم الشهرية والمصاريف بشفافية",
+    name: "صندوق الشباب",
+    short_name: "صندوق الشباب",
+    description: "صندوق الشباب — رابطة شباب قرية البقيع: الرسوم الشهرية والمصاريف بشفافية",
     lang: "ar",
     dir: "rtl",
     start_url: "/",
