@@ -30,7 +30,8 @@ supabase/tests/local/run.sh
 
 Needs `initdb`/`pg_ctl`/`psql` (Postgres 15+; on macOS `brew install postgresql@16`). It starts a
 throwaway Postgres, loads a tiny Supabase stand-in (`tests/local/00_supabase_shim.sql`), applies the
-migrations and `seed.sql`, runs `tests/*.sql` (one rolled-back transaction), runs a two-session race
+migrations, runs `tests/*.sql` (one rolled-back transaction), loads `seed.sql` (70 fictional members:
+~45 % paid the year, ~40 % nothing, the rest partly; 2 pending transfers; a campaign) and checks its shape, runs a two-session race
 check, then rolls back (`rollback/*_down.sql`, newest first) and re-applies. Prints `OK` at the end.
 
 ## Apply to Supabase

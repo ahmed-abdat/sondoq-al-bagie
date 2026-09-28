@@ -1,0 +1,106 @@
+// WhatsApp texts the committee sends from the app (free wa.me links, no API). Simple standard
+// Arabic; «الرسوم الشهرية» for the monthly fee. Pure; unit tested. After opening a link, call
+// the logReminder action so the arrears list shows «آخر تذكير».
+import { formatMonth } from "@/lib/dates";
+import { formatMro, formatMru } from "@/lib/format";
+import { methodLabel, type Method } from "@/lib/methods";
+import { mroToMru } from "@/lib/money";
+import { waLink } from "@/lib/whatsapp";
+import type { Arrear, FundAccount, VerifiedReceipt } from "./types";
+
+const FUND = "صندوق رابطة البقيع";
+
+/** "يوليو، أغسطس 2026" — the year once when every month is in the same year. */
+export function monthsList(yms: string[]): string {
+  if (!yms.length) return "";
+  const sameYear = yms.every((m) => m.slice(0, 4) === yms[0].slice(0, 4));
+  const names = yms.map((m) => formatMonth(m, !sameYear));
+  return sameYear ? `${names.join("، ")} ${yms[0].slice(0, 4)}` : names.join("، ");
+}
+
+function monthsCount(n: number): string {
+  if (n === 1) return "شهر واحد";
+  if (n === 2) return "شهران";
+  if (n <= 10) return `${n} أشهر`;
+  return `${n} شهراً`;
+}
+
+function amount(mro: number): string {
+  return `${formatMro(mro)} (${formatMru(mroToMru(mro))})`;
+}
+
+function accountsBlock(accounts: FundAccount[]): string[] {
+  if (!accounts.length) return [];
+  return [
+    "يمكن التحويل إلى:",
+    ...accounts.map(
+      (a) => `• ${methodLabel(a.method as Method)}: ${a.accountNumber} (${a.holderName})`,
+    ),
+  ];
+}
+
+export type ReminderContext = {
+  accounts: FundAccount[];
+  /** where members send the transfer screenshot; null → "this number" */
+  whatsappContact: string | null;
+  /** public page link, e.g. https://…/members */
+  publicUrl?: string;
+};
+
+/** Personal reminder for one late member (sent privately, so the amount is included). */
+export function reminderText(
+  a: Pick<Arrear, "fullName" | "months" | "monthsCount" | "amountOwed">,
+  ctx: ReminderContext,
+): string {
+  return [
+    `السلام عليكم ${a.fullName}،`,
+    `نذكّركم بالرسوم الشهرية في ${FUND}.`,
+    `الأشهر غير المدفوعة: ${monthsList(a.months)} (${monthsCount(a.monthsCount)}).`,
+    `المبلغ: ${amount(a.amountOwed)}.`,
+    ...accountsBlock(ctx.accounts),
+    ctx.whatsappContact
+      ? `بعد التحويل أرسلوا صورة الإيصال إلى ${ctx.whatsappContact}.`
+      : "بعد التحويل أرسلوا صورة الإيصال إلى هذا الرقم.",
+    ...(ctx.publicUrl ? [`حالة الاشتراكات: ${ctx.publicUrl}`] : []),
+    "جزاكم الله خيراً.",
+  ].join("\n");
+}
+
+export function reminderLink(a: Arrear, ctx: ReminderContext): string {
+  return waLink(a.phone, reminderText(a, ctx));
+}
+
+/** One message for the members' WhatsApp group: no names, no amounts. */
+export function groupReminderText(ctx: ReminderContext & { lateCount: number }): string {
+  return [
+    "السلام عليكم،",
+    `تذكير بالرسوم الشهرية في ${FUND}.`,
+    ctx.lateCount > 0 ? `ما زال ${ctx.lateCount} من الأعضاء لم يسددوا كل الأشهر المستحقة.` : "",
+    ...accountsBlock(ctx.accounts),
+    ctx.whatsappContact ? `أرسلوا صورة الإيصال إلى ${ctx.whatsappContact}.` : "",
+    ...(ctx.publicUrl ? [`تفاصيل كل عضو: ${ctx.publicUrl}`] : []),
+    "جزاكم الله خيراً.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/** Thank-you with the receipt link after a confirmed payment. */
+export function receiptText(
+  r: Exclude<VerifiedReceipt, { status: "not_found" }>,
+  receiptUrl: string,
+): string {
+  const months = r.members
+    .filter((m) => m.months.length)
+    .map(
+      (m) =>
+        `${m.fullName}: ${monthsList(m.months.map((x) => `${x.year}-${String(x.month).padStart(2, "0")}`))}`,
+    );
+  return [
+    `شكراً ${r.payerName}، استلمنا ${amount(r.amount)}.`,
+    ...(months.length ? ["الرسوم الشهرية:", ...months.map((m) => `• ${m}`)] : []),
+    ...(r.campaignTitles.length ? [`المساهمة: ${r.campaignTitles.join("، ")}`] : []),
+    `رقم الإيصال: ${r.receiptNo}`,
+    `للتحقق: ${receiptUrl}`,
+  ].join("\n");
+}
