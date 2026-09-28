@@ -80,7 +80,13 @@ export function LateList({
                         متأخر {monthsWord(a.monthsCount)} · <Num>{fmt(a.amountOwed)}</Num> أوقية
                       </span>
                       <span className={`bq-row-s ${sent[a.memberId] ? "is-ok" : ""}`}>
-                        {a.phone ? (now ? remindedLabel(last, now) : last ? "ذُكّر من قبل" : "لم يُذكَّر بعد") : "لا يوجد رقم هاتف"}
+                        {a.phone
+                          ? now
+                            ? remindedLabel(last, now)
+                            : last
+                              ? "ذُكّر من قبل"
+                              : "لم يُذكَّر بعد"
+                          : "لا يوجد رقم هاتف"}
                       </span>
                     </span>
                     <button

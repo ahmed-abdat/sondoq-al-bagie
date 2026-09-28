@@ -97,7 +97,7 @@ export function CommitteeView({
   canManage,
 }: {
   pending: PendingPayment[];
-  me: { by: string; role: string };
+  me: { by: string; role: string; canConfirm?: boolean; memberId?: string | null };
   members: MemberStatus[];
   ctx: MemberCtx;
   accounts: FundAccount[];
