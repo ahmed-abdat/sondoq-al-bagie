@@ -37,7 +37,8 @@ export const MESSAGES = {
   // members / admin
   unknown_group: "المجموعة غير معروفة.",
   member_required: "اختر العضو.",
-  number_taken: "رقم العضو مستخدم من قبل.",
+  number_taken: "هذا الرقم مستخدم في نفس القائمة.",
+  unknown_list: "القائمة غير معروفة (أ أو ب).",
   no_open_period: "لا توجد فترة عضوية مفتوحة لهذا العضو.",
   before_current_period: "التاريخ قبل بداية الحالة الحالية.",
   months_already_paid_after: "توجد أشهر مدفوعة بعد هذا التاريخ.",
@@ -63,7 +64,8 @@ export function codeOf(err: DbError): string {
     if (text.includes("payments_txn_ref_uniq")) return "duplicate_txn_ref";
     if (text.includes("payments_proof_hash_uniq")) return "duplicate_proof";
     if (text.includes("payment_months_paid_once")) return "month_already_paid";
-    if (text.includes("members_number_key")) return "number_taken";
+    if (text.includes("members_number_key") || text.includes("members_list_number_key"))
+      return "number_taken";
     if (text.includes("fund_accounts_active_uniq")) return "account_exists";
   }
   if (err.code === "42501") return "not_committee";

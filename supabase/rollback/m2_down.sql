@@ -1,6 +1,137 @@
 -- Undo the M2 migrations (dev/branch only). Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- member lists (m7): back to one global numbering
+drop view if exists public.payment_queue, public.members_admin, public.arrears, public.member_status, public.fund_summary;
+drop function if exists app_private.public_member_status(), app_private.public_fund_summary(), app_private.member_rollup(),
+  public.add_member(integer, text, text, date, text, text, public.membership_status, text),
+  public.update_member(uuid, text, text, text, integer), public.change_member_group(uuid, date, text, text),
+  public.next_member_number(text);
+drop trigger if exists a_guard on public.members;
+alter table public.members drop constraint if exists members_list_number_key;
+alter table public.members drop column if exists list_code;
+do $$   -- global numbering only fits when the two lists never reuse a number
+begin
+  if exists (select 1 from public.members group by number having count(*) > 1) then
+    raise notice 'members_number_key not restored: lists A and B share numbers';
+  else
+    alter table public.members add constraint members_number_key unique (number);
+  end if;
+end $$;
+create trigger a_guard before update or delete on public.members for each row execute function
+  app_private.tg_append_only('', 'full_name,phone,note');
+create function app_private.member_rollup()
+returns table (member_id uuid, number integer, full_name text, group_code text, member_status public.membership_status,
+               months_paid_this_year integer, months_behind integer, amount_owed integer)
+language sql stable security definer set search_path = '' as $$
+  with g as (
+    select mg.member_id,
+           count(*) filter (where mg.paid and mg.year = extract(year from current_date))::integer as paid_y,
+           count(*) filter (where mg.due)::integer as behind,
+           coalesce(sum(mg.owed), 0)::integer as owed
+    from app_private.month_grid() mg group by mg.member_id
+  ),
+  cur as (   -- the period covering this month, else the most recent one
+    select distinct on (p.member_id) p.member_id, p.group_id, p.status
+    from public.membership_periods p
+    where p.cancelled_at is null and p.from_month <= current_date
+    order by p.member_id, p.from_month desc
+  )
+  select m.id, m.number, m.full_name, gr.code, cur.status,
+         coalesce(g.paid_y, 0), coalesce(g.behind, 0), coalesce(g.owed, 0)
+  from public.members m
+  left join cur on cur.member_id = m.id
+  left join public.groups gr on gr.id = cur.group_id
+  left join g on g.member_id = m.id;
+$$;
+create function app_private.public_member_status()
+returns table (member_id uuid, number integer, full_name text, group_code text, member_status public.membership_status,
+               months_paid_this_year integer, months_behind integer, status_label text, amount_owed integer)
+language sql stable security definer set search_path = '' as $$
+  select r.member_id, r.number, r.full_name, r.group_code, r.member_status,
+         r.months_paid_this_year, r.months_behind,
+         case when r.months_behind > 0 then 'متأخر' else 'منتظم' end,
+         case when (select s.show_amount_owed from public.settings s) then r.amount_owed end
+  from app_private.member_rollup() r;
+$$;
+create function app_private.public_fund_summary()
+returns table (opening_balance integer, money_in bigint, money_out bigint, transfers_in bigint, balance bigint,
+               collected_this_year bigint, spent_this_year bigint, members_ok integer, members_behind integer,
+               last_activity_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  with fin as (
+    select coalesce(sum(a.amount), 0) as total,
+           coalesce(sum(a.amount) filter (where extract(year from p.paid_on) = extract(year from current_date)), 0) as this_year
+    from public.payment_allocations a join public.payments p on p.id = a.payment_id
+    where p.status = 'confirmed' and a.kind in ('months', 'credit')
+  ),
+  fout as (
+    select coalesce(sum(e.amount), 0) as total,
+           coalesce(sum(e.amount) filter (where extract(year from e.spent_on) = extract(year from current_date)), 0) as this_year
+    from public.expenses e where e.cancelled_at is null and e.campaign_id is null
+  ),
+  tr as (select coalesce(sum(t.amount), 0) as total from public.transfers t),
+  mem as (
+    select count(*) filter (where r.months_behind = 0 and r.member_status = 'active')::integer as ok,
+           count(*) filter (where r.months_behind > 0)::integer as behind
+    from app_private.member_rollup() r
+  )
+  select s.opening_balance, fin.total, fout.total, tr.total,
+         s.opening_balance + fin.total - fout.total + tr.total,
+         fin.this_year, fout.this_year, mem.ok, mem.behind,
+         greatest((select max(coalesce(p.cancelled_at, p.decided_at)) from public.payments p),
+                  (select max(coalesce(e.cancelled_at, e.created_at)) from public.expenses e))
+  from public.settings s, fin, fout, tr, mem;
+$$;
+create view public.member_status with (security_invoker = true) as
+  select * from app_private.public_member_status();
+create view public.fund_summary with (security_invoker = true) as
+  select * from app_private.public_fund_summary();
+create view public.arrears with (security_invoker = true) as
+  select m.id as member_id, m.number, m.full_name, m.phone, r.group_code, r.member_status,
+         o.months, o.months_count, o.amount_owed, coalesce(cr.credit, 0) as credit,
+         (select max(rm.sent_at) from public.reminders rm where rm.member_id = m.id) as last_reminded_at
+  from public.members m
+  join app_private.member_owed_months() o on o.member_id = m.id
+  join app_private.member_rollup() r on r.member_id = m.id
+  left join app_private.member_credit() cr on cr.member_id = m.id;
+create function public.add_member(
+  p_number integer, p_full_name text, p_group_code text, p_from_month date,
+  p_phone text default null, p_note text default null, p_status public.membership_status default 'active'
+) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare
+  mid uuid;
+  gid smallint;
+begin
+  perform app_private.require_admin();
+  select id into gid from public.groups where code = p_group_code;
+  if gid is null then perform app_private.fail('unknown_group'); end if;
+  perform app_private.set_action('add_member');
+  insert into public.members (number, full_name, phone, note, created_by)
+  values (p_number, btrim(p_full_name), nullif(btrim(p_phone), ''), p_note, auth.uid())
+  returning id into mid;
+  insert into public.membership_periods (member_id, group_id, status, from_month, reason, created_by)
+  values (mid, gid, p_status, date_trunc('month', p_from_month)::date, 'join', auth.uid());
+  return mid;
+end $$;
+create function public.update_member(p_member_id uuid, p_full_name text, p_phone text, p_note text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform app_private.require_admin();
+  perform app_private.set_action('update_member');
+  update public.members set full_name = btrim(p_full_name), phone = nullif(btrim(p_phone), ''), note = p_note
+  where id = p_member_id;
+  if not found then perform app_private.fail('not_found'); end if;
+end $$;
+grant select on public.member_status, public.fund_summary to anon, authenticated;
+grant select on public.arrears to authenticated;
+grant execute on function app_private.public_member_status(), app_private.public_fund_summary() to anon, authenticated;
+grant execute on function app_private.member_rollup() to authenticated;
+revoke all on function public.add_member(integer, text, text, date, text, text, public.membership_status),
+  public.update_member(uuid, text, text, text) from public, anon;
+grant execute on function public.add_member(integer, text, text, date, text, text, public.membership_status),
+  public.update_member(uuid, text, text, text) to authenticated, service_role;
 -- group prices (m6)
 drop view if exists public.group_prices_public;
 drop function if exists app_private.public_group_prices();

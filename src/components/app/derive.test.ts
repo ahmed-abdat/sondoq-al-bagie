@@ -27,7 +27,9 @@ import {
 
 const m = (p: Partial<MemberStatus>): MemberStatus => ({
   memberId: "x",
+  listCode: "A",
   number: 1,
+  memberRef: "A-1",
   fullName: "محمد ولد أحمد",
   groupCode: "A",
   status: "active",

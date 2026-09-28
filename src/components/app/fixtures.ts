@@ -108,7 +108,9 @@ const owed = (m: Raw) =>
 export function fxMembers(showOwed = false): MemberStatus[] {
   return RAW.map((m) => ({
     memberId: m.id,
+    listCode: m.group,
     number: m.no,
+    memberRef: `${m.group}-${m.no}`,
     fullName: m.name,
     groupCode: m.group,
     status: m.status,
@@ -213,6 +215,7 @@ export function fxSummary(): FundSummary {
     membersOk: members.filter((m) => m.monthsBehind === 0).length,
     membersBehind: members.filter((m) => m.monthsBehind > 0).length,
     lastActivityAt: "2026-09-28T09:48:00Z",
+    membersActive: members.length,
   };
 }
 
@@ -266,6 +269,7 @@ const RECEIPTS: Rc[] = [
     txnRefLast4: "0452",
     members: [
       {
+        listCode: "A",
         number: 1,
         fullName: "محمد ولد أحمد",
         months: [7, 8, 9].map((month) => ({ year: YEAR, month })),
@@ -287,6 +291,7 @@ const RECEIPTS: Rc[] = [
     txnRefLast4: "0931",
     members: [
       {
+        listCode: "B",
         number: 30,
         fullName: "سيدي ولد الشيخ",
         months: Array.from({ length: 12 }, (_, k) => ({ year: YEAR, month: k + 1 })),
@@ -306,7 +311,9 @@ const RECEIPTS: Rc[] = [
     confirmedByName: "سيدي محمد",
     confirmedByRole: "treasurer",
     txnRefLast4: "1930",
-    members: [{ number: 44, fullName: "يحيى ولد باب", months: [{ year: YEAR, month: 8 }] }],
+    members: [
+      { listCode: "B", number: 44, fullName: "يحيى ولد باب", months: [{ year: YEAR, month: 8 }] },
+    ],
     campaignTitles: [],
   },
 ];
@@ -403,6 +410,7 @@ const pend = (
     return c.months.map((month) => ({
       kind: "months" as const,
       memberId: m.id,
+      listCode: m.group,
       number: m.no,
       fullName: m.name,
       year: YEAR,
@@ -455,7 +463,9 @@ export function fxArrears(): Arrear[] {
     .sort((a, b) => owed(b).length - owed(a).length || a.no - b.no)
     .map((m) => ({
       memberId: m.id,
+      listCode: m.group,
       number: m.no,
+      memberRef: `${m.group}-${m.no}`,
       fullName: m.name,
       phone: m.phone,
       groupCode: m.group,

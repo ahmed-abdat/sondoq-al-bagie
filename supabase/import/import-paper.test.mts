@@ -26,11 +26,12 @@ test("sample: dry run summarises and warns about gaps", () => {
   const { code, out } = run("--sheet", `${sample}sheet.csv`, "--phones", `${sample}phones.csv`,
     "--page-totals", `${sample}page_totals.csv`);
   assert.equal(code, 0, out);
-  assert.match(out, /members {3}8 \(A 5, B 3\); no ticks: 1/);
-  assert.match(out, /payments {2}7/);
+  assert.match(out, /members {3}8 \(list A: 5, list B: 3\)/);
+  assert.match(out, /no ticks: 1, unreadable: 0/);
+  assert.match(out, /payments  7 to import \(39,000 MRO\)/);
   assert.match(out, /amount {4}39,000 MRO \(3,900 MRU\)/);
-  assert.match(out, /numbers not on the sheet: 6-7/);
-  assert.match(out, /member 3: unticked month\(s\) 4 between ticks/);
+  assert.match(out, /list A: numbers not on the sheets: 2, 4, 6-8/);
+  assert.match(out, /A-3: unticked month\(s\) 4 between ticks/);
   assert.doesNotMatch(out, /page .* month/);
   assert.match(out, /Dry run: nothing written/);
 });
@@ -38,7 +39,7 @@ test("sample: dry run summarises and warns about gaps", () => {
 test("sample: SQL has stable payment ids and normalised phones", () => {
   const a = join(dir, "a.sql");
   const b = join(dir, "b.sql");
-  assert.equal(run("--sheet", `${sample}sheet.csv`, "--phones", `${sample}phones.csv`, "--sql", a).code, 0);
+  assert.equal(run("--sheet", `${sample}sheet.csv`, "--phones", `${sample}phones.csv`, "--members-sql", join(dir, "m.sql"), "--sql", a).code, 0);
   assert.equal(run("--sheet", `${sample}sheet.csv`, "--sql", b).code, 0);
   const ids = (f: string) => readFileSync(f, "utf8").match(/'[0-9a-f]{8}-[0-9a-f]{4}-3[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'/g);
   assert.equal(ids(a)?.length, 7);
@@ -52,14 +53,14 @@ test("sample: SQL has stable payment ids and normalised phones", () => {
 
 test("errors block the SQL: duplicate number, unknown group, bad phone, unknown phone owner", () => {
   const sheet = csv("bad.csv", `${HEAD}\n1,Ali,A,x,,,,,,,,,,,\n1,Omar,A,,,,,,,,,,,,\n2,Sidi,C,x,,,,,,,,,,,\n`);
-  const phones = csv("bad-phones.csv", "number,phone\n1,12ab\n9,22000000\n");
+  const phones = csv("bad-phones.csv", "list,number,phone\nA,1,12ab\nA,9,22000000\n");
   const out = join(dir, "never.sql");
   const r = run("--sheet", sheet, "--phones", phones, "--sql", out);
   assert.equal(r.code, 1);
-  assert.match(r.out, /number 1 already used on line 2/);
-  assert.match(r.out, /member 2 has unknown group "C"/);
-  assert.match(r.out, /member 1 phone is not a valid number/);
-  assert.match(r.out, /member 9 is not on the sheet/);
+  assert.match(r.out, /A-1 already used at .*bad\.csv:2/);
+  assert.match(r.out, /C-2 has unknown group "C"/);
+  assert.match(r.out, /A-1 phone is not a valid number/);
+  assert.match(r.out, /A-9 is not on the sheets/);
   assert.match(r.out, /Nothing written/);
   assert.throws(() => readFileSync(out));
 });
@@ -83,7 +84,7 @@ test("semicolon CSV, BOM, Arabic group letters and --price", () => {
 test("missing columns are reported", () => {
   const r = run("--sheet", csv("cols.csv", "number,name,m1\n1,Ali,x\n"));
   assert.equal(r.code, 1);
-  assert.match(r.out, /sheet: missing column\(s\) group, m2/);
+  assert.match(r.out, /missing column\(s\) group, m2/);
 });
 
 test("page grand total is checked too; month columns are optional", () => {
@@ -92,4 +93,25 @@ test("page grand total is checked too; month columns are optional", () => {
   const r = run("--sheet", sheet, "--page-totals", pages);
   assert.equal(r.code, 0, r.out);
   assert.match(r.out, /page 1 total: ticks add up to 2500 MRO, page says 3000 \(diff -500\)/);
+});
+
+test("two lists share numbers; \"?\" rows and --only hold payments back; two-step SQL", () => {
+  const a = csv("list-a.csv", `list,${HEAD}\nA,1,Ali,A,x,x,,,,,,,,,,\nA,2,Omar,A,x,,,,,,,,,,,\n`);
+  const b = csv("list-b.csv", `list,${HEAD}\nB,1,Sidi,B,?,?,?,?,?,?,?,?,?,?,?,?\nB,2,Baba,B,x,x,x,,,,,,,,,\n`);
+  const m = join(dir, "1-members.sql");
+  const p = join(dir, "2-payments.sql");
+  const r = run("--sheet", a, "--sheet", b, "--only", "A:1-2", "--members-sql", m, "--payments-sql", p);
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /members {3}4 \(list A: 2, list B: 2\)/);
+  assert.match(r.out, /unreadable: 1/);
+  assert.match(r.out, /not readable \("\?"\).*B-1/);
+  assert.match(r.out, /payments  2 to import \(3,000 MRO\); held back: 1 with ticks/);
+  const members = readFileSync(m, "utf8");
+  const payments = readFileSync(p, "utf8");
+  assert.match(members, /public\.add_member\(/);
+  assert.doesNotMatch(members, /record_payment/);
+  assert.match(members, /\('B', 1, 'Sidi'/);
+  assert.match(payments, /record_payment/);
+  assert.doesNotMatch(payments, /add_member/);
+  assert.doesNotMatch(payments, /'Sidi'|'Baba'/);
 });

@@ -24,6 +24,7 @@ const pending: PendingPayment = {
     {
       kind: "months",
       memberId: "a",
+      listCode: "A",
       number: 7,
       fullName: "عالي ولد محمد",
       year: 2026,
@@ -33,6 +34,7 @@ const pending: PendingPayment = {
     {
       kind: "months",
       memberId: "b",
+      listCode: "B",
       number: 40,
       fullName: "الداه ولد محمد",
       year: 2026,
@@ -86,6 +88,7 @@ describe("receipt model", () => {
       txnRefLast4: "0452",
       members: [
         {
+          listCode: "A",
           number: 1,
           fullName: "محمد ولد أحمد",
           months: [
