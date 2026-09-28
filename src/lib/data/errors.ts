@@ -15,6 +15,8 @@ export const MESSAGES = {
   not_allowed: "لا تملك صلاحية هذه العملية.",
   own_membership: "دفعة تخص اشتراكك يؤكدها عضو آخر من اللجنة.",
   paper_admin_only: "السجل الورقي يدخله المسؤول فقط.",
+  already_registered: "هذا البريد له حساب من قبل. عدّل دوره بدلاً من دعوته.",
+  weak_password: "كلمة السر قصيرة أو ضعيفة (8 أحرف على الأقل).",
   cannot_demote_self: "لا يمكنك سحب صلاحية المسؤول من نفسك.",
   // payments
   not_found: "العنصر غير موجود.",

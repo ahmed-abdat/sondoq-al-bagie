@@ -5,6 +5,18 @@ const updateTag = vi.fn();
 let configured = true;
 
 vi.mock("next/cache", () => ({ updateTag: (t: string) => updateTag(t) }));
+vi.mock("server-only", () => ({}));
+vi.mock("next/headers", () => ({ headers: async () => new Headers({ host: "app.test" }) }));
+let session: { role: string } | null = null;
+vi.mock("./committee", () => ({ getCommitteeSession: async () => session }));
+const inviteUserByEmail = vi.fn();
+let secret = true;
+vi.mock("@/lib/supabase/admin", () => ({
+  tryCreateAdminClient: () => (secret ? { auth: { admin: { inviteUserByEmail } } } : null),
+}));
+const updateUser = vi.fn();
+const getUser = vi.fn();
+const resetPasswordForEmail = vi.fn();
 const upload = vi.fn();
 const createSignedUrl = vi.fn();
 let dupRows: { id: string }[] = [];
@@ -18,7 +30,12 @@ const query = {
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () =>
     configured
-      ? { rpc, from: () => query, storage: { from: () => ({ upload, createSignedUrl }) } }
+      ? {
+          rpc,
+          from: () => query,
+          storage: { from: () => ({ upload, createSignedUrl }) },
+          auth: { updateUser, getUser, resetPasswordForEmail },
+        }
       : null,
 }));
 
@@ -30,6 +47,9 @@ const {
   updateSettings,
   uploadProof,
   proofUrl,
+  inviteCommitteeMember,
+  setPassword,
+  requestPasswordReset,
 } = await import("./actions");
 
 const id = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -44,6 +64,12 @@ const payment = {
 };
 
 beforeEach(() => {
+  session = null;
+  secret = true;
+  inviteUserByEmail.mockReset();
+  updateUser.mockReset();
+  getUser.mockReset();
+  resetPasswordForEmail.mockReset();
   upload.mockReset();
   createSignedUrl.mockReset();
   dupRows = [];
@@ -181,6 +207,67 @@ describe("actions", () => {
     expect(await proofUrl({ path: `payments/${id}-0123456789ab.jpg` })).toEqual({
       ok: true,
       data: "https://x.supabase.co/storage/v1/s",
+    });
+  });
+
+  const invite = {
+    email: " New@Example.com ",
+    displayName: "عضو اللجنة",
+    role: "committee" as const,
+  };
+
+  it("only an admin invites, and only with the server secret", async () => {
+    expect(await inviteCommitteeMember(invite)).toMatchObject({ code: "not_signed_in" });
+    session = { role: "treasurer" };
+    expect(await inviteCommitteeMember(invite)).toMatchObject({ code: "not_admin" });
+    session = { role: "admin" };
+    secret = false;
+    expect(await inviteCommitteeMember(invite)).toMatchObject({ code: "not_configured" });
+    expect(inviteUserByEmail).not.toHaveBeenCalled();
+  });
+
+  it("invites by email then sets the role as the admin", async () => {
+    session = { role: "admin" };
+    const uid = "0f8fad5b-d9cb-469f-a165-70867728950e";
+    inviteUserByEmail.mockResolvedValue({ data: { user: { id: uid } }, error: null });
+    rpc.mockResolvedValue({ data: null, error: null });
+    expect(await inviteCommitteeMember(invite)).toEqual({ ok: true, data: { userId: uid } });
+    expect(inviteUserByEmail).toHaveBeenCalledWith("new@example.com", {
+      redirectTo: "https://app.test/auth/confirm?next=%2Fcommittee%2Fsettings",
+    });
+    expect(rpc).toHaveBeenCalledWith(
+      "set_committee_member",
+      expect.objectContaining({ p_user_id: uid, p_role: "committee" }),
+    );
+    inviteUserByEmail.mockResolvedValue({
+      data: null,
+      error: { message: "User already registered" },
+    });
+    expect(await inviteCommitteeMember(invite)).toMatchObject({ code: "already_registered" });
+  });
+
+  it("sets a password only for a signed-in user and rejects short ones", async () => {
+    expect(await setPassword({ password: "short" })).toMatchObject({ code: "weak_password" });
+    getUser.mockResolvedValue({ data: { user: null } });
+    expect(await setPassword({ password: "long enough pass" })).toMatchObject({
+      code: "not_signed_in",
+    });
+    getUser.mockResolvedValue({ data: { user: { id: "u" } } });
+    updateUser.mockResolvedValue({ error: null });
+    expect(await setPassword({ password: "long enough pass" })).toEqual({
+      ok: true,
+      data: undefined,
+    });
+  });
+
+  it("answers ok to a reset request whether or not the account exists", async () => {
+    resetPasswordForEmail.mockResolvedValue({ error: { message: "User not found" } });
+    expect(await requestPasswordReset({ email: "nobody@example.com" })).toEqual({
+      ok: true,
+      data: undefined,
+    });
+    expect(await requestPasswordReset({ email: "not-an-email" })).toMatchObject({
+      code: "invalid_input",
     });
   });
 });

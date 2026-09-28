@@ -3,12 +3,15 @@
 // database re-checks the role), maps errors to { ok: false, code, message } and expires the
 // public cache when public numbers change. Never throws for expected failures.
 import { updateTag } from "next/cache";
+import { headers } from "next/headers";
+import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { codeOf, failure, MESSAGES } from "./errors";
 import { isProofPath, PROOF_MAX_BYTES, proofPath, sha256Hex, sniffImage } from "./proof";
 import type { Client } from "./read";
 import * as s from "./schemas";
+import { getCommitteeSession } from "./committee";
 import { PUBLIC_TAG } from "./tags";
 import type { ActionResult } from "./types";
 
@@ -408,4 +411,86 @@ export async function proofUrl(input: { path: string }): Promise<ActionResult<st
   if (error || !data)
     return failure(error && /not found/i.test(error.message) ? "not_found" : "not_committee");
   return { ok: true, data: data.signedUrl };
+}
+
+/* ───────────── committee accounts ───────────── */
+
+async function siteOrigin(): Promise<string> {
+  const h = await headers();
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
+  return fromEnv || h.get("origin") || `https://${h.get("host") ?? "localhost:3000"}`;
+}
+
+export type InviteResult = { userId: string };
+
+/**
+ * Admin: email an invitation to a new committee member and give them their role. They follow
+ * the link (→ /auth/confirm), land on /committee/settings and choose a password. Needs the
+ * server secret key (SUPABASE_SECRET_KEY) for the invite itself; the role is set as the admin.
+ */
+export async function inviteCommitteeMember(
+  input: s.InviteCommitteeMemberInput,
+): Promise<ActionResult<InviteResult>> {
+  const parsed = s.inviteCommitteeMemberSchema.safeParse(input);
+  if (!parsed.success) return failure("invalid_input");
+  const me = await getCommitteeSession();
+  if (!me) return failure("not_signed_in");
+  if (me.role !== "admin") return failure("not_admin");
+  const admin = tryCreateAdminClient();
+  if (!admin) return failure("not_configured");
+  const p = parsed.data;
+  const redirectTo = `${await siteOrigin()}/auth/confirm?next=${encodeURIComponent("/committee/settings")}`;
+  let userId: string;
+  try {
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(p.email, { redirectTo });
+    if (error)
+      return failure(
+        /already|registered|exists/i.test(error.message) ? "already_registered" : "unknown",
+      );
+    userId = data.user.id;
+  } catch {
+    return failure("network");
+  }
+  const role = await setCommitteeMember({
+    userId,
+    displayName: p.displayName,
+    role: p.role,
+    memberId: p.memberId ?? null,
+    active: true,
+  });
+  return role.ok ? { ok: true, data: { userId } } : role;
+}
+
+/** Signed-in user sets a new password (after an invite or a reset link). */
+export async function setPassword(input: { password: string }): Promise<ActionResult> {
+  const parsed = s.passwordSchema.safeParse(input);
+  if (!parsed.success) return failure("weak_password");
+  const sb = await createClient();
+  if (!sb) return failure("not_configured");
+  const { data: auth } = await sb.auth.getUser();
+  if (!auth.user) return failure("not_signed_in");
+  const { error } = await sb.auth.updateUser({ password: parsed.data.password });
+  if (error)
+    return failure(
+      /weak|short|pwned|characters/i.test(error.message) ? "weak_password" : "unknown",
+    );
+  return { ok: true, data: undefined };
+}
+
+/**
+ * «نسيت كلمة السر»: sends a reset link if the email has an account. Always answers ok so the form
+ * does not reveal who has an account.
+ */
+export async function requestPasswordReset(input: { email: string }): Promise<ActionResult> {
+  const parsed = s.emailSchema.safeParse(input?.email);
+  if (!parsed.success) return failure("invalid_input");
+  const sb = await createClient();
+  if (!sb) return failure("not_configured");
+  const redirectTo = `${await siteOrigin()}/auth/confirm?next=${encodeURIComponent("/committee/settings")}`;
+  try {
+    await sb.auth.resetPasswordForEmail(parsed.data, { redirectTo });
+  } catch {
+    return failure("network");
+  }
+  return { ok: true, data: undefined };
 }
