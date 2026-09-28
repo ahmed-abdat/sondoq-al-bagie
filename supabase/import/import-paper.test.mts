@@ -115,3 +115,11 @@ test("two lists share numbers; \"?\" rows and --only hold payments back; two-ste
   assert.doesNotMatch(payments, /add_member/);
   assert.doesNotMatch(payments, /'Sidi'|'Baba'/);
 });
+
+test("--note replaces the default payment note", () => {
+  const out = join(dir, "noted.sql");
+  assert.equal(run("--sheet", `${sample}sheet.csv`, "--payments-sql", out, "--note", "للمراجعة").code, 0);
+  const sql = readFileSync(out, "utf8");
+  assert.match(sql, /p_note => 'للمراجعة'/);
+  assert.doesNotMatch(sql, /سجل ورقي/);
+});
