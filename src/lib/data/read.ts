@@ -27,6 +27,26 @@ function many<T>(source: string, res: { data: T[] | null; error: PostgrestError 
   return res.data ?? [];
 }
 
+/**
+ * The API returns at most 1000 rows per request (Supabase max-rows). For lists that can grow past
+ * that (the month grid: members × 12), read page by page. `page(from, to)` must keep a stable order.
+ */
+const PAGE = 1000;
+async function paged<T>(
+  source: string,
+  page: (
+    from: number,
+    to: number,
+  ) => PromiseLike<{ data: T[] | null; error: PostgrestError | null }>,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const chunk = many(source, await page(from, from + PAGE - 1));
+    rows.push(...chunk);
+    if (chunk.length < PAGE) return rows;
+  }
+}
+
 const thisYear = () => new Date().getFullYear();
 
 /* ───────────── public views ───────────── */
@@ -71,10 +91,16 @@ export async function lateMembers(c: Client) {
 
 /** Month grid of every member for one year (default: this year). */
 export async function memberMonths(c: Client, year: number = thisYear()) {
-  return many(
-    "member_months",
-    await c.from("member_months").select("*").eq("year", year).order("member_id").order("month"),
-  ).map(map.toMemberMonth);
+  const rows = await paged("member_months", (from, to) =>
+    c
+      .from("member_months")
+      .select("*")
+      .eq("year", year)
+      .order("member_id")
+      .order("month")
+      .range(from, to),
+  );
+  return rows.map(map.toMemberMonth);
 }
 
 /** One member's months, all years. */
