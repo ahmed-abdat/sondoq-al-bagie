@@ -23,6 +23,10 @@ for f in "$ROOT"/supabase/tests/*.sql; do
   "${PSQL[@]}" -d sb -o /dev/null -f "$f" 2>&1 | sed 's/^psql:[^ ]* NOTICE:  /  /'
   test "${PIPESTATUS[0]}" -eq 0
 done
+echo "safeupd  no UPDATE/DELETE without WHERE in functions"
+"${PSQL[@]}" -d sb -At -c "select json_build_object('name', n.nspname || '.' || p.proname, 'src', p.prosrc)
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname in ('public', 'app_private')" \
+  | node "$ROOT/supabase/tests/local/unbounded-writes.mjs"
 echo "seed     seed.sql"
 "${PSQL[@]}" -d sb -o /dev/null -f "$ROOT/supabase/seed.sql"
 got="$("${PSQL[@]}" -d sb -At -c "select concat_ws(' ', (select count(*) from public.members),

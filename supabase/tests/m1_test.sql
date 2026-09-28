@@ -92,7 +92,7 @@ insert into public.group_prices (group_id, year, monthly_amount)
 select g.id, y, case g.code when 'A' then 1000 else 500 end
 from public.groups g, generate_series(extract(year from current_date)::int - 1, extract(year from current_date)::int) y
 on conflict (group_id, year) do nothing;
-update public.settings set opening_balance = 0, grace_days = 10, show_amount_owed = false;
+update public.settings set opening_balance = 0, grace_days = 10, show_amount_owed = false where id;
 
 -- E: A, active for 4 months (3 back + this one).  F: B, exempt from last month.
 -- G: A, deceased from 2 months back.  T: the treasurer's own membership.  K: spare A member.
@@ -260,12 +260,12 @@ select tests.ok((select state from public.member_months where member_id = tests.
   'member_months shows paid months');
 
 select tests.login('server');
-update public.settings set grace_days = 0, show_amount_owed = true;
+update public.settings set grace_days = 0, show_amount_owed = true where id;
 select tests.login('public');
 select tests.ok((select months_behind from public.member_status where number = 1001) = 2, 'grace 0: this month is owed at once');
 select tests.ok((select amount_owed from public.member_status where number = 1002) = 1000, 'amount owed shown once enabled (2 × 500)');
 select tests.login('server');
-update public.settings set grace_days = 10, show_amount_owed = false;
+update public.settings set grace_days = 10, show_amount_owed = false where id;
 
 select tests.login('committee');
 select tests.ok((select phone from public.arrears where number = 1001) = '+22211111111', 'committee arrears view carries the phone');
