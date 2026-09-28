@@ -1,11 +1,12 @@
 "use client";
 // «سجّل دفعة»: who → which months → how → (ref, screenshot) → total → record.
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import { recordPayment, uploadProof } from "@/lib/data/actions";
-import type { MemberStatus, PaymentMethod } from "@/lib/data/types";
+import type { FundAccount, MemberStatus, PaymentMethod } from "@/lib/data/types";
+import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
 import { MAIN_METHODS, METHOD_LABELS, METHODS } from "@/lib/methods";
 import { todayIso } from "@/lib/dates";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
@@ -19,13 +20,20 @@ const ORDER: PaymentMethod[] = [
   ...METHODS.filter((m) => !MAIN_METHODS.includes(m) && m !== "paper"),
 ];
 
+/** «تحقق»: the reading could not confirm this field; it stays editable. */
+const Check = ({ bad }: { bad: boolean | undefined }) =>
+  bad ? <span className="bq-tag is-late bq-tag-inline">{I.search(16)} تحقق</span> : null;
+
 export function RecordBody({
   members,
   ctx,
+  accounts,
   onDone,
 }: {
   members: MemberStatus[];
   ctx: MemberCtx;
+  /** the fund's wallets: the receipt reading checks the money went to one of them */
+  accounts: FundAccount[];
   onDone: (text: string) => void;
 }) {
   const router = useRouter();
@@ -36,8 +44,15 @@ export function RecordBody({
   const [meth, setMeth] = useState<PaymentMethod | null>(null);
   const [txn, setTxn] = useState("");
   const [shot, setShot] = useState<{ url: string; name: string } | null>(null);
+  const [paidOn, setPaidOn] = useState(todayIso());
+  const [reading, setReading] = useState(false);
+  const [checks, setChecks] = useState<(ReceiptChecks & { readMro: number | null }) | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  useEffect(() => {
+    void warmOcr();
+    return () => void terminateOcr();
+  }, []);
   const res = useMemo(() => searchMembers(members, q).slice(0, 4), [members, q]);
   const paid = useMemo(
     () =>
@@ -96,7 +111,7 @@ export function RecordBody({
       payerName: who.fullName,
       method: meth,
       amount,
-      paidOn: todayIso(),
+      paidOn,
       allocations: months.map((month) => ({
         kind: "months" as const,
         memberId: who.memberId,
@@ -210,7 +225,67 @@ export function RecordBody({
             })}
           </ol>
 
+          <p className="bq-rec-k">صورة التحويل</p>
+          <label className="bq-btn bq-btn-soft bq-press">
+            {I.image(20)} {shot ? "تغيير الصورة" : "اختر صورة التحويل"}
+            <input
+              type="file"
+              accept="image/*"
+              className="bq-sr"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                setErr("");
+                setChecks(null);
+                // read the original first (sharper), then compress for the upload
+                setReading(true);
+                readReceipt(f, {
+                  expectedMro: amount || undefined,
+                  accounts: accounts.map((a) => ({
+                    method: a.method,
+                    accountNumber: a.accountNumber,
+                    holderName: a.holderName,
+                  })),
+                })
+                  .then((r) => {
+                    if (r.method) setMeth(r.method);
+                    if (r.txnRef) setTxn(r.txnRef);
+                    if (r.date && /^\d{4}-\d{2}-\d{2}/.test(r.date)) setPaidOn(r.date.slice(0, 10));
+                    setChecks({ ...r.checks, readMro: r.amountMro });
+                  })
+                  .catch(() => setChecks(null))
+                  .finally(() => setReading(false));
+                try {
+                  setShot({ url: await compressImage(f), name: f.name });
+                } catch {
+                  setErr("تعذّر قراءة الصورة. جرّب صورة أخرى.");
+                }
+              }}
+            />
+          </label>
+          {reading && (
+            <p className="bq-hint" role="status">
+              نقرأ الصورة… قد يأخذ ذلك بضع ثوانٍ. يمكنك إكمال الحقول بنفسك.
+            </p>
+          )}
+          {shot && !reading && <p className="bq-hint">أُرفقت: {shot.name}</p>}
+          {checks && !checks.recipient && (
+            <p className="bq-hint">{I.search(16)} تحقق: المستلم في الصورة ليس من أرقام الصندوق.</p>
+          )}
+          {checks && !checks.amount && (
+            <p className="bq-hint">
+              {I.search(16)} تحقق من المبلغ
+              {checks.readMro ? (
+                <>
+                  : في الصورة <Num>{fmt(checks.readMro)}</Num> أوقية
+                </>
+              ) : null}
+              .
+            </p>
+          )}
+
           <p className="bq-rec-k">كيف دفع؟</p>
+          <Check bad={checks ? !checks.method : false} />
           <div className="bq-meth-grid" role="radiogroup" aria-label="وسيلة الدفع">
             {ORDER.map((m, i) => (
               <button
@@ -227,40 +302,30 @@ export function RecordBody({
             ))}
           </div>
 
-          {meth && meth !== "cash" && (
+          {meth !== "cash" && (
             <>
-              <p className="bq-rec-k">رقم العملية (اختياري)</p>
+              <p className="bq-rec-k">رقم العملية</p>
               <input
                 className="bq-input"
                 value={txn}
                 onChange={(e) => setTxn(e.target.value)}
                 dir="ltr"
-                inputMode="text"
                 aria-label="رقم العملية"
               />
-              <p className="bq-rec-k">صورة التحويل (اختياري)</p>
-              <label className="bq-btn bq-btn-soft bq-press">
-                {I.image(20)} {shot ? "تغيير الصورة" : "اختر صورة التحويل"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="bq-sr"
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    try {
-                      setShot({ url: await compressImage(f), name: f.name });
-                      setErr("");
-                    } catch {
-                      setErr("تعذّر قراءة الصورة. جرّب صورة أخرى.");
-                    }
-                  }}
-                />
-              </label>
-              {shot && <p className="bq-hint">أُرفقت: {shot.name}</p>}
+              <Check bad={checks ? !checks.txnRef : false} />
             </>
           )}
-
+          <p className="bq-rec-k">تاريخ الدفع</p>
+          <input
+            className="bq-input"
+            type="date"
+            dir="ltr"
+            value={paidOn}
+            max={todayIso()}
+            onChange={(e) => setPaidOn(e.target.value)}
+            aria-label="تاريخ الدفع"
+          />
+          <Check bad={checks ? !checks.date : false} />
           <div className="bq-rec-foot">
             <p className="bq-rec-sum" aria-live="polite">
               <span className="bq-hint">

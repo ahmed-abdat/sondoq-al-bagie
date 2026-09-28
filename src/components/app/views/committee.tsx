@@ -153,6 +153,7 @@ export function CommitteeView({
           <RecordBody
             members={members}
             ctx={ctx}
+            accounts={accounts}
             onDone={(t) => {
               setSheet(null);
               say(t);
