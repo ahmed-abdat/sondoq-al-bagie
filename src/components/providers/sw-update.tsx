@@ -67,10 +67,13 @@ export function ServiceWorkerUpdates() {
 export function SaveVisitedPages() {
   const pathname = usePathname();
   useEffect(() => {
-    if (!navigator.onLine || !("caches" in window) || !navigator.serviceWorker?.controller) return;
+    const sw = navigator.serviceWorker;
+    if (!sw || !("caches" in window)) return;
     const url = new URL(pathname, location.origin);
     if (!isPublicPage(url, true)) return;
-    void (async () => {
+    let cancelled = false;
+    const save = async () => {
+      if (cancelled || !navigator.onLine) return;
       try {
         const cache = await caches.open(PAGES_CACHE);
         if (await cache.match(url.href, { ignoreVary: true })) return;
@@ -79,7 +82,14 @@ export function SaveVisitedPages() {
       } catch {
         /* offline or storage full: nothing to do */
       }
-    })();
+    };
+    // First visit: the worker takes control a moment after load (clientsClaim); save then.
+    if (sw.controller) void save();
+    else sw.addEventListener("controllerchange", save, { once: true });
+    return () => {
+      cancelled = true;
+      sw.removeEventListener("controllerchange", save);
+    };
   }, [pathname]);
   return null;
 }
