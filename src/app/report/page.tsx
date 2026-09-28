@@ -49,24 +49,7 @@ export default async function ReportPage() {
 
   return (
     <main className="rp">
-      <ReportTools
-        data={{
-          termLabel,
-          year,
-          balance: summary.balance,
-          collectedThisYear: summary.collectedThisYear,
-          spentThisYear: summary.spentThisYear,
-          paidCount: paidNow,
-          activeCount: active.length,
-          month,
-          months: monthly.map((m) => ({
-            month: m.month,
-            expected: m.expected,
-            collected: m.collected,
-          })),
-          asOfLabel: dayDate(today),
-        }}
-      />
+      <ReportTools data={r} />
       <Link href="/accounts" className="bq-link bq-link-s bq-press rp-back">
         رجوع إلى الحسابات
       </Link>
