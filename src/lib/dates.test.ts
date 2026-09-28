@@ -13,7 +13,13 @@ describe("dates", () => {
     expect(formatDay("2026-01-01", { year: true })).toMatch(/^1 /);
   });
 
-  it("names months 1-12", () => {
+  it("names months 1-12 with the standard Arabic names", () => {
+    expect(monthName(1)).toBe("يناير");
+    expect(monthName(8)).toBe("أغسطس");
+    expect(monthName(9)).toBe("سبتمبر");
+    expect(monthName(12)).toBe("ديسمبر");
+    expect(formatDay("2026-09-28", { year: true, weekday: true })).toBe("الاثنين 28 سبتمبر 2026");
+    expect(formatMonth("2026-08")).toBe("أغسطس 2026");
     expect(monthName(1)).toBe(formatMonth("2026-01", false));
     expect(monthName(12)).toBe(formatMonth("2026-12", false));
     expect(() => monthName(13)).toThrow(RangeError);
