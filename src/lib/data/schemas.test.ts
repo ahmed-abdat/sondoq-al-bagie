@@ -74,6 +74,22 @@ describe("schemas", () => {
     ).toBe(false);
   });
 
+  it("accepts Arabic-Indic digits in phones and account numbers", () => {
+    expect(updateSettingsSchema.parse({ whatsappContact: "+٢٢٢ ٣٣٣٣ ٤٤٤٤" }).whatsappContact).toBe(
+      "+22233334444",
+    );
+    expect(updateSettingsSchema.parse({ whatsappContact: "۲۲۳۳۳۳۴۴" }).whatsappContact).toBe(
+      "22333344",
+    );
+    expect(
+      addFundAccountSchema.parse({
+        method: "bankily",
+        accountNumber: "٢٢٠٠ ٠٠٠١",
+        holderName: "الصندوق",
+      }).accountNumber,
+    ).toBe("22000001");
+  });
+
   it("lets the WhatsApp contact be cleared with an empty string", () => {
     expect(updateSettingsSchema.parse({ whatsappContact: "" }).whatsappContact).toBe("");
     expect(updateSettingsSchema.parse({ whatsappContact: "+222 3333 4444" }).whatsappContact).toBe(
