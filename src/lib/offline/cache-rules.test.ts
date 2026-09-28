@@ -37,7 +37,7 @@ describe("isPrivatePath", () => {
     "/api/keepalive",
     "/r/BQ-AB12-0001",
   ])("%s is private", (p) => expect(isPrivatePath(p)).toBe(true));
-  it.each(["/", "/members", "/accounts", "/donations", "/rules", "/committees-info"])(
+  it.each(["/", "/members", "/accounts", "/donations", "/report", "/rules", "/committees-info"])(
     "%s is public",
     (p) => expect(isPrivatePath(p)).toBe(false),
   );
@@ -47,6 +47,7 @@ describe("isPublicPage", () => {
   it("caches same-origin public pages only", () => {
     expect(isPublicPage(app("/"), true)).toBe(true);
     expect(isPublicPage(app("/members"), true)).toBe(true);
+    expect(isPublicPage(app("/report"), true)).toBe(true);
     expect(isPublicPage(app("/committee"), true)).toBe(false);
     expect(isPublicPage(app("/_next/static/x.js"), true)).toBe(false);
     expect(isPublicPage(app("/"), false)).toBe(false);

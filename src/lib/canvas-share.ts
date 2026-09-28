@@ -1,0 +1,108 @@
+/**
+ * Shared plumbing for "draw a card on a canvas → share it as a PNG" (receipts, fund report).
+ * Falls back to a prefilled wa.me text message when the phone cannot share files.
+ */
+import { waLink } from "./whatsapp";
+
+export interface CanvasFonts {
+  display: string;
+  body: string;
+}
+
+export function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const im = new Image();
+    im.onload = () => resolve(im);
+    im.onerror = reject;
+    im.src = src;
+  });
+}
+
+/** Arabic letters, digits and Latin code characters: all must be loaded before drawing. */
+const FONT_SAMPLE = "وصل 0123456789 BQ-№";
+
+/** App fonts (next/font CSS variables on <html>), loaded before drawing so Arabic shapes right. */
+export async function appFonts(): Promise<CanvasFonts> {
+  const cs = getComputedStyle(document.documentElement);
+  const body = cs.getPropertyValue("--font-body").trim() || "Tahoma, sans-serif";
+  const display = cs.getPropertyValue("--font-display-face").trim() || body;
+  try {
+    await Promise.all([
+      document.fonts.load(`700 30px ${display}`, FONT_SAMPLE),
+      document.fonts.load(`400 20px ${body}`, FONT_SAMPLE),
+    ]);
+  } catch {
+    /* fall back to whatever is available */
+  }
+  return { display, body };
+}
+
+/** Creates a canvas of `w × h` CSS px at `scale`, lets `draw` paint it, returns a PNG blob. */
+export async function renderPng(
+  w: number,
+  h: number,
+  scale: number,
+  draw: (ctx: CanvasRenderingContext2D) => void,
+): Promise<Blob> {
+  const canvas = document.createElement("canvas");
+  canvas.width = w * scale;
+  canvas.height = h * scale;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas unavailable");
+  ctx.scale(scale, scale);
+  draw(ctx);
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"),
+  );
+}
+
+export type ShareResult = "shared" | "whatsapp" | "cancelled";
+
+export type ShareNavigator = Pick<Navigator, "share"> & {
+  canShare?: (data: ShareData) => boolean;
+};
+
+export interface ShareImageOptions {
+  /** Open this person's WhatsApp chat in the fallback (else WhatsApp asks whom to send to). */
+  phone?: string | null;
+  nav?: ShareNavigator;
+  open?: (url: string) => void;
+}
+
+/**
+ * Share `text` + the rendered PNG through the phone's share sheet (WhatsApp shows up there).
+ * If files cannot be shared (older phones, desktop), open WhatsApp with the text instead.
+ */
+export async function shareImage(
+  makePng: () => Promise<Blob>,
+  fileName: string,
+  text: string,
+  opts: ShareImageOptions = {},
+): Promise<ShareResult> {
+  const nav = opts.nav ?? (navigator as ShareNavigator);
+  try {
+    if (typeof nav.share === "function" && nav.canShare) {
+      const file = new File([await makePng()], fileName, { type: "image/png" });
+      if (nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], text });
+        return "shared";
+      }
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return "cancelled";
+    /* anything else: fall through to the text link */
+  }
+  const url = waLink(opts.phone, text);
+  (opts.open ?? ((u: string) => window.open(u, "_blank", "noopener")))(url);
+  return "whatsapp";
+}
+
+/** Save a PNG to the phone (download). */
+export function downloadPng(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
