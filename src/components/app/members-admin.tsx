@@ -241,13 +241,11 @@ export function MemberAdminBody({
       <p className="bq-mline">
         {m.status === "active" ? (
           <>
-            دفع <Num className="bq-strong">{m.monthsPaidThisYear}</Num> من 12 شهرًا هذا العام
+            دفع رسوم <Num className="bq-strong">{m.monthsPaidThisYear}</Num> من 12 شهرًا هذا العام
             {m.monthsBehind > 0 && (
-              <>
-                {" "}
-                · متأخر <Num className="bq-strong">{m.monthsBehind}</Num> ·{" "}
-                <Num>{fmt(m.amountOwed)}</Num> أوقية
-              </>
+              <span className="bq-row-s">
+                متأخر {monthsWord(m.monthsBehind)} · <Num>{fmt(m.amountOwed)}</Num> أوقية
+              </span>
             )}
           </>
         ) : (
