@@ -60,7 +60,9 @@ export function monthsInWords(ms: number[], year: number) {
   if (r.reduce((s, x) => s + x.length, 0) === 12) return `السنة كاملة ${year}`;
   const txt = r
     .map((x) =>
-      x.length === 1 ? MONTHS[x[0] - 1] : `من ${MONTHS[x[0] - 1]} إلى ${MONTHS[x[x.length - 1] - 1]}`,
+      x.length === 1
+        ? MONTHS[x[0] - 1]
+        : `من ${MONTHS[x[0] - 1]} إلى ${MONTHS[x[x.length - 1] - 1]}`,
     )
     .join("، ");
   return `${txt} ${year}`;
