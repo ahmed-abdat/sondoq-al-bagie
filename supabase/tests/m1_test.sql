@@ -482,6 +482,29 @@ select tests.login('former');   -- signed in but not an active committee member
 select tests.ok((select count(*) from public.members_admin) = 0 and (select count(*) from public.arrears) = 0
                 and (select count(*) from public.payment_queue) = 0, 'non-committee accounts see no member/arrears/payment rows');
 
+/* ───────────── admin confirms payments (owner decision) ───────────── */
+
+select tests.login('committee');
+select tests.set('ac1', tests.pay('ac1', 500, jsonb_build_array(tests.month('LB', -1, 500))) ->> 'id');
+select tests.login('admin');
+select tests.ok((public.confirm_payment(tests.id('ac1')) ->> 'status') = 'confirmed', 'the admin confirms a pending payment');
+select tests.login('committee');
+select tests.set('ac2', tests.pay('ac2', 500, jsonb_build_array(tests.month('LB', -2, 500))) ->> 'id');
+select tests.login('admin');
+select public.reject_payment(tests.id('ac2'), 'صورة غير واضحة');
+select tests.ok((select status from public.payments where id = tests.id('ac2')) = 'rejected', 'the admin rejects a pending payment');
+select tests.login('server');
+select public.set_committee_member('00000000-0000-0000-0000-0000000000a1', 'المدير', 'admin', tests.id('LB'));
+select tests.login('committee');
+select tests.set('ac3', tests.pay('ac3', 500, jsonb_build_array(tests.month('LB', -3, 500))) ->> 'id');
+select tests.login('admin');
+select tests.throws($$select public.confirm_payment(tests.id('ac3'))$$, 'own_membership',
+  'the admin cannot confirm a payment covering their own membership');
+select tests.login('server');
+select public.set_committee_member('00000000-0000-0000-0000-0000000000a1', 'المدير', 'admin', null);
+select tests.login('committee');
+select tests.throws($$select public.confirm_payment(tests.id('ac3'))$$, 'not_confirmer', 'plain committee still cannot confirm');
+
 /* ───────────── M8: terms and handover (keep last: it deactivates committee accounts) ───────────── */
 
 select tests.login('public');
