@@ -987,7 +987,26 @@ export type Database = {
         }
         Returns: string
       }
+      close_campaign: {
+        Args: {
+          p_id: string
+          p_surplus_action: Database["public"]["Enums"]["surplus_action"]
+        }
+        Returns: number
+      }
       confirm_payment: { Args: { p_payment_id: string }; Returns: Json }
+      create_campaign: {
+        Args: {
+          p_amount_mode?: Database["public"]["Enums"]["campaign_mode"]
+          p_deadline?: string
+          p_id: string
+          p_participants?: Json
+          p_purpose?: string
+          p_target_amount?: number
+          p_title: string
+        }
+        Returns: string
+      }
       log_reminder: {
         Args: {
           p_campaign_id?: string
@@ -1043,6 +1062,16 @@ export type Database = {
         Returns: undefined
       }
       undo_payment: { Args: { p_payment_id: string }; Returns: undefined }
+      update_campaign: {
+        Args: {
+          p_deadline: string
+          p_id: string
+          p_purpose: string
+          p_target_amount: number
+          p_title: string
+        }
+        Returns: undefined
+      }
       update_fund_account: {
         Args: {
           p_active: boolean

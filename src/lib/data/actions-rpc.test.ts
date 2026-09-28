@@ -123,6 +123,38 @@ const cases: Case[] = [
     { p_id: id, p_active: false },
     true,
   ],
+  [
+    "createCampaign",
+    () =>
+      a.createCampaign({
+        id,
+        title: "ترميم المسجد",
+        amountMode: "fixed",
+        participants: [{ memberId: member, expectedAmount: 5000 }],
+      }),
+    "create_campaign",
+    {
+      p_id: id,
+      p_amount_mode: "fixed",
+      p_participants: [{ member_id: member, expected_amount: 5000 }],
+    },
+    true,
+  ],
+  [
+    "updateCampaign",
+    () =>
+      a.updateCampaign({ id, title: "ترميم", purpose: null, targetAmount: 30000, deadline: null }),
+    "update_campaign",
+    { p_id: id, p_target_amount: 30000, p_deadline: null },
+    true,
+  ],
+  [
+    "closeCampaign",
+    () => a.closeCampaign({ id, surplusAction: "to_fund" }),
+    "close_campaign",
+    { p_id: id, p_surplus_action: "to_fund" },
+    true,
+  ],
 ];
 
 describe("every RPC action", () => {

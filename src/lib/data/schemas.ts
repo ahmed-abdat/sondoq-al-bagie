@@ -150,6 +150,33 @@ export const updateFundAccountSchema = z.object({
   active: z.boolean(),
 });
 
+export const createCampaignSchema = z.object({
+  id,
+  title: text(120),
+  amountMode: z.enum(E.campaign_mode).default("open"),
+  purpose: optText(500),
+  targetAmount: mro.optional(),
+  deadline: day.optional(),
+  participants: z
+    .array(z.object({ memberId: id, expectedAmount: mro.nullable() }))
+    .max(500)
+    .optional(),
+});
+
+export const updateCampaignSchema = z.object({
+  id,
+  title: text(120),
+  purpose: z.string().trim().max(500).nullable(),
+  targetAmount: mro.nullable(),
+  deadline: day.nullable(),
+});
+
+export const closeCampaignSchema = z.object({ id, surplusAction: z.enum(E.surplus_action) });
+
+export type CreateCampaignInput = z.input<typeof createCampaignSchema>;
+export type UpdateCampaignInput = z.input<typeof updateCampaignSchema>;
+export type CloseCampaignInput = z.input<typeof closeCampaignSchema>;
+
 export const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
 export const passwordSchema = z.object({ password: z.string().min(8).max(72) });
 
