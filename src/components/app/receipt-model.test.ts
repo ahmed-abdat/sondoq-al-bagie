@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PendingPayment } from "@/lib/data/types";
-import { fromPending, fromVerified, verifyPath } from "./receipt-model";
+import { fromPending, fromVerified, toShareable, verifyPath } from "./receipt-model";
 
 const pending: PendingPayment = {
   id: "p1",
@@ -82,5 +82,15 @@ describe("receipt model", () => {
     expect(r?.txn).toBeNull();
     expect(r?.txnLast4).toBe("0452");
     expect(verifyPath("BQ-7F3K-0231")).toBe("/r/BQ-7F3K-0231");
+    const sh = r && toShareable(r);
+    expect(sh).toMatchObject({
+      no: "2026-0231",
+      amountMro: 3000,
+      methodLabel: "بنكيلي",
+      txnRef: "•••• 0452",
+      dateLabel: "الاثنين 28 سبتمبر 2026",
+      status: { kind: "confirmed", by: "سيدي محمد", role: "أمين الصندوق" },
+    });
+    expect(toShareable(fromPending(pending))).toBeNull();
   });
 });

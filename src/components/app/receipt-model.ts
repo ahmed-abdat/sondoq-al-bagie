@@ -1,7 +1,9 @@
 // What a receipt («وصل استلام») prints, built from the data layer's VerifiedReceipt (public)
 // or PendingPayment (committee). Pure: no React.
 import type { CommitteeRole, PaymentMethod, PendingPayment, VerifiedReceipt } from "@/lib/data/types";
-import { ROLE_LABEL } from "./derive";
+import { METHOD_LABELS } from "@/lib/methods";
+import type { ShareableReceipt } from "@/lib/share-receipt";
+import { dayDate, ROLE_LABEL } from "./derive";
 
 export type ReceiptActor = { by: string; role: string; at: string };
 export type ReceiptStatus =
@@ -126,3 +128,25 @@ export function fromPending(
 
 /** Path of the public verification page. */
 export const verifyPath = (code: string) => `/r/${encodeURIComponent(code)}`;
+
+/** For the PNG/WhatsApp share (src/lib/share-receipt). Null until the receipt has a code. */
+export function toShareable(r: ReceiptView): ShareableReceipt | null {
+  if (!r.code) return null;
+  const st = r.status;
+  return {
+    no: r.no ?? r.code,
+    payer: r.payer,
+    covers: r.covers,
+    amountMro: r.amount,
+    methodLabel: METHOD_LABELS[r.method],
+    txnRef: r.txn ?? (r.txnLast4 ? `•••• ${r.txnLast4}` : null),
+    dateLabel: dayDate(st.kind === "pending" ? r.paidOn : st.at),
+    code: r.code,
+    status:
+      st.kind === "confirmed"
+        ? { kind: "confirmed", by: st.by, role: st.role }
+        : st.kind === "pending"
+          ? { kind: "pending" }
+          : { kind: "cancelled", reason: st.reason || undefined },
+  };
+}

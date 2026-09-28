@@ -24,8 +24,8 @@ const R: ShareableReceipt = {
 
 describe("monthsInWords", () => {
   it("groups consecutive months into ranges", () => {
-    expect(monthsInWords([9, 7, 8], 2026)).toBe("يوليو – شتمبر 2026");
-    expect(monthsInWords([1, 3, 4], 2026)).toBe("يناير، مارس – إبريل 2026");
+    expect(monthsInWords([9, 7, 8], 2026)).toBe("يوليو – سبتمبر 2026");
+    expect(monthsInWords([1, 3, 4], 2026)).toBe("يناير، مارس – أبريل 2026");
     expect(monthsInWords([5], 2026)).toBe("مايو 2026");
   });
   it("says full year for 12 months", () => {
@@ -40,7 +40,7 @@ describe("monthsInWords", () => {
 
 describe("coverLine", () => {
   it("names the member only when needed", () => {
-    expect(coverLine(R.covers[0], R.payer, false)).toBe("عن: رسوم يوليو – شتمبر 2026");
+    expect(coverLine(R.covers[0], R.payer, false)).toBe("عن: رسوم يوليو – سبتمبر 2026");
     expect(coverLine({ name: "علي", year: 2026, months: [1] }, R.payer, false)).toBe(
       "عن: علي — رسوم يناير 2026",
     );
@@ -57,7 +57,7 @@ describe("receiptShareText", () => {
     const t = receiptShareText(R, "https://x.app/r/BQ-7K2M-0231");
     expect(t).toContain("رقم الوصل: 0231");
     expect(t).toContain(`المبلغ: 3${THIN}000 أوقية (300 أوقية جديدة)`);
-    expect(t).toContain("عن: رسوم يوليو – شتمبر 2026");
+    expect(t).toContain("عن: رسوم يوليو – سبتمبر 2026");
     expect(t).toContain("أكّدها: سيدي محمد، أمين الصندوق");
     expect(t).toContain("https://x.app/r/BQ-7K2M-0231");
   });
