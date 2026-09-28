@@ -18,6 +18,7 @@ import {
 import { Hero, type HeroData } from "./hero";
 import { I } from "./icons";
 import { Num, prefersReduced, Roll } from "./num";
+import { usePendingCount } from "./pending-count";
 
 const TABS = [
   { href: "/", l: "الرئيسية", i: I.home },
@@ -159,6 +160,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const path = usePathname();
+  const liveBadge = usePendingCount(badge);
   const real = tabIndex(path);
   // optimistic: the pill starts sliding on tap, before the next page has loaded
   const [tapped, setTapped] = useState<{ from: string; i: number } | null>(null);
@@ -200,7 +202,7 @@ export function AppShell({
           />
           <div className="bq-rail-items">
             <span className="bq-pill" aria-hidden="true" />
-            <NavItems idx={idx} badge={badge} onGo={onGo} />
+            <NavItems idx={idx} badge={liveBadge} onGo={onGo} />
           </div>
         </nav>
 
@@ -220,7 +222,7 @@ export function AppShell({
 
         <nav className="bq-bnav" aria-label="التنقل" style={{ ["--idx" as string]: idx }}>
           <span className="bq-pill" aria-hidden="true" />
-          <NavItems idx={idx} badge={badge} onGo={onGo} />
+          <NavItems idx={idx} badge={liveBadge} onGo={onGo} />
         </nav>
 
         {snack && (

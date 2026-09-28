@@ -9,10 +9,10 @@ import { useAct } from "./act";
 import type { PendingPayment } from "@/lib/data/types";
 import { shareReceipt } from "@/lib/share-receipt";
 import { MethodBadge } from "./bits";
-import { fmt, monthsInWords, relativeAgo } from "./derive";
+import { dayWords, fmt, monthsInWords, relativeAgo } from "./derive";
 import { ShareBtns } from "./entries";
 import { I } from "./icons";
-import { Num, prefersReduced } from "./num";
+import { Num, prefersReduced, useNow } from "./num";
 import { ConfirmedMark, Proof, Stamp } from "./receipt";
 import { fromPending, toShareable, type ReceiptView } from "./receipt-model";
 
@@ -45,6 +45,7 @@ export function PendingSlip({
 }) {
   const router = useRouter();
   const online = useOnline();
+  const now = useNow();
   const { confirmPayment, rejectPayment } = useAct();
   const [st, setSt] = useState<St>({ s: "pending" });
   const [rejecting, setRejecting] = useState(false);
@@ -194,7 +195,7 @@ export function PendingSlip({
         <p className="bq-hint">
           {p.createdByName ? <>سجّلها {p.createdByName}</> : "سُجّلت"}
           <br />
-          {relativeAgo(p.createdAt)}
+          {now ? relativeAgo(p.createdAt, now) : dayWords(p.createdAt)}
         </p>
       </div>
       {st.s !== "pending" && (

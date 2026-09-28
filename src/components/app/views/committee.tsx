@@ -3,7 +3,7 @@
 // level deep with a clear «رجوع». Rare actions live inside the sub-pages, not on the main path.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePaymentsRealtime } from "@/lib/data/realtime";
 import type {
   Arrear,
@@ -29,6 +29,7 @@ import { RecordBody } from "../record";
 import { LateList } from "../reminders";
 import { Sheet } from "../sheet";
 import { useSnack } from "../shell";
+import { setPendingCount } from "../pending-count";
 import { PendingSlip } from "../slip";
 
 /** Live updates: another committee member recorded or confirmed a payment → refetch the page. */
@@ -119,6 +120,7 @@ export function CommitteeView({
   if (fresh.length) setSeen([...seen, ...fresh]);
   const [decided, setDecided] = useState<Set<string>>(new Set());
   const waiting = pending.filter((p) => !decided.has(p.id)).length;
+  useEffect(() => setPendingCount(waiting), [waiting]);
   const [sheet, setSheet] = useState<{ t: "record" } | { t: "receipt"; r: ReceiptView } | null>(
     null,
   );
