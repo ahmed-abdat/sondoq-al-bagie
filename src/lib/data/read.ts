@@ -170,6 +170,18 @@ export async function verifyReceipt(c: Client, code: string) {
   );
 }
 
+/** All committee terms, oldest first (the open one last). */
+export async function terms(c: Client) {
+  return many("terms_public", await c.from("terms_public").select("*").order("number")).map(
+    map.toTerm,
+  );
+}
+
+/** The open term, or null before the terms migration. */
+export async function currentTerm(c: Client) {
+  return (await terms(c)).find((t) => t.endedOn === null) ?? null;
+}
+
 export async function fundAccounts(c: Client) {
   return many("fund_accounts_public", await c.from("fund_accounts_public").select("*")).map(
     map.toFundAccount,
@@ -253,6 +265,22 @@ export async function membersAdmin(c: Client) {
     "members_admin",
     await c.from("members_admin").select("*").order("list_code").order("number"),
   ).map(map.toMemberAdmin);
+}
+
+/** Handovers, newest first (the active draft/submitted one, then history). */
+export async function handovers(c: Client) {
+  return many(
+    "handovers_admin",
+    await c.from("handovers_admin").select("*").order("started_at", { ascending: false }),
+  ).map(map.toHandover);
+}
+
+export async function handoverById(c: Client, id: string) {
+  const row = must(
+    "handovers_admin",
+    await c.from("handovers_admin").select("*").eq("id", id).maybeSingle(),
+  );
+  return row ? map.toHandover(row) : null;
 }
 
 export async function fundAccountsAdmin(c: Client): Promise<FundAccountAdmin[]> {

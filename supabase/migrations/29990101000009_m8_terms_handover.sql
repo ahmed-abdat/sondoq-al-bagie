@@ -93,7 +93,7 @@ end $$;
 
 -- Term 1: the current committee, from the start of the records, with the settings' opening balance.
 insert into public.terms (number, title, started_on, opening_balance)
-select 1, 'الدورة 1', s.opening_balance_on, s.opening_balance from public.settings s;
+select 1, 'الدورة 1', coalesce(s.opening_balance_on, date '2026-01-01'), s.opening_balance from public.settings s;
 
 /* ───────────────────────── balance with adjustments; current term ───────────────────────── */
 

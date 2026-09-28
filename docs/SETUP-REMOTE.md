@@ -58,7 +58,7 @@ Redeploy after changing variables. Crons (`vercel.json`, production only): keep-
 
 Then invite the others from the app (committee settings, `/committee/settings`): name, email, role
 (`treasurer` أمين الصندوق, `deputy` نائبه, `committee` عضو لجنة, `admin`). Each gets an email to
-choose a password. Link a committee member to their own member row so nobody confirms their own
+choose a password (this needs `SUPABASE_SECRET_KEY` on Vercel). Link a committee member to their own member row so nobody confirms their own
 payment. Only the treasurer or deputy confirm money.
 
 ## 5. Settings in the app (admin, `/committee/settings`)
@@ -96,3 +96,12 @@ computer after the import, never commit or share them.
 (`<year>/<date>.json`) and keeps the latest 12. To read one: Supabase → Storage → backups →
 download. Committee logins are not in the file (re-invite them); proof images stay in the
 `proofs` bucket.
+
+## 9. End of a committee term («تسليم الصندوق»)
+
+The outgoing treasurer/admin starts the handover in the app, enters the money actually held
+(cash and each wallet) and submits it. A **different admin** — the incoming one — accepts it:
+invite them as `admin` first (needs `SUPABASE_SECRET_KEY` on Vercel). Acceptance closes the term,
+opens the next one with the counted money, books any difference publicly as «فرق عند التسليم»,
+and deactivates the committee accounts that were not kept.
+

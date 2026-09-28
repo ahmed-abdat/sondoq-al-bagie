@@ -13,8 +13,11 @@ import type {
   FundAccount,
   FundInfo,
   FundSummary,
+  CountedLine,
   GroupPrice,
+  Handover,
   MemberAdmin,
+  Term,
   MemberMonth,
   MemberStatus,
   MonthlyCollection,
@@ -42,6 +45,9 @@ export function toFundSummary(r: Row<"fund_summary"> | null | undefined): FundSu
     membersBehind: num(r?.members_behind),
     lastActivityAt: r?.last_activity_at ?? null,
     membersActive: num(r?.members_active),
+    adjustments: num(r?.adjustments),
+    termNumber: r?.term_number ?? null,
+    termStartedOn: r?.term_started_on ?? null,
   };
 }
 
@@ -138,6 +144,8 @@ export function toActivityItem(r: Row<"activity_feed">): ActivityItem | null {
       return { kind: r.kind, at, amount: num(r.amount), category: r.category ?? "other" };
     case "campaign_opened":
       return { kind: r.kind, at, targetAmount: r.amount };
+    case "balance_adjustment":
+      return { kind: r.kind, at, amount: num(r.amount) };
     default:
       return null;
   }
@@ -326,5 +334,56 @@ export function toMemberAdmin(r: Row<"members_admin">): MemberAdmin {
     monthsBehind: num(r.months_behind),
     amountOwed: num(r.amount_owed),
     joinedMonth: r.joined_month,
+  };
+}
+
+export function toTerm(r: Row<"terms_public">): Term {
+  return {
+    number: num(r.number),
+    title: r.title ?? `الدورة ${num(r.number)}`,
+    startedOn: str(r.started_on),
+    endedOn: r.ended_on,
+    openingBalance: num(r.opening_balance),
+    closingBalance: r.closing_balance,
+    collected: num(r.collected),
+    spent: num(r.spent),
+    adjustment: num(r.adjustment),
+  };
+}
+
+type RawLine = {
+  label?: string;
+  method?: string | null;
+  account_id?: string | null;
+  amount?: number;
+};
+
+export function toHandover(r: Row<"handovers_admin">): Handover {
+  const lines = Array.isArray(r.counted_lines) ? (r.counted_lines as RawLine[]) : [];
+  return {
+    id: str(r.id),
+    fromTerm: num(r.from_term),
+    toTerm: r.to_term,
+    status: r.status ?? "draft",
+    countedLines: lines.map((l): CountedLine => ({
+      label: str(l.label),
+      method: (l.method as CountedLine["method"]) ?? null,
+      accountId: l.account_id ?? null,
+      amount: num(l.amount),
+    })),
+    countedBalance: r.counted_balance,
+    computedBalance: r.computed_balance,
+    difference: r.difference,
+    liveBalance: num(r.live_balance),
+    carryOver: r.carry_over ?? [],
+    note: r.note,
+    startedAt: str(r.started_at),
+    startedByName: r.started_by_name,
+    submittedAt: r.submitted_at,
+    submittedByName: r.submitted_by_name,
+    acceptedAt: r.accepted_at,
+    acceptedByName: r.accepted_by_name,
+    cancelledAt: r.cancelled_at,
+    cancelReason: r.cancel_reason,
   };
 }

@@ -197,6 +197,28 @@ export type CreateCampaignInput = z.input<typeof createCampaignSchema>;
 export type UpdateCampaignInput = z.input<typeof updateCampaignSchema>;
 export type CloseCampaignInput = z.input<typeof closeCampaignSchema>;
 
+const countedLine = z.object({
+  label: text(80),
+  method: z.enum(E.payment_method).nullish(),
+  accountId: id.nullish(),
+  amount: z.number().int().min(0).max(1_000_000_000),
+});
+
+export const startHandoverSchema = z.object({ id, note: optText(500) });
+export const updateHandoverDraftSchema = z.object({
+  id,
+  countedLines: z.array(countedLine).max(50),
+  carryOver: z.array(id).max(50).default([]),
+  note: optText(500),
+});
+export const acceptHandoverSchema = z.object({ id, newTermTitle: optText(80) });
+export const cancelHandoverSchema = z.object({ id, reason });
+
+export type StartHandoverInput = z.input<typeof startHandoverSchema>;
+export type UpdateHandoverDraftInput = z.input<typeof updateHandoverDraftSchema>;
+export type AcceptHandoverInput = z.input<typeof acceptHandoverSchema>;
+export type CancelHandoverInput = z.input<typeof cancelHandoverSchema>;
+
 export const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
 export const passwordSchema = z.object({ password: z.string().min(8).max(72) });
 

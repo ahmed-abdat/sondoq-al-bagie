@@ -30,6 +30,63 @@ export type FundSummary = {
   lastActivityAt: string | null;
   /** active members («X من N»: membersOk of membersActive) */
   membersActive: number;
+  /** sum of balance corrections («فرق عند التسليم»), signed; already inside `balance` */
+  adjustments: number;
+  /** current committee term («الدورة») and its start date */
+  termNumber: number | null;
+  termStartedOn: string | null;
+};
+
+/** A committee term («الدورة»). Money counted by date inside the term. */
+export type Term = {
+  number: number;
+  title: string;
+  startedOn: string;
+  /** null while the term is open */
+  endedOn: string | null;
+  openingBalance: number;
+  /** money counted at the handover that closed it */
+  closingBalance: number | null;
+  collected: number;
+  spent: number;
+  adjustment: number;
+};
+
+export type HandoverStatus = "draft" | "submitted" | "confirmed" | "cancelled";
+
+/** One line of money counted at handover (cash, or one wallet account). MRO. */
+export type CountedLine = {
+  label: string;
+  method?: PaymentMethod | null;
+  accountId?: string | null;
+  amount: number;
+};
+
+/** Committee view of a handover («تسليم الصندوق»). */
+export type Handover = {
+  id: string;
+  fromTerm: number;
+  toTerm: number | null;
+  status: HandoverStatus;
+  countedLines: CountedLine[];
+  countedBalance: number | null;
+  /** app balance when last saved/submitted; final value fixed at acceptance */
+  computedBalance: number | null;
+  /** counted − computed at acceptance (booked as «فرق عند التسليم») */
+  difference: number | null;
+  /** app balance right now (for the live preview) */
+  liveBalance: number;
+  /** committee user ids that stay active after the handover */
+  carryOver: string[];
+  note: string | null;
+  startedAt: string;
+  startedByName: string | null;
+  submittedAt: string | null;
+  submittedByName: string | null;
+  acceptedAt: string | null;
+  acceptedByName: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
 };
 
 /** Paper list a member belongs to: A (1000) numbered 1–21, B (500) numbered 1–70. */
@@ -117,7 +174,9 @@ export type ActivityItem =
       receiptCode: string | null;
     }
   | { kind: "expense"; at: string; amount: number; category: ExpenseCategory }
-  | { kind: "campaign_opened"; at: string; targetAmount: number | null };
+  | { kind: "campaign_opened"; at: string; targetAmount: number | null }
+  /** «فرق عند التسليم»: signed correction booked at a handover */
+  | { kind: "balance_adjustment"; at: string; amount: number };
 
 /** «آخر المساهمات» of a campaign (public). */
 export type CampaignContribution = {
