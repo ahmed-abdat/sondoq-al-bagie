@@ -9,10 +9,10 @@ import type {
   CampaignProgress,
   ExpenseAdmin,
   FundAccountAdmin,
+  MemberAdmin,
   PendingPayment,
 } from "@/lib/data/types";
 import { DEMO_USER } from "./demo";
-import type { MemberAdmin } from "./types";
 
 type Actions = typeof real;
 
@@ -85,12 +85,13 @@ const demo: Partial<Actions> = {
       receiptNo: null,
       allocations: p.allocations.map((a) =>
         a.kind === "months"
-          ? { ...a, number: 0, fullName: p.payerName, year: a.year ?? 0 }
+          ? { ...a, listCode: "", number: 0, fullName: p.payerName, year: a.year ?? 0 }
           : a.kind === "campaign"
             ? {
                 kind: "campaign",
                 campaignId: a.campaignId,
                 memberId: a.memberId ?? null,
+                listCode: null,
                 number: null,
                 fullName: p.payerName,
                 amount: a.amount,
@@ -98,6 +99,7 @@ const demo: Partial<Actions> = {
             : {
                 kind: "credit",
                 memberId: a.memberId,
+                listCode: "",
                 number: 0,
                 fullName: p.payerName,
                 amount: a.amount,
@@ -205,19 +207,25 @@ const demo: Partial<Actions> = {
   async addMember(p) {
     const m: MemberAdmin = {
       memberId: crypto.randomUUID(),
+      listCode: p.listCode,
       number: p.number,
+      memberRef: `${p.listCode}-${p.number}`,
       fullName: p.fullName,
       groupCode: p.groupCode,
       status: p.status ?? "active",
       monthsPaidThisYear: 0,
       monthsBehind: 0,
-      statusLabel: "منتظم",
-      amountOwed: null,
+      amountOwed: 0,
       phone: p.phone ?? null,
       note: p.note ?? null,
+      joinedMonth: p.fromMonth,
     };
     update((s) => ({ ...s, members: [...s.members, m] }));
     return ok(m.memberId);
+  },
+  async nextMemberNumber() {
+    await wait();
+    return { ok: false, code: "demo", message: "" }; // the screen keeps its local guess
   },
   async updateMember(p) {
     update((s) => ({
@@ -239,11 +247,17 @@ const demo: Partial<Actions> = {
       ...s,
       memberPatch: {
         ...s.memberPatch,
-        [p.memberId]: {
-          ...s.memberPatch[p.memberId],
-          status: p.status,
-          ...(p.groupCode ? { groupCode: p.groupCode } : {}),
-        },
+        [p.memberId]: { ...s.memberPatch[p.memberId], status: p.status },
+      },
+    }));
+    return ok("demo");
+  },
+  async changeMemberGroup(p) {
+    update((s) => ({
+      ...s,
+      memberPatch: {
+        ...s.memberPatch,
+        [p.memberId]: { ...s.memberPatch[p.memberId], groupCode: p.groupCode },
       },
     }));
     return ok("demo");

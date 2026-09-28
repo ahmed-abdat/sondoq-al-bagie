@@ -8,6 +8,7 @@ import type {
   CampaignProgress,
   ExpenseAdmin,
   FundAccount,
+  MemberAdmin,
   MemberStatus,
   PendingPayment,
 } from "@/lib/data/types";
@@ -27,7 +28,6 @@ import { Sheet } from "../sheet";
 import { useDemoState } from "../act";
 import { LogoutButton } from "../logout";
 import { MembersAdmin } from "../members-admin";
-import type { MemberAdmin } from "../types";
 import { useSnack } from "../shell";
 import { PendingSlip } from "../slip";
 

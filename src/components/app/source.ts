@@ -8,7 +8,7 @@ import { categoryLabel, monthCount, relativeAgo } from "./derive";
 import { DEMO_USER, isDemo } from "./demo";
 import * as fx from "./fixtures";
 import { fromVerified } from "./receipt-model";
-import type { LedgerEntry, MemberAdmin } from "./types";
+import type { LedgerEntry } from "./types";
 
 export const usingFixtures = process.env.SONDOQ_FIXTURES === "1";
 /** Fixtures + committee writes simulated in the browser; never on production (see demo.ts). */
@@ -124,12 +124,6 @@ export const committeeSession = () =>
 export const pendingPayments = () => pick(fx.fxPending, () => data.getPendingPayments());
 export const arrears = () => pick(fx.fxArrears, () => data.getArrears());
 export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFundAccountsAdmin());
-/**
- * Committee member list with phones. TODO(lane-a): getMembersAdmin() — until it lands, the real
- * mode maps the public member list (no phone/note).
- */
-export const membersAdmin = (): Promise<MemberAdmin[]> =>
-  pick(fx.fxMembersAdmin, async () =>
-    (await data.getMembers()).map((m) => ({ ...m, phone: null, note: null })),
-  );
+/** Committee member list: every member, any status, with phone and current group. */
+export const membersAdmin = () => pick(fx.fxMembersAdmin, () => data.getMembersAdmin());
 export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());

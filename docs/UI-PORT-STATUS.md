@@ -60,7 +60,7 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
 - Outside demo, the committee session is always the real signed-in one, even with fixtures.
 
 ## Member management (round 3)
-- Two lists, each numbered from 1, shown as «A-12» / «B-12» (`memberCode`, avatars, rows,
+- Two lists, each numbered from 1, shown as «A-12» / «B-12» (`memberRef`, avatars, rows,
   search accepts «A-12», «b12», «ب 12»). Fixtures: A 1–21, B 1–70 (91 people, one exempt, one
   left, one deceased).
 - /committee → «الأعضاء» (admin/treasurer/deputy): search, list and state filters, «إضافة عضو»
@@ -70,9 +70,10 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
 - Public lists hide غادر/متوفى; معفى shows «معفى» with no owed months; «X من N» counts active only.
 - Record payment: one transfer can also carry a campaign contribution (months + campaign
   allocations in one `recordPayment`). The record sheet lists active members only.
-- TODO(lane-a): `getMembersAdmin()` (phone, note) — real mode maps `getMembers()` with no phone;
-  `changeMemberGroup` with the new list number — the move currently rides on
-  `changeMemberStatus({ groupCode })` and keeps the number.
+- Real contract (m2-app fa3431f): `memberRef` shown everywhere, `getMembersAdmin()`,
+  `addMember({ listCode, … })`, `nextMemberNumber` (local guess first, server number replaces it),
+  `changeMemberStatus` (MEMBER_STATUSES), `changeMemberGroup` (the list and number stay; only the
+  fee group changes), «X من N» from `FundSummary.membersActive`.
 
 ## Remaining / next
 1. Lane B: `PERSIST_MAX_AGE` (30 days) is used as `gcTime`; it exceeds setTimeout's 2^31 ms, so

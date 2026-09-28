@@ -4,7 +4,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import type { MembershipStatus } from "@/lib/data/types";
+import { MEMBER_STATUSES, type MemberAdmin, type SettableStatus } from "@/lib/data/types";
 import { useAct, useDemoState } from "./act";
 import { Avatar, StatusTag } from "./bits";
 import {
@@ -21,11 +21,10 @@ import { Num } from "./num";
 import { Segmented } from "./segmented";
 import { Sheet } from "./sheet";
 import { useSnack } from "./shell";
-import type { MemberAdmin } from "./types";
 
-type State = Exclude<MembershipStatus, "away">;
-const STATES = Object.keys(STATE_LABEL) as State[];
-const GROUPS = ["A", "B"] as const;
+type State = SettableStatus;
+const STATES = MEMBER_STATUSES;
+const LISTS = ["A", "B"] as const;
 
 /** "YYYY-MM" (month input) → "YYYY-MM-01" (action input). */
 const firstOf = (ym: string) => `${ym}-01`;
@@ -77,35 +76,40 @@ export function AddMemberBody({
 }) {
   const router = useRouter();
   const online = useOnline();
-  const { addMember } = useAct();
-  const [group, setGroup] = useState<"A" | "B">("B");
+  const { addMember, nextMemberNumber } = useAct();
+  const [list, setList] = useState<"A" | "B">("B");
   const [num, setNum] = useState(String(nextFreeNumber(members, "B")));
+  // the server knows the real next number (the local list may be filtered or stale)
+  const pickList = (l: "A" | "B") => {
+    setList(l);
+    setNum(String(nextFreeNumber(members, l)));
+    void nextMemberNumber({ listCode: l }).then((r) => {
+      if (r.ok && r.data > 0) setNum(String(r.data));
+    });
+  };
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [from, setFrom] = useState(thisMonth);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const n = Number(num);
-  const taken = members.some((m) => m.groupCode === group && m.number === n);
+  const taken = members.some((m) => m.listCode === list && m.number === n);
   const ok = n > 0 && !taken && name.trim().length > 2 && /^\d{4}-\d{2}$/.test(from);
   return (
     <div className="bq-rec">
       <h2>إضافة عضو</h2>
       <p className="bq-rec-k">القائمة</p>
       <div className="bq-chips" role="radiogroup" aria-label="القائمة">
-        {GROUPS.map((g) => (
+        {LISTS.map((g) => (
           <button
             key={g}
             type="button"
             role="radio"
-            aria-checked={group === g}
+            aria-checked={list === g}
             className="bq-chip bq-press"
-            onClick={() => {
-              setGroup(g);
-              setNum(String(nextFreeNumber(members, g)));
-            }}
+            onClick={() => pickList(g)}
           >
-            الفئة {groupLabel(g)}
+            قائمة {g} · الفئة {groupLabel(g)}
             {prices[g] ? (
               <>
                 {" "}
@@ -117,7 +121,7 @@ export function AddMemberBody({
       </div>
       <p className="bq-rec-k">الرقم في القائمة</p>
       <div className="bq-field" dir="ltr">
-        <Num className="bq-strong">{group}-</Num>
+        <Num className="bq-strong">{list}-</Num>
         <input
           className="bq-input"
           value={num}
@@ -159,16 +163,17 @@ export function AddMemberBody({
             setBusy(true);
             setErr("");
             const r = await addMember({
+              listCode: list,
               number: n,
               fullName: name.trim(),
-              groupCode: group,
+              groupCode: list,
               fromMonth: firstOf(from),
               phone: phone.trim() || undefined,
             });
             setBusy(false);
             if (!r.ok) return setErr(r.message);
             router.refresh();
-            onDone(`أُضيف ${name.trim()} برقم ${group}-${n}`);
+            onDone(`أُضيف ${name.trim()} برقم ${list}-${n}`);
           }}
         >
           {busy ? "جارٍ الحفظ…" : "أضف العضو"}
@@ -190,7 +195,7 @@ export function MemberAdminBody({
 }) {
   const router = useRouter();
   const online = useOnline();
-  const { updateMember, changeMemberStatus } = useAct();
+  const { updateMember, changeMemberStatus, changeMemberGroup } = useAct();
   const [mode, setMode] = useState<"view" | "edit" | "state" | "move">("view");
   const [name, setName] = useState(m.fullName);
   const [phone, setPhone] = useState(m.phone ?? "");
@@ -242,25 +247,13 @@ export function MemberAdminBody({
 
       {mode === "view" && (
         <div className="bq-btn-col bq-small-top">
-          <button
-            type="button"
-            className="bq-btn bq-btn-soft bq-press"
-            onClick={() => go("edit")}
-          >
+          <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("edit")}>
             تعديل البيانات
           </button>
-          <button
-            type="button"
-            className="bq-btn bq-btn-soft bq-press"
-            onClick={() => go("state")}
-          >
+          <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("state")}>
             تغيير الحالة
           </button>
-          <button
-            type="button"
-            className="bq-btn bq-btn-soft bq-press"
-            onClick={() => go("move")}
-          >
+          <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("move")}>
             نقل إلى الفئة {groupLabel(other)}
           </button>
         </div>
@@ -431,8 +424,8 @@ export function MemberAdminBody({
       {mode === "move" && (
         <>
           <p className="bq-lead bq-small-top">
-            ينتقل من الفئة {groupLabel(m.groupCode)} إلى الفئة {groupLabel(other)}، وتتغيّر رسومه
-            الشهرية من الشهر الذي تختاره.
+            يبقى رقمه <Num>{memberCode(m)}</Num> في قائمته. تتغيّر رسومه الشهرية إلى رسوم الفئة{" "}
+            {groupLabel(other)} ابتداءً من الشهر الذي تختاره.
           </p>
           <p className="bq-rec-k">ابتداءً من شهر</p>
           <MonthField value={from} onChange={setFrom} label="من شهر" />
@@ -452,17 +445,14 @@ export function MemberAdminBody({
                 disabled={busy || !online}
                 onClick={() =>
                   run(
-                    // TODO(lane-a): changeMemberGroup with the new list number; for now the
-                    // group change rides on changeMemberStatus (same state, new groupCode).
                     () =>
-                      changeMemberStatus({
+                      changeMemberGroup({
                         memberId: m.memberId,
                         fromMonth: firstOf(from),
-                        status: m.status,
-                        reason: reason.trim() || `نقل إلى الفئة ${groupLabel(other)}`,
                         groupCode: other,
+                        reason: reason.trim() || undefined,
                       }),
-                    `نُقل ${m.fullName} إلى الفئة ${groupLabel(other)}`,
+                    `صار ${m.fullName} في الفئة ${groupLabel(other)}`,
                   )
                 }
               >
@@ -502,7 +492,7 @@ export function MembersAdmin({
     () =>
       [...server, ...demo.members]
         .map((m) => ({ ...m, ...demo.memberPatch[m.memberId] }))
-        .sort((a, b) => a.groupCode.localeCompare(b.groupCode) || a.number - b.number),
+        .sort((a, b) => a.listCode.localeCompare(b.listCode) || a.number - b.number),
     [server, demo.members, demo.memberPatch],
   );
   const [q, setQ] = useState("");
@@ -510,10 +500,10 @@ export function MembersAdmin({
   const [st, setSt] = useState<SF>("all");
   const [sheet, setSheet] = useState<{ t: "add" } | { t: "member"; id: string } | null>(null);
   const list = (q.trim() ? searchMembers(members, q) : members).filter(
-    (m) => (g === "all" || m.groupCode === g) && (st === "all" || m.status === st),
+    (m) => (g === "all" || m.listCode === g) && (st === "all" || m.status === st),
   );
   const count = (s: SF) =>
-    members.filter((m) => (g === "all" || m.groupCode === g) && (s === "all" || m.status === s))
+    members.filter((m) => (g === "all" || m.listCode === g) && (s === "all" || m.status === s))
       .length;
   const open = sheet?.t === "member" ? members.find((m) => m.memberId === sheet.id) : null;
   const done = (t: string) => {
@@ -547,8 +537,8 @@ export function MembersAdmin({
         onChange={setG}
         items={[
           { k: "all", l: "كل القوائم" },
-          { k: "A", l: "الفئة أ" },
-          { k: "B", l: "الفئة ب" },
+          { k: "A", l: "قائمة A" },
+          { k: "B", l: "قائمة B" },
         ]}
       />
       <div className="bq-gap-12" />

@@ -7,6 +7,7 @@ import type {
   CampaignContribution,
   CampaignProgress,
   CommitteeSession,
+  MemberAdmin,
   MembershipStatus,
   Expense,
   ExpenseAdmin,
@@ -487,6 +488,17 @@ export const fxSession = (): CommitteeSession => ({
   memberId: null,
 });
 
+const omitLabel = <T extends { statusLabel: string }>(m: T): Omit<T, "statusLabel"> => {
+  const out: Partial<T> = { ...m };
+  delete out.statusLabel;
+  return out as Omit<T, "statusLabel">;
+};
 /** Committee member list (with phone). */
-export const fxMembersAdmin = () =>
-  fxMembers().map((m, i) => ({ ...m, phone: RAW[i].phone, note: null as string | null }));
+export const fxMembersAdmin = (): MemberAdmin[] =>
+  fxMembers(true).map(({ amountOwed, ...rest }, i) => ({
+    ...omitLabel(rest),
+    phone: RAW[i].phone,
+    note: null,
+    amountOwed: amountOwed ?? 0,
+    joinedMonth: "2020-01-01",
+  }));

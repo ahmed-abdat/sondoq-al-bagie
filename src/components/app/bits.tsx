@@ -29,7 +29,11 @@ export function Avatar({ code, size: s }: { code: string; size?: number }) {
 }
 
 /** Icon + word. Grey for late (never red), green tint for paid. Counts only, never amounts. */
-export function StatusTag({ m }: { m: MemberStatus }) {
+export function StatusTag({
+  m,
+}: {
+  m: Pick<MemberStatus, "status" | "monthsBehind" | "monthsPaidThisYear">;
+}) {
   const st = memberState(m);
   const ok = st === "ok" || st === "ahead";
   return (

@@ -20,6 +20,7 @@ export function HomeView({
   members,
   ctx,
   paidCount,
+  activeCount,
   monthName,
   ledger,
   campaign,
@@ -28,6 +29,8 @@ export function HomeView({
   members: MemberStatus[];
   ctx: MemberCtx;
   paidCount: number;
+  /** FundSummary.membersActive */
+  activeCount: number;
   monthName: string;
   ledger: LedgerEntry[];
   campaign: { title: string; pct: number } | null;
@@ -35,7 +38,7 @@ export function HomeView({
   const [q, setQ] = useState("");
   const res = useMemo(() => searchMembers(members, q), [members, q]);
   const sheet = useSheet<S>();
-  const total = members.filter((m) => m.status === "active").length;
+  const total = activeCount || members.filter((m) => m.status === "active").length;
   const pick = (m: MemberStatus, from: HTMLElement | null) =>
     sheet.open({ t: "member", m }, from, "bq-av");
   const openEntry = (e: LedgerEntry, el: HTMLElement) =>
