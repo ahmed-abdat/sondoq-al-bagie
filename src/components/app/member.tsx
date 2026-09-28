@@ -62,6 +62,9 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCt
   );
   const owed = cells.filter((c) => c.state === "owed").map((c) => c.month);
   const paidDue = cells.filter((c) => c.state === "paid").length;
+  const aheadMonths = cells.filter((c) => c.state === "ahead").map((c) => c.month);
+  const paidAll = cells.every((c) => c.state === "paid" || c.state === "ahead");
+  const lastAhead = aheadMonths.length ? Math.max(...aheadMonths) : 0;
   const due = paidDue + owed.length;
   const st = memberState(m);
   return (
@@ -92,22 +95,32 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCt
           </p>
         </div>
       </div>
-      {st !== "off" && due > 0 && (
-        <p className="bq-mline">
-          دفع رسوم <Num className="bq-strong">{paidDue}</Num> من{" "}
-          <Num className="bq-strong">{due}</Num> {due <= 10 ? "أشهر" : "شهرًا"} مستحقة
-        </p>
-      )}
-      {st !== "ok" && (
-        <p className={`bq-mstatus ${st === "ahead" ? "is-ok" : "is-late"}`}>
-          {st === "ahead" ? I.check(18) : I.clock(18)}
-          {st === "ahead"
-            ? "مدفوع حتى ديسمبر"
-            : st === "off"
-              ? "لا تُستحق عليه رسوم الآن"
-              : m.monthsPaidThisYear === 0
-                ? "لم يدفع هذا العام"
-                : `متأخر عن رسوم ${monthsWord(owed.length || m.monthsBehind)}${owed.length ? `: ${monthsLabel(owed)}` : ""}`}
+      {st !== "off" &&
+        (paidAll ? (
+          <p className="bq-mline">
+            دفع رسوم السنة كاملة · <Num className="bq-strong">12</Num> شهرًا
+          </p>
+        ) : due > 0 ? (
+          <p className="bq-mline">
+            دفع <Num className="bq-strong">{paidDue}</Num> من <Num className="bq-strong">{due}</Num>{" "}
+            {due <= 2
+              ? due === 1
+                ? "شهر مستحق"
+                : "شهرين مستحقين"
+              : due <= 10
+                ? "أشهر مستحقة"
+                : "شهرًا مستحقًا"}
+            {lastAhead ? ` ومقدَّمًا حتى ${MONTHS[lastAhead - 1]}` : ""}
+          </p>
+        ) : null)}
+      {st !== "ok" && st !== "ahead" && (
+        <p className="bq-mstatus is-late">
+          {I.clock(18)}
+          {st === "off"
+            ? "لا تُستحق عليه رسوم الآن"
+            : m.monthsPaidThisYear === 0
+              ? "لم يدفع هذا العام"
+              : `متأخر عن رسوم ${monthsWord(owed.length || m.monthsBehind)}${owed.length ? `: ${monthsLabel(owed)}` : ""}`}
         </p>
       )}
       <ol className="bq-months" aria-label={`أشهر ${year}`}>
@@ -118,7 +131,9 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCt
               {c.state === "paid" ? (
                 <>{I.check(16)} مدفوع</>
               ) : c.state === "ahead" ? (
-                <>{I.check(16)} مدفوع مسبقًا</>
+                <>
+                  {I.check(16)} مدفوع <span className="bq-mo-tag">مقدَّمًا</span>
+                </>
               ) : c.state === "owed" ? (
                 <>{I.clock(16)} متأخر</>
               ) : c.state === "off" ? (

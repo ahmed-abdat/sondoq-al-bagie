@@ -88,6 +88,7 @@ export function MembersView({
         <div className="bq-gap-12" />
         <Segmented<Filter>
           label="تصفية الأعضاء"
+          fit
           value={f}
           onChange={setF}
           items={[
@@ -110,7 +111,7 @@ export function MembersView({
                 </>
               ),
             },
-            ...groups.map((g) => ({ k: `g:${g}` as Filter, l: `المجموعة ${groupLabel(g)}` })),
+            ...groups.map((g) => ({ k: `g:${g}` as Filter, l: `مجموعة ${groupLabel(g)}` })),
             ...(initial === "none"
               ? [
                   {

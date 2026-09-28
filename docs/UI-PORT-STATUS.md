@@ -104,6 +104,9 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
   can be tried).
 
 ## Remaining / next
+0. «محضر التسليم» as a shareable image (like the receipt PNG) — later; today it is text (WhatsApp/copy).
+   The new term's start date and public term line come from the server (`termStartedOn`); the demo
+   cannot change public pages, and says so on the success card.
 1. Lane B: `PERSIST_MAX_AGE` (30 days) is used as `gcTime`; it exceeds setTimeout's 2^31 ms, so
    queries without observers are garbage-collected immediately. Use `gcTime: Infinity` (or ≤ 24
    days) in `src/components/providers/index.tsx`. `cache-seed.tsx` works around it with a
