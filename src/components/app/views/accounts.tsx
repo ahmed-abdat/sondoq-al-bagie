@@ -48,6 +48,7 @@ export function AccountsView({
   pastTerms: Term[];
 }) {
   const [f, setF] = useState<"all" | "in" | "out">("all");
+  const termYear = monthly[0]?.year ?? new Date().getFullYear();
   const sheet = useSheet<LedgerEntry>();
   const color = Object.fromEntries(spentBy.map((x, i) => [x.category, RAMP[i] ?? "var(--n3)"]));
   const spent = spentBy.reduce((s, x) => s + x.total, 0);
@@ -75,7 +76,10 @@ export function AccountsView({
           <div>
             <dt>
               <span className="bq-op" aria-hidden="true" />
-              رصيد البداية
+              <span>
+                رصيد مُرحَّل من السنوات السابقة
+                <span className="bq-sum-sub">ما كان في الصندوق قبل بداية {termYear}</span>
+              </span>
             </dt>
             <dd>
               <Num>{fmt(summary.openingBalance)}</Num>
@@ -234,7 +238,7 @@ export function AccountsView({
                       ) : null}
                     </span>
                     <span className="bq-row-s">
-                      بدأت بـ <Num>{fmt(t.openingBalance)}</Num> وسُلّمت بـ{" "}
+                      رصيد سابق <Num>{fmt(t.openingBalance)}</Num> · سُلّمت بـ{" "}
                       <Num>{fmt(t.closingBalance ?? 0)}</Num> أوقية · جُمع{" "}
                       <Num>{fmt(t.collected)}</Num> · صُرف <Num>{fmt(t.spent)}</Num>
                       {t.adjustment ? (

@@ -182,6 +182,10 @@ export function SettingsView({
   const [savedWa, setSavedWa] = useState(whatsapp ?? "");
   const [opening, setOpening] = useState(String(openingBalance));
   const [savedOpening, setSavedOpening] = useState(openingBalance);
+  // TODO(lane-a): read the saved opening date; the association's rule is the start of the year
+  const yearStart = `${new Date().getFullYear()}-01-01`;
+  const [openingOn, setOpeningOn] = useState(yearStart);
+  const [savedOpeningOn, setSavedOpeningOn] = useState(yearStart);
   const openingNum = Number(opening.replace(/\s/g, "")) || 0;
   const [confirmOwed, setConfirmOwed] = useState(false);
   const [owedSave, setOwedSave] = useState<SaveState>(IDLE);
@@ -355,10 +359,19 @@ export function SettingsView({
         </div>
         <SaveNote id="bq-wa-note" s={waSave} />
 
-        <h3 className="bq-h3">رصيد البداية</h3>
+        <h3 className="bq-h3">الرصيد في بداية السنة</h3>
         <p className="bq-hint">
-          المبلغ الذي كان في الصندوق قبل أول دفعة مسجّلة هنا (بالأوقية القديمة).
+          رصيد مُرحَّل من السنوات السابقة: ما كان في الصندوق قبل هذا التاريخ، بالأوقية القديمة.
         </p>
+        <input
+          className="bq-input bq-gap-bottom"
+          type="date"
+          dir="ltr"
+          value={openingOn}
+          onChange={(e) => setOpeningOn(e.target.value)}
+          aria-label="تاريخ الرصيد"
+          disabled={!admin}
+        />
         <div className="bq-field">
           <input
             className="bq-input bq-grow-1"
@@ -366,20 +379,23 @@ export function SettingsView({
             onChange={(e) => setOpening(toWesternDigits(e.target.value).replace(/[^\d\s]/g, ""))}
             inputMode="numeric"
             dir="ltr"
-            aria-label="رصيد البداية بالأوقية"
+            aria-label="الرصيد المُرحَّل بالأوقية"
             aria-describedby="bq-open-note"
             disabled={!admin}
           />
-          {admin && openingNum !== savedOpening && (
+          {admin && (openingNum !== savedOpening || openingOn !== savedOpeningOn) && (
             <button
               type="button"
               className="bq-btn bq-btn-primary bq-press"
               disabled={!online || openingNum < 0 || openSave.status === "saving"}
               onClick={async () => {
                 if (
-                  await runSave(setOpenSave, () => updateSettings({ openingBalance: openingNum }))
+                  await runSave(setOpenSave, () =>
+                    updateSettings({ openingBalance: openingNum, openingBalanceOn: openingOn }),
+                  )
                 ) {
                   setSavedOpening(openingNum);
+                  setSavedOpeningOn(openingOn);
                   router.refresh();
                 }
               }}

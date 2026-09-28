@@ -3515,3 +3515,15 @@
     margin-block-start: 56px;
   }
 }
+
+@layer components {
+  .bq-sum-sub {
+    display: block;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .bq-gap-bottom {
+    margin-block-end: 10px;
+  }
+}
