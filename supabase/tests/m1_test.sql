@@ -505,6 +505,25 @@ select public.set_committee_member('00000000-0000-0000-0000-0000000000a1', 'ال
 select tests.login('committee');
 select tests.throws($$select public.confirm_payment(tests.id('ac3'))$$, 'not_confirmer', 'plain committee still cannot confirm');
 
+/* ───────────── M9: committee accounts ───────────── */
+
+select tests.login('admin');
+select tests.ok((select count(*) from public.committee_accounts) >= 4, 'the admin lists committee accounts');
+select tests.ok((select login from public.committee_accounts where display_name = 'الأمين') = 'treasurer@test.invalid',
+  'the list shows each login');
+select public.set_committee_active('00000000-0000-0000-0000-0000000000a4', false);
+select tests.ok(not (select active from public.committee where user_id = '00000000-0000-0000-0000-0000000000a4'), 'admin deactivates an account');
+select public.set_committee_active('00000000-0000-0000-0000-0000000000a4', true);
+select tests.ok((select active from public.committee where user_id = '00000000-0000-0000-0000-0000000000a4'), 'and reactivates it');
+select tests.throws($$select public.set_committee_active('00000000-0000-0000-0000-0000000000a1', false)$$, 'cannot_demote_self',
+  'the admin cannot deactivate himself');
+select tests.login('treasurer');
+select tests.ok((select count(*) from public.committee_accounts) = 0, 'non-admins see no logins');
+select tests.throws($$select public.set_committee_active('00000000-0000-0000-0000-0000000000a4', false)$$, 'not_admin',
+  'only the admin (de)activates accounts');
+select tests.login('public');
+select tests.throws('select * from public.committee_accounts', '42501', 'anon cannot read committee accounts');
+
 /* ───────────── M8: terms and handover (keep last: it deactivates committee accounts) ───────────── */
 
 select tests.login('public');

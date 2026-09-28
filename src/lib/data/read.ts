@@ -4,7 +4,7 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import * as map from "./map";
-import type { ActivityItem, ExpenseAdmin, FundAccountAdmin } from "./types";
+import type { ActivityItem, CommitteeAccount, ExpenseAdmin, FundAccountAdmin } from "./types";
 
 export type Client = SupabaseClient<Database>;
 
@@ -281,6 +281,20 @@ export async function handoverById(c: Client, id: string) {
     await c.from("handovers_admin").select("*").eq("id", id).maybeSingle(),
   );
   return row ? map.toHandover(row) : null;
+}
+
+/** Committee accounts with their login (admin only; others get an empty list). */
+export async function committeeAccounts(c: Client): Promise<CommitteeAccount[]> {
+  return many("committee_accounts", await c.from("committee_accounts").select("*")).map((r) => ({
+    userId: r.user_id ?? "",
+    displayName: r.display_name ?? "",
+    role: r.role ?? "committee",
+    active: r.active ?? false,
+    memberId: r.member_id,
+    login: r.login ?? "",
+    lastSignInAt: r.last_sign_in_at,
+    createdAt: r.created_at ?? "",
+  }));
 }
 
 export async function fundAccountsAdmin(c: Client): Promise<FundAccountAdmin[]> {

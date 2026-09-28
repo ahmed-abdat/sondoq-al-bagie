@@ -1,6 +1,9 @@
 -- Undo the M2 migrations (dev/branch only). Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- committee accounts (m9)
+drop view if exists public.committee_accounts;
+drop function if exists app_private.committee_accounts(), public.set_committee_active(uuid, boolean);
 -- admin confirms (m8)
 create or replace function app_private.can_confirm() returns boolean
 language sql stable security definer set search_path = '' as $$

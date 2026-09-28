@@ -110,6 +110,11 @@ export const committeeQueries = {
       queryKey: [COMMITTEE_KEY, "members"],
       queryFn: () => read.membersAdmin(client()),
     }),
+  accounts: () =>
+    queryOptions({
+      queryKey: [COMMITTEE_KEY, "accounts"],
+      queryFn: () => read.committeeAccounts(client()),
+    }),
   handovers: () =>
     queryOptions({
       queryKey: [COMMITTEE_KEY, "handovers"],

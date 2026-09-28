@@ -959,6 +959,19 @@ export type Database = {
         }
         Relationships: []
       }
+      committee_accounts: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          display_name: string | null
+          last_sign_in_at: string | null
+          login: string | null
+          member_id: string | null
+          role: Database["public"]["Enums"]["committee_role"] | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       expense_totals: {
         Row: {
           category: Database["public"]["Enums"]["expense_category"] | null
@@ -1264,6 +1277,10 @@ export type Database = {
       }
       reject_payment: {
         Args: { p_payment_id: string; p_reason: string }
+        Returns: undefined
+      }
+      set_committee_active: {
+        Args: { p_active: boolean; p_user_id: string }
         Returns: undefined
       }
       set_committee_member: {

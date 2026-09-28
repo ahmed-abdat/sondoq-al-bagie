@@ -28,6 +28,7 @@ export {
   getCommitteeSession,
   getExpensesAdmin,
   getFundAccountsAdmin,
+  getCommitteeAccounts,
   getHandover,
   getHandovers,
   getPayment,
