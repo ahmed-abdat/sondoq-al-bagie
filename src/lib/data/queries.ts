@@ -100,6 +100,11 @@ export const committeeQueries = {
     }),
   arrears: () =>
     queryOptions({ queryKey: [COMMITTEE_KEY, "arrears"], queryFn: () => read.arrears(client()) }),
+  expenses: (limit = 100) =>
+    queryOptions({
+      queryKey: [COMMITTEE_KEY, "expenses", limit],
+      queryFn: () => read.expensesAdmin(client(), limit),
+    }),
   fundAccounts: () =>
     queryOptions({
       queryKey: [COMMITTEE_KEY, "fund_accounts"],

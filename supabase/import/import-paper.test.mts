@@ -85,3 +85,11 @@ test("missing columns are reported", () => {
   assert.equal(r.code, 1);
   assert.match(r.out, /sheet: missing column\(s\) group, m2/);
 });
+
+test("page grand total is checked too; month columns are optional", () => {
+  const sheet = csv("t.csv", `${HEAD}\n1,Ali,A,x,x,,,,,,,,,,\n2,Sidi,B,x,,,,,,,,,,,\n`);
+  const pages = csv("t-totals.csv", "page,from_number,to_number,total\n1,1,2,3000\n");
+  const r = run("--sheet", sheet, "--page-totals", pages);
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /page 1 total: ticks add up to 2500 MRO, page says 3000 \(diff -500\)/);
+});

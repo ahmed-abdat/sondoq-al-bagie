@@ -52,3 +52,6 @@ public/swe-worker-*.js
 # playwright
 /playwright-report
 /test-results
+
+# OCR assets copied from node_modules on install (scripts/ocr-assets.mts)
+/public/ocr/

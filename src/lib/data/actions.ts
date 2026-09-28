@@ -213,6 +213,57 @@ export async function logReminder(input: s.LogReminderInput) {
   );
 }
 
+/* ───────────── campaigns (admin, treasurer, deputy) ───────────── */
+
+/** Open a donation campaign. Target and deadline are optional; retries replay on the id. */
+export async function createCampaign(input: s.CreateCampaignInput) {
+  return run(
+    s.createCampaignSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("create_campaign", {
+        p_id: p.id,
+        p_title: p.title,
+        p_amount_mode: p.amountMode,
+        p_purpose: p.purpose,
+        p_target_amount: p.targetAmount,
+        p_deadline: p.deadline,
+        p_participants: p.participants?.map((x) => ({
+          member_id: x.memberId,
+          expected_amount: x.expectedAmount,
+        })),
+      }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
+export async function updateCampaign(input: s.UpdateCampaignInput) {
+  return run(
+    s.updateCampaignSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("update_campaign", {
+        p_id: p.id,
+        p_title: p.title,
+        // generated types mark these non-null; the SQL accepts null (clears the field)
+        p_purpose: p.purpose as string,
+        p_target_amount: p.targetAmount as number,
+        p_deadline: p.deadline as string,
+      }),
+    { touchesPublic: true },
+  );
+}
+
+/** Close for good. Returns the amount moved to the main fund ('to_fund'), else 0. */
+export async function closeCampaign(input: s.CloseCampaignInput) {
+  return run(
+    s.closeCampaignSchema,
+    input,
+    (sb, p) => sb.rpc("close_campaign", { p_id: p.id, p_surplus_action: p.surplusAction }),
+    { touchesPublic: true, result: (d) => Number(d ?? 0) },
+  );
+}
+
 /* ───────────── admin ───────────── */
 
 export async function addMember(input: s.AddMemberInput) {
