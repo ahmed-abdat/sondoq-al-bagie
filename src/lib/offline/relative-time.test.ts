@@ -9,9 +9,10 @@ describe("timeAgo", () => {
     expect(timeAgo(NOW - 3 * 3_600_000, NOW)).toMatch(/3/);
     expect(timeAgo(NOW - 86_400_000, NOW)).toBe("أمس");
   });
-  it("says now for very fresh data and never goes negative", () => {
-    expect(timeAgo(NOW - 10_000, NOW)).toBe("الآن");
-    expect(timeAgo(NOW + 60_000, NOW)).toBe("الآن");
+  it("says «قبل لحظات» for very fresh data and never goes negative", () => {
+    expect(timeAgo(NOW - 10_000, NOW)).toBe("قبل لحظات");
+    expect(timeAgo(NOW + 60_000, NOW)).toBe("قبل لحظات");
+    expect(offlineMessage(NOW - 10_000, NOW)).toBe("غير متصل — آخر تحديث قبل لحظات");
   });
 });
 

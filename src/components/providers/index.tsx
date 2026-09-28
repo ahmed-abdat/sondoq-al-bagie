@@ -6,8 +6,9 @@ import { useState, type ReactNode } from "react";
 import { createIdbPersister, isPersistable, PERSIST_MAX_AGE } from "@/lib/offline/persister";
 import { OfflineBanner } from "./offline-banner";
 import { OnlineSync } from "./online";
+import { PullToRefresh } from "./pull-to-refresh";
+import { AppToaster } from "./toaster";
 import { SaveVisitedPages, ServiceWorkerUpdates } from "./sw-update";
-import { Toaster } from "@/components/ui/sonner";
 
 export { useOnline } from "./online";
 export { OfflineBanner, OfflineWriteHint } from "./offline-banner";
@@ -54,8 +55,9 @@ export function Providers({ children }: { children: ReactNode }) {
       <OfflineBanner />
       <ServiceWorkerUpdates />
       <SaveVisitedPages />
+      <PullToRefresh />
       {children}
-      <Toaster position="top-center" />
+      <AppToaster />
     </PersistQueryClientProvider>
   );
 }
