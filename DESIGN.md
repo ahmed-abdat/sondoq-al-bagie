@@ -518,7 +518,7 @@ Square white paper, max 400px, perforated top and bottom, Paper-drop shadow. Log
 The association rubber stamp: three concentric rings, the association name and «صندوق الرابطة» set on arcs in Alexandria 700, two stars, the word «مؤكَّد» (or «مرفوض»), the date in digits and «أمين الصندوق» in a dater band. Stamp Green (muted red for rejected) with multiply blending, a turbulence ink filter, rotated −10° (−8° rejected). It is the peak moment: scale 1.35 → 0.975 → 1 with blur clearing over 340ms, ink darkening 320ms after 380ms, the paper dipping 1px at impact, and a 12ms haptic tick. Never used decoratively; only on a confirmed or rejected payment.
 
 ### Snackbar
-Forest Deep, 18px radius, 56px, 14px white text, action in Green Mist Alexandria 700 at 44px. Sits above the nav (and above the FAB when present), in 220ms, out 150ms. Used for confirmations like «نُسخ رقم Bankily»; never a second undo when an inline undo exists.
+Forest Deep, 18px radius, 56px, 14px white text, action in Green Mist Alexandria 700 at 44px. Sits above the nav (and above the FAB when present), in 220ms, out 150ms. Used for confirmations like «نُسخ رقم Bankily»; never a second undo when an inline undo exists. One look for every message: the in-app snack (bottom, above the nav) and the system toasts from `<Providers>` (top, e.g. «تحديث جديد متاح») both use this dark Forest Deep card with white text and a Green Mist action; no white toast cards.
 
 ### Switch Card
 Committee settings: a Green Wash 20px-radius row, 64px minimum, title plus one plain-words explanation, and a 52×32 switch whose knob slides toward the inline end (240ms). On is Forest.
