@@ -14,6 +14,7 @@ export const PUBLIC_VIEWS = [
   "fund_accounts_public",
   "fund_info",
   "campaign_contributions",
+  "group_prices_public",
 ] as const;
 
 /**
