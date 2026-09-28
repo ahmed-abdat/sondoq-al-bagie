@@ -42,8 +42,10 @@ as_user $D 00000000-0000-0000-0000-0000000000f3 0 > "$DIR/b"; wait
 grep -qx false "$DIR/a" && grep -q month_already_paid "$DIR/b" || { echo "FAIL same month: $(cat "$DIR/a") / $(cat "$DIR/b")"; exit 1; }
 test "$("${PSQL[@]}" -d sb -Atc "select count(*) from public.payment_months where member_id = (select id from public.members where number = 1902)")" = 1
 echo "  ok  two payments for one month at once: one month row, the other refused"
-echo "rollback m1_down.sql"
-"${PSQL[@]}" -d sb -f "$ROOT/supabase/rollback/m1_down.sql"
+for f in $(ls -r "$ROOT"/supabase/rollback/*_down.sql); do
+  echo "rollback $(basename "$f")"
+  "${PSQL[@]}" -d sb -f "$f"
+done
 "${PSQL[@]}" -d sb -Atc "select 'm1 tables left: ' || count(*) from pg_tables where schemaname = 'public'"
 for f in "$ROOT"/supabase/migrations/*.sql; do
   "${PSQL[@]}" -d sb -f "$f"
