@@ -18,13 +18,23 @@ for f in "$ROOT"/supabase/migrations/*.sql; do
   echo "migrate  $(basename "$f")"
   "${PSQL[@]}" -d sb -f "$f"
 done
-echo "seed     seed.sql"
-"${PSQL[@]}" -d sb -o /dev/null -f "$ROOT/supabase/seed.sql"
 for f in "$ROOT"/supabase/tests/*.sql; do
   echo "test     $(basename "$f")"
   "${PSQL[@]}" -d sb -o /dev/null -f "$f" 2>&1 | sed 's/^psql:[^ ]* NOTICE:  /  /'
   test "${PIPESTATUS[0]}" -eq 0
 done
+echo "seed     seed.sql"
+"${PSQL[@]}" -d sb -o /dev/null -f "$ROOT/supabase/seed.sql"
+got="$("${PSQL[@]}" -d sb -At -c "select concat_ws(' ', (select count(*) from public.members),
+  (select count(*) from public.member_status where months_paid_this_year = 12),
+  (select count(*) from public.member_status where months_paid_this_year = 0),
+  (select count(*) from public.payments where status = 'pending'),
+  (select count(*) from public.payments where receipt_code is not null) > 0,
+  (select balance > 0 from public.fund_summary))")"
+set -- $got
+test "$1" = 70 && test "$2" -ge 25 && test "$2" -le 38 && test "$3" -ge 20 && test "$3" -le 36 && test "$4" = 2 \
+  && test "$5" = t && test "$6" = t || { echo "FAIL seed shape: $got"; exit 1; }
+echo "  ok  70 members: $2 paid the year, $3 paid nothing, 2 pending, receipts issued"
 echo "race     concurrent confirmations"
 "${PSQL[@]}" -d sb -o /dev/null -f "$ROOT/supabase/tests/local/race.sql"
 as_user() {  # $1 = user id, $2 = payment id, $3 = seconds to hold the transaction open
