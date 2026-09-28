@@ -18,7 +18,7 @@ type Result<T> = { ok: true; data: T } | { ok: false; code: string; message: str
 
 const say = (r: { code: string; message: string }) =>
   r.code === "not_configured"
-    ? "إنشاء الحسابات غير مفعّل بعد على الخادم — اطلب من المسؤول إضافة المفتاح السري."
+    ? "إنشاء الحسابات غير مفعّل بعد على الخادم. اطلب من المسؤول إضافة المفتاح السري."
     : r.message;
 
 const ROLES: { k: CommitteeRole; hint: string }[] = [
