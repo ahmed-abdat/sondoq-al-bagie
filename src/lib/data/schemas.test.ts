@@ -43,6 +43,7 @@ describe("schemas", () => {
 
   it("normalises phones and requires the first of a month", () => {
     const m = addMemberSchema.parse({
+      listCode: "b",
       number: 3,
       fullName: "عضو",
       groupCode: "A",
@@ -51,8 +52,20 @@ describe("schemas", () => {
     });
     expect(m.phone).toBe("22334455");
     expect(m.status).toBe("active");
+    expect(m.listCode).toBe("B");
     expect(
       addMemberSchema.safeParse({
+        listCode: "B",
+        number: 4,
+        fullName: "x",
+        groupCode: "B",
+        fromMonth: "2026-01-01",
+        status: "away",
+      }).success,
+    ).toBe(false);
+    expect(
+      addMemberSchema.safeParse({
+        listCode: "B",
         number: 3,
         fullName: "عضو",
         groupCode: "A",

@@ -28,7 +28,12 @@ export type FundSummary = {
   membersOk: number;
   membersBehind: number;
   lastActivityAt: string | null;
+  /** active members («X من N»: membersOk of membersActive) */
+  membersActive: number;
 };
+
+/** Paper list a member belongs to: A (1000) numbered 1–21, B (500) numbered 1–70. */
+export type ListCode = string;
 
 /** «الرسوم الشهرية» of one group for one year (MRO per month). */
 export type GroupPrice = { year: number; group: string; groupName: string; monthlyAmount: number };
@@ -36,7 +41,10 @@ export type GroupPrice = { year: number; group: string; groupName: string; month
 /** One member card (public: no phone). `amountOwed` is null unless the admin turned it on. */
 export type MemberStatus = {
   memberId: string;
+  listCode: ListCode;
   number: number;
+  /** "A-12" — show this wherever a member number appears */
+  memberRef: string;
   fullName: string;
   groupCode: string;
   status: MembershipStatus;
@@ -148,6 +156,7 @@ export type Allocation =
   | {
       kind: "months";
       memberId: string;
+      listCode: ListCode;
       number: number;
       fullName: string;
       year: number;
@@ -158,11 +167,19 @@ export type Allocation =
       kind: "campaign";
       campaignId: string;
       memberId: string | null;
+      listCode: ListCode | null;
       number: number | null;
       fullName: string | null;
       amount: number;
     }
-  | { kind: "credit"; memberId: string; number: number; fullName: string; amount: number };
+  | {
+      kind: "credit";
+      memberId: string;
+      listCode: ListCode;
+      number: number;
+      fullName: string;
+      amount: number;
+    };
 
 /** A payment in the committee queue/history (pending ones need confirm/reject). */
 export type PendingPayment = {
@@ -192,7 +209,9 @@ export type PendingPayment = {
 /** Committee arrears row (has the phone for WhatsApp). */
 export type Arrear = {
   memberId: string;
+  listCode: ListCode;
   number: number;
+  memberRef: string;
   fullName: string;
   phone: string | null;
   groupCode: string;
@@ -204,6 +223,28 @@ export type Arrear = {
   credit: number;
   lastRemindedAt: string | null;
 };
+
+/** Committee list of every member (any status) with phone and current group. */
+export type MemberAdmin = {
+  memberId: string;
+  listCode: ListCode;
+  number: number;
+  memberRef: string;
+  fullName: string;
+  phone: string | null;
+  note: string | null;
+  groupCode: string;
+  status: MembershipStatus;
+  monthsPaidThisYear: number;
+  monthsBehind: number;
+  amountOwed: number;
+  /** first month of membership, YYYY-MM-DD */
+  joinedMonth: string | null;
+};
+
+/** Statuses the committee can set (the enum's "away" is not used). */
+export const MEMBER_STATUSES = ["active", "exempt", "left", "deceased"] as const;
+export type SettableStatus = (typeof MEMBER_STATUSES)[number];
 
 /** Signed-in committee member, for the UI (null when signed out). */
 export type CommitteeSession = {
@@ -232,7 +273,12 @@ export type VerifiedReceipt =
       confirmedByRole: CommitteeRole | null;
       /** last 4 characters of the wallet transaction number, if any */
       txnRefLast4: string | null;
-      members: { number: number; fullName: string; months: { year: number; month: number }[] }[];
+      members: {
+        listCode: ListCode;
+        number: number;
+        fullName: string;
+        months: { year: number; month: number }[];
+      }[];
       campaignTitles: string[];
     };
 

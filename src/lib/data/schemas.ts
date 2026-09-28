@@ -78,14 +78,23 @@ export const logReminderSchema = z.object({
   paymentId: id.optional(),
 });
 
+/** Statuses the committee sets (نشط، معفى، غادر، متوفى); the enum's "away" is not offered. */
+const settableStatus = z.enum(["active", "exempt", "left", "deceased"]);
+const listCode = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]$/);
+
 export const addMemberSchema = z.object({
+  listCode,
   number: z.number().int().positive().max(100_000),
   fullName: text(120),
   groupCode: z.string().regex(/^[A-Z]$/),
   fromMonth: firstOfMonth,
   phone: phone.optional(),
   note: optText(500),
-  status: z.enum(E.membership_status).default("active"),
+  status: settableStatus.default("active"),
 });
 
 export const updateMemberSchema = z.object({
@@ -93,18 +102,28 @@ export const updateMemberSchema = z.object({
   fullName: text(120),
   phone: phone.nullable(),
   note: z.string().trim().max(500).nullable(),
+  /** new number in the same list; omit to keep */
+  number: z.number().int().positive().max(100_000).optional(),
 });
 
 export const changeMemberStatusSchema = z.object({
   memberId: id,
   fromMonth: firstOfMonth,
-  status: z.enum(E.membership_status),
+  status: settableStatus,
   reason,
   groupCode: z
     .string()
     .regex(/^[A-Z]$/)
     .optional(),
 });
+
+export const changeMemberGroupSchema = z.object({
+  memberId: id,
+  fromMonth: firstOfMonth,
+  groupCode: z.string().regex(/^[A-Z]$/),
+  reason: optText(300),
+});
+export type ChangeMemberGroupInput = z.input<typeof changeMemberGroupSchema>;
 
 export const setGroupPriceSchema = z.object({
   groupCode: z.string().regex(/^[A-Z]$/),

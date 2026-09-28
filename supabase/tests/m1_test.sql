@@ -478,5 +478,8 @@ select tests.ok((select members_active from public.fund_summary)
 select tests.ok((select members_ok + members_behind from public.fund_summary) = (select members_active from public.fund_summary),
   'up to date + late = active members');
 select tests.throws('select * from public.members_admin', '42501', 'anon cannot read members_admin');
+select tests.login('former');   -- signed in but not an active committee member
+select tests.ok((select count(*) from public.members_admin) = 0 and (select count(*) from public.arrears) = 0
+                and (select count(*) from public.payment_queue) = 0, 'non-committee accounts see no member/arrears/payment rows');
 
 rollback;

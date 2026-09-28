@@ -14,6 +14,7 @@ import type {
   FundInfo,
   FundSummary,
   GroupPrice,
+  MemberAdmin,
   MemberMonth,
   MemberStatus,
   MonthlyCollection,
@@ -40,6 +41,7 @@ export function toFundSummary(r: Row<"fund_summary"> | null | undefined): FundSu
     membersOk: num(r?.members_ok),
     membersBehind: num(r?.members_behind),
     lastActivityAt: r?.last_activity_at ?? null,
+    membersActive: num(r?.members_active),
   };
 }
 
@@ -55,7 +57,9 @@ export function toGroupPrice(r: Row<"group_prices_public">): GroupPrice {
 export function toMemberStatus(r: Row<"member_status">): MemberStatus {
   return {
     memberId: str(r.member_id),
+    listCode: str(r.list_code),
     number: num(r.number),
+    memberRef: r.member_ref ?? `${str(r.list_code)}-${num(r.number)}`,
     fullName: str(r.full_name),
     groupCode: str(r.group_code),
     status: r.member_status ?? "active",
@@ -172,7 +176,12 @@ type RawReceipt = {
   confirmed_by_name?: string | null;
   confirmed_by_role?: CommitteeRole | null;
   txn_ref_last4?: string | null;
-  members?: { number: number; full_name: string; months: { year: number; month: number }[] }[];
+  members?: {
+    list_code?: string;
+    number: number;
+    full_name: string;
+    months: { year: number; month: number }[];
+  }[];
   campaign_titles?: string[];
 };
 
@@ -193,6 +202,7 @@ export function toVerifiedReceipt(raw: unknown): VerifiedReceipt {
     confirmedByRole: r.confirmed_by_role ?? null,
     txnRefLast4: r.txn_ref_last4 ?? null,
     members: (r.members ?? []).map((m) => ({
+      listCode: m.list_code ?? "",
       number: m.number,
       fullName: m.full_name,
       months: m.months ?? [],
@@ -212,6 +222,7 @@ export function toFundInfo(r: Row<"fund_info"> | null | undefined): FundInfo {
 type RawAllocation = {
   kind?: string;
   member_id?: string | null;
+  list_code?: string | null;
   number?: number | null;
   full_name?: string | null;
   campaign_id?: string | null;
@@ -227,6 +238,7 @@ export function toAllocation(a: RawAllocation): Allocation | null {
       return {
         kind: "months",
         memberId: str(a.member_id),
+        listCode: str(a.list_code),
         number: num(a.number),
         fullName: str(a.full_name),
         year: num(a.year),
@@ -238,6 +250,7 @@ export function toAllocation(a: RawAllocation): Allocation | null {
         kind: "campaign",
         campaignId: str(a.campaign_id),
         memberId: a.member_id ?? null,
+        listCode: a.list_code ?? null,
         number: a.number ?? null,
         fullName: a.full_name ?? null,
         amount,
@@ -246,6 +259,7 @@ export function toAllocation(a: RawAllocation): Allocation | null {
       return {
         kind: "credit",
         memberId: str(a.member_id),
+        listCode: str(a.list_code),
         number: num(a.number),
         fullName: str(a.full_name),
         amount,
@@ -282,7 +296,9 @@ export function toPendingPayment(r: Row<"payment_queue">): PendingPayment {
 export function toArrear(r: Row<"arrears">): Arrear {
   return {
     memberId: str(r.member_id),
+    listCode: str(r.list_code),
     number: num(r.number),
+    memberRef: str(r.member_ref),
     fullName: str(r.full_name),
     phone: r.phone,
     groupCode: str(r.group_code),
@@ -292,5 +308,23 @@ export function toArrear(r: Row<"arrears">): Arrear {
     amountOwed: num(r.amount_owed),
     credit: num(r.credit),
     lastRemindedAt: r.last_reminded_at,
+  };
+}
+
+export function toMemberAdmin(r: Row<"members_admin">): MemberAdmin {
+  return {
+    memberId: str(r.member_id),
+    listCode: str(r.list_code),
+    number: num(r.number),
+    memberRef: str(r.member_ref),
+    fullName: str(r.full_name),
+    phone: r.phone,
+    note: r.note,
+    groupCode: str(r.group_code),
+    status: r.member_status ?? "active",
+    monthsPaidThisYear: num(r.months_paid_this_year),
+    monthsBehind: num(r.months_behind),
+    amountOwed: num(r.amount_owed),
+    joinedMonth: r.joined_month,
   };
 }

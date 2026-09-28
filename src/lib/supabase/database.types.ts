@@ -328,6 +328,7 @@ export type Database = {
           created_by: string | null
           full_name: string
           id: string
+          list_code: string
           note: string | null
           number: number
           phone: string | null
@@ -337,6 +338,7 @@ export type Database = {
           created_by?: string | null
           full_name: string
           id?: string
+          list_code: string
           note?: string | null
           number: number
           phone?: string | null
@@ -346,6 +348,7 @@ export type Database = {
           created_by?: string | null
           full_name?: string
           id?: string
+          list_code?: string
           note?: string | null
           number?: number
           phone?: string | null
@@ -791,7 +794,9 @@ export type Database = {
           full_name: string | null
           group_code: string | null
           last_reminded_at: string | null
+          list_code: string | null
           member_id: string | null
+          member_ref: string | null
           member_status: Database["public"]["Enums"]["membership_status"] | null
           months: string[] | null
           months_count: number | null
@@ -859,6 +864,7 @@ export type Database = {
           balance: number | null
           collected_this_year: number | null
           last_activity_at: string | null
+          members_active: number | null
           members_behind: number | null
           members_ok: number | null
           money_in: number | null
@@ -885,6 +891,25 @@ export type Database = {
         }
         Relationships: []
       }
+      members_admin: {
+        Row: {
+          amount_owed: number | null
+          created_at: string | null
+          full_name: string | null
+          group_code: string | null
+          joined_month: string | null
+          list_code: string | null
+          member_id: string | null
+          member_ref: string | null
+          member_status: Database["public"]["Enums"]["membership_status"] | null
+          months_behind: number | null
+          months_paid_this_year: number | null
+          note: string | null
+          number: number | null
+          phone: string | null
+        }
+        Relationships: []
+      }
       member_months: {
         Row: {
           member_id: string | null
@@ -899,7 +924,9 @@ export type Database = {
           amount_owed: number | null
           full_name: string | null
           group_code: string | null
+          list_code: string | null
           member_id: string | null
+          member_ref: string | null
           member_status: Database["public"]["Enums"]["membership_status"] | null
           months_behind: number | null
           months_paid_this_year: number | null
@@ -971,6 +998,7 @@ export type Database = {
           p_from_month: string
           p_full_name: string
           p_group_code: string
+          p_list_code?: string
           p_note?: string
           p_number: number
           p_phone?: string
@@ -985,6 +1013,15 @@ export type Database = {
       cancel_payment: {
         Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
+      }
+      change_member_group: {
+        Args: {
+          p_from_month: string
+          p_group_code: string
+          p_member_id: string
+          p_reason?: string
+        }
+        Returns: string
       }
       change_member_status: {
         Args: {
@@ -1025,6 +1062,7 @@ export type Database = {
         }
         Returns: string
       }
+      next_member_number: { Args: { p_list_code: string }; Returns: number }
       record_expense: {
         Args: {
           p_amount: number
@@ -1096,6 +1134,7 @@ export type Database = {
           p_full_name: string
           p_member_id: string
           p_note: string
+          p_number?: number
           p_phone: string
         }
         Returns: undefined

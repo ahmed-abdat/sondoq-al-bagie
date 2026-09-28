@@ -6,7 +6,9 @@ import type { Arrear } from "./types";
 
 const arrear: Arrear = {
   memberId: "m",
+  listCode: "A",
   number: 7,
+  memberRef: "A-7",
   fullName: "محمد ولد أحمد",
   phone: "+22236123456",
   groupCode: "A",
