@@ -6,6 +6,7 @@ import * as data from "@/lib/data";
 import type { ActivityItem, Expense } from "@/lib/data/types";
 import { categoryLabel, monthCount, relativeAgo } from "./derive";
 import * as fx from "./fixtures";
+import { fromVerified } from "./receipt-model";
 import type { LedgerEntry } from "./types";
 
 export const usingFixtures = process.env.SONDOQ_FIXTURES === "1";
@@ -86,7 +87,17 @@ export async function ledger(): Promise<LedgerEntry[]> {
       note: e.note,
     }),
   );
-  return [...pay, ...out].sort((a, b) => b.at.localeCompare(a.at));
+  const all = [...pay, ...out].sort((a, b) => b.at.localeCompare(a.at));
+  // Preload the public receipt of the latest payments (cached per code on the server).
+  await Promise.all(
+    all
+      .filter((e) => e.code)
+      .slice(0, 20)
+      .map(async (e) => {
+        e.receipt = fromVerified(await receipt(e.code!));
+      }),
+  );
+  return all;
 }
 
 /* ───────────── committee (RLS decides; fixtures show a demo treasurer) ───────────── */

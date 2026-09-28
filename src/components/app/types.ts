@@ -1,5 +1,6 @@
 // UI view models built from the Lane A types (see source.ts for the mapping).
 import type { ExpenseCategory, PaymentMethod } from "@/lib/data/types";
+import type { ReceiptView } from "./receipt-model";
 
 /** One public operation for «آخر العمليات» / «كل العمليات» (confirmed payments + expenses). */
 export type LedgerEntry = {
@@ -14,6 +15,8 @@ export type LedgerEntry = {
   method: PaymentMethod | null;
   /** verification code → opens the public receipt */
   code: string | null;
+  /** the public receipt, preloaded for the first rows so it opens offline too */
+  receipt?: ReceiptView | null;
   category?: ExpenseCategory;
   note?: string | null;
 };
