@@ -1,7 +1,7 @@
 "use client";
 // Screen-only tools of /report: save as PDF (the browser's print → «حفظ بتنسيق PDF»), share the
 // summary card (Lane B's PNG) or the link with a short text.
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   reportShareText,
   reportUrl,
@@ -11,8 +11,15 @@ import {
 import { waLink } from "@/lib/whatsapp";
 import { I } from "./icons";
 
+const noop = () => () => {};
+
 export function ReportTools({ data }: { data: ReportSource }) {
   const [busy, setBusy] = useState(false);
+  const origin = useSyncExternalStore(
+    noop,
+    () => window.location.origin,
+    () => "",
+  );
   return (
     <div className="rp-tools" role="group" aria-label="حفظ التقرير ومشاركته">
       <button
@@ -37,15 +44,15 @@ export function ReportTools({ data }: { data: ReportSource }) {
       >
         {I.image(20)} صورة الملخص
       </button>
-      <button
-        type="button"
+      <a
         className="bq-btn bq-btn-soft bq-press"
-        onClick={() =>
-          window.open(waLink(null, reportShareText(data, reportUrl(window.location.origin))), "_blank", "noopener")
-        }
+        // the link needs this page's address: known only in the browser, filled in after hydration
+        href={origin ? waLink(null, reportShareText(data, reportUrl(origin))) : "#"}
+        target="_blank"
+        rel="noopener noreferrer"
       >
         {I.wa(20)} مشاركة في واتساب
-      </button>
+      </a>
     </div>
   );
 }

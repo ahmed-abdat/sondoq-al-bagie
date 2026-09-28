@@ -71,9 +71,6 @@ test("summary image falls back to WhatsApp text with the /report link", async ({
 });
 
 test("«مشاركة في واتساب» links to wa.me with the report text", async ({ page }) => {
-  // Known bug (report-tools.tsx): the href is computed at render time, so the server's "#" stays
-  // after hydration. Remove test.fail() once it is fixed.
-  test.fail();
   await page.goto("/report");
   const link = page.getByRole("link", { name: "مشاركة في واتساب" });
   await expect(link).toHaveAttribute("href", /^https:\/\/wa\.me\/\?text=/, { timeout: 3000 });
