@@ -291,13 +291,19 @@ export function Proof({
 }) {
   const dlg = useRef<HTMLDialogElement>(null);
   const [src, setSrc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const { proofUrl } = useAct();
   useEffect(() => {
     if (!path) return;
     let live = true;
     proofUrl({ path })
-      .then((r) => live && r.ok && setSrc(safeReceiptSrc(r.data)))
-      .catch(() => {});
+      .then((r) => {
+        if (!live) return;
+        const u = r.ok ? safeReceiptSrc(r.data) : null;
+        if (u) setSrc(u);
+        else setFailed(true);
+      })
+      .catch(() => live && setFailed(true));
     return () => {
       live = false;
     };
@@ -332,11 +338,11 @@ export function Proof({
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL
           <img src={src} alt="صورة التحويل" className="rc-shot-l" />
+        ) : failed ? (
+          // the error replaces the picture, never both (audit C20)
+          <p className="rc-dlg-n">تعذّر تحميل الصورة الآن. حاول مرة أخرى بعد الاتصال.</p>
         ) : (
-          <>
-            <ShotMock amount={amount} method={label} large />
-            <p className="rc-dlg-n">تعذّر تحميل الصورة الآن. حاول مرة أخرى بعد الاتصال.</p>
-          </>
+          <ShotMock amount={amount} method={label} large />
         )}
         <button
           type="button"

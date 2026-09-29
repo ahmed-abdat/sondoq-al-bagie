@@ -274,23 +274,26 @@ components:
   month-bar-future:
     backgroundColor: "{colors.pebble}"
   month-cell-paid:
-    backgroundColor: "{colors.association-green}"
-    textColor: "{colors.paper}"
-    rounded: "{rounded.md}"
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.forest}"
     padding: "10px 12px"
     height: "64px"
   month-cell-ahead:
-    backgroundColor: "{colors.green-tint}"
-    textColor: "{colors.forest-deep}"
-    rounded: "{rounded.md}"
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.forest}"
   month-cell-owed:
-    backgroundColor: "{colors.stone}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.md}"
-  month-cell-future:
-    backgroundColor: "{colors.mist}"
+    backgroundColor: "{colors.paper}"
     textColor: "{colors.slate}"
-    rounded: "{rounded.md}"
+  month-cell-future:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.slate}"
+  month-grid:
+    backgroundColor: "{colors.paper}"
+    lineColor: "#B3C5B9"
+    borderColor: "#7F9A88"
+    headerBackground: "{colors.green-tint}"
+    headerText: "{colors.forest}"
+    rounded: "14px"
   sheet:
     backgroundColor: "{colors.paper}"
     rounded: "{rounded.sheet}"
@@ -399,7 +402,7 @@ One green does all the work; gold only rings the logo and fills the campaign bar
 ### Named Rules
 **The Logo-Only Rule.** Every colour on screen comes from the logo: the green ramp, the gold, and neutrals. Adding a hue for a category, a chart series or a state is forbidden; expense categories use green steps and Pebble.
 
-**The Grey-Is-Late Rule.** Lateness is neutral: Mist fills, Slate text, a clock icon and hatched month cells. Red never marks a late member; it is reserved for the «مرفوض» word and the rejected stamp.
+**The Grey-Is-Late Rule.** Lateness is neutral: Slate text, a clock icon, and an empty white month cell (no fill, no hatch). Red never marks a late member; it is reserved for the «مرفوض» word and the rejected stamp.
 
 **The Hairline-Gold Rule.** Gold appears only as the logo ring and the campaign bar. If gold is carrying text, a button or a background larger than a 40px disc, it is wrong.
 
@@ -506,7 +509,7 @@ The real wallet logo (Bankily, Masrvi, Sedad) on a white tile, radius 28% of its
 - Bars grow once when their section is revealed (450ms ease-out; month bars stagger 20ms).
 
 ### Member Sheet
-Bottom sheet, Paper, 28px top corners, max 600px wide and 92dvh tall, 5px Pebble handle, 44px close button. Opens with the avatar morphing from the row (View Transition, 320ms drawer curve), sheet in 320ms / out 220ms, scrim `rgba(10,30,18,.42)`. Drag to dismiss with velocity and a rubber-band pull-up. Content: name as Title, number and group, «دفع رسوم 8 من 9 أشهر مستحقة», a status line (icon + words, e.g. «متأخر عن رسوم شهرين: من يوليو إلى أغسطس»), then twelve month cells in a 3-column grid, month names in words: paid (Association Green, white, check «مدفوع»), paid ahead (Green Tint, «مدفوع مسبقًا»), owed (hatched Stone/Mist, clock «متأخر»), not yet (Mist, «لم يحن»). Amount owed appears only for the committee when the switch is on; otherwise «لا تُعرض المبالغ هنا».
+Bottom sheet, Paper, 28px top corners, max 600px wide and 92dvh tall, 5px Pebble handle, 44px close button. Opens with the avatar morphing from the row (View Transition, 320ms drawer curve), sheet in 320ms / out 220ms, scrim `rgba(10,30,18,.42)`. Drag to dismiss with velocity and a rubber-band pull-up. Content: name as Title, number and group, «دفع رسوم 8 من 9 أشهر مستحقة», a status line (icon + words, e.g. «متأخر عن رسوم شهرين: من يوليو إلى أغسطس»), then twelve month cells in a 3-column grid in the report's language (r25/r26: one month language everywhere): white bordered cells (soft grey-green lines, 14px outer corners), month name in words, a plain green stroke ✓ with «مدفوع» when paid (plus a «مقدَّمًا» tag when paid ahead), «لم يُدفع» in Slate when due and unpaid, «لم يحن» when not yet due. The ✓ is never a filled disc; the same ✓ marks paid cells on /report, the images/PDF and the «أنت» card, and means nothing else (link states use words «أُرسل / فتحه»). Amount owed appears only for the committee when the switch is on; otherwise «لا تُعرض المبالغ هنا».
 
 ### Pending Slip (committee queue)
 A white 24px-radius slip with Slip-lift shadow. Header «دفعة بانتظار التأكيد» (14/600 Forest) with the № on the far side; payer at Title; amount at Figure with «أوقية»; «عن: رسوم من يوليو إلى سبتمبر 2026»; method badge plus the full transaction ref in an LTR span; tappable proof thumbnail and «سجّلها …». Then the check hint «طابِق المبلغ ورقم العملية مع محفظة الصندوق قبل التأكيد» directly above a two-column button row: primary «تأكيد الاستلام», tonal «رفض». Reject opens inline reason chips. After a decision the stamp presses onto the slip, «أكّدها … الآن» and WhatsApp share appear inline with a single inline undo; after 5s the slip collapses to one line (confirmed mark or «مرفوض» tag, payer, amount, WhatsApp icon button).

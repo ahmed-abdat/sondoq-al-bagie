@@ -34,7 +34,7 @@ import {
   type Draft,
   type Step,
 } from "./payment-draft";
-import { Avatar, MethodBadge, StatusTag } from "./bits";
+import { Avatar, MethodBadge, PaidCheck, StatusTag } from "./bits";
 import {
   byMostLate,
   dayWords,
@@ -361,7 +361,10 @@ function RowCard({
                           })
                         }
                       >
-                        {MONTHS[Number(k.slice(5, 7)) - 1]}
+                        <span>
+                          <span className="bq-mpick-on">{I.check(14)}</span>{" "}
+                          {MONTHS[Number(k.slice(5, 7)) - 1]}
+                        </span>
                         <span className="bq-mpick-s">{k.slice(0, 4)}</span>
                       </button>
                     </li>
@@ -393,8 +396,14 @@ function RowCard({
                       })
                     }
                   >
-                    {name}
-                    {isPaid && <span className="bq-mpick-s">مدفوع</span>}
+                    <span>
+                      <span className="bq-mpick-on">{I.check(14)}</span> {name}
+                    </span>
+                    {isPaid && (
+                      <span className="bq-mpick-s">
+                        <PaidCheck size={14} /> مدفوع
+                      </span>
+                    )}
                     {notOwed && <span className="bq-mpick-s">غير مستحق</span>}
                   </button>
                 </li>
@@ -1102,6 +1111,20 @@ export function RecordBody({
                     سجّل {monthCount(fitMonths)} فقط
                   </button>
                 )}
+                {!fitMonths &&
+                  rows.length > 1 &&
+                  diff < 0 &&
+                  sent !== null &&
+                  sent * 10 !== total && (
+                    // several members, short transfer: open the first row's months (audit C9)
+                    <button
+                      type="button"
+                      className="bq-chip bq-press bq-rec-fit"
+                      onClick={() => setRows((rs) => rs.map((r, i) => ({ ...r, edit: i === 0 })))}
+                    >
+                      قلّل الأشهر
+                    </button>
+                  )}
                 {diff > 0 && (
                   <div className="bq-rec-credit bq-rec-in" ref={creditRef}>
                     {rows.length === 1 ? (

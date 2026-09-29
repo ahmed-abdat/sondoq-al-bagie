@@ -53,7 +53,8 @@ function useSnackState() {
   const [snack, setSnack] = useState<Snack | null>(null);
   const say = useCallback<Say>((text, action) => {
     const id = Date.now();
-    const ms = action ? 5000 : 2600;
+    // long sentences stay long enough to read (audit M12): ~110ms a character, 2.6s to 6s
+    const ms = action ? 5000 : Math.max(2600, Math.min(6000, text.length * 110));
     setSnack({ id, text, action });
     window.setTimeout(() => setSnack((s) => (s && s.id === id ? { ...s, out: true } : s)), ms);
     window.setTimeout(() => setSnack((s) => (s && s.id === id ? null : s)), ms + 160);

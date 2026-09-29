@@ -1598,9 +1598,18 @@
     font-weight: 600;
     line-height: 1.3;
   }
+  /* chosen = forest outline + ✓, never the filled green that reads "paid" (audit C10) */
   .bq-mpick[aria-pressed="true"] {
-    background: var(--g8);
-    color: #fff;
+    background: var(--g1);
+    color: var(--g9);
+    box-shadow: inset 0 0 0 2px var(--g8);
+  }
+  .bq-mpick-on {
+    display: none;
+    color: var(--g8);
+  }
+  .bq-mpick[aria-pressed="true"] .bq-mpick-on {
+    display: inline-flex;
   }
   .bq-mpick.is-paid {
     background: transparent;

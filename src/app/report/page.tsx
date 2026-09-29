@@ -137,7 +137,13 @@ export default async function ReportPage() {
               const m = monthly.find((x) => x.month === i + 1);
               return (
                 <tr key={name}>
-                  <td>{name}</td>
+                  <td>
+                    {name}
+                    {/* a future month with money in it was paid ahead (audit V10) */}
+                    {i + 1 > month && (m?.collected ?? 0) > 0 ? (
+                      <span className="rp-cat"> (مدفوع مقدَّمًا)</span>
+                    ) : null}
+                  </td>
                   <td>
                     <Num>{fmt(m?.expected ?? 0)}</Num>
                   </td>
