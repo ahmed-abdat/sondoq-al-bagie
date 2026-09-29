@@ -1,93 +1,88 @@
 "use client";
-// «مشاركة التقرير»: one button, one sheet, four big one-tap options. The renderers live in
-// src/lib/share-report (Lane B); options whose renderer has not landed yet fall back calmly.
+// «مشاركة التقرير»: one button, one sheet, four big one-tap options. The images and the PDF are
+// rendered in the background as soon as the sheet opens (prepareReportShare), so the tap shares
+// at once and stays within the browser's "user activation" window.
 import { useEffect, useState } from "react";
 import type { ReportData } from "@/lib/data/types";
-import * as sr from "@/lib/share-report";
+import {
+  prepareReportShare,
+  shareReportImages,
+  shareReportPdf,
+  shareReportSummary,
+} from "@/lib/share-report";
 import { I } from "./icons";
 import { Sheet } from "./sheet";
 
-type Result = "shared" | "whatsapp" | "cancelled" | "saved" | "copied" | "downloaded" | "retry";
-type Fn = (d: ReportData) => Promise<Result | void>;
-// optional renderers (Lane B): used when present
-const lib = sr as unknown as Record<string, unknown>;
-const opt = (name: string) => (typeof lib[name] === "function" ? (lib[name] as Fn) : null);
-const renderPages = opt("renderReportPages") as ((d: ReportData) => Promise<Blob[]>) | null;
+type Result = "shared" | "whatsapp" | "cancelled" | "downloaded" | "retry" | "copied";
 
-const DONE: Record<Result, string> = {
+const DONE: Record<Exclude<Result, "retry">, string> = {
   shared: "أُرسل التقرير.",
   whatsapp: "فُتح واتساب مع ملخص التقرير ورابطه.",
   cancelled: "",
-  saved: "حُفظ الملف في هاتفك.",
+  downloaded: "تم حفظ الملف في التنزيلات.",
   copied: "نُسخ الرابط. الصقه في مجموعة الواتساب.",
-  downloaded: "حُفظ الملف في التنزيلات.",
-  retry: "الملف جاهز الآن. اضغط مرة أخرى.",
 };
 
 export function ReportShare({ data, autoOpen = false }: { data: ReportData; autoOpen?: boolean }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [retry, setRetry] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
-  const [thumbs, setThumbs] = useState<string[]>([]);
   useEffect(() => {
     if (!autoOpen && window.location.hash !== "#share") return;
     const t = window.setTimeout(() => setOpen(true));
     return () => clearTimeout(t);
   }, [autoOpen]);
-  useEffect(() => () => thumbs.forEach((u) => URL.revokeObjectURL(u)), [thumbs]);
+  useEffect(() => {
+    if (open) prepareReportShare(data);
+  }, [open, data]);
 
-  const run = async (key: string, f: () => Promise<Result | void>) => {
+  const run = async (key: string, f: () => Promise<Result>) => {
     setBusy(key);
     setMsg("");
     try {
-      const r = (await f()) ?? "shared";
-      setMsg(DONE[r]);
+      const r = await f();
+      if (r === "retry") {
+        // the files were not ready at the first tap; they are now (cached): one more tap shares
+        setRetry(key);
+      } else {
+        setRetry(null);
+        setMsg(DONE[r]);
+      }
     } catch {
       setMsg("تعذّر تجهيز التقرير الآن. جرّب «نسخ الرابط».");
     } finally {
       setBusy(null);
     }
   };
-  const preview = async () => {
-    if (!renderPages || thumbs.length) return;
-    try {
-      const blobs = await renderPages(data);
-      setThumbs(blobs.slice(0, 6).map((b) => URL.createObjectURL(b)));
-    } catch {
-      /* the preview is optional */
-    }
-  };
 
-  const images = opt("shareReportImages");
-  const pdf = opt("shareReportPdf");
-  const options = [
+  const options: {
+    key: string;
+    icon: React.ReactNode;
+    title: string;
+    sub: string;
+    run: () => Promise<Result>;
+  }[] = [
     {
       key: "images",
       icon: I.image(24),
       title: "صور التقرير (واتساب)",
       sub: "صفحات التقرير صورًا، تُرسل دفعة واحدة",
-      run: async () => {
-        void preview();
-        return images ? images(data) : sr.shareReportSummary(data);
-      },
+      run: () => shareReportImages(data),
     },
     {
       key: "pdf",
       icon: I.save(24),
       title: "ملف PDF",
       sub: "التقرير كاملًا في ملف واحد",
-      run: async () => {
-        if (pdf) return pdf(data);
-        window.print();
-        return "saved" as const;
-      },
+      run: () => shareReportPdf(data),
     },
     {
       key: "summary",
       icon: I.heart(24),
       title: "صورة الملخص فقط",
       sub: "صورة واحدة: ما في الصندوق ومن دفع",
-      run: async () => sr.shareReportSummary(data),
+      run: () => shareReportSummary(data),
     },
     {
       key: "link",
@@ -96,7 +91,7 @@ export function ReportShare({ data, autoOpen = false }: { data: ReportData; auto
       sub: "يظهر في واتساب ببطاقة فيها الأرقام",
       run: async () => {
         await navigator.clipboard?.writeText(`${window.location.origin}/report`);
-        return "copied" as const;
+        return "copied";
       },
     },
   ];
@@ -137,23 +132,21 @@ export function ReportShare({ data, autoOpen = false }: { data: ReportData; auto
                       {busy === o.key ? <span className="bq-spin" /> : o.icon}
                     </span>
                     <span className="bq-row-m">
-                      <span className="bq-row-t">{o.title}</span>
+                      <span className="bq-row-t">
+                        {retry === o.key ? "اضغط مرة أخرى" : o.title}
+                      </span>
                       <span className="bq-row-s">
-                        {busy === o.key ? "جارٍ تجهيز التقرير…" : o.sub}
+                        {busy === o.key
+                          ? "جارٍ تجهيز التقرير…"
+                          : retry === o.key
+                            ? "الملف جاهز الآن."
+                            : o.sub}
                       </span>
                     </span>
                   </button>
                 </li>
               ))}
             </ul>
-            {thumbs.length > 0 && (
-              <div className="rp-thumbs" aria-label="صفحات التقرير">
-                {thumbs.map((u, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element -- local blob preview
-                  <img key={u} src={u} alt={`صفحة ${i + 1}`} />
-                ))}
-              </div>
-            )}
             {msg && (
               <p className="bq-save is-saved" role="status">
                 {msg}

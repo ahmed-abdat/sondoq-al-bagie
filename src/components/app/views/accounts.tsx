@@ -148,9 +148,14 @@ export function AccountsView({
           </div>
         </dl>
         <p className="bq-hint">تبرعات الحملات تُحفظ في حسابها الخاص، ولا تدخل هنا.</p>
-        <Link href="/report" className="bq-link bq-press">
-          تقرير كامل للطباعة والمشاركة {I.go(18)}
-        </Link>
+        <div className="bq-link-row">
+          <Link href="/report#share" className="bq-link bq-press">
+            {I.wa(18)} مشاركة التقرير
+          </Link>
+          <Link href="/report" className="bq-link bq-press">
+            التقرير كاملًا {I.go(18)}
+          </Link>
+        </div>
       </section>
 
       <section className="bq-sec bq-rv" id="bq-pay" data-rv="acc-pay" aria-labelledby="bq-pay-h">

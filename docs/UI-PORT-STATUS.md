@@ -109,9 +109,20 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
   footer link. Tools (screen only): «حفظ PDF» (print), «صورة الملخص» (Lane B's PNG card),
   «مشاركة في واتساب». Linked from /accounts «تقرير كامل» and the committee menu.
   TODO(lane-a): read from getReport() when it lands (today: the existing getters).
-- /committee/export: CSV links to /api/export/{members,payments,expenses}.csv (Lane A routes).
 - /donations: stacked title/purpose/pill, calm zero state, facts columns, contact line without
   fund numbers.
+
+## Round 8 (WhatsApp report, pickers, owner changes)
+- «مشاركة التقرير» sheet (/report, /report#share from /accounts and the committee menu): images,
+  PDF, summary image, copy link via Lane B's share-report; renders start when the sheet opens
+  (prepareReportShare); «retry» shows «اضغط مرة أخرى» on the same option. «طباعة» stays small.
+- /report for phones: big summary cards, collapsible sections, month dots (مدفوع / متأخر / لم يحن
+  بعد; no «مقدَّمًا»), «دفع X من 12 شهرًا». Link preview: /report/opengraph-image (Alexandria from
+  Google Fonts at render; the renderer has no bidi, so words are laid out in reverse order).
+- Date/month pickers: `date-field.tsx` (shadcn calendar in the bottom sheet, Monday first,
+  «اليوم»/«أمس», no future where it makes no sense; 12-month grid for from-month).
+- Owner: states نشط / معفى / غادر only; CSV export UI removed (the report PDF is the export);
+  owed amounts read «عليه حتى الآن … أوقية».
 
 ## Remaining / next
 0. «محضر التسليم» as a shareable image (like the receipt PNG) — later; today it is text (WhatsApp/copy).

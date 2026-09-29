@@ -208,10 +208,10 @@ export function CommitteeView({
             />
           )}
           <MenuRow
-            href="/report"
-            icon={I.book(22)}
-            title="تقرير الصندوق"
-            sub="PDF أو صور للمشاركة في مجموعة الواتساب"
+            href="/report#share"
+            icon={I.wa(22)}
+            title="مشاركة التقرير"
+            sub="صور أو PDF لمجموعة الواتساب"
           />
           <MenuRow
             href="/committee/settings"
