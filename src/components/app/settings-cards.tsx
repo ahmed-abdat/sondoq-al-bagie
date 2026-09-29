@@ -19,13 +19,12 @@ export function CurrentPrices({ year, prices }: { year: number; prices: Record<s
   return (
     <section className="bq-sec" aria-labelledby="bq-cp-h">
       <h2 id="bq-cp-h">الرسوم الشهرية {year}</h2>
-      <p className="bq-lead">
-        {groups.map((g, i) => (
-          <span key={g} className="bq-nowrap">
-            {i ? " · " : ""}المجموعة {groupLabel(g)} <Num>{fmt(prices[g])}</Num> أوقية
-          </span>
-        ))}
-      </p>
+      {/* one line per group: never wider than the screen, even with large text */}
+      {groups.map((g) => (
+        <p key={g} className="bq-lead">
+          المجموعة {groupLabel(g)}: <Num>{fmt(prices[g])}</Num> أوقية
+        </p>
+      ))}
     </section>
   );
 }
