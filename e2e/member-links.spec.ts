@@ -34,24 +34,27 @@ test("send in order: WhatsApp opens with the link, the walk advances, the row sh
   await expect(page.getByText(/\d+ من \d+ لهم رابط · بقي \d+/)).toBeVisible();
   // owner pick «b» (r31): group selector, one walk button, search and a filter
   await expect(page.getByRole("button", { name: /المجموعة أ/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: "أرسل للجميع بالترتيب" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "جهّز الروابط بالترتيب" })).toBeVisible();
   await page.getByRole("button", { name: /المجموعة أ/ }).click();
-  await expect(page.getByRole("button", { name: "أرسل للمجموعة أ بالترتيب" })).toBeVisible();
-  await page.getByRole("button", { name: /^الكل$/ }).first().click();
+  await expect(page.getByRole("button", { name: "جهّز روابط المجموعة أ بالترتيب" })).toBeVisible();
+  await page
+    .getByRole("button", { name: /^الكل$/ })
+    .first()
+    .click();
   await page.getByRole("button", { name: /^الكل \d+$/ }).click();
   // fixtures: some links made, one used, some members without a phone; words, not ✓ (audit C6);
   // never «أُرسل»: WhatsApp delivery is unknown (audit B10)
   await expect(page.locator(".bq-ml-tick", { hasText: "جُهّز الرابط" }).first()).toBeVisible();
   await expect(page.locator(".bq-ml-tick", { hasText: "أُرسل" })).toHaveCount(0);
-  await expect(page.locator(".bq-ml-tick", { hasText: "فتحه" }).first()).toBeVisible();
+  await expect(page.locator(".bq-ml-tick", { hasText: "فتح الرابط" }).first()).toBeVisible();
   await expect(page.locator(".bq-ml-legend")).toHaveCount(0);
   await expect(page.getByText("بلا رقم هاتف").first()).toBeVisible();
 
   await page.getByRole("button", { name: /^بلا رابط/ }).click();
-  await page.getByRole("button", { name: /أرسل للجميع بالترتيب/ }).click();
+  await page.getByRole("button", { name: /جهّز الروابط بالترتيب/ }).click();
   const walk = page.locator(".bq-ml-walk");
   const first = (await walk.locator(".bq-ml-walk-t").textContent())!.split(" · ")[1].trim();
-  await walk.getByRole("button", { name: /أرسل في واتساب/ }).click();
+  await walk.getByRole("button", { name: /افتح الرسالة في واتساب/ }).click();
 
   await expect.poll(() => urls.length).toBe(1);
   const text = textOf(urls[0]);
@@ -63,7 +66,7 @@ test("send in order: WhatsApp opens with the link, the walk advances, the row sh
   await expect(walk.locator(".bq-ml-walk-t")).not.toContainText(first);
   const row = page.locator("li", { hasText: first }).first();
   await expect(row.locator(".bq-ml-tick", { hasText: "جُهّز الرابط" })).toBeVisible();
-  await row.getByRole("button", { name: `أرسل الرابط نفسه مرة أخرى: ${first}` }).click();
+  await row.getByRole("button", { name: `افتح رسالة الرابط نفسه مرة أخرى: ${first}` }).click();
   await expect.poll(() => urls.length).toBe(2);
   expect(urls[1]).toBe(urls[0]);
 
@@ -79,8 +82,8 @@ test("send in order: WhatsApp opens with the link, the walk advances, the row sh
   const again = page.getByRole("button", { name: /^رابط جديد: / }).first();
   const other = (await again.getAttribute("aria-label"))!.replace("رابط جديد: ", "");
   await again.click();
-  await expect(page.getByText("سيتوقف الرابط القديم. أرسل رابطًا جديدًا؟")).toBeVisible();
-  await page.getByRole("button", { name: /أرسل رابطًا جديدًا/ }).click();
+  await expect(page.getByText("سيتوقف الرابط القديم. جهّز رابطًا جديدًا؟")).toBeVisible();
+  await page.getByRole("button", { name: /جهّز رابطًا جديدًا/ }).click();
   await expect.poll(() => urls.length).toBe(3);
   expect(textOf(urls[2])).toContain(other);
 });

@@ -29,12 +29,54 @@ export function monthsWord(n: number) {
   return n <= 10 ? `${n} أشهر` : `${n} شهرًا`;
 }
 
-/** «شهر واحد / شهران / 3 أشهر / 12 شهرًا» (a count on its own). */
-export function monthCount(n: number) {
-  if (n === 1) return "شهر واحد";
-  if (n === 2) return "شهران";
-  return n <= 10 ? `${n} أشهر` : `${n} شهرًا`;
+/**
+ * Arabic count with the noun, in one place (QA pass 4). `c` = the grammatical case: "subj" for a
+ * count standing as subject or alone («شهران»), "obl" after a noun, a preposition or a verb
+ * («رسوم شهرين»، «عن شهرين»، «سجّل شهرين»). 3–10 plural, 11–99 singular with tanween, 100+
+ * (x00–x02) plain singular. 0 → `zero` when given.
+ */
+type Forms = { one: string; two: string; twoObl: string; few: string; many: string; bare: string };
+export function arCount(n: number, f: Forms, c: "subj" | "obl" = "subj") {
+  if (n === 1) return f.one;
+  if (n === 2) return c === "obl" ? f.twoObl : f.two;
+  const r = n % 100;
+  if (r >= 3 && r <= 10) return `${n} ${f.few}`;
+  if (r >= 11 && r <= 99) return `${n} ${f.many}`;
+  return `${n} ${f.bare}`;
 }
+const MONTH_F: Forms = {
+  one: "شهر واحد",
+  two: "شهران",
+  twoObl: "شهرين",
+  few: "أشهر",
+  many: "شهرًا",
+  bare: "شهر",
+};
+const MEMBER_F: Forms = {
+  one: "عضو واحد",
+  two: "عضوان",
+  twoObl: "عضوين",
+  few: "أعضاء",
+  many: "عضوًا",
+  bare: "عضو",
+};
+
+/** «شهر واحد / شهران / 3 أشهر / 12 شهرًا»; `obl` after «رسوم / عن / سجّل»: «شهرين». */
+export const monthCount = (n: number, c: "subj" | "obl" = "subj") => arCount(n, MONTH_F, c);
+const LINK_F: Forms = {
+  one: "رابط واحد",
+  two: "رابطان",
+  twoObl: "رابطين",
+  few: "روابط",
+  many: "رابطًا",
+  bare: "رابط",
+};
+/** «رابط واحد / رابطان / 3 روابط / 11 رابطًا». */
+export const linkCount = (n: number, c: "subj" | "obl" = "subj") => arCount(n, LINK_F, c);
+/** The noun alone after a shown number («من 88 عضوًا», «من 100 عضو», «من 7 أعضاء»). */
+export const memberNoun = (n: number) => memberCount(n, "obl").replace(/^\d+ /, "");
+/** «عضو واحد / عضوان / 3 أعضاء / 11 عضوًا / 100 عضو»; `obl`: «عضوين». */
+export const memberCount = (n: number, c: "subj" | "obl" = "subj") => arCount(n, MEMBER_F, c);
 
 /** «3 أسماء» … «10 أسماء», «34 اسمًا» (audit V5). */
 export function namesCount(n: number) {

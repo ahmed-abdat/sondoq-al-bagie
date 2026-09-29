@@ -116,7 +116,10 @@ test("late member who sends proof for someone else keeps «ادفع الآن» (
   await card.getByRole("button", { name: "ادفع عن شخص آخر" }).click();
   const sheet = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
   // someone else, late this year (fixtures)
-  await sheet.getByRole("button", { name: /لم يدفع هذا العام$/ }).first().click();
+  await sheet
+    .getByRole("button", { name: /لم يدفع هذا العام$/ })
+    .first()
+    .click();
   const btn = sheet.locator(".bq-rec-foot").getByRole("button");
   await sheet.locator('input[type="file"]').setInputFiles(SHOT);
   await expect(btn).not.toHaveText("أرفق صورة التحويل");
@@ -145,7 +148,7 @@ test("«إزالة … من هذا الهاتف» forgets the link here", async 
   await page.waitForURL((u) => u.pathname === "/");
   await expect(page.locator("section.bq-you")).toHaveCount(0);
   await page.goto("/me");
-  await expect(page.getByText("هذه الصفحة لمن فتح رابطه الخاص")).toBeVisible();
+  await expect(page.getByText("افتح رابطك الخاص لترى دفعاتك")).toBeVisible();
 });
 
 test("a second person's link on the same phone: ask, add, switch, remove one", async ({ page }) => {

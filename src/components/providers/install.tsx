@@ -362,7 +362,7 @@ animation:bq-ib-in .2s cubic-bezier(.2,.8,.2,1) both}
 .bq-ib[data-nav="1"]{bottom:calc(var(--nav,64px) + var(--safe-b,0px) + 8px)}
 .bq-ib img{width:36px;height:36px;border-radius:10px;flex:none}
 .bq-ib-t{flex:1;min-width:0;font-weight:600;font-size:15px;line-height:1.35}
-.bq-ib .bq-btn{min-height:44px;padding-inline:16px;flex:none}
+.bq-ib .bq-btn{min-height:48px;padding-inline:16px;flex:none}
 @keyframes bq-ib-in{from{transform:translateY(calc(100% + 24px))}}
 @media (prefers-reduced-motion:reduce){.bq-ib{animation:bq-ib-fade .2s both}}
 @keyframes bq-ib-fade{from{opacity:0}}

@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { PendingPayment } from "@/lib/data/types";
 import { MethodBadge, MemberNo } from "../bits";
 import { ReceiptSheetBody } from "../cancel-payment";
-import { dayWords, fmt, monthCount } from "../derive";
+import { dayWords, fmt, memberCount, monthCount } from "../derive";
 import { I } from "../icons";
 import { Num } from "../num";
 import { fromPending } from "../receipt-model";
@@ -76,15 +76,13 @@ function PaymentRow({ p, onOpen }: { p: PendingPayment; onOpen: () => void }) {
                 <>
                   {people === 1 ? (
                     <MemberNo m={{ memberRef: `${first.listCode}-${first.number}` }} />
-                  ) : people === 2 ? (
-                    "عضوان"
                   ) : (
-                    `${people} أعضاء`
+                    memberCount(people)
                   )}{" "}
                   ·{" "}
                   {people === 1 && months.length >= 12
                     ? "رسوم السنة كاملة"
-                    : `رسوم ${monthCount(months.length)}`}
+                    : `رسوم ${monthCount(months.length, "obl")}`}
                 </>
               ) : (
                 "مساهمة في حملة"

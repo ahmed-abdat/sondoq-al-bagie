@@ -32,6 +32,8 @@ import {
   statusLabel,
   unpaidSince,
   contributorCount,
+  memberCount,
+  linkCount,
 } from "./derive";
 
 const m = (p: Partial<MemberStatus>): MemberStatus => ({
@@ -119,6 +121,34 @@ describe("member state", () => {
     );
     for (const code of ["PPPPPPPLLUUU", "LLLLLLLLLUUU", "LLPPPPPPPUUU"])
       expect(c(code)).not.toMatch(/متأخر|من \d|\d+ أشهر/);
+  });
+  it("month and member counts agree with the number and the case (QA pass 4)", () => {
+    expect([1, 2, 3, 10, 11, 12, 100].map((n) => monthCount(n))).toEqual([
+      "شهر واحد",
+      "شهران",
+      "3 أشهر",
+      "10 أشهر",
+      "11 شهرًا",
+      "12 شهرًا",
+      "100 شهر",
+    ]);
+    expect(monthCount(2, "obl")).toBe("شهرين");
+    expect(`رسوم ${monthCount(2, "obl")}`).toBe("رسوم شهرين");
+    expect([1, 2, 3, 11, 100, 103].map((n) => memberCount(n))).toEqual([
+      "عضو واحد",
+      "عضوان",
+      "3 أعضاء",
+      "11 عضوًا",
+      "100 عضو",
+      "103 أعضاء",
+    ]);
+    expect(memberCount(2, "obl")).toBe("عضوين");
+    expect([1, 2, 3, 11].map((n) => linkCount(n))).toEqual([
+      "رابط واحد",
+      "رابطان",
+      "3 روابط",
+      "11 رابطًا",
+    ]);
   });
   it("contributorCount agrees with the number", () => {
     expect([0, 1, 2, 3, 10, 11, 31, 99, 100, 101].map(contributorCount)).toEqual([

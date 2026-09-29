@@ -30,7 +30,7 @@ test("handover: pending payments before submit, balance change on accept (H1/H2)
     .getByRole("textbox", { name: /^المبلغ: / })
     .first()
     .fill("1000");
-  await page.getByRole("button", { name: "إرسال للتسليم" }).click();
+  await page.getByRole("button", { name: "أرسل المحضر للجنة الجديدة" }).click();
   await expect(page.getByText(/زاد الرصيد بـ .* أوقية منذ إرسال التسليم/)).toBeVisible();
   await expect(page.getByText(/أكّدها أو ارفضها قبل القبول\./)).toBeVisible();
 });

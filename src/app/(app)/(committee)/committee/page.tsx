@@ -10,7 +10,10 @@ export const metadata: Metadata = { title: "اللجنة · صندوق الرا�
 
 export default async function CommitteePage({ searchParams }: PageProps<"/committee">) {
   // demo only: try the first sign-in setup
-  if (src.demoMode && (await searchParams).setup === "1") redirect("/committee/setup");
+  const sp = await searchParams;
+  if (src.demoMode && sp.setup === "1") redirect("/committee/setup");
+  // demo only (QA): ?demoQueue=0|12 shows the empty or a long review list
+  const demoQ = src.demoMode && typeof sp.demoQueue === "string" ? sp.demoQueue : undefined;
   const [session, pending, members, ctx, accounts, arrears, campaigns] = await Promise.all([
     src.requireCommittee("/committee"),
     src.pendingPayments(),
@@ -23,7 +26,7 @@ export default async function CommitteePage({ searchParams }: PageProps<"/commit
   return (
     <Tab>
       <CommitteeView
-        pending={pending}
+        pending={src.demoQueue(pending, demoQ)}
         me={{
           by: session.displayName,
           role: ROLE_LABEL[session.role],

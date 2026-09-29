@@ -1,5 +1,5 @@
 // «روابط الأعضاء»: who has a personal link (made), who opened it (using), groups and the
-// «أرسل للجميع بالترتيب» walk. Pure, unit tested. «made» is all we know: the app cannot see
+// «جهّز الروابط بالترتيب» walk. Pure, unit tested. «made» is all we know: the app cannot see
 // whether the WhatsApp message was actually sent (audit B10), so the UI never says «أُرسل».
 import type { MemberLinkInfo } from "@/lib/data/member-types";
 import type { MemberAdmin } from "@/lib/data/types";

@@ -352,7 +352,7 @@ export function MemberAdminBody({
         <div className="bq-rej bq-small-top">
           <p className="bq-rej-l">ادفع من الرصيد</p>
           <p className="bq-lead">
-            تُدفع رسوم {monthCount(payable.length)} ({creditMonthsLabel(payable)}) من رصيد{" "}
+            تُدفع رسوم {monthCount(payable.length, "obl")} ({creditMonthsLabel(payable)}) من رصيد{" "}
             {m.fullName}: <Num>{fmt(payable.length * price)}</Num> أوقية. لا يدخل مال جديد إلى
             الصندوق.
           </p>
@@ -376,11 +376,11 @@ export function MemberAdminBody({
                         })),
                       }),
                     ),
-                  `دُفعت رسوم ${monthCount(payable.length)} من رصيد ${m.fullName}`,
+                  `دُفعت رسوم ${monthCount(payable.length, "obl")} من رصيد ${m.fullName}`,
                 )
               }
             >
-              ادفع {monthCount(payable.length)}
+              ادفع {monthCount(payable.length, "obl")}
             </button>
             <button
               type="button"

@@ -292,7 +292,7 @@ test("desktop wording", async ({ browser, baseURL }) => {
   await returning(page);
   await page.goto("/");
   await expect(card(page)).toContainText("أضف الصندوق إلى جهازك", { timeout: 8_000 });
-  await expect(card(page).getByRole("button", { name: "تثبيت" })).toHaveCSS("min-height", "44px");
+  await expect(card(page).getByRole("button", { name: "تثبيت" })).toHaveCSS("min-height", "48px");
   await ctx.close();
 });
 

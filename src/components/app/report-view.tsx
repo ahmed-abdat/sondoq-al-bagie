@@ -17,6 +17,7 @@ import {
   isEmptyClosedCampaign,
   isGone,
   MONTHS,
+  memberNoun,
 } from "./derive";
 import { Engaged } from "./engaged";
 import { Amount, Dots, MoneyHint, useReportMoney } from "./money";
@@ -120,7 +121,8 @@ export function ReportView({ shell }: { shell: ReportShell }) {
             {summary ? <Num>{fmt(summary.balance)}</Num> : <Dots />} <small>أوقية</small>
           </strong>
           <span>
-            <Num>{paidNow}</Num> من <Num>{active.length}</Num> عضوًا دفعوا رسوم {MONTHS[month - 1]}
+            <Num>{paidNow}</Num> من <Num>{active.length}</Num> {memberNoun(active.length)} دفعوا
+            رسوم {MONTHS[month - 1]}
           </span>
         </div>
         <ul className="rp-cards">

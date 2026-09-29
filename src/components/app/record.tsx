@@ -45,6 +45,7 @@ import {
   monthsLabel,
   monthCount,
   searchMembers,
+  memberCount,
 } from "./derive";
 import { SearchField } from "./search-field";
 import { Segmented } from "./segmented";
@@ -271,7 +272,7 @@ function MemberPicker({
 function forMembers(n: number) {
   if (n === 1) return "لعضو واحد";
   if (n === 2) return "لعضوين";
-  return n <= 10 ? `لـ ${n} أعضاء` : `لـ ${n} عضوًا`;
+  return `لـ ${memberCount(n, "obl")}`;
 }
 
 function RowCard({
@@ -873,7 +874,7 @@ export function RecordBody({
     feeMonths > 0 &&
       (payingRows.length === 1
         ? `رسوم ${rowLabel(payingRows[0], ctx.year)}`
-        : `رسوم ${monthCount(feeMonths)} ${forMembers(payingRows.length)}`),
+        : `رسوم ${monthCount(feeMonths, "obl")} ${forMembers(payingRows.length)}`),
     campAmt > 0 && (
       <>
         مساهمة <Num>{fmt(campAmt)}</Num>
@@ -1140,7 +1141,7 @@ export function RecordBody({
                     className="bq-chip bq-press bq-rec-fit"
                     onClick={() => setRows((rs) => [fitRow(rs[0], fitMonths)])}
                   >
-                    سجّل {monthCount(fitMonths)} فقط
+                    سجّل {monthCount(fitMonths, "obl")} فقط
                   </button>
                 )}
                 {!fitMonths &&

@@ -89,6 +89,23 @@ export async function committeeSession() {
   return s;
 }
 export const pendingPayments = () => pick(fx.fxPending, () => data.getPendingPayments());
+/**
+ * Demo only (QA): the hub with an empty queue (`?demoQueue=0`) or a long one (`?demoQueue=12`),
+ * made from the fictional slips. Outside demo mode the list is returned untouched.
+ */
+export function demoQueue<T extends { id: string; createdAt: string }>(
+  list: T[],
+  want: string | undefined,
+): T[] {
+  if (!demoMode || want === undefined) return list;
+  const n = Math.max(0, Math.min(50, Number(want) || 0));
+  if (!list.length) return [];
+  return Array.from({ length: n }, (_, i) => {
+    const p = list[i % list.length];
+    const at = new Date(Date.parse(p.createdAt) - i * 7 * 60_000).toISOString();
+    return i < list.length ? p : { ...p, id: `${p.id}-q${i}`, createdAt: at };
+  });
+}
 /** Roles that manage the fund (members, campaigns, handover); «مشرف» only records. */
 export const MANAGERS: CommitteeRole[] = ["admin", "treasurer", "deputy"];
 /**

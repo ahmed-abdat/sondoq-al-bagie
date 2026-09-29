@@ -360,7 +360,7 @@ export function CommitteeView({
                 href="/committee/member-links"
                 icon={I.copy(22)}
                 title="روابط الأعضاء"
-                sub="أرسل لكل عضو رابطه الخاص في واتساب"
+                sub="جهّز لكل عضو رابطه الخاص وأرسله في واتساب"
               />
               {canManage && (
                 <MenuRow
@@ -521,7 +521,7 @@ export function MembersPage({
         className="bq-link bq-link-s bq-press"
         transitionTypes={["tab-fwd"]}
       >
-        {I.wa(18)} روابط الأعضاء: أرسل لكل عضو رابطه
+        {I.wa(18)} روابط الأعضاء: جهّز لكل عضو رابطه
       </Link>
       <section className="bq-sec bq-sec-first">
         <MembersAdmin

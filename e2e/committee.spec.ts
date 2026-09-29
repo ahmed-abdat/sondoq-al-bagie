@@ -25,7 +25,7 @@ test("the app icon shows the payments waiting, and follows a confirmation", asyn
   expect(waiting).toBeGreaterThan(0);
   await expect.poll(() => badge(page).then((b) => b.at(-1))).toBe(waiting);
 
-  await page.getByRole("button", { name: "تأكيد الاستلام" }).first().click();
+  await page.getByRole("button", { name: "أكّد الاستلام" }).first().click();
   await expect(heading).toContainText(String(waiting - 1));
   await expect.poll(() => badge(page).then((b) => b.at(-1))).toBe(waiting - 1 || "clear");
 });
@@ -49,16 +49,34 @@ test("late reminders: «ذكّر الجميع بالترتيب» walks the list 
   });
   await page.goto("/committee/late");
   await expect(
-    page.getByText("الأكثر تأخرًا أولًا. التذكير يصل للعضو وحده مع أشهره ومبلغه."),
+    page.getByText("الأكثر تأخرًا أولًا. افتح رسالة كل عضو في واتساب وأرسلها له."),
   ).toBeVisible();
   await page.getByRole("button", { name: "ذكّر الجميع بالترتيب" }).click();
   const walk = page.locator(".bq-ml-walk");
   const first = await walk.locator(".bq-ml-walk-t").textContent();
-  await walk.getByRole("button", { name: /أرسل في واتساب/ }).click();
+  await walk.getByRole("button", { name: /افتح الرسالة في واتساب/ }).click();
   await expect
     .poll(() => page.evaluate(() => (window as unknown as { __opened: string[] }).__opened.length))
     .toBe(1);
   await expect(walk.locator(".bq-ml-walk-t")).not.toHaveText(first!);
   await walk.getByRole("button", { name: "إيقاف" }).click();
   await expect(walk).toHaveCount(0);
+});
+
+test("hub, demo queue: empty (?demoQueue=0) says so and offers a cash record", async ({ page }) => {
+  await page.goto("/committee?demoQueue=0");
+  await expect(page.getByText("لا دفعات تنتظر")).toBeVisible();
+  await expect(page.getByRole("button", { name: /سجّل دفعة نقدًا أو تحويلًا/ })).toBeVisible();
+  await expect(page.locator("article.bq-slip")).toHaveCount(0);
+});
+
+test("hub, demo queue: 12 pending (?demoQueue=12) shows one open slip and five rows", async ({
+  page,
+}) => {
+  await page.goto("/committee?demoQueue=12");
+  await expect(page.getByRole("button", { name: /للمراجعة\s*12/ })).toBeVisible();
+  await expect(page.locator("article.bq-slip")).toHaveCount(1);
+  await expect(page.locator(".bq-rev-row")).toHaveCount(4);
+  await page.getByRole("button", { name: /عرض الكل/ }).click();
+  await expect(page.locator(".bq-rev-row")).toHaveCount(11);
 });

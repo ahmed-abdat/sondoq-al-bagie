@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { dayDate, isGone, MONTHS } from "@/components/app/derive";
+import { dayDate, isGone, memberNoun, MONTHS } from "@/components/app/derive";
 import * as src from "@/components/app/source";
 
 // Link preview for a pasted /report link (WhatsApp shows it as a rich card). Public by nature,
@@ -49,7 +49,7 @@ export default async function Image() {
   const sub = "رابطة شباب قرية البقيع";
   const label = `دفعوا رسوم ${MONTHS[month - 1]}`;
   const count = String(paidCount);
-  const of = `من ${active.length} عضوًا`;
+  const of = `من ${active.length} ${memberNoun(active.length)}`;
   const line = "التقرير الكامل للأعضاء واللجنة";
   const date = `حتى ${dayDate(today)}`;
   const all = [title, sub, label, count, of, line, date, "0123456789 "].join("");

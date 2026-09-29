@@ -23,7 +23,7 @@ export function toLedger(
         a.months >= 12
           ? "رسوم السنة كاملة"
           : a.months > 0
-            ? `رسوم ${monthCount(a.months)}`
+            ? `رسوم ${monthCount(a.months, "obl")}`
             : "مساهمة في حملة",
       amount: "amount" in a ? a.amount : null,
       at: a.at,

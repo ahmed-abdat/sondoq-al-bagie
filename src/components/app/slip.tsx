@@ -284,7 +284,7 @@ export function PendingSlip({
                   disabled={!online || blocked}
                   onClick={() => decide("confirmed")}
                 >
-                  {I.check(20)} تأكيد الاستلام
+                  {I.check(20)} أكّد الاستلام
                 </button>
                 <button
                   type="button"
@@ -367,7 +367,7 @@ export function PendingSlip({
               disabled={!online || blocked}
               onClick={() => decide("confirmed")}
             >
-              {I.check(20)} تأكيد الاستلام
+              {I.check(20)} أكّد الاستلام
             </button>
             <button
               type="button"
