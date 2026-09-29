@@ -246,7 +246,7 @@ function AddAccountForm({
   );
 }
 
-type Mode = "view" | "role" | "member" | "stop" | "delete";
+type Mode = "view" | "role" | "member" | "unlink" | "stop" | "delete";
 
 /** One account: facts, then its actions. Confirmations replace the content in the same sheet. */
 function AccountSheet({
@@ -269,7 +269,7 @@ function AccountSheet({
 }) {
   const online = useOnline();
   const now = useNow();
-  const { resetCommitteePassword, setCommitteeActive, setCommitteeMember } = useAct();
+  const { resetCommitteePassword, setCommitteeActive, linkCommitteeMember } = useAct();
   const [mode, setMode] = useState<Mode>("view");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -301,16 +301,26 @@ function AccountSheet({
         title={`عضوية ${a.displayName}`}
         onPick={async (m) => {
           const ok = await act(() =>
-            setCommitteeMember({
-              userId: a.userId,
-              displayName: a.displayName,
-              role: a.role,
-              memberId: m.memberId,
-              active: a.active,
-            }),
+            linkCommitteeMember({ userId: a.userId, memberId: m.memberId }),
           );
           if (ok) onPatch({ memberId: m.memberId }, `رُبط ${a.displayName} بعضوية ${m.fullName}`);
           else back();
+        }}
+      />
+    );
+  if (mode === "unlink" && member)
+    return (
+      <Confirm
+        title="إزالة الربط"
+        lead={`لن يبقى حساب ${a.displayName} مربوطًا بعضوية ${member.fullName}. تبقى العضوية ودفعاتها كما هي.`}
+        verb={busy ? "جارٍ الحفظ…" : "أزل الربط"}
+        tone="tonal"
+        busy={busy}
+        err={err}
+        onBack={back}
+        onYes={async () => {
+          if (await act(() => linkCommitteeMember({ userId: a.userId, memberId: null })))
+            onPatch({ memberId: null }, `أُزيل ربط ${a.displayName} بالعضوية`);
         }}
       />
     );
@@ -419,6 +429,16 @@ function AccountSheet({
           >
             {member ? "تغيير العضوية" : "ربطه بعضوية"}
           </button>
+          {member && (
+            <button
+              type="button"
+              className="bq-btn bq-btn-ghost bq-press"
+              disabled={!online}
+              onClick={() => setMode("unlink")}
+            >
+              إزالة الربط
+            </button>
+          )}
           <button
             type="button"
             className="bq-btn bq-btn-tonal bq-press"
@@ -585,6 +605,7 @@ function Confirm({
   title,
   lead,
   verb,
+  tone = "danger",
   busy,
   err,
   onBack,
@@ -593,6 +614,7 @@ function Confirm({
   title: string;
   lead: string;
   verb: string;
+  tone?: "danger" | "tonal";
   busy: boolean;
   err: string;
   onBack: () => void;
@@ -611,7 +633,7 @@ function Confirm({
       <div className="bq-rec-foot">
         <button
           type="button"
-          className="bq-btn bq-btn-danger bq-btn-lg bq-press"
+          className={`bq-btn bq-btn-${tone} bq-btn-lg bq-press`}
           disabled={busy || !online}
           onClick={onYes}
         >

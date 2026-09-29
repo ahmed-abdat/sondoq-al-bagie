@@ -230,6 +230,7 @@ const demo: Partial<Actions> = {
   },
   setCommitteeActive: async () => ok(undefined),
   setCommitteeMember: async () => ok(undefined),
+  linkCommitteeMember: async () => ok(undefined),
   deleteCommitteeAccount: async () => ok(undefined),
   updateMyProfile: async () => ok(undefined),
   signOutEverywhere: async () => ok(undefined),
