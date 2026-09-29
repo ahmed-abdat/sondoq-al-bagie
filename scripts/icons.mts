@@ -50,17 +50,14 @@ async function shortcut(size: number, file: string, paths: string) {
 }
 
 /**
- * Notification badge: Android paints only the alpha channel (status bar), so a white glyph on
- * transparent. A coin stack, readable at 24 px.
+ * Notification badge (Android status bar paints only the alpha channel): «ص» in a thin ring,
+ * white on transparent, from the committed vector source scripts/notification-badge.svg.
  */
 async function notificationBadge(size: number, file: string) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">
-  <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.66 3.13 3 7 3s7-1.34 7-3V6"/>
-    <path d="M5 12v6c0 1.66 3.13 3 7 3s7-1.34 7-3v-6"/>
-  </g>
-</svg>`;
-  await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toFile(file);
+  await sharp("scripts/notification-badge.svg", { density: (72 * size) / 96 })
+    .resize(size, size)
+    .png({ compressionLevel: 9 })
+    .toFile(file);
 }
 
 const USERS =
