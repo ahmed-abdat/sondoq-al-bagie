@@ -48,8 +48,8 @@ export interface ReportSummaryData {
   groups?: { label: string; paid: number; active: number }[];
 }
 
-/** ReportData, optionally with the monthly fee per list («A» → 1000 MRO) for the group pages. */
-export type ReportInput = ReportData & { groupPrices?: Record<string, number> };
+/** What the report renderers take (Lane A's ReportData, with the monthly fee per list). */
+export type ReportInput = ReportData;
 
 export const REPORT_W = 1080;
 export const REPORT_H = 1350;
@@ -445,7 +445,9 @@ export function drawReportSummary(
     p.box(bx, top, bw, bh, 14, T.mist);
     if (b.expected > 0) p.box(bx, base - bh * b.expected, bw, bh * b.expected, 14, T.greenTint);
     const h = b.collected > 0 ? Math.max(14, bh * b.collected) : 0;
-    if (h) p.box(bx, base - h, bw, h, 14, now ? T.forestDeep : T.green);
+    // months after the current one (paid ahead) in a lighter green
+    const later = b.month > d.month;
+    if (h) p.box(bx, base - h, bw, h, 14, now ? T.forestDeep : later ? T.greenMist : T.green);
     if ((now || b === tallest) && b.collected > 0) {
       const amount = d.months.find((m) => m.month === b.month)?.collected ?? 0;
       p.text(compactAmount(amount), bx + bw / 2, base - h - 12, {

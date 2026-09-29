@@ -74,18 +74,10 @@ it("status pills: up to date, late with months, exempt, other", () => {
   expect(statusPill(m("away"))).toEqual({ text: "مسافر", tone: "other" });
 });
 
-it("footer names the page, and the part of a split list instead of the fund", () => {
-  expect(footerLabel({ kind: "cover" }, 1, 6, "28 سبتمبر 2026")).toBe(
-    "صندوق الشباب · الصفحة 1 من 6 · حتى 28 سبتمبر 2026",
+it("footer is the same on every page", () => {
+  expect(footerLabel(4, 7, "28 سبتمبر 2026")).toBe(
+    "صندوق الشباب · الصفحة 4 من 7 · حتى 28 سبتمبر 2026",
   );
-  expect(
-    footerLabel(
-      { kind: "members", list: "B", rows: [], part: 2, parts: 3 },
-      4,
-      6,
-      "28 سبتمبر 2026",
-    ),
-  ).toBe("الصفحة 4 من 6 · الجزء 2 من 3 · حتى 28 سبتمبر 2026");
 });
 
 describe("paginateReport", () => {

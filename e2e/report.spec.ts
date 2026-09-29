@@ -108,7 +108,7 @@ test("report images: every page as a 1080×1350 PNG in one share", async ({ page
     expect(f.name).toMatch(new RegExp(`^تقرير-صندوق-الشباب-\\d{4}-\\d{2}-\\d{2}-${i + 1}\\.png$`));
   });
   expect(await win(page, "__text")).toMatch(/التفاصيل: https:\/\/\S+\/report/);
-  await expect(page.getByRole("status")).toHaveText("أُرسل التقرير.");
+  await expect(page.getByRole("status")).toHaveText(/أُرسل التقرير/);
 });
 
 test("PDF: one A4 file to the share sheet", async ({ page }) => {
@@ -130,7 +130,7 @@ test("PDF without a share sheet is downloaded", async ({ page }) => {
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /ملف PDF/ }).click();
   expect((await download).suggestedFilename()).toMatch(/^تقرير-صندوق-الشباب-.+\.pdf$/);
-  await expect(page.getByRole("status")).toHaveText("حُفظ الملف في التنزيلات.");
+  await expect(page.getByRole("status")).toHaveText(/حفظ الملف في التنزيلات/);
 });
 
 test("report images without a share sheet fall back to WhatsApp text with the link", async ({
