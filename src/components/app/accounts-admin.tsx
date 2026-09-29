@@ -12,6 +12,7 @@ import { memberLabel, parseMemberRef, relativeAgo, ROLE_LABEL } from "./derive";
 import { I } from "./icons";
 import { useNow } from "./num";
 import { Sheet } from "./sheet";
+import { useSnack } from "./shell";
 
 type Creds = { name: string; login: string; password: string };
 type Result<T> = { ok: true; data: T } | { ok: false; code: string; message: string };
@@ -242,11 +243,30 @@ export function CommitteeAccounts({
     | { t: "creds"; c: Creds }
     | { t: "role"; a: CommitteeAccount }
     | { t: "delete"; a: CommitteeAccount }
+    | { t: "more"; a: CommitteeAccount }
+    | { t: "stop"; a: CommitteeAccount }
     | null
   >(null);
   const [roleOver, setRoleOver] = useState<Record<string, CommitteeRole>>({});
   const [note, setNote] = useState<Record<string, string>>({});
   const [gone, setGone] = useState<Set<string>>(new Set());
+  const toast = useSnack();
+  const setActive = async (a: CommitteeAccount, next: boolean) => {
+    setActiveOver((o) => ({ ...o, [a.userId]: next }));
+    const r = await setCommitteeActive({ userId: a.userId, active: next });
+    if (!r.ok) {
+      setActiveOver((o) => ({ ...o, [a.userId]: !next }));
+      setNote((n) => ({ ...n, [a.userId]: say(r) }));
+      return false;
+    }
+    toast(
+      next
+        ? `فُعّل الحساب. اطلب من ${a.displayName} تسجيل الدخول من جديد.`
+        : `أُوقف حساب ${a.displayName}.`,
+    );
+    router.refresh();
+    return true;
+  };
   const list = server
     .filter((a) => !gone.has(a.userId))
     .map((a) => ({
@@ -274,7 +294,10 @@ export function CommitteeAccounts({
               <div className={`bq-row ${a.active ? "" : "is-off"}`}>
                 <span className="bq-disc">{I.lock(22)}</span>
                 <span className="bq-row-m">
-                  <span className="bq-row-t">{a.displayName}</span>
+                  <span className="bq-row-t">
+                    {a.displayName}
+                    {!a.active && <span className="bq-kind bq-chip-off">موقوف</span>}
+                  </span>
                   <span className="bq-row-s">
                     <bdi dir="ltr" className="bq-num">
                       {a.login}
@@ -289,7 +312,7 @@ export function CommitteeAccounts({
                   </span>
                   <span className="bq-row-s">
                     {!a.active
-                      ? "موقوف"
+                      ? "لا يستطيع الدخول إلى صفحة اللجنة"
                       : a.lastSignInAt
                         ? `آخر دخول ${now ? relativeAgo(a.lastSignInAt, now) : ""}`
                         : "لم يدخل بعد"}
@@ -330,43 +353,28 @@ export function CommitteeAccounts({
                           </button>
                         </>
                       )}
-                      {canDelete(a) && (
+                      {!a.active && (
                         <button
                           type="button"
-                          className="bq-link bq-link-s bq-link-quiet bq-press"
+                          className="bq-link bq-link-s bq-press"
                           disabled={!online}
-                          onClick={() => setSheet({ t: "delete", a })}
+                          onClick={() => void setActive(a, true)}
                         >
-                          حذف الحساب
-                        </button>
-                      )}
-                      {(!a.active || !canDelete(a)) && (
-                        <button
-                          type="button"
-                          className="bq-link bq-link-s bq-link-quiet bq-press"
-                          disabled={!online}
-                          onClick={async () => {
-                            const next = !a.active;
-                            setActiveOver((o) => ({ ...o, [a.userId]: next }));
-                            const r = await setCommitteeActive({ userId: a.userId, active: next });
-                            if (!r.ok) {
-                              setActiveOver((o) => ({ ...o, [a.userId]: !next }));
-                              return setNote((n) => ({ ...n, [a.userId]: say(r) }));
-                            }
-                            setNote((n) => ({
-                              ...n,
-                              [a.userId]: next ? "فُعّل الحساب." : "أُوقف الحساب.",
-                            }));
-                            router.refresh();
-                          }}
-                        >
-                          {a.active ? "إيقاف الحساب" : "تفعيل"}
+                          تفعيل
                         </button>
                       )}
                     </span>
                   )}
-                  {a.userId !== selfId && a.active && !canDelete(a) && (
-                    <span className="bq-row-s">لا يُحذف لأن له عمليات مسجّلة؛ يمكنك إيقافه.</span>
+                  {a.userId !== selfId && (a.active || canDelete(a)) && (
+                    <span className="bq-com-actions bq-com-more">
+                      <button
+                        type="button"
+                        className="bq-link bq-link-s bq-link-quiet bq-press"
+                        onClick={() => setSheet({ t: "more", a })}
+                      >
+                        المزيد…
+                      </button>
+                    </span>
                   )}
                 </span>
               </div>
@@ -396,6 +404,53 @@ export function CommitteeAccounts({
               setNote((n) => ({ ...n, [sheet.a.userId]: `صار دوره: ${ROLE_LABEL[role]}.` }));
               setSheet(null);
               router.refresh();
+            }}
+          />
+        </Sheet>
+      )}
+      {sheet?.t === "more" && (
+        <Sheet key="more" label={sheet.a.displayName} onDone={() => setSheet(null)}>
+          <div className="bq-rec">
+            <h2>{sheet.a.displayName}</h2>
+            <div className="bq-btn-col bq-small-top">
+              {sheet.a.active && (
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-tonal bq-press"
+                  onClick={() => setSheet({ t: "stop", a: sheet.a })}
+                >
+                  إيقاف الحساب
+                </button>
+              )}
+              {canDelete(sheet.a) ? (
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-tonal bq-press"
+                  onClick={() => setSheet({ t: "delete", a: sheet.a })}
+                >
+                  حذف الحساب
+                </button>
+              ) : (
+                <p className="bq-hint">لا يُحذف لأن له عمليات مسجّلة؛ يمكنك إيقافه.</p>
+              )}
+              <button
+                type="button"
+                className="bq-btn bq-btn-ghost bq-press"
+                onClick={() => setSheet(null)}
+              >
+                رجوع
+              </button>
+            </div>
+          </div>
+        </Sheet>
+      )}
+      {sheet?.t === "stop" && (
+        <Sheet key="stop" label="إيقاف الحساب" onDone={() => setSheet(null)}>
+          <StopAccount
+            a={sheet.a}
+            onBack={() => setSheet(null)}
+            onStop={async () => {
+              if (await setActive(sheet.a, false)) setSheet(null);
             }}
           />
         </Sheet>
@@ -508,6 +563,43 @@ function DeleteAccount({
           }}
         >
           {busy ? "جارٍ الحذف…" : "احذف الحساب"}
+        </button>
+        <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={onBack}>
+          رجوع
+        </button>
+        <OfflineWriteHint />
+      </div>
+    </div>
+  );
+}
+
+function StopAccount({
+  a,
+  onBack,
+  onStop,
+}: {
+  a: CommitteeAccount;
+  onBack: () => void;
+  onStop: () => Promise<void>;
+}) {
+  const online = useOnline();
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="bq-rec bq-cancel">
+      <h2>إيقاف حساب {a.displayName}</h2>
+      <p className="bq-lead">سيتوقف دخول {a.displayName} إلى صفحة اللجنة حتى تعيد تفعيله.</p>
+      <div className="bq-rec-foot">
+        <button
+          type="button"
+          className="bq-btn bq-btn-danger bq-btn-lg bq-press"
+          disabled={busy || !online}
+          onClick={async () => {
+            setBusy(true);
+            await onStop();
+            setBusy(false);
+          }}
+        >
+          {busy ? "جارٍ الإيقاف…" : "أوقف الحساب"}
         </button>
         <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={onBack}>
           رجوع
