@@ -4,8 +4,10 @@ import type { Database } from "@/lib/supabase/database.types";
 import { isProofPath } from "@/lib/data/proof";
 
 // Proof images whose record never got saved (the upload worked, record_payment/record_expense
-// failed or the phone gave up) stay in the private `proofs` bucket forever. Weekly, after the
-// backup: delete files older than a day that no payment or expense points at.
+// failed or the phone gave up) stay in the private `proofs` bucket. Weekly, after the backup, the
+// job REPORTS files older than a day that no payment or expense points at (count + a few paths in
+// job_runs). It deletes nothing: proof images are evidence, and removing them needs the owner's
+// explicit OK (then: delete only files older than 30 days).
 
 type Admin = SupabaseClient<Database>;
 
@@ -55,18 +57,14 @@ async function referenced(sb: Admin, folder: string, paths: string[]): Promise<S
   return used;
 }
 
-export async function pruneOrphanProofs(sb: Admin, now = new Date()) {
-  let removed = 0;
+/** Orphan proof paths (report only; nothing is deleted). */
+export async function findOrphanProofs(sb: Admin, now = new Date()) {
+  const orphans: string[] = [];
   for (const folder of ["payments", "expenses"] as const) {
     const old = candidates(folder, await listAll(sb, folder), now);
     if (!old.length) continue;
     const used = await referenced(sb, folder, old);
-    const orphans = old.filter((p) => !used.has(p));
-    for (let i = 0; i < orphans.length; i += 100) {
-      const { error } = await sb.storage.from("proofs").remove(orphans.slice(i, i + 100));
-      if (error) throw new Error(`proofs remove: ${error.message}`);
-    }
-    removed += orphans.length;
+    orphans.push(...old.filter((p) => !used.has(p)));
   }
-  return { removed };
+  return { count: orphans.length, paths: orphans };
 }

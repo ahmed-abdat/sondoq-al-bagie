@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const { BACKUP_TABLES, backupPath, buildBackup, filesToPrune, recordBackupRun } =
+const { BACKUP_TABLES, backupPath, buildBackup, filesToPrune, okDetail, recordBackupRun } =
   await import("./export");
 
 describe("backup", () => {
@@ -59,5 +59,13 @@ describe("backup", () => {
     expect(row).not.toHaveProperty("last_ok_at");
     expect(row.ok).toBe(false);
     expect((row.detail as string).length).toBe(200);
+  });
+
+  it("adds the orphan proof report to the backup detail", () => {
+    expect(okDetail("2026/2026-09-28.json")).toBe("2026/2026-09-28.json");
+    expect(okDetail("f.json", { count: 0, paths: [] })).toBe("f.json");
+    expect(okDetail("f.json", { count: 4, paths: ["p/1", "p/2", "p/3", "p/4"] })).toBe(
+      "f.json · صور إثبات بلا سجل: 4 (p/1، p/2، p/3، …)",
+    );
   });
 });

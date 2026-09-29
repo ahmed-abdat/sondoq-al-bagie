@@ -89,18 +89,34 @@ export async function runBackup(sb: Admin, now = new Date()) {
   return { path, counts: file.counts, pruned: prune.length };
 }
 
+/** "2026/2026-09-28.json · صور إثبات بلا سجل: 2 (payments/…, …)" — at most 3 paths shown. */
+export function okDetail(path: string, orphans?: { count: number; paths: string[] }): string {
+  if (!orphans?.count) return path;
+  const shown = orphans.paths.slice(0, 3).join("، ");
+  const more = orphans.count > 3 ? "، …" : "";
+  return `${path} · صور إثبات بلا سجل: ${orphans.count} (${shown}${more})`;
+}
+
 /**
  * Stores the outcome of a backup run in `job_runs` (read by the committee settings). `last_ok_at`
  * is only written on success, so a failure keeps the date of the last good file.
  */
 export async function recordBackupRun(
   sb: Admin,
-  r: { ok: true; path: string } | { ok: false; error: string },
+  r:
+    | { ok: true; path: string; orphans?: { count: number; paths: string[] } }
+    | { ok: false; error: string },
   now = new Date(),
 ) {
   const at = now.toISOString();
   const row: Database["public"]["Tables"]["job_runs"]["Insert"] = r.ok
-    ? { job: "backup", last_run_at: at, ok: true, detail: r.path, last_ok_at: at }
+    ? {
+        job: "backup",
+        last_run_at: at,
+        ok: true,
+        detail: okDetail(r.path, r.orphans),
+        last_ok_at: at,
+      }
     : { job: "backup", last_run_at: at, ok: false, detail: r.error.slice(0, 200) };
   const { error } = await sb.from("job_runs").upsert(row, { onConflict: "job" });
   if (error) throw new Error(`backup record: ${error.message}`);

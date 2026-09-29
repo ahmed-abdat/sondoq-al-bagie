@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const { candidates, pruneOrphanProofs } = await import("./orphans");
+const { candidates, findOrphanProofs } = await import("./orphans");
 
 const id = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const id2 = "0f8fad5b-d9cb-469f-a165-70867728950e";
@@ -24,7 +24,7 @@ describe("orphan proofs", () => {
     ).toEqual([`payments/${id}-0123456789ab.jpg`]);
   });
 
-  it("removes old files no record points at, keeps referenced ones", async () => {
+  it("reports old files no record points at, and removes nothing", async () => {
     const files = {
       payments: [
         { name: `${id}-0123456789ab.jpg`, created_at: old },
@@ -49,7 +49,10 @@ describe("orphan proofs", () => {
         }),
       }),
     };
-    expect(await pruneOrphanProofs(sb as never, now)).toEqual({ removed: 1 });
-    expect(remove).toHaveBeenCalledWith([`payments/${id2}-0123456789ab.jpg`]);
+    expect(await findOrphanProofs(sb as never, now)).toEqual({
+      count: 1,
+      paths: [`payments/${id2}-0123456789ab.jpg`],
+    });
+    expect(remove).not.toHaveBeenCalled();
   });
 });
