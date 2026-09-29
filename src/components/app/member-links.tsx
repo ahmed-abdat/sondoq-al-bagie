@@ -26,6 +26,7 @@ import {
 } from "./member-links-model";
 import { Num } from "./num";
 import { useSnack } from "./shell";
+import { useAfterReturn } from "./walk-return";
 import { SubHead } from "./views/committee";
 
 const STATE_WORD: Record<LinkState, string> = {
@@ -60,6 +61,14 @@ export function MemberLinksPage({
   const [confirm, setConfirm] = useState<string | null>(null);
   const [walk, setWalk] = useState<string | null>(null);
   const [skipped, setSkipped] = useState<ReadonlySet<string>>(new Set());
+  // P9: the walk moves on when the page is back from WhatsApp; «تراجع» returns to that person
+  const later = useAfterReturn();
+  const [last, setLast] = useState<{ id: string; name: string } | null>(null);
+  const moveOn = (r: LinkRow) =>
+    later(() => {
+      setLast({ id: r.memberId, name: r.fullName });
+      advance(r.memberId, skipped);
+    });
 
   const linkOf = (id: string) =>
     made[id] ?? (id in demo.links ? demo.links[id] : (links[id] ?? null));
@@ -88,7 +97,7 @@ export function MemberLinksPage({
       [r.memberId]: { memberId: r.memberId, createdAt: new Date().toISOString(), lastUsedAt: null },
     }));
     setUrls((x) => ({ ...x, [r.memberId]: res.data.url }));
-    if (inWalk) advance(r.memberId, skipped);
+    if (inWalk) moveOn(r);
     router.refresh();
     openWhatsApp(waLink(r.phone, linkMessage(r.fullName, res.data.url)));
   };
@@ -97,6 +106,7 @@ export function MemberLinksPage({
     openWhatsApp(waLink(r.phone, linkMessage(r.fullName, url)));
 
   const start = () => {
+    setLast(null);
     const fresh = new Set<string>();
     setSkipped(fresh);
     setWalk(nextInWalk(rows, null, fresh));
@@ -111,6 +121,23 @@ export function MemberLinksPage({
             <p className="bq-row-s">
               بالترتيب · بقي <Num>{counts.left}</Num>
             </p>
+            {last && (
+              <p className="bq-row-s bq-ml-last">
+                <span>
+                  أُنشئ رابط {last.name} · التالي: {cur.fullName}
+                </span>
+                <button
+                  type="button"
+                  className="bq-link bq-link-s bq-press"
+                  onClick={() => {
+                    setWalk(last.id);
+                    setLast(null);
+                  }}
+                >
+                  تراجع
+                </button>
+              </p>
+            )}
             <p className="bq-ml-walk-t">
               <MemberNo m={cur} /> · {cur.fullName}
             </p>
@@ -120,15 +147,28 @@ export function MemberLinksPage({
                 type="button"
                 className="bq-btn bq-btn-primary bq-press"
                 disabled={!!busy || !online}
-                onClick={() => void send(cur, true)}
+                onClick={() => {
+                  const url = urls[cur.memberId];
+                  if (!url || cur.state === "none") return void send(cur, true);
+                  // back to someone whose link was made here: the same link, nothing stops
+                  setLast(null);
+                  resend(cur, url);
+                  moveOn(cur);
+                }}
               >
-                {I.wa(20)} {busy === cur.memberId ? "جارٍ الإنشاء…" : "أرسل في واتساب"}
+                {I.wa(20)}{" "}
+                {busy === cur.memberId
+                  ? "جارٍ الإنشاء…"
+                  : urls[cur.memberId] && cur.state !== "none"
+                    ? "أرسل مرة أخرى"
+                    : "أرسل في واتساب"}
               </button>
               <button
                 type="button"
                 className="bq-btn bq-btn-soft bq-press"
                 disabled={!!busy}
                 onClick={() => {
+                  setLast(null);
                   const s = new Set(skipped).add(cur.memberId);
                   setSkipped(s);
                   advance(cur.memberId, s);

@@ -3390,6 +3390,14 @@
     width: 100%;
     margin: 0;
   }
+  /* the walk's «أُنشئ رابط … · التالي: …» line with «تراجع» (P9) */
+  .bq-ml-last {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 12px;
+  }
   /* the snack leaves the way it came, a touch faster */
   .bq-snack.is-out {
     transform: translateY(6px);

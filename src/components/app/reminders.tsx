@@ -12,6 +12,7 @@ import { Avatar } from "./bits";
 import { fmt, remindedLabel, unpaidSince } from "./derive";
 import { I } from "./icons";
 import { Num, useNow } from "./num";
+import { useAfterReturn } from "./walk-return";
 
 export function LateList({
   arrears,
@@ -28,6 +29,9 @@ export function LateList({
   const [groupAt, setGroupAt] = useState<string | null>(null);
   const [walk, setWalk] = useState<string | null>(null);
   const [skipped, setSkipped] = useState<ReadonlySet<string>>(new Set());
+  // P9: the walk moves on when the page is back from WhatsApp; «تراجع» returns to that person
+  const later = useAfterReturn();
+  const [last, setLast] = useState<{ id: string; name: string } | null>(null);
   // the walk: members with a phone not reminded on this visit, most late first
   const queue = (skip: ReadonlySet<string>, done: Record<string, string>) =>
     arrears.filter((a) => a.phone && !done[a.memberId] && !skip.has(a.memberId));
@@ -48,7 +52,11 @@ export function LateList({
     );
     const done = { ...sent, [a.memberId]: new Date().toISOString() };
     setSent(done);
-    if (inWalk) next(skipped, done);
+    if (inWalk)
+      later(() => {
+        setLast({ id: a.memberId, name: a.fullName });
+        next(skipped, done);
+      });
     void logReminder({ kind: "individual", memberId: a.memberId }).then(
       (r) => r.ok && router.refresh(),
     );
@@ -85,6 +93,23 @@ export function LateList({
               <p className="bq-row-s">
                 بالترتيب · بقي <Num>{left}</Num>
               </p>
+              {last && (
+                <p className="bq-row-s bq-ml-last">
+                  <span>
+                    ذُكّر {last.name} · التالي: {cur.fullName}
+                  </span>
+                  <button
+                    type="button"
+                    className="bq-link bq-link-s bq-press"
+                    onClick={() => {
+                      setWalk(last.id);
+                      setLast(null);
+                    }}
+                  >
+                    تراجع
+                  </button>
+                </p>
+              )}
               <p className="bq-ml-walk-t">{cur.fullName}</p>
               <p className="bq-row-s">
                 {unpaidSince(cur.months)} · عليه حتى الآن <Num>{fmt(cur.amountOwed)}</Num> أوقية
@@ -101,6 +126,7 @@ export function LateList({
                   type="button"
                   className="bq-btn bq-btn-soft bq-press"
                   onClick={() => {
+                    setLast(null);
                     const s = new Set(skipped).add(cur.memberId);
                     setSkipped(s);
                     next(s, sent);
@@ -123,6 +149,7 @@ export function LateList({
                 type="button"
                 className="bq-btn bq-btn-primary bq-btn-lg bq-press bq-small-top"
                 onClick={() => {
+                  setLast(null);
                   const s = new Set<string>();
                   setSkipped(s);
                   next(s, sent);
