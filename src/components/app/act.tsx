@@ -455,6 +455,8 @@ const demo = {
     return ok({ id: p.id, replay: false, receiptCode: nextCode() });
   },
   cancelLastPeriod: async () => ok("demo"),
+  createMemberLink: async (p) => ok({ memberId: p.memberId, url: `${location.origin}/m/demo` }),
+  revokeMemberLink: async () => ok(undefined),
   async setJoinMonth(p) {
     update((s) => ({
       ...s,

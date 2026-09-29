@@ -40,3 +40,37 @@ export function pendingPaymentPayload(p: {
     tag: `pending-${p.id}`,
   };
 }
+
+/** To the member who sent the payment through their link: «تم تأكيد دفعتك» → the receipt. */
+export function memberConfirmedPayload(p: {
+  id: string;
+  amount: number;
+  receiptCode: string | null;
+  allocations: Alloc[];
+}): PushPayload {
+  const yms = [
+    ...new Set(
+      p.allocations.flatMap((a) =>
+        a.kind === "months" ? [`${a.year}-${String(a.month).padStart(2, "0")}`] : [],
+      ),
+    ),
+  ].sort();
+  const parts = [`${formatNumber(p.amount)} أوقية`];
+  if (yms.length) parts.push(monthsList(yms));
+  return {
+    title: "تم تأكيد دفعتك",
+    body: parts.join(" · "),
+    url: p.receiptCode ? `/r/${p.receiptCode}` : "/me",
+    tag: `member-${p.id}`,
+  };
+}
+
+/** To the member: «رُفضت الدفعة» with the committee's reason. */
+export function memberRejectedPayload(p: { id: string; reason: string | null }): PushPayload {
+  return {
+    title: "رُفضت الدفعة",
+    body: p.reason?.trim() || "راجع اللجنة لمعرفة السبب.",
+    url: "/me",
+    tag: `member-${p.id}`,
+  };
+}

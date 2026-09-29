@@ -1,6 +1,22 @@
--- Undo every migration after M1 (m2 … m23, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m24, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- member links (m24); payment_queue and account_has_history are restored by the undos below
+drop function if exists public.create_member_link(uuid, text), public.revoke_member_link(uuid),
+  public.member_session(text), public.member_history(text), public.member_recent_beneficiaries(text),
+  public.member_submit_payment(text, uuid, text, public.payment_method, integer, date, jsonb, text, text, text, text),
+  public.member_save_push(text, text, text, text), public.member_delete_push(text, text);
+drop view if exists public.member_links_admin;
+drop view if exists public.payment_queue;
+drop function if exists app_private.create_member_link(uuid, text), app_private.revoke_member_link(uuid),
+  app_private.member_session(text), app_private.member_history(text), app_private.member_recent_beneficiaries(text),
+  app_private.member_submit_payment(text, uuid, text, public.payment_method, integer, date, jsonb, text, text, text, text),
+  app_private.member_save_push(text, text, text, text), app_private.member_delete_push(text, text),
+  app_private.member_links_admin(), app_private.link_member(uuid), app_private.member_link_for(text),
+  app_private.require_server();
+drop table if exists public.member_push_subscriptions;
+alter table public.payments drop column if exists submitted_via_link;
+drop table if exists public.member_links;
 -- P2 guards (m23): the txn index goes back to raw refs; function bodies are restored below
 drop index if exists public.payments_txn_ref_uniq;
 create unique index payments_txn_ref_uniq on public.payments (method, txn_ref)

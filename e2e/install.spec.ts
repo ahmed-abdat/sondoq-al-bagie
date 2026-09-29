@@ -219,3 +219,9 @@ test("installed app: never", async ({ page }) => {
   await page.waitForLoadState("networkidle");
   await expect(card(page)).toHaveCount(0);
 });
+
+test("arriving from a member's personal link invites to install at once", async ({ page }) => {
+  await page.goto("/?welcome=1"); // where /m/<token> lands after setting the cookie
+  await expect(card(page)).toBeVisible(); // even on the very first visit
+  await expect(page).toHaveURL(/\/$/); // the marker is gone from the address
+});

@@ -315,6 +315,8 @@ export type PendingPayment = {
   receiptCode: string | null;
   /** e.g. "2026-0042" */
   receiptNo: string | null;
+  /** sent by a member through their personal link: «أرسلها العضو X عبر رابطه» (absent/null otherwise) */
+  submittedByMember?: { memberRef: string; fullName: string } | null;
 };
 
 /** Committee arrears row (has the phone for WhatsApp). */

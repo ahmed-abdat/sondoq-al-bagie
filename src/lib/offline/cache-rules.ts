@@ -19,10 +19,11 @@ const PUBLIC_VIEWS = [
 ] as const;
 
 /**
- * Never cached: pages that need a login (nothing private stays on a shared phone), and receipt
- * verification `/r/<code>`, which must always be fresh (a cancelled receipt must show as cancelled).
+ * Never cached: pages that need a login (nothing private stays on a shared phone), receipt
+ * verification `/r/<code>`, which must always be fresh (a cancelled receipt must show as
+ * cancelled), a member's personal link `/m/<token>` (the token is a key) and their own page `/me`.
  */
-const PRIVATE_PREFIXES = ["/committee", "/login", "/api", "/r"] as const;
+const PRIVATE_PREFIXES = ["/committee", "/login", "/api", "/r", "/m", "/me"] as const;
 
 function underPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);

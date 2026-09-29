@@ -17,6 +17,7 @@ export { AppBadgeSync } from "./app-badge";
 export { OfflineWriteHint } from "./offline-banner";
 export { InstallEntry, markInstallEngaged } from "./install";
 export { reportActionError } from "./sw-update";
+export { MemberLinkPaste } from "./member-link-paste";
 
 // Bump when the shape of saved public data changes, so old copies are dropped.
 const CACHE_VERSION = "1";
