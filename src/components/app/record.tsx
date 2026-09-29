@@ -50,6 +50,7 @@ import { SearchField } from "./search-field";
 import { Segmented } from "./segmented";
 import { DateField } from "./date-field";
 import { I } from "./icons";
+import { radioKeys, radioTab } from "./radio-keys";
 import type { MemberCtx } from "./member";
 import { Num, prefersReduced } from "./num";
 
@@ -996,13 +997,19 @@ export function RecordBody({
               {member ? "كيف دفعت؟" : "كيف دفع؟"}{" "}
               <Mark from={fromShot.has("method")} ok={!!checks?.method} />
             </p>
-            <div className="bq-meth-grid" role="radiogroup" aria-labelledby="bq-rec-meth">
-              {methods.map((m) => (
+            <div
+              className="bq-meth-grid"
+              role="radiogroup"
+              aria-labelledby="bq-rec-meth"
+              onKeyDown={radioKeys}
+            >
+              {methods.map((m, i) => (
                 <button
                   key={m}
                   type="button"
                   role="radio"
                   aria-checked={meth === m}
+                  tabIndex={radioTab(meth === m, i, !!meth && methods.includes(meth))}
                   className="bq-meth-opt bq-press is-main"
                   onClick={() => {
                     setMeth(m);
@@ -1138,13 +1145,23 @@ export function RecordBody({
                           الباقي <Num className="bq-strong">{fmt(diff)}</Num> أوقية. يُحفظ رصيدًا
                           لـ:
                         </p>
-                        <div className="bq-chips" role="radiogroup" aria-labelledby="bq-rec-credit">
-                          {rows.map((r) => (
+                        <div
+                          className="bq-chips"
+                          role="radiogroup"
+                          aria-labelledby="bq-rec-credit"
+                          onKeyDown={radioKeys}
+                        >
+                          {rows.map((r, i) => (
                             <button
                               key={r.m.memberId}
                               type="button"
                               role="radio"
                               aria-checked={creditTo === r.m.memberId}
+                              tabIndex={radioTab(
+                                creditTo === r.m.memberId,
+                                i,
+                                rows.some((x) => x.m.memberId === creditTo),
+                              )}
                               className="bq-chip bq-press"
                               onClick={() => setCreditFor(r.m.memberId)}
                             >
@@ -1190,13 +1207,23 @@ export function RecordBody({
                     <p className="bq-rec-k" id="bq-rec-camp">
                       ومعها مساهمة في حملة؟
                     </p>
-                    <div className="bq-chips" role="radiogroup" aria-labelledby="bq-rec-camp">
-                      {openCamps.map((c) => (
+                    <div
+                      className="bq-chips"
+                      role="radiogroup"
+                      aria-labelledby="bq-rec-camp"
+                      onKeyDown={radioKeys}
+                    >
+                      {openCamps.map((c, i) => (
                         <button
                           key={c.campaignId}
                           type="button"
                           role="radio"
                           aria-checked={camp === c.campaignId}
+                          tabIndex={radioTab(
+                            camp === c.campaignId,
+                            i,
+                            openCamps.some((x) => x.campaignId === camp),
+                          )}
                           className="bq-chip bq-press"
                           onClick={() => setCamp(camp === c.campaignId ? null : c.campaignId)}
                         >
