@@ -1963,6 +1963,10 @@
   .bq-sheet[data-nested-drawer-open] {
     filter: brightness(0.96);
   }
+  /* desktop: a nested dialog sits over its parent without its own scrim, so dim the parent more */
+  .bq-sheet.is-dialog[data-nested-dialog-open] {
+    filter: brightness(0.88);
+  }
   .bq-sheet-c {
     min-height: 100%;
   }

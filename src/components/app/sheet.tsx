@@ -90,6 +90,14 @@ export function Sheet({
   const desktop = useDesktop();
   const [open, setOpen] = useState(true);
   const closing = useRef(false);
+  const popup = useRef<HTMLDivElement>(null);
+  // focus the sheet itself (screen readers read its title), unless a field inside took focus
+  // with autoFocus; Base UI's default would land on «إغلاق»
+  const initialFocus = () => {
+    const el = popup.current;
+    const a = document.activeElement;
+    return el && a instanceof HTMLElement && a !== el && el.contains(a) ? a : el;
+  };
   const change = (next: boolean) => {
     if (next || closing.current) return;
     closing.current = true;
@@ -124,7 +132,12 @@ export function Sheet({
         <Dialog.Portal>
           <Dialog.Backdrop className="bq-scrim" style={scrimStyle} />
           <Dialog.Viewport className="bq-sheet-vp is-dialog">
-            <Dialog.Popup className={`bq-sheet is-dialog ${vt ? "is-vt" : ""}`} style={sheetStyle}>
+            <Dialog.Popup
+              ref={popup}
+              initialFocus={initialFocus}
+              className={`bq-sheet is-dialog ${vt ? "is-vt" : ""}`}
+              style={sheetStyle}
+            >
               {inner(
                 <>
                   <Dialog.Title className="bq-sr-only">{label}</Dialog.Title>
@@ -149,7 +162,12 @@ export function Sheet({
       <Drawer.Portal>
         <Drawer.Backdrop className="bq-scrim" style={scrimStyle} />
         <Drawer.Viewport className="bq-sheet-vp">
-          <Drawer.Popup className={`bq-sheet ${vt ? "is-vt" : ""}`} style={sheetStyle}>
+          <Drawer.Popup
+            ref={popup}
+            initialFocus={initialFocus}
+            className={`bq-sheet ${vt ? "is-vt" : ""}`}
+            style={sheetStyle}
+          >
             <Drawer.Content className="bq-sheet-c">
               {inner(
                 <>
