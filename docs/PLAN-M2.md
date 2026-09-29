@@ -24,7 +24,7 @@ Owns: `supabase/**`, `src/lib/supabase/**`, `src/lib/data/**` (new: typed querie
 
 ## Lane B — PWA, offline, platform (session: sondoq-al-bagie-ce)
 Owns: `src/app/sw.ts`, `next.config.ts`, `src/app/manifest.ts`, `public/**` (icons, offline.html, wallets), `scripts/**`, `src/lib/offline/**` (new), `src/components/providers/**` (new), `e2e/**`, `vercel.json`, `.github/**`.
-1. Full installable PWA: manifest (name, short_name «صندوق البقيع», dir rtl, lang ar, theme/background from the logo green, display standalone, start_url, scope, shortcuts: «الأعضاء», «اللجنة»), maskable + any icons 192/512 + apple-touch + favicon from the logo, splash-friendly colours. Pass Lighthouse PWA installability.
+1. Full installable PWA: manifest (name, short_name «صندوق الرابطة», dir rtl, lang ar, theme/background from the logo green, display standalone, start_url, scope, shortcuts: «الأعضاء», «اللجنة»), maskable + any icons 192/512 + apple-touch + favicon from the logo, splash-friendly colours. Pass Lighthouse PWA installability.
 2. Offline: Serwist precache app shell + runtime caching (pages NetworkFirst with offline fallback, static assets CacheFirst, Supabase REST GET for public views StaleWhileRevalidate with short max-age; never cache auth or committee writes). TanStack Query provider with IndexedDB persistence (idb-keyval) for public data; `useOnline` hook + offline banner «غير متصل — آخر تحديث قبل …»; write buttons disabled offline with explanation.
 3. Install prompt UX (beforeinstallprompt on Android; iOS instructions sheet), update-available toast (SW waiting → «تحديث جديد متاح»).
 4. Receipt image share utility: `src/lib/share-receipt.ts` — render a receipt to PNG (canvas, no heavy deps) + `navigator.share({files})` with wa.me fallback; unit-testable pieces.
