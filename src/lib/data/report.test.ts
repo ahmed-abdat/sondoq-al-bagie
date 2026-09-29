@@ -68,6 +68,11 @@ const base = (over: Partial<ReportInput> = {}): ReportInput => ({
   expenses: [expense("2026-05-02"), expense("2025-12-30")],
   campaigns: [],
   info: toFundInfo(null),
+  prices: [
+    { year: 2026, group: "A", groupName: "أ", monthlyAmount: 1000 },
+    { year: 2026, group: "B", groupName: "ب", monthlyAmount: 500 },
+    { year: 2025, group: "A", groupName: "أ", monthlyAmount: 800 },
+  ],
   now: new Date("2026-09-28T12:00:00Z"),
   ...over,
 });
@@ -129,5 +134,10 @@ describe("assembleReport", () => {
     expect(assembleReport(base()).term?.number).toBe(2);
     expect(assembleReport(base({ term: 1 })).term?.number).toBe(1);
     expect(assembleReport(base({ term: 9 })).term).toBeNull();
+  });
+
+  it("gives the monthly fee of each group for the report year", () => {
+    expect(assembleReport(base()).groupPrices).toEqual({ A: 1000, B: 500 });
+    expect(assembleReport(base({ year: 2025 })).groupPrices).toEqual({ A: 800, B: 0 });
   });
 });

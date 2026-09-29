@@ -177,6 +177,7 @@ export async function report(): Promise<ReportData> {
       balance: c.balance,
     })),
     showAmountOwed: false,
+    groupPrices: { A: 1000, B: 500 },
     generatedAt: today().toISOString(),
   };
 }
