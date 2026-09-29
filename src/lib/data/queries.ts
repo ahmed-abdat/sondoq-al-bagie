@@ -18,10 +18,4 @@ export const publicQueries = {
       queryKey: [PUBLIC_KEY, "fund_stats"],
       queryFn: () => read.fundStats(client()),
     }),
-  /** @deprecated carries money under a "public" key; removed with m27 — use fundStats */
-  fundSummary: () =>
-    queryOptions({
-      queryKey: [PUBLIC_KEY, "fund_summary"],
-      queryFn: () => read.fundSummary(client()),
-    }),
 };

@@ -1,10 +1,10 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
-import { toFundInfo, toFundStats, toFundSummary } from "./map";
+import { toFundInfo, toFundStats } from "./map";
 import * as read from "./read";
 import { toMemberIndex, toMemberRows } from "./member-lists";
-import { assembleReport, loadReport, loadReportShell, type ReportOptions } from "./report";
+import { loadReportShell, type ReportOptions } from "./report";
 import { PUBLIC_TAG } from "./tags";
 
 /**
@@ -27,61 +27,16 @@ function cached<A extends unknown[], R>(
   );
 }
 
-export const getFundSummary = cached("fund_summary", read.fundSummary, toFundSummary(null));
 export const getGroupPrices = cached("group_prices", read.groupPrices, []);
-export const getMembers = cached("member_status", read.members, []);
+/** Member cards without amounts owed (member_status_public; amounts only via getMoney). */
+export const getMembers = cached("member_status_public", read.membersPublic, []);
 export const getMemberMonths = cached("member_months", read.memberMonths, []);
-export const getMonthlyCollection = cached("monthly_collection", read.monthlyCollection, []);
-export const getExpenseTotals = cached("expense_totals", read.expenseTotals, []);
-export const getRecentExpenses = cached("recent_expenses", read.recentExpenses, []);
-export const getCampaigns = cached("campaign_progress", read.campaigns, []);
-export const getActivity = cached("activity_feed", read.activity, []);
-export const getCampaignContributions = cached(
-  "campaign_contributions",
-  read.campaignContributions,
-  [],
-);
 /** Receipt check for /r/[code] (cached per code; a cancellation expires it). */
 export const getReceipt = cached("verify_receipt", read.verifyReceipt, {
   status: "not_found",
 } as const);
-export const getTerms = cached("terms", read.terms, []);
 export const getFundAccounts = cached("fund_accounts_public", read.fundAccounts, []);
 export const getFundInfo = cached("fund_info", read.fundInfo, toFundInfo(null));
-
-const cachedReport = unstable_cache(
-  async (opts: ReportOptions) => {
-    const c = createPublicClient();
-    return c ? loadReport(c, opts) : null;
-  },
-  ["public", "report"],
-  { tags: [PUBLIC_TAG], revalidate: 60 },
-);
-
-/**
- * The shareable fund report (public data only): summary, term, monthly collection, member grid,
- * expenses of the year, campaigns. Default: this year and the open term.
- */
-export async function getReport(opts: ReportOptions = {}) {
-  const now = new Date();
-  return (
-    (await cachedReport({ year: opts.year, term: opts.term })) ??
-    assembleReport({
-      year: opts.year ?? now.getUTCFullYear(),
-      term: opts.term,
-      summary: toFundSummary(null),
-      terms: [],
-      monthly: [],
-      members: [],
-      months: [],
-      expenses: [],
-      campaigns: [],
-      info: toFundInfo(null),
-      prices: [],
-      now,
-    })
-  );
-}
 
 /**
  * /members list: every listed member (not the ones who left) with this year's months as a
