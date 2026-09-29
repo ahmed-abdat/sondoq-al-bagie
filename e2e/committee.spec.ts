@@ -61,6 +61,10 @@ test("late reminders: «ذكّر الجميع بالترتيب» walks the list 
   await expect(walk.locator(".bq-ml-walk-t")).not.toHaveText(first!);
   await walk.getByRole("button", { name: "إيقاف" }).click();
   await expect(walk).toHaveCount(0);
+  // only what the app knows: the draft opened, not that it was sent (QA pass 5)
+  const row = page.locator("li", { hasText: first!.trim() }).first();
+  await expect(row).toContainText("فُتحت رسالة واتساب");
+  await expect(page.getByText(/ذُكّر/)).toHaveCount(0);
 });
 
 test("hub, demo queue: empty (?demoQueue=0) says so and offers a cash record", async ({ page }) => {

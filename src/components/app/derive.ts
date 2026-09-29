@@ -468,8 +468,11 @@ export const ROLE_LABEL = {
   committee: "مشرف",
 } as const;
 
-/** «ذُكّر قبل 3 أيام» / «ذُكّر أمس» / «لم يُذكَّر بعد». */
+/**
+ * What the log knows: a WhatsApp draft was opened, not that it was sent (QA pass 5).
+ * «فُتحت رسالة واتساب · قبل 3 أيام» / «… · أمس» / «لم تُفتح له رسالة بعد».
+ */
 export function remindedLabel(iso: string | null, now: Date = new Date()) {
-  if (!iso) return "لم يُذكَّر بعد";
-  return `ذُكّر ${relativeAgo(iso, now).replace(/^منذ /, "قبل ")}`;
+  if (!iso) return "لم تُفتح له رسالة بعد";
+  return `فُتحت رسالة واتساب · ${relativeAgo(iso, now).replace(/^منذ /, "قبل ")}`;
 }

@@ -181,8 +181,8 @@ export function LateList({
                             : now
                               ? remindedLabel(last, now)
                               : last
-                                ? "ذُكّر من قبل"
-                                : "لم يُذكَّر بعد"
+                                ? "فُتحت له رسالة من قبل"
+                                : "لم تُفتح له رسالة بعد"
                           : "لا يوجد رقم هاتف"}
                       </span>
                     </span>
@@ -191,7 +191,7 @@ export function LateList({
                       className="bq-icon-btn bq-press"
                       disabled={!a.phone}
                       onClick={() => remind(a)}
-                      aria-label={`ذكّر ${a.fullName} عبر واتساب`}
+                      aria-label={`افتح رسالة التذكير في واتساب: ${a.fullName}`}
                     >
                       {I.wa(22)}
                     </button>
