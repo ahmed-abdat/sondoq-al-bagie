@@ -77,4 +77,9 @@ test("pay late months from a member's credit (M7)", async ({ page }) => {
   await expect(s).toContainText("من يوليو إلى سبتمبر 2026");
   await s.getByRole("button", { name: "ادفع 3 أشهر" }).click();
   await expect(page.getByText(/دُفعت رسوم 3 أشهر من رصيد/)).toBeVisible();
+  // the demo store takes the months off her arrears and the credit down to 500
+  await page.locator("button.bq-row").first().click();
+  const again = page.getByRole("dialog").last();
+  await expect(again).toContainText(/له رصيد 500 أوقية، لا يكفي لشهر كامل\./);
+  await expect(again).not.toContainText("متأخر");
 });

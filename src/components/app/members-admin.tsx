@@ -748,9 +748,30 @@ export function MembersAdmin({
     () =>
       [...server, ...demo.members]
         .map((m) => ({ ...m, ...demo.memberPatch[m.memberId] }))
+        .map((m) => {
+          // demo: months paid from credit here leave the arrears
+          const paid = demo.creditPaid[m.memberId]?.length ?? 0;
+          if (!paid) return m;
+          const p = prices[m.groupCode] ?? 0;
+          return {
+            ...m,
+            monthsBehind: Math.max(0, m.monthsBehind - paid),
+            monthsPaidThisYear: m.monthsPaidThisYear + paid,
+            amountOwed: Math.max(0, m.amountOwed - paid * p),
+          };
+        })
         .sort((a, b) => a.listCode.localeCompare(b.listCode) || a.number - b.number),
-    [server, demo.members, demo.memberPatch],
+    [server, demo.members, demo.memberPatch, demo.creditPaid, prices],
   );
+  const creditOf = (id: string, group: string): MemberCredit | undefined => {
+    const c = credit[id];
+    const paid = demo.creditPaid[id];
+    if (!c || !paid?.length) return c;
+    return {
+      amount: Math.max(0, c.amount - paid.length * (prices[group] ?? 0)),
+      months: c.months.filter((k) => !paid.includes(k)),
+    };
+  };
   const [q, setQ] = useState("");
   const [st, setSt] = useState<SF>("active");
   const [sheet, setSheet] = useState<{ t: "add" } | { t: "member"; id: string } | null>(null);
@@ -888,7 +909,7 @@ export function MembersAdmin({
             members={members}
             thisMonth={thisMonth}
             admin={admin}
-            credit={credit[open.memberId]}
+            credit={creditOf(open.memberId, open.groupCode)}
             price={prices[open.groupCode] ?? 0}
             onDone={done}
           />
