@@ -343,7 +343,7 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   phones: no circles. Each of the 12 month cells (header 1–12, January on the right) shows a
   green ✓ badge (filled green disc, white check, like the prototype's ✓) when the month is paid
   (ahead too); empty when unpaid, not owed or still to come. No current-month emphasis in the grid.
-  No status text, no separate ✓ column. Group band counts («11 من 20 دفعوا رسوم سبتمبر»), numbers,
+  No status text, no separate ✓ column. Group band: name, «68 عضوًا» and the fee (r20), numbers,
   names, striping unchanged.
 - Legend «✓ مدفوع» + «1 = يناير … 12 = ديسمبر». The share sheet's «✓ يعني» option and its
   `bq-report-check` setting are gone; share-report.ts renders once per ReportInput again.
@@ -352,6 +352,30 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   aria-label «مدفوع: يناير، …».
 - `src/lib/report-check.ts` is now just `monthPaid`. e2e: 1 test in `report.spec.ts` (grid + no
   option), suite 62/62 on fixtures. Shots `/private/tmp/claude-502/sondoq-shots/r19/`.
+
+## «روابط الأعضاء» (owner decision r20, prototype C of proto/member-links)
+- `/committee/member-links` (`requireCommittee`, any committee role), linked from the hub menu
+  («روابط الأعضاء») and from the top of «الأعضاء». View `src/components/app/member-links.tsx`,
+  pure model `member-links-model.ts` (+ test), styles `bq-ml-*`.
+- Active members only, by fee group («المجموعة أ» «3/20»), paper order. Header «X من Y أُرسل ·
+  بقي Z» + «أرسل للجميع بالترتيب». Rows: number, name (+ ✓ sent / ✓✓ used, from lastUsedAt),
+  «بلا رقم هاتف», a filled WhatsApp button when not sent, a soft «رابط جديد» when sent (calm
+  confirm «سيتوقف الرابط القديم. أرسل رابطًا جديدًا؟», the old URL cannot be shown again).
+  Legend «✓ أُرسل · ✓✓ يستخدمه». Walk card pinned on top (sticky): current member, «أرسل في
+  واتساب», «تخطَّ», «إيقاف»; advances after a send; the current row is tinted.
+- Send = `createMemberLink` (useAct, safeAct; demo stub) then `location.href = waLink(phone,
+  linkMessage(name, url))` in the same tab: a new window after an await is blocked on iOS; wa.me
+  opens the app on Android / the in-app sheet in an iOS PWA and the page stays. No phone → wa.me
+  without a number (WhatsApp asks whom). Message = the member sheet's `linkMessage` (the three
+  owner lines + «افتحه لترى رسومك… لا ترسله لغيرك.», one message for both places).
+- e2e `e2e/member-links.spec.ts` (2; wa.me answered 204 so the page stays). Suite 64/64 on
+  fixtures. Shots `/private/tmp/claude-502/sondoq-shots/r20/`.
+
+## Report group band without the month count (owner decision r20)
+- Image pages and PDF (`report-pages.ts` `drawMembers`): «X من Y دفعوا رسوم …» removed; the band
+  keeps «المجموعة أ», then «68 عضوًا» (`membersWord`, tested) and «الرسوم الشهرية: … أوقية».
+  /report group headers never had it (name + count). The summary image and /report summary keep
+  their paid line (not a group header).
 
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
