@@ -2313,6 +2313,9 @@
 /* ───── view transitions ───── */
 ::view-transition {
   pointer-events: none;
+  /* under dir=rtl the overlay box is anchored to the right edge and paints the page off-screen */
+  left: 0;
+  right: auto;
 }
 ::view-transition-old(root),
 ::view-transition-new(root) {
