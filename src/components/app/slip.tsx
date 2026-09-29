@@ -99,7 +99,9 @@ export function PendingSlip({
           : await rejectPayment({ id: p.id, reason: why ?? "" });
       if (!res.ok) {
         setCollapsed(false);
-        setSt((cur) => (cur.s === s ? { ...cur, failed: res.message } : cur));
+        // stale_app has no message (the update toast speaks); the card still needs one
+        const why = res.message || "حدّث التطبيق ثم أعد المحاولة.";
+        setSt((cur) => (cur.s === s ? { ...cur, failed: why } : cur));
         return;
       }
       const d = res.data as

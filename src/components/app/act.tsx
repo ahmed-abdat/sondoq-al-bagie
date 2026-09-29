@@ -3,6 +3,7 @@
 // `@/lib/data/actions`. In demo mode (see demo.ts) every call is simulated here after ~400 ms,
 // updates a local store so the screens react, and never reaches the server.
 import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
+import { reportActionError } from "@/components/providers";
 import * as real from "@/lib/data/actions";
 import type {
   ActionResult,
@@ -427,11 +428,11 @@ export function DemoProvider({ demo: on, children }: { demo: boolean; children: 
 }
 export const useIsDemo = () => useContext(DemoCtx);
 
-const safeAll = (acts: Record<string, unknown>) =>
+const safeAll = (acts: Record<string, unknown>, report?: (e: unknown) => boolean) =>
   Object.fromEntries(
     Object.entries(acts).map(([k, f]) => [
       k,
-      typeof f === "function" ? safeAct(f as () => Promise<ActionResult<unknown>>) : f,
+      typeof f === "function" ? safeAct(f as () => Promise<ActionResult<unknown>>, report) : f,
     ]),
   ) as Actions;
 
@@ -448,7 +449,8 @@ const DEMO_ACTIONS = safeAll(
     }),
   ),
 );
-const REAL_ACTIONS = safeAll(real);
+// an action the server no longer knows (a deploy since this page loaded): Lane B shows «تحديث»
+const REAL_ACTIONS = safeAll(real, reportActionError);
 
 /** Committee actions: real server actions, or simulated ones in demo mode (stable identities). */
 export function useAct(): Actions {

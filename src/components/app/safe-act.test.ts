@@ -13,4 +13,13 @@ describe("safeAct", () => {
     });
     expect(await f()).toEqual({ ok: false, code: "network", message: MESSAGES.network });
   });
+  it("an error reported elsewhere (old app) is stale_app with no message", async () => {
+    const f = safeAct(
+      async () => {
+        throw new Error("gone");
+      },
+      () => true,
+    );
+    expect(await f()).toEqual({ ok: false, code: "stale_app", message: "" });
+  });
 });
