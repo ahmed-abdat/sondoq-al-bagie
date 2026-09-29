@@ -46,6 +46,7 @@ const report = (members: ReportMember[], expenses: ReportExpense[] = []): Report
     expensesComplete: true,
     campaigns: [],
     showAmountOwed: false,
+    groupPrices: { A: 1000, B: 500 },
     generatedAt: "2026-09-28T10:00:00.000Z",
   }) as ReportData;
 

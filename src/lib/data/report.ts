@@ -7,6 +7,7 @@ import type {
   Expense,
   FundInfo,
   FundSummary,
+  GroupPrice,
   MemberMonth,
   MemberStatus,
   MonthlyCollection,
@@ -32,6 +33,7 @@ export type ReportInput = {
   expenses: Expense[];
   campaigns: CampaignProgress[];
   info: FundInfo;
+  prices: GroupPrice[];
   now: Date;
 };
 
@@ -106,6 +108,10 @@ export function assembleReport(i: ReportInput): ReportData {
       balance: c.balance,
     })),
     showAmountOwed: i.info.showAmountOwed,
+    groupPrices: {
+      A: i.prices.find((p) => p.year === i.year && p.group === "A")?.monthlyAmount ?? 0,
+      B: i.prices.find((p) => p.year === i.year && p.group === "B")?.monthlyAmount ?? 0,
+    },
     generatedAt: i.now.toISOString(),
   };
 }
@@ -116,16 +122,18 @@ export async function loadReport(
   now: Date = new Date(),
 ): Promise<ReportData> {
   const year = opts.year ?? now.getUTCFullYear();
-  const [summary, terms, monthly, members, months, expenses, campaigns, info] = await Promise.all([
-    read.fundSummary(c),
-    read.terms(c),
-    read.monthlyCollection(c, year),
-    read.members(c),
-    read.memberMonths(c, year),
-    read.recentExpenses(c),
-    read.campaigns(c),
-    read.fundInfo(c),
-  ]);
+  const [summary, terms, monthly, members, months, expenses, campaigns, info, prices] =
+    await Promise.all([
+      read.fundSummary(c),
+      read.terms(c),
+      read.monthlyCollection(c, year),
+      read.members(c),
+      read.memberMonths(c, year),
+      read.recentExpenses(c),
+      read.campaigns(c),
+      read.fundInfo(c),
+      read.groupPrices(c, year),
+    ]);
   return assembleReport({
     year,
     term: opts.term,
@@ -137,6 +145,7 @@ export async function loadReport(
     expenses,
     campaigns,
     info,
+    prices,
     now,
   });
 }

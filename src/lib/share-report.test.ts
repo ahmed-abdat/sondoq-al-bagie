@@ -188,6 +188,7 @@ describe("reportSummary (ReportData → card)", () => {
     expensesComplete: true,
     campaigns: [],
     showAmountOwed: false,
+    groupPrices: { A: 1000, B: 500 },
     generatedAt: "2026-09-28T10:00:00.000Z",
     ...over,
   });

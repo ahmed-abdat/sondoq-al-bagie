@@ -79,6 +79,7 @@ export async function getReport(opts: ReportOptions = {}) {
       expenses: [],
       campaigns: [],
       info: toFundInfo(null),
+      prices: [],
       now,
     })
   );

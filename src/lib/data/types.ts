@@ -426,6 +426,8 @@ export type ReportData = {
   expensesComplete: boolean;
   campaigns: ReportCampaign[];
   showAmountOwed: boolean;
+  /** «الرسوم الشهرية» per group for `year`, MRO (0 when no price is set) */
+  groupPrices: Record<"A" | "B", number>;
   generatedAt: string;
 };
 
