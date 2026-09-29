@@ -4,12 +4,13 @@ import { redirect } from "next/navigation";
 // SONDOQ_FIXTURES=1 it serves the fictional fixtures instead (screenshots, dev without a seeded
 // database). This is the ONLY file that imports ./fixtures.
 import * as data from "@/lib/data";
-import type { ActivityItem, CommitteeRole, Expense, ReportData } from "@/lib/data/types";
-import { categoryLabel, currentDueMonth, monthCount, relativeAgo } from "./derive";
+import type { CommitteeRole, ReportData } from "@/lib/data/types";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberIndex, toMemberRows } from "@/lib/data/member-lists";
 import * as fx from "./fixtures";
 import { fromVerified } from "./receipt-model";
+import { toLedger } from "./ledger";
+import { assembleReport } from "@/lib/data/report";
 import type { LedgerEntry, MyProfile } from "./types";
 
 export const usingFixtures = process.env.SONDOQ_FIXTURES === "1";
@@ -69,43 +70,7 @@ const activity = () => pick(fx.fxActivity, () => data.getActivity());
 /** Confirmed payments (from the activity feed) + expenses, newest first. */
 export async function ledger(): Promise<LedgerEntry[]> {
   const [acts, exps] = await Promise.all([activity(), expenses()]);
-  const now = today();
-  const pay = acts
-    .filter(
-      (a): a is Extract<ActivityItem, { kind: "payment_confirmed" }> =>
-        a.kind === "payment_confirmed",
-    )
-    .map((a): LedgerEntry => ({
-      id: `p-${a.paymentId}`,
-      paymentId: a.paymentId,
-      kind: a.months > 0 ? "payment" : "donation",
-      title: a.memberNames,
-      sub:
-        a.months >= 12
-          ? "رسوم السنة كاملة"
-          : a.months > 0
-            ? `رسوم ${monthCount(a.months)}`
-            : "مساهمة في حملة",
-      amount: a.amount,
-      at: a.at,
-      when: relativeAgo(a.at, now),
-      method: a.method,
-      code: a.receiptCode,
-    }));
-  const out = exps.map((e: Expense): LedgerEntry => ({
-    id: `e-${e.id}`,
-    kind: "expense",
-    title: e.note ?? categoryLabel(e.category),
-    sub: `${categoryLabel(e.category)} · صرفته اللجنة`,
-    amount: e.amount,
-    at: `${e.spentOn}T12:00:00Z`,
-    when: relativeAgo(`${e.spentOn}T12:00:00Z`, now),
-    method: null,
-    code: null,
-    category: e.category,
-    note: e.note,
-  }));
-  const all = [...pay, ...out].sort((a, b) => b.at.localeCompare(a.at));
+  const all = toLedger(acts, exps, today());
   // Preload the public receipt of the latest payments (cached per code on the server).
   await Promise.all(
     all
@@ -181,55 +146,26 @@ export const committeeAccounts = () =>
 /** The fund report (/report). Fixtures assemble the same shape from the fictional data. */
 export async function report(): Promise<ReportData> {
   if (!usingFixtures) return data.getReport();
+  // the same assembly as production, fed with the fixtures
   const year = thisYear();
-  const due = currentDueMonth(today(), fx.fxInfo().graceDays);
-  const months = fx.fxMemberMonths();
-  const summary = fx.fxSummary();
-  return {
+  return assembleReport({
     year,
-    summary,
-    term: fx.fxTerms().find((t) => !t.endedOn) ?? null,
+    summary: fx.fxSummary(),
+    terms: fx.fxTerms(),
     monthly: fx.fxMonthly(),
-    members: fx.fxMembers().map((m) => {
-      const mine = months.filter((x) => x.memberId === m.memberId);
-      return {
-        memberId: m.memberId,
-        memberRef: m.memberRef,
-        fullName: m.fullName,
-        groupCode: m.groupCode,
-        status: m.status,
-        statusLabel: m.statusLabel,
-        months: Array.from({ length: 12 }, (_, i) => {
-          const st = mine.find((x) => x.month === i + 1)?.state ?? "upcoming";
-          return st === "paid" && i + 1 > due ? "prepaid" : st;
-        }),
-        monthsPaid: m.monthsPaidThisYear,
-        monthsBehind: m.monthsBehind,
-        amountOwed: null,
-      };
-    }),
-    expenses: fx.fxExpenses().map((e) => ({
-      spentOn: e.spentOn,
-      category: e.category,
-      categoryLabel: categoryLabel(e.category),
-      note: e.note,
-      amount: e.amount,
-      campaignId: e.campaignId,
+    members: fx.fxMembers(),
+    months: fx.fxMemberMonths(),
+    expenses: fx.fxExpenses(),
+    campaigns: fx.fxCampaigns(),
+    info: fx.fxInfo(),
+    prices: Object.entries(fx.FX_PRICE).map(([group, monthlyAmount]) => ({
+      year,
+      group,
+      groupName: `المجموعة ${group}`,
+      monthlyAmount,
     })),
-    expensesComplete: true,
-    campaigns: fx.fxCampaigns().map((c) => ({
-      campaignId: c.campaignId,
-      title: c.title,
-      status: c.status,
-      targetAmount: c.targetAmount,
-      collected: c.collected,
-      spent: c.spent,
-      balance: c.balance,
-    })),
-    showAmountOwed: false,
-    groupPrices: { A: 1000, B: 500 },
-    generatedAt: today().toISOString(),
-  };
+    now: today(),
+  });
 }
 /** Committee settings incl. the carried-over balance and its date (null if not readable). */
 export const fundSettings = () =>
