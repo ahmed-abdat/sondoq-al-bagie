@@ -234,6 +234,17 @@ export type FundSettings = FundInfo & {
   openingBalanceOn: string;
 };
 
+/** Last run of the weekly backup (committee settings card). */
+export type BackupStatus = {
+  ok: boolean;
+  /** ISO time of the last run */
+  lastRunAt: string;
+  /** ISO time of the last good file, null if none yet */
+  lastOkAt: string | null;
+  /** file path when ok, a short technical error otherwise */
+  detail: string | null;
+};
+
 export type Allocation =
   | {
       kind: "months";

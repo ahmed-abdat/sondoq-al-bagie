@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m15; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m16; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -640,6 +640,26 @@ select tests.throws($$select app_private.record_payment(gen_random_uuid(), 'x', 
   'nor the moved definer function directly');
 select public.verify_receipt('BQ-XXXX-0000');
 select tests.ok(true, 'anon still verifies receipts through the wrapper');
+
+/* ───────────── M16: backup snapshot and job runs ───────────── */
+
+select tests.login('server');
+select tests.ok((select jsonb_array_length(x -> 'members') = (select count(*) from public.members)
+                        and jsonb_array_length(x -> 'audit_log') = (select count(*) from public.audit_log)
+                        and x ?& array['members', 'audit_log'] and not x ? 'payments'
+                 from (select public.backup_snapshot(array['members', 'audit_log']) x) s),
+  'backup_snapshot returns exactly the listed tables, every row');
+select tests.throws($$select public.backup_snapshot(array['members', 'nope'])$$, 'invalid_input', 'unknown tables are refused');
+select tests.throws($$select public.backup_snapshot(array['users'])$$, 'invalid_input', 'only public tables');
+insert into public.job_runs (job, last_run_at, ok, detail, last_ok_at) values ('backup', now(), true, '2026/2026-09-28.json', now());
+select tests.login('admin');
+select tests.throws($$select public.backup_snapshot(array['members'])$$, '42501', 'the committee cannot call backup_snapshot');
+select tests.ok((select ok from public.job_runs where job = 'backup'), 'the committee reads the last backup result');
+select tests.throws($$insert into public.job_runs (job, last_run_at, ok) values ('backup', now(), false)$$, '42501',
+  'the committee cannot write job runs');
+select tests.login('public');
+select tests.throws($$select public.backup_snapshot(array['members'])$$, '42501', 'anon cannot call backup_snapshot');
+select tests.throws('select * from public.job_runs', '42501', 'anon cannot read job runs');
 
 /* ───────────── M8: terms and handover (keep last: it deactivates committee accounts) ───────────── */
 

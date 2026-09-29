@@ -24,6 +24,7 @@ export {
 } from "./public";
 export {
   getArrears,
+  getBackupStatus,
   getMembersAdmin,
   getCommitteeSession,
   getExpensesAdmin,

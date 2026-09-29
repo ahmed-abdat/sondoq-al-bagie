@@ -65,6 +65,8 @@ export const getHandovers = committee(read.handovers, []);
 export const getFundAccountsAdmin = committee(read.fundAccountsAdmin, []);
 /** Settings row with opening balance + date (null when signed out / not committee). */
 export const getFundSettings = committee(read.fundSettings, null);
+/** Last weekly backup run for the admin (null before the first run or when signed out). */
+export const getBackupStatus = committee(read.backupStatus, null);
 
 /** «حسابي»: the signed-in, active committee member's own account, or null. */
 export async function getMyProfile(): Promise<MyProfile | null> {

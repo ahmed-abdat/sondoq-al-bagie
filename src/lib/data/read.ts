@@ -6,6 +6,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import * as map from "./map";
 import type {
   ActivityItem,
+  BackupStatus,
   CommitteeAccount,
   ExpenseAdmin,
   FundAccountAdmin,
@@ -268,6 +269,17 @@ export async function fundSettings(c: Client): Promise<FundSettings | null> {
         openingBalance: r.opening_balance,
         openingBalanceOn: r.opening_balance_on,
       }
+    : null;
+}
+
+/** Last weekly backup run, or null before the first one. */
+export async function backupStatus(c: Client): Promise<BackupStatus | null> {
+  const r = must(
+    "job_runs",
+    await c.from("job_runs").select("*").eq("job", "backup").maybeSingle(),
+  );
+  return r
+    ? { ok: r.ok, lastRunAt: r.last_run_at, lastOkAt: r.last_ok_at, detail: r.detail }
     : null;
 }
 

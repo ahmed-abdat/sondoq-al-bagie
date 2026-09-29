@@ -418,6 +418,30 @@ export type Database = {
         }
         Relationships: []
       }
+      job_runs: {
+        Row: {
+          detail: string | null
+          job: string
+          last_ok_at: string | null
+          last_run_at: string
+          ok: boolean
+        }
+        Insert: {
+          detail?: string | null
+          job: string
+          last_ok_at?: string | null
+          last_run_at: string
+          ok: boolean
+        }
+        Update: {
+          detail?: string | null
+          job?: string
+          last_ok_at?: string | null
+          last_run_at?: string
+          ok?: boolean
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           created_at: string
@@ -1226,6 +1250,10 @@ export type Database = {
           p_status?: Database["public"]["Enums"]["membership_status"]
         }
         Returns: string
+      }
+      backup_snapshot: {
+        Args: { p_tables: string[] }
+        Returns: Json
       }
       cancel_expense: {
         Args: { p_expense_id: string; p_reason: string }
