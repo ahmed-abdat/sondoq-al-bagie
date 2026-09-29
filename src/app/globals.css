@@ -4382,3 +4382,20 @@
     color: var(--muted);
   }
 }
+@layer components {
+  /* a stopped committee account: a clear chip, the row dimmed by .is-off */
+  .bq-chip-off {
+    margin-inline-start: 8px;
+    background: var(--rej-tint);
+    color: var(--rej-ink);
+    vertical-align: middle;
+  }
+  /* «المزيد…» sits on its own line, away from the everyday actions */
+  .bq-row .bq-com-actions {
+    flex-wrap: wrap;
+    column-gap: 20px;
+  }
+  .bq-com-more {
+    margin-block-start: 4px;
+  }
+}
