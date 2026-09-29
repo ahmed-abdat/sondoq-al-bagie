@@ -18,6 +18,8 @@ import { fromPending, toShareable, type ReceiptView } from "./receipt-model";
 
 const REASONS = ["المبلغ غير صحيح", "رقم العملية مكرر", "الصورة غير واضحة", "أخرى"];
 const UNDO_MS = 5000;
+/** no answer after this long: say so and offer to send again */
+const STALL_MS = 15000;
 
 type St =
   | { s: "pending"; error?: string }
@@ -54,6 +56,9 @@ export function PendingSlip({
   const [pick, setPick] = useState("");
   const [other, setOther] = useState("");
   const [collapsed, setCollapsed] = useState(false);
+  /** bumped on every send; the stall timer restarts with it */
+  const [tries, setTries] = useState(0);
+  const [stalled, setStalled] = useState(false);
   const timer = useRef<number | null>(null);
   const send = useRef<(() => Promise<void>) | null>(null);
 
@@ -86,6 +91,8 @@ export function PendingSlip({
     if (s === "confirmed" && !prefersReduced())
       window.setTimeout(() => navigator.vibrate?.(12), 250);
     send.current = async () => {
+      setTries((n) => n + 1);
+      setStalled(false);
       const res =
         s === "confirmed"
           ? await confirmPayment({ id: p.id })
@@ -117,6 +124,13 @@ export function PendingSlip({
       void send.current?.();
     }, UNDO_MS);
   };
+  // sent but no answer yet (slow network, or the request was dropped): after a while say so
+  const waiting = collapsed && st.s !== "pending" && !st.sent && !st.failed;
+  useEffect(() => {
+    if (!waiting) return;
+    const t = window.setTimeout(() => setStalled(true), STALL_MS);
+    return () => clearTimeout(t);
+  }, [waiting, tries]);
   const retry = () => {
     setSt((cur) => (cur.s === "pending" ? cur : { ...cur, failed: undefined }));
     void send.current?.();
@@ -143,7 +157,32 @@ export function PendingSlip({
         }
       : null;
 
-  if (collapsed && st.s !== "pending" && !st.failed)
+  if (waiting)
+    return (
+      <div className="bq-slip-one is-sending" role="status">
+        <span className="bq-row-t">{p.payerName}</span>
+        <Num className="bq-amt">{fmt(p.amount)}</Num>
+        {stalled ? (
+          <>
+            <p className="bq-hint bq-slip-one-w">
+              لم يصل {st.s === "confirmed" ? "التأكيد" : "الرفض"} بعد. تحقق من الإنترنت ثم اضغط أعد
+              المحاولة.
+            </p>
+            <button
+              type="button"
+              className="bq-btn bq-btn-tonal bq-press"
+              disabled={!online}
+              onClick={retry}
+            >
+              أعد المحاولة
+            </button>
+          </>
+        ) : (
+          <span className="bq-hint">جارٍ الإرسال…</span>
+        )}
+      </div>
+    );
+  if (collapsed && st.s !== "pending" && st.sent && !st.failed)
     return (
       <div className="bq-slip-one">
         {st.s === "confirmed" ? (

@@ -1514,6 +1514,15 @@
     flex: 1;
     min-width: 0;
   }
+  /* sent, no answer yet: the note and the retry wrap under the name line */
+  .bq-slip-one.is-sending {
+    flex-wrap: wrap;
+    padding-block: 8px;
+  }
+  .bq-slip-one-w {
+    flex-basis: 100%;
+    margin: 0;
+  }
   .bq-rej {
     margin-block-start: 14px;
     display: flex;
