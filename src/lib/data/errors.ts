@@ -19,7 +19,6 @@ export const MESSAGES = {
   bad_login: "أدخل بريداً صحيحاً أو رقم هاتف موريتاني من 8 أرقام.",
   not_committee_account: "هذا الحساب ليس من حسابات اللجنة.",
   cannot_reset_self: "غيّر كلمة سرك من صفحة الإعدادات.",
-  already_registered: "هذا البريد له حساب من قبل. عدّل دوره بدلاً من دعوته.",
   weak_password: "كلمة السر قصيرة أو ضعيفة (8 أحرف على الأقل).",
   cannot_demote_self: "لا يمكنك سحب صلاحية المسؤول من نفسك.",
   cannot_delete_self: "لا يمكنك حذف حسابك.",
