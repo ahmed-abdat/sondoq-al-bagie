@@ -105,14 +105,44 @@ Tests: `node --test supabase/import/import-paper.test.mts` (also run by `tests/l
 
 ## Types
 
-After a schema change regenerate `src/lib/supabase/database.types.ts`
-(`supabase gen types typescript --project-id vhcdgxgwdlflmxmqnxzf > src/lib/supabase/database.types.ts`).
+`src/lib/supabase/database.types.ts` follows the **production** schema, so it is updated after a
+migration is applied:
+
+- `pnpm db:types` regenerates it from the project (needs the `supabase` CLI logged into the owner's
+  account; Prettier formats it). Review `git diff` and commit.
+- Without that login, use the Supabase MCP `generate_typescript_types`, or patch the file by hand
+  for the change (the Functions/Views/Tables entry of what the migration touched).
+- Local generation (`supabase gen types --db-url` against the `run.sh` database) needs Docker
+  (postgres-meta); it is not part of the workflow.
 
 ## Remote state
 
 Applied to project `vhcdgxgwdlflmxmqnxzf` on 2026-09-28 through the Supabase MCP. The file names
 match the remote migration versions, so `supabase db push` sees them as already applied.
 No seed data was applied remotely: only the groups and 2026 prices (`*_m1_groups.sql`).
+
+## Writing a migration
+
+- Name it `YYYYMMDDHHMMSS_mNN_<slug>.sql`. While testing before it is applied, use the placeholder
+  `29990101000000_mNN_<slug>.sql` and run `ALLOW_PLACEHOLDER=1 supabase/tests/local/run.sh`.
+- Remote schema changes go to the lead for review first. Apply with the Supabase MCP
+  (`apply_migration`, the exact file text), then check
+  `select md5(array_to_string(statements, E'\n')) from supabase_migrations.schema_migrations where version = '…'`
+  equals `md5 -q <file>`, and `git mv` the file to the recorded version. `run.sh` fails on a
+  placeholder or future version, and on two files with one version.
+- **New write RPC:** the body goes in `app_private.<name>` (`security definer set search_path = ''`,
+  re-check the caller's role inside, `app_private.fail('<code>')` for expected errors); add
+  `public.<name>` as a `language sql security invoker set search_path = ''` wrapper with the same
+  parameters and defaults (`select app_private.<name>(p_x => p_x, …)`); revoke all from public/anon,
+  grant execute on both to `authenticated, service_role`. A test fails if a SECURITY DEFINER
+  function lands in `public`.
+- **Change an RPC:** `create or replace function app_private.<name>`. Touch the wrapper only when
+  the signature changes (then drop and recreate both).
+- Every UPDATE/DELETE inside a function needs a WHERE (the API loads pg_safeupdate; run.sh checks).
+- Every new `fail('<code>')` / `hint = '<code>'` needs an Arabic message in
+  `src/lib/data/errors.ts` (a test reads the migrations and fails otherwise).
+- Add the undo at the top of `rollback/m2_down.sql`, tests to `tests/m1_test.sql`, a row to the
+  table above, and update `src/lib/supabase/database.types.ts` (see Types).
 
 ## Security advisor
 

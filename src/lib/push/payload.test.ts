@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parsePushPayload } from "@/lib/offline/push-payload";
 import { pendingPaymentPayload } from "./payload";
 
 describe("pendingPaymentPayload", () => {
@@ -30,5 +31,13 @@ describe("pendingPaymentPayload", () => {
       allocations: [{ kind: "campaign" }, { kind: "credit" }],
     });
     expect(p.body).toBe("سيدي · 1\u202f500 أوقية · تبرع · رصيد");
+  });
+
+  it("round-trips through the service worker parser (wire contract with Lane B)", () => {
+    const p = {
+      ...pendingPaymentPayload({ id: "p3", payerName: "سيدي", amount: 500, allocations: [] }),
+      badgeCount: 4,
+    };
+    expect(parsePushPayload(JSON.stringify(p))).toEqual(p);
   });
 });

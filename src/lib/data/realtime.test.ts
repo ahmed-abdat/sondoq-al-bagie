@@ -12,14 +12,10 @@ import {
 describe("realtime", () => {
   afterEach(() => vi.useRealTimers());
 
-  it("refreshes committee payments, arrears and public data after a payment change", () => {
+  it("refreshes the cached public data after a payment change (committee pages use router.refresh)", () => {
     const invalidateQueries = vi.fn();
     invalidateAfterPaymentChange({ invalidateQueries });
-    expect(invalidateQueries.mock.calls.map((c) => c[0].queryKey)).toEqual([
-      ["committee", "payments"],
-      ["committee", "arrears"],
-      ["public"],
-    ]);
+    expect(invalidateQueries.mock.calls.map((c) => c[0].queryKey)).toEqual([["public"]]);
   });
 
   it("classifies changes and finds who did them", () => {
