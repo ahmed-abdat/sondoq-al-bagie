@@ -85,6 +85,8 @@ const STATUS: Record<string, MembershipStatus> = {
   "B-33": "left",
   "B-60": "left",
 };
+/** Joined mid-year: the months before are «غير مستحق» (never offered on the record screen). */
+const JOINED: Record<string, number> = { "B-12": 6 };
 const RAW: Raw[] = Array.from({ length: 91 }, (_, i) => {
   const r = seeded(i + 3);
   const group: "A" | "B" = i < 21 ? "A" : "B";
@@ -98,7 +100,12 @@ const RAW: Raw[] = Array.from({ length: 91 }, (_, i) => {
     no,
     name: `${first[i % first.length]} ${last[Math.floor(i / first.length + r() * 3) % last.length]}`,
     group,
-    paid: status === "active" ? Array.from({ length: upTo }, (_, k) => k + 1) : [],
+    paid:
+      status !== "active"
+        ? []
+        : JOINED[`${group}-${no}`]
+          ? [JOINED[`${group}-${no}`]]
+          : Array.from({ length: upTo }, (_, k) => k + 1),
     status,
     phone: i % 6 === 5 ? null : `22240${String(10000 + i).slice(1)}`.slice(0, 11),
   };
@@ -107,7 +114,9 @@ const RAW: Raw[] = Array.from({ length: 91 }, (_, i) => {
 const owed = (m: Raw) =>
   m.status !== "active"
     ? []
-    : Array.from({ length: DUE }, (_, k) => k + 1).filter((k) => !m.paid.includes(k));
+    : Array.from({ length: DUE }, (_, k) => k + 1).filter(
+        (k) => !m.paid.includes(k) && k >= (JOINED[`${m.group}-${m.no}`] ?? 1),
+      );
 
 export function fxMembers(showOwed = false): MemberStatus[] {
   return RAW.map((m) => ({
@@ -131,7 +140,7 @@ export function fxMemberMonths(memberId?: string): MemberMonth[] {
       const month = k + 1;
       const state: MemberMonth["state"] = m.paid.includes(month)
         ? "paid"
-        : m.status !== "active"
+        : m.status !== "active" || month < (JOINED[`${m.group}-${m.no}`] ?? 1)
           ? "not_owed"
           : month <= DUE
             ? "late"
