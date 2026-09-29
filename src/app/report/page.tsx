@@ -10,7 +10,6 @@ import {
   isEmptyClosedCampaign,
   isGone,
   MONTHS,
-  statusLabel,
 } from "@/components/app/derive";
 import { MemberNo } from "@/components/app/bits";
 import { Collapsible } from "@/components/app/collapsible";
@@ -18,6 +17,7 @@ import { Engaged } from "@/components/app/engaged";
 import { SITE_URL } from "@/components/app/site";
 import { ReportShare } from "@/components/app/report-share";
 import * as src from "@/components/app/source";
+import { checkLabel, monthMark, rowChecked } from "@/lib/report-check";
 
 export const metadata: Metadata = {
   title: "تقرير الصندوق · صندوق الرابطة",
@@ -62,9 +62,8 @@ export default async function ReportPage() {
   const yearExpenses = r.expenses;
   const campaigns = r.campaigns.filter((c) => !isEmptyClosedCampaign(c));
 
-  // the report shows paid / late / not yet only (owner): paid-ahead months are simply paid
-  const dot = (st: string) =>
-    st === "paid" || st === "prepaid" ? "is-paid" : st === "late" ? "is-late" : "";
+  // ● paid (ahead or not), ○ unpaid (due or still to come), blank = not owed (owner decision)
+  const MARK = { paid: "مدفوع", unpaid: "غير مدفوع" } as const;
   const cards: { k: string; v: number; sign?: string }[] = [
     { k: "رصيد سابق", v: summary.openingBalance },
     { k: "جُمع من الرسوم", v: summary.moneyIn, sign: "+" },
@@ -161,7 +160,8 @@ export default async function ReportPage() {
       </Collapsible>
 
       <p className="rp-note rp-legend">
-        <span className="rp-d is-paid" /> مدفوع <span className="rp-d is-late" /> متأخر
+        <span className="rp-d is-paid" /> مدفوع <span className="rp-d is-late" /> غير مدفوع{" "}
+        <OkMark /> {checkLabel("now", month)}
       </p>
       {lists.map((l) => {
         const rows = shown.filter((m) => listOf(m) === l);
@@ -174,41 +174,33 @@ export default async function ReportPage() {
                     <MemberNo m={m} scoped />
                   </span>
                   <span className="rp-mname">{m.fullName}</span>
-                  <span className="rp-mst">
-                    {statusLabel(
-                      {
-                        status: m.status,
-                        monthsBehind: m.monthsBehind,
-                        monthsPaidThisYear: m.monthsPaid,
-                      },
-                      12,
-                    )}{" "}
-                    · دفع <Num>{m.monthsPaid}</Num> من <Num>12</Num> شهرًا
-                    {r.showAmountOwed && m.amountOwed ? (
-                      <>
-                        {" "}
-                        · <Num>{fmt(m.amountOwed)}</Num>
-                      </>
-                    ) : null}
+                  {r.showAmountOwed && m.amountOwed ? (
+                    <span className="rp-mst">
+                      عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num> أوقية
+                    </span>
+                  ) : null}
+                  <span className="rp-ok">
+                    {rowChecked(m, "now") ? <OkMark label={checkLabel("now", month)} /> : null}
                   </span>
                   <span
                     className="rp-dots"
                     aria-label={m.months
-                      .map((st, i) =>
-                        m.status !== "active" || !dot(st)
-                          ? ""
-                          : `${MONTHS[i]}: ${dot(st) === "is-paid" ? "مدفوع" : "متأخر"}`,
-                      )
+                      .map((st, i) => {
+                        const k = monthMark(st);
+                        return k ? `${MONTHS[i]}: ${MARK[k]}` : "";
+                      })
                       .filter(Boolean)
                       .join("، ")}
                   >
-                    {/* only paid and late months get a dot; not-due months and exempt rows stay empty */}
+                    {/* every owed month of the year: ● or ○; months not owed stay empty */}
                     {m.months.map((st, i) => {
-                      const d = m.status === "active" ? dot(st) : "";
-                      return d ? (
-                        <span key={i} className={`rp-d ${d}`} title={MONTHS[i]} />
-                      ) : (
-                        <span key={i} className="rp-d is-none" aria-hidden="true" />
+                      const k = monthMark(st);
+                      return (
+                        <span
+                          key={i}
+                          className={`rp-d ${k === "paid" ? "is-paid" : k ? "is-late" : "is-none"}`}
+                          aria-hidden="true"
+                        />
                       );
                     })}
                   </span>
@@ -279,6 +271,31 @@ export default async function ReportPage() {
         صندوق الرابطة · {ASSOC} · رابط التحقق: <ReportLink />
       </footer>
     </main>
+  );
+}
+
+/** The row's ✓ (a green disc with a white check), as on the shared images. */
+function OkMark({ label }: { label?: string }) {
+  return (
+    <svg
+      className="rp-okm"
+      viewBox="0 0 32 32"
+      width="18"
+      height="18"
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    >
+      <circle cx="16" cy="16" r="16" fill="var(--g7)" />
+      <path
+        d="M9 16l5 5 10-11"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

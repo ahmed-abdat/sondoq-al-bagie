@@ -4,6 +4,8 @@
 // at once and stays within the browser's "user activation" window.
 import { useEffect, useState } from "react";
 import type { ReportData } from "@/lib/data/types";
+import { checkLabel, CHECK_MEANINGS, type CheckMeaning } from "@/lib/report-check";
+import { safeStorage } from "@/lib/safe-storage";
 import {
   prepareReportShare,
   shareReportImages,
@@ -12,6 +14,14 @@ import {
 } from "@/lib/share-report";
 import { I } from "./icons";
 import { Sheet } from "./sheet";
+
+// «✓ يعني»: the last choice is kept on this device
+const CHECK_KEY = "bq-report-check";
+const CHECK_CHIP: Record<CheckMeaning, string> = { now: "دفع حتى الآن", year: "دفع السنة كاملة" };
+const readCheck = (): CheckMeaning => {
+  const v = safeStorage.getItem(CHECK_KEY);
+  return CHECK_MEANINGS.includes(v as CheckMeaning) ? (v as CheckMeaning) : "now";
+};
 
 type Result = "shared" | "whatsapp" | "cancelled" | "downloaded" | "retry" | "copied";
 
@@ -28,14 +38,27 @@ export function ReportShare({ data, autoOpen = false }: { data: ReportData; auto
   const [busy, setBusy] = useState<string | null>(null);
   const [retry, setRetry] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [check, setCheck] = useState<CheckMeaning>("now");
+  const month = new Date(data.generatedAt).getUTCMonth() + 1;
   useEffect(() => {
     if (!autoOpen && window.location.hash !== "#share") return;
     const t = window.setTimeout(() => setOpen(true));
     return () => clearTimeout(t);
   }, [autoOpen]);
   useEffect(() => {
-    if (open) prepareReportShare(data);
-  }, [open, data]);
+    if (!open) return;
+    const t = window.setTimeout(() => setCheck(readCheck()));
+    return () => clearTimeout(t);
+  }, [open]);
+  useEffect(() => {
+    if (open) prepareReportShare(data, undefined, check);
+  }, [open, data, check]);
+  const pickCheck = (c: CheckMeaning) => {
+    setCheck(c);
+    setRetry(null);
+    setMsg("");
+    safeStorage.setItem(CHECK_KEY, c);
+  };
 
   const run = async (key: string, f: () => Promise<Result>) => {
     setBusy(key);
@@ -68,14 +91,14 @@ export function ReportShare({ data, autoOpen = false }: { data: ReportData; auto
       icon: I.image(24),
       title: "صور التقرير (واتساب)",
       sub: "صفحات التقرير صورًا، تُرسل دفعة واحدة",
-      run: () => shareReportImages(data),
+      run: () => shareReportImages(data, undefined, { check }),
     },
     {
       key: "pdf",
       icon: I.save(24),
       title: "ملف PDF",
       sub: "التقرير كاملًا في ملف واحد",
-      run: () => shareReportPdf(data),
+      run: () => shareReportPdf(data, undefined, { check }),
     },
     {
       key: "summary",
@@ -118,6 +141,31 @@ export function ReportShare({ data, autoOpen = false }: { data: ReportData; auto
         <Sheet label="مشاركة التقرير" onDone={() => setOpen(false)}>
           <div className="bq-rec">
             <h2>مشاركة التقرير</h2>
+            <div className="rp-check">
+              <p className="bq-rej-l" id="rp-check-l">
+                ✓ يعني:
+              </p>
+              <div className="bq-chips" role="radiogroup" aria-labelledby="rp-check-l">
+                {CHECK_MEANINGS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={check === c}
+                    className="bq-chip bq-press"
+                    disabled={!!busy}
+                    onClick={() => pickCheck(c)}
+                  >
+                    {CHECK_CHIP[c]}
+                  </button>
+                ))}
+              </div>
+              <p className="bq-row-s rp-check-k" aria-label="المفتاح في الصور وملف PDF">
+                <span>● مدفوع</span>
+                <span>○ غير مدفوع</span>
+                <span>✓ {checkLabel(check, month)}</span>
+              </p>
+            </div>
             <ul className="bq-list bq-menu rp-share">
               {options.map((o) => (
                 <li key={o.key}>
