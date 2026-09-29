@@ -231,6 +231,7 @@ const demo: Partial<Actions> = {
   },
   setCommitteeActive: async () => ok(undefined),
   setCommitteeMember: async () => ok(undefined),
+  deleteCommitteeAccount: async () => ok(undefined),
   async startHandover(p) {
     const h: Handover = {
       id: p.id,
