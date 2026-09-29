@@ -8,7 +8,7 @@ type Win = { __opened: string[]; __printed: number; __shared: SharedFile[]; __te
 
 const heading = (page: Page) => page.getByRole("heading", { level: 1, name: /تقرير صندوق/ });
 const win = <K extends keyof Win>(page: Page, k: K): Promise<Win[K]> =>
-  page.evaluate((key) => (window as unknown as Win)[key], k);
+  page.evaluate((key) => (window as unknown as Win)[key], k) as Promise<Win[K]>;
 
 async function waitForServiceWorker(page: Page) {
   await page.evaluate(async () => {
