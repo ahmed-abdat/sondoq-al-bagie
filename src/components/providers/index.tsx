@@ -8,12 +8,13 @@ import { OfflineBanner } from "./offline-banner";
 import { OnlineSync } from "./online";
 import { PullToRefresh } from "./pull-to-refresh";
 import { AppToaster } from "./toaster";
-import { InstallCapture, InstallWatcher } from "./install";
+import { InstallBanner, InstallCapture, InstallWatcher } from "./install";
 import { SaveVisitedPages, ServiceWorkerUpdates } from "./sw-update";
 
 export { useOnline } from "./online";
 export { OfflineBanner, OfflineWriteHint } from "./offline-banner";
 export {
+  InstallBanner,
   InstallCard,
   InstallEntry,
   InstallSheet,
@@ -68,6 +69,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <PullToRefresh />
         {children}
         <InstallWatcher />
+        <InstallBanner />
         <AppToaster />
       </PersistQueryClientProvider>
     </>

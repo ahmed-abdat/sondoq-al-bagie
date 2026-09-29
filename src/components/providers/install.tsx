@@ -5,8 +5,9 @@
 // - The tap calls `prompt()` synchronously in the click handler (user activation), once per event.
 // - No dialog available (in-app browser, iPhone, Chrome not ready yet): a sheet with the exact
 //   steps, never a dead button.
-// - Invite on the second day of use or after a meaningful action, not for 14 days after «ليس الآن»;
-//   `InstallEntry` is the quiet permanent entry for a menu or settings page.
+// - InstallBanner: a slim bar above the bottom nav, from the second visit or after a meaningful
+//   action, once per session, never over an open sheet or while typing; each «✕» pushes the next
+//   showing back 1, 3, 7, 14, then 30 days. `InstallEntry` is the quiet permanent entry for menus.
 import {
   CopyIcon,
   DownloadIcon,
@@ -14,16 +15,21 @@ import {
   ExternalLinkIcon,
   XIcon,
 } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Sheet } from "@/components/app/sheet";
 import {
+  BACKOFF_KEY,
+  bannerAllowedOn,
   chromeIntentUrl,
   DISMISS_KEY,
   ENGAGED_KEY,
   installMode,
   recordVisitDay,
+  SESSIONS_KEY,
   shouldInvite,
+  snooze,
   VISITS_KEY,
   type InstallMode,
 } from "@/lib/offline/install";
@@ -125,10 +131,38 @@ export function markInstallEngaged() {
 function inviteNow(): boolean {
   return shouldInvite({
     visitDays: safeStorage.getItem(VISITS_KEY),
+    sessions: Number(safeStorage.getItem(SESSIONS_KEY)) || 0,
     engaged: engagedNow || safeStorage.getItem(ENGAGED_KEY) === "1",
+    backoff: safeStorage.getItem(BACKOFF_KEY),
     dismissedAt: safeStorage.getItem(DISMISS_KEY),
   });
 }
+
+/** «✕» / «ليس الآن» / the dialog dismissed: next showing after 1, 3, 7, 14, then 30 days. */
+function snoozeInvite() {
+  safeStorage.setItem(BACKOFF_KEY, snooze(safeStorage.getItem(BACKOFF_KEY)));
+  emit();
+}
+
+/** sessionStorage, quietly (private modes). */
+const session = {
+  get(k: string) {
+    try {
+      return sessionStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  },
+  set(k: string, v: string) {
+    try {
+      sessionStorage.setItem(k, v);
+    } catch {
+      /* not remembered: at worst the banner shows again after a reload */
+    }
+  },
+};
+const SESSION_SEEN = "sondoq:session";
+const BANNER_SHOWN = "sondoq:install-banner-shown";
 
 /** Current install mode ("installed" on the server and while hydrating). */
 export function useInstallMode(): InstallMode {
@@ -145,6 +179,12 @@ export function InstallWatcher() {
       VISITS_KEY,
       recordVisitDay(safeStorage.getItem(VISITS_KEY), new Date().toISOString().slice(0, 10)),
     );
+    if (!session.get(SESSION_SEEN)) {
+      session.set(SESSION_SEEN, "1");
+      const n = (Number(safeStorage.getItem(SESSIONS_KEY)) || 0) + 1;
+      safeStorage.setItem(SESSIONS_KEY, String(Math.min(n, 99)));
+      emit();
+    }
     const nav = navigator as Navigator & {
       getInstalledRelatedApps?: () => Promise<{ platform: string }[]>;
     };
@@ -168,7 +208,7 @@ export function InstallWatcher() {
 /* ───────────── UI ───────────── */
 
 /** One tap: the browser's dialog when there is one, else the steps sheet. */
-function useInstallAction() {
+function useInstallAction(onLater?: () => void) {
   const mode = useInstallMode();
   const [sheet, setSheet] = useState<InstallMode | null>(null);
   const start = (onOutcome?: (o: "accepted" | "dismissed") => void) => {
@@ -185,54 +225,140 @@ function useInstallAction() {
   };
   const sheetEl =
     sheet && sheet !== "installed" && sheet !== "native" ? (
-      <InstallSheet mode={sheet} onDone={() => setSheet(null)} />
+      <InstallSheet mode={sheet} onDone={() => setSheet(null)} onLater={onLater} />
     ) : null;
   return { mode, start, sheetEl };
 }
 
-/**
- * The invite card (home page). Shows from the second day of use or after a meaningful action;
- * «ليس الآن» hides it for 14 days. Nothing when installed.
- */
-export function InstallCard({ className = "" }: { className?: string }) {
-  const { mode, start, sheetEl } = useInstallAction();
-  const ready = useSyncExternalStore(subscribe, inviteNow, () => false);
-  const [hidden, setHidden] = useState(false);
-  const show = mode !== "installed" && ready && !hidden;
-  const dismiss = () => {
-    safeStorage.setItem(DISMISS_KEY, String(Date.now()));
-    setHidden(true);
-    emit();
+/** @deprecated The invite is now the app-wide InstallBanner (Providers); this renders nothing. */
+export function InstallCard(props: { className?: string }) {
+  void props;
+  return null;
+}
+
+/* the banner stays away while a sheet/dialog is open or the member is typing */
+const TYPING =
+  "input:not([type=button]):not([type=checkbox]):not([type=radio]),textarea,select,[contenteditable=true]";
+function uiNow(): string {
+  const dialog = !!document.querySelector('[role="dialog"],[aria-modal="true"]');
+  const typing = !!document.activeElement?.matches(TYPING);
+  const nav = document.querySelector<HTMLElement>(".bq-bnav");
+  const hasNav = !!nav && getComputedStyle(nav).display !== "none";
+  return `${dialog || typing ? 1 : 0}${hasNav ? 1 : 0}`;
+}
+function subscribeUi(cb: () => void) {
+  let raf = 0;
+  const later = () => {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(cb);
   };
+  const mo = new MutationObserver(later);
+  mo.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener("focusin", later);
+  window.addEventListener("focusout", later);
+  window.addEventListener("resize", later);
+  return () => {
+    cancelAnimationFrame(raf);
+    mo.disconnect();
+    window.removeEventListener("focusin", later);
+    window.removeEventListener("focusout", later);
+    window.removeEventListener("resize", later);
+  };
+}
+
+const BANNER_CSS = `
+.bq-ib{position:fixed;inset-inline:12px;bottom:calc(var(--safe-b,0px) + 12px);z-index:45;
+max-width:560px;margin-inline:auto;display:flex;align-items:center;gap:10px;
+padding-block:8px;padding-inline:12px 6px;background:#fff;color:#14201A;border-radius:18px;
+box-shadow:0 12px 30px -12px rgba(14,58,27,.4),0 1px 4px rgba(14,58,27,.14);
+animation:bq-ib-in .2s cubic-bezier(.2,.8,.2,1) both}
+.bq-ib[data-nav="1"]{bottom:calc(var(--nav,64px) + var(--safe-b,0px) + 8px)}
+.bq-ib img{width:36px;height:36px;border-radius:10px;flex:none}
+.bq-ib-t{flex:1;min-width:0;font-weight:600;font-size:15px;line-height:1.35}
+.bq-ib .bq-btn{min-height:40px;padding-inline:16px;flex:none}
+@keyframes bq-ib-in{from{transform:translateY(calc(100% + 24px))}}
+@media (prefers-reduced-motion:reduce){.bq-ib{animation:bq-ib-fade .2s both}}
+@keyframes bq-ib-fade{from{opacity:0}}
+`;
+
+/**
+ * The install invite: a slim bar above the bottom nav (mounted once in Providers). It reserves
+ * its height at the bottom of the page while visible, so it never covers content.
+ */
+export function InstallBanner() {
+  const pathname = usePathname();
+  const ready = useSyncExternalStore(subscribe, inviteNow, () => false);
+  const ui = useSyncExternalStore(subscribeUi, uiNow, () => "10");
+  // shown already in an earlier page load of this session: not again
+  const [seenBefore] = useState(() =>
+    typeof window === "undefined" ? true : session.get(BANNER_SHOWN) === "1",
+  );
+  const [closed, setClosed] = useState(false);
+  const later = () => {
+    snoozeInvite();
+    setClosed(true);
+  };
+  const { mode, start, sheetEl } = useInstallAction(later);
+  const bar = useRef<HTMLDivElement>(null);
+  const visible =
+    mode !== "installed" &&
+    ready &&
+    !seenBefore &&
+    !closed &&
+    ui[0] === "0" &&
+    bannerAllowedOn(pathname);
+
+  useEffect(() => {
+    if (!visible) return;
+    session.set(BANNER_SHOWN, "1");
+    const h = (bar.current?.offsetHeight ?? 56) + 12;
+    const root = document.documentElement;
+    const body = document.body;
+    const before = body.style.paddingBottom;
+    root.style.setProperty("--bq-install-bar", `${h}px`);
+    body.style.paddingBottom = `${h}px`;
+    return () => {
+      root.style.removeProperty("--bq-install-bar");
+      body.style.paddingBottom = before;
+    };
+  }, [visible]);
+
   return (
     <>
-      {show && (
-        <section className={`bq-sec ${className}`} aria-label="تثبيت التطبيق">
-          <div className="bq-row">
-            <span className="bq-disc is-in" aria-hidden>
-              <DownloadIcon className="size-5" />
-            </span>
-            <span className="bq-row-m">
-              <span className="bq-row-t">ثبّت التطبيق على هاتفك</span>
-              <span className="bq-row-s">يفتح من الشاشة الرئيسية، ويعمل بدون إنترنت.</span>
-            </span>
-            <button
-              type="button"
-              className="bq-btn bq-btn-soft bq-press"
-              onClick={() => start((o) => (o === "dismissed" ? dismiss() : setHidden(true)))}
-            >
-              تثبيت
-            </button>
-            <button
-              type="button"
-              className="bq-icon-btn bq-press"
-              aria-label="ليس الآن"
-              onClick={dismiss}
-            >
-              <XIcon className="size-5" />
-            </button>
-          </div>
-        </section>
+      {visible && (
+        <div
+          ref={bar}
+          className="bq-ib"
+          role="region"
+          aria-label="تثبيت التطبيق"
+          data-nav={ui[1]}
+          dir="rtl"
+        >
+          <style>{BANNER_CSS}</style>
+          {/* eslint-disable-next-line @next/next/no-img-element -- tiny local icon */}
+          <img src="/icons/icon-192.png" alt="" />
+          <span className="bq-ib-t">ثبّت التطبيق على هاتفك</span>
+          <button
+            type="button"
+            className="bq-btn bq-btn-primary bq-press"
+            onClick={() =>
+              start((o) => {
+                if (o === "dismissed") later();
+                else setClosed(true);
+              })
+            }
+          >
+            تثبيت
+          </button>
+          <button
+            type="button"
+            className="bq-icon-btn bq-press"
+            aria-label="ليس الآن"
+            onClick={later}
+          >
+            <XIcon className="size-5" />
+          </button>
+        </div>
       )}
       {sheetEl}
     </>
@@ -331,9 +457,12 @@ const SHEET: Record<
 export function InstallSheet({
   mode,
   onDone,
+  onLater,
 }: {
   mode: Exclude<InstallMode, "installed" | "native">;
   onDone: () => void;
+  /** Adds «ليس الآن» (snoozes the invite). */
+  onLater?: () => void;
 }) {
   const s = SHEET[mode];
   const android = /Android/i.test(navigator.userAgent);
@@ -426,6 +555,18 @@ export function InstallSheet({
               <CopyLink />
             </div>
           </>
+        )}
+        {onLater && (
+          <button
+            type="button"
+            className="bq-btn bq-btn-ghost bq-press bq-small-top"
+            onClick={() => {
+              onLater();
+              onDone();
+            }}
+          >
+            ليس الآن
+          </button>
         )}
       </div>
     </Sheet>

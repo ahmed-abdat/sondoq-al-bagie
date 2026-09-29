@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  bannerAllowedOn,
   chromeIntentUrl,
   DISMISS_FOR_MS,
   detectPlatform,
   installMode,
   isDismissed,
   isIosSafari,
+  isSnoozed,
+  parseBackoff,
   recordVisitDay,
   shouldInvite,
+  snooze,
 } from "./install";
 
 const ANDROID =
@@ -101,5 +105,51 @@ describe("when to invite", () => {
     expect(shouldInvite({ visitDays: two, engaged: true, dismissedAt: String(now - 1), now })).toBe(
       false,
     );
+  });
+});
+
+describe("backoff after «✕»", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const t0 = 1_800_000_000_000;
+  it("waits 1, 3, 7, 14, then 30 days, capped", () => {
+    let stored: string | null = null;
+    let now = t0;
+    const waits: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      stored = snooze(stored, now);
+      const { nextAt } = parseBackoff(stored);
+      waits.push((nextAt - now) / DAY);
+      now = nextAt;
+    }
+    expect(waits).toEqual([1, 3, 7, 14, 30, 30, 30]);
+    expect(parseBackoff(stored).count).toBe(7);
+  });
+  it("snoozed until the next date, then back", () => {
+    const s = snooze(null, t0);
+    expect(isSnoozed(s, t0 + DAY - 1)).toBe(true);
+    expect(isSnoozed(s, t0 + DAY)).toBe(false);
+    expect(isSnoozed(null, t0)).toBe(false);
+    expect(parseBackoff("garbage")).toEqual({ count: 0, nextAt: 0 });
+  });
+  it("gates the invite", () => {
+    const base = { visitDays: "2026-09-27,2026-09-28", engaged: false, now: t0 };
+    expect(shouldInvite(base)).toBe(true);
+    expect(shouldInvite({ ...base, backoff: snooze(null, t0) })).toBe(false);
+    expect(shouldInvite({ ...base, backoff: snooze(null, t0), now: t0 + DAY })).toBe(true);
+    expect(shouldInvite({ ...base, dismissedAt: String(t0 - 1) })).toBe(false); // old key
+    expect(shouldInvite({ visitDays: "2026-09-28", engaged: false, sessions: 2, now: t0 })).toBe(
+      true,
+    );
+    expect(shouldInvite({ visitDays: "2026-09-28", engaged: false, sessions: 1, now: t0 })).toBe(
+      false,
+    );
+  });
+  it("never on receipt checks or sign-in", () => {
+    expect(bannerAllowedOn("/")).toBe(true);
+    expect(bannerAllowedOn("/members")).toBe(true);
+    expect(bannerAllowedOn("/report")).toBe(true);
+    expect(bannerAllowedOn("/r/BQ-1")).toBe(false);
+    expect(bannerAllowedOn("/login")).toBe(false);
+    expect(bannerAllowedOn("/auth/confirm")).toBe(false);
   });
 });
