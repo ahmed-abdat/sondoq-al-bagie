@@ -382,7 +382,7 @@ One green does all the work; gold only rings the logo and fills the campaign bar
 
 ### Secondary
 - **Logo Gold** (logo-gold): the 1.5–3.5px ring around the logo (hero, compact bar, rail, receipt) and the campaign progress fill. It fails as text (2.2:1 on white) and is never text, never a fill larger than a 6px bar.
-- **Gold Tint / Gold Track / Gold Ink** (gold-tint, gold-track, gold-ink): the campaign row's icon disc (Tint + Ink) and its bar track. Campaign only.
+- **Gold Tint / Gold Track / Gold Ink** (gold-tint, gold-track, gold-ink): the campaign row's icon disc (Tint + Ink) and its bar track. One exception (owner, r21): Gold Track fills an owed month cell (late or still to come) in the report grid (images, PDF, /report), next to Pebble grid lines, like a paper sheet.
 
 ### Neutral
 - **Paper** (paper): page ground, sheets, slips, receipts, nav bar.
@@ -401,7 +401,7 @@ One green does all the work; gold only rings the logo and fills the campaign bar
 
 **The Grey-Is-Late Rule.** Lateness is neutral: Mist fills, Slate text, a clock icon and hatched month cells. Red never marks a late member; it is reserved for the «مرفوض» word and the rejected stamp.
 
-**The Hairline-Gold Rule.** Gold appears only as the logo ring and the campaign bar. If gold is carrying text, a button or a background larger than a 40px disc, it is wrong.
+**The Hairline-Gold Rule.** Gold appears only as the logo ring and the campaign bar. If gold is carrying text, a button or a background larger than a 40px disc, it is wrong. (Exception: the report grid's owed-month cells, above.)
 
 ## Typography
 

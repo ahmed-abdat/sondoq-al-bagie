@@ -17,7 +17,7 @@ import { Engaged } from "@/components/app/engaged";
 import { SITE_URL } from "@/components/app/site";
 import { ReportShare } from "@/components/app/report-share";
 import * as src from "@/components/app/source";
-import { monthPaid } from "@/lib/report-check";
+import { monthCell, monthPaid, paidTotal } from "@/lib/report-check";
 
 export const metadata: Metadata = {
   title: "تقرير الصندوق · صندوق الرابطة",
@@ -159,6 +159,9 @@ export default async function ReportPage() {
           <OkMark /> مدفوع
         </span>
         <span>
+          <span className="rp-swatch" aria-hidden="true" /> غير مدفوع
+        </span>
+        <span>
           1 = {MONTHS[0]} … 12 = {MONTHS[11]}
         </span>
       </p>
@@ -166,7 +169,7 @@ export default async function ReportPage() {
         const rows = shown.filter((m) => listOf(m) === l);
         return (
           <Collapsible key={l} title={`المجموعة ${groupLabel(l)}`} count={rows.length}>
-            {/* month numbers over the cells: a paid month shows ✓, any other month stays empty */}
+            {/* month numbers over the cells: paid ✓, owed = sand, not owed = white (r21) */}
             <div className="rp-mhead" aria-hidden="true">
               <span className="rp-cells">
                 {MONTHS.map((_, i) => (
@@ -193,14 +196,22 @@ export default async function ReportPage() {
                       role="img"
                       aria-label={paid.length ? `مدفوع: ${paid.join("، ")}` : "لا أشهر مدفوعة"}
                     >
-                      {m.months.map((st, i) => (
-                        <span key={i}>{monthPaid(st) ? <OkMark /> : null}</span>
-                      ))}
+                      {m.months.map((st, i) => {
+                        const c = monthCell(m.status, st);
+                        return (
+                          <span key={i} className={c === "unpaid" ? "is-unpaid" : undefined}>
+                            {c === "paid" ? <OkMark /> : null}
+                          </span>
+                        );
+                      })}
                     </span>
                   </li>
                 );
               })}
             </ul>
+            <p className="rp-gtotal">
+              المجموع: <Num>{fmt(paidTotal(rows, r.groupPrices))}</Num> أوقية
+            </p>
           </Collapsible>
         );
       })}

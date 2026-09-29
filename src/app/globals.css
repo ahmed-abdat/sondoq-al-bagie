@@ -17,7 +17,7 @@
   --g0: #f3f9f4; /* green-wash */
   --stamp: #1b6a33;
 
-  /* gold: logo ring + campaign bar only */
+  /* gold: logo ring + campaign bar only; gold-track also = an owed month in the report grid */
   --gold: #d9aa2b;
   --gold-tint: #f6efd9;
   --gold-track: #f1ead6;
@@ -4059,17 +4059,35 @@
     color: var(--muted);
   }
   /* 12 month cells: a paid month holds a ✓ badge, any other month stays empty (owner, r19) */
+  /* light column lines between the months, a sand cell when the month is owed (r21) */
   .rp-cells {
     grid-area: cells;
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 2px;
-    min-height: 18px;
+    min-height: 22px;
+    border-inline-start: 1px solid var(--n3);
   }
   .rp-cells > span {
     display: flex;
     justify-content: center;
     align-items: center;
+    border-inline-end: 1px solid var(--n3);
+  }
+  .rp-cells > span.is-unpaid {
+    background: var(--gold-track);
+  }
+  .rp-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    vertical-align: -2px;
+    border: 1px solid var(--n3);
+    background: var(--gold-track);
+  }
+  .rp-gtotal {
+    margin-block-start: 10px;
+    font-family: var(--font-display);
+    font-weight: 700;
   }
   .rp-mhead {
     padding-block: 6px 4px;
