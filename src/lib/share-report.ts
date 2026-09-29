@@ -134,12 +134,12 @@ export function publicOrigin(): string {
 }
 
 export function reportFileName(year: number, month: number): string {
-  return `ملخص-صندوق-الشباب-${year}-${String(month).padStart(2, "0")}.png`;
+  return `ملخص-صندوق-الرابطة-${year}-${String(month).padStart(2, "0")}.png`;
 }
 
-/** «تقرير-صندوق-الشباب-2026-09-28» from the report's date (+ «-1.png» per page, or «.pdf»). */
+/** «تقرير-صندوق-الرابطة-2026-09-28» from the report's date (+ «-1.png» per page, or «.pdf»). */
 export function reportFileBase(iso: string): string {
-  return `تقرير-صندوق-الشباب-${iso.slice(0, 10)}`;
+  return `تقرير-صندوق-الرابطة-${iso.slice(0, 10)}`;
 }
 
 export function reportShareText(src: ReportSource, url: string): string {
