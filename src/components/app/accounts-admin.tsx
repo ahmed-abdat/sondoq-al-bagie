@@ -313,7 +313,8 @@ function AccountSheet({
 }) {
   const online = useOnline();
   const now = useNow();
-  const { resetCommitteePassword, setCommitteeActive, linkCommitteeMember } = useAct();
+  const { resetCommitteePassword, setCommitteeActive, linkCommitteeMember, setCommitteeNotMember } =
+    useAct();
   const [mode, setMode] = useState<Mode>("view");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -348,7 +349,11 @@ function AccountSheet({
           const ok = await act(() =>
             linkCommitteeMember({ userId: a.userId, memberId: m.memberId }),
           );
-          if (ok) onPatch({ memberId: m.memberId }, `رُبط ${a.displayName} بعضوية ${m.fullName}`);
+          if (ok)
+            onPatch(
+              { memberId: m.memberId, needsMemberLink: false, notMember: false },
+              `رُبط ${a.displayName} بعضوية ${m.fullName}`,
+            );
           else back();
         }}
       />
@@ -365,7 +370,10 @@ function AccountSheet({
         onBack={back}
         onYes={async () => {
           if (await act(() => linkCommitteeMember({ userId: a.userId, memberId: null })))
-            onPatch({ memberId: null }, `أُزيل ربط ${a.displayName} بالعضوية`);
+            onPatch(
+              { memberId: null, needsMemberLink: a.role !== "committee" && !a.notMember },
+              `أُزيل ربط ${a.displayName} بالعضوية`,
+            );
         }}
       />
     );
@@ -422,13 +430,55 @@ function AccountSheet({
         </div>
         <div>
           <dt>العضوية</dt>
-          <dd>{member ? `${member.fullName} (${memberLabel(member)})` : "غير مربوط"}</dd>
+          <dd>
+            {member
+              ? `${member.fullName} (${memberLabel(member)})`
+              : a.notMember
+                ? "ليس عضوًا في الصندوق"
+                : "غير مربوط"}
+          </dd>
         </div>
       </dl>
       {err && (
         <p className="bq-alert" role="alert">
           {err}
         </p>
+      )}
+      {!self && a.active && a.needsMemberLink && (
+        <div className="bq-wait" role="status">
+          <p>هذا الحساب يؤكد الدفعات وليس مربوطًا بعضو، فقد يؤكد دفعاته بنفسه.</p>
+          <p className="bq-hint">اربطه بعضويته، أو قل إنه ليس عضوًا في الصندوق.</p>
+          <button
+            type="button"
+            className="bq-link bq-link-s bq-press"
+            disabled={!online || busy}
+            onClick={async () => {
+              if (await act(() => setCommitteeNotMember({ userId: a.userId, notMember: true })))
+                onPatch(
+                  { notMember: true, needsMemberLink: false },
+                  `${a.displayName}: ليس عضوًا في الصندوق`,
+                );
+            }}
+          >
+            ليس عضوًا
+          </button>
+        </div>
+      )}
+      {!self && !member && a.notMember && (
+        <button
+          type="button"
+          className="bq-link bq-link-quiet bq-press"
+          disabled={!online || busy}
+          onClick={async () => {
+            if (await act(() => setCommitteeNotMember({ userId: a.userId, notMember: false })))
+              onPatch(
+                { notMember: false, needsMemberLink: a.role !== "committee" },
+                `أُلغي «ليس عضوًا» لـ ${a.displayName}`,
+              );
+          }}
+        >
+          إلغاء «ليس عضوًا»
+        </button>
       )}
       {self ? (
         <>
@@ -587,6 +637,7 @@ export function CommitteeAccounts({
                         </>
                       )}
                       {" · "}
+                      {a.active && a.needsMemberLink && "غير مربوط بعضو · "}
                       {!a.active
                         ? "موقوف"
                         : a.lastSignInAt
