@@ -13,6 +13,7 @@ import { SaveVisitedPages, ServiceWorkerUpdates } from "./sw-update";
 
 export { useOnline } from "./online";
 export { PushToggle } from "./push-toggle";
+export { AppBadgeSync } from "./app-badge";
 // The committee's push pieces (server actions) live in "./committee-push"; import them from there.
 export { OfflineBanner, OfflineWriteHint } from "./offline-banner";
 export {

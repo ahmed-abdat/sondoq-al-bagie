@@ -1,5 +1,5 @@
 // Web Push message → notification. Shared by the service worker (src/app/sw.ts) and tests.
-// Server sends JSON: { title?, body?, url?, tag? }. Everything is optional and checked here.
+// Server sends JSON: { title?, body?, url?, tag?, badgeCount? }. Everything is optional and checked here.
 
 export interface PushPayload {
   title: string;
@@ -8,6 +8,8 @@ export interface PushPayload {
   url: string;
   /** Same tag = replaces the earlier notification (with a new buzz: renotify). */
   tag: string;
+  /** Payments now waiting, for the number on the app icon (optional). */
+  badgeCount?: number;
 }
 
 export const PUSH_ICON = "/icons/icon-192.png";
@@ -43,6 +45,9 @@ export function parsePushPayload(raw: string | null | undefined): PushPayload {
     body: text(d.body, 200) ?? DEFAULT.body,
     url: safePath(d.url),
     tag: text(d.tag, 64) ?? DEFAULT.tag,
+    ...(Number.isInteger(d.badgeCount) && (d.badgeCount as number) >= 0
+      ? { badgeCount: Math.min(d.badgeCount as number, 9999) }
+      : {}),
   };
 }
 
