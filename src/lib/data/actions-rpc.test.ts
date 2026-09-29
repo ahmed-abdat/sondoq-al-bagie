@@ -141,6 +141,20 @@ const cases: Case[] = [
     true,
   ],
   [
+    "cancelLastPeriod",
+    () => a.cancelLastPeriod({ memberId: member, reason: "خطأ" }),
+    "cancel_last_period",
+    { p_member_id: member, p_reason: "خطأ" },
+    true,
+  ],
+  [
+    "setJoinMonth",
+    () => a.setJoinMonth({ memberId: member, fromMonth: "2026-03-01", reason: "خطأ" }),
+    "set_join_month",
+    { p_member_id: member, p_from_month: "2026-03-01", p_reason: "خطأ" },
+    true,
+  ],
+  [
     "setGroupPrice",
     () => a.setGroupPrice({ groupCode: "A", year: 2027, monthlyAmount: 1000 }),
     "set_group_price",

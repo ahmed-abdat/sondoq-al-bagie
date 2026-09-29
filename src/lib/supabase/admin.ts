@@ -7,7 +7,7 @@ import { MISSING_SECRET_MSG, supabaseSecretKey, supabaseUrl } from "./env";
  * Admin client: bypasses Row Level Security. Use ONLY in trusted server code
  * (route handlers, server actions, scripts). Never import it from client code.
  */
-export function createAdminClient(): SupabaseClient<Database> {
+function createAdminClient(): SupabaseClient<Database> {
   const url = supabaseUrl();
   const key = supabaseSecretKey();
   if (!(url && key)) throw new Error(MISSING_SECRET_MSG);

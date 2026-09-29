@@ -22,10 +22,9 @@ export {
   getMemberRows,
   getMemberIndex,
 } from "./public";
-export { decodeMonths, encodeMonths, monthStates } from "./month-code";
-export type { ReportOptions } from "./report";
 export {
   getArrears,
+  getBackupStatus,
   getMembersAdmin,
   getCommitteeSession,
   getExpensesAdmin,
@@ -37,5 +36,3 @@ export {
   getPendingPayments,
   getRecentPayments,
 } from "./committee";
-export { MESSAGES, messageFor } from "./errors";
-export { PUBLIC_TAG } from "./tags";

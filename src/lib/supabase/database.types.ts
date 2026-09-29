@@ -418,6 +418,30 @@ export type Database = {
         }
         Relationships: []
       }
+      job_runs: {
+        Row: {
+          detail: string | null
+          job: string
+          last_ok_at: string | null
+          last_run_at: string
+          ok: boolean
+        }
+        Insert: {
+          detail?: string | null
+          job: string
+          last_ok_at?: string | null
+          last_run_at: string
+          ok: boolean
+        }
+        Update: {
+          detail?: string | null
+          job?: string
+          last_ok_at?: string | null
+          last_run_at?: string
+          ok?: boolean
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           created_at: string
@@ -1117,6 +1141,7 @@ export type Database = {
         Row: {
           member_id: string | null
           month: number | null
+          price: number | null
           state: string | null
           year: number | null
         }
@@ -1227,6 +1252,10 @@ export type Database = {
         }
         Returns: string
       }
+      backup_snapshot: {
+        Args: { p_tables: string[] }
+        Returns: Json
+      }
       cancel_expense: {
         Args: { p_expense_id: string; p_reason: string }
         Returns: undefined
@@ -1243,6 +1272,10 @@ export type Database = {
           p_member_id: string
           p_reason?: string
         }
+        Returns: string
+      }
+      cancel_last_period: {
+        Args: { p_member_id: string; p_reason: string }
         Returns: string
       }
       change_member_status: {
@@ -1325,6 +1358,10 @@ export type Database = {
       update_my_profile: {
         Args: { p_display_name: string; p_member_id?: string }
         Returns: undefined
+      }
+      set_join_month: {
+        Args: { p_from_month: string; p_member_id: string; p_reason: string }
+        Returns: string
       }
       set_committee_active: {
         Args: { p_active: boolean; p_user_id: string }

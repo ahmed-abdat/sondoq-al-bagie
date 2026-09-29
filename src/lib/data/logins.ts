@@ -2,7 +2,7 @@
 // internal address (Supabase Auth needs an email; no SMS provider is used). Pure; unit tested.
 import { toWesternDigits } from "@/lib/money";
 
-export const PHONE_DOMAIN = "phone.sondoq.invalid";
+const PHONE_DOMAIN = "phone.sondoq.invalid";
 
 export type Login = {
   kind: "email" | "phone";

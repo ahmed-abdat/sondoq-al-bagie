@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m13; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m20; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -48,6 +48,18 @@ begin
   raise exception 'FAIL: % did not raise (expected %)', what, expected;
 end $$;
 
+-- DETAIL (as jsonb) of the error `sql` raises; fails the suite when it does not raise.
+create function tests.detail(sql text) returns jsonb language plpgsql as $$
+declare d text;
+begin
+  begin
+    execute sql;
+  exception when others then
+    get stacked diagnostics d = pg_exception_detail;
+    return nullif(d, '')::jsonb;
+  end;
+  raise exception 'FAIL: % did not raise', sql;
+end $$;
 create function tests.set(k text, v anyelement) returns void language sql as $$
   insert into tests.vars values (k, v::text) on conflict (k) do update set v = excluded.v $$;
 create function tests.get(k text) returns text language sql stable as $$ select v from tests.vars where vars.k = get.k $$;
@@ -188,6 +200,8 @@ select tests.pay('k2', 1000, jsonb_build_array(tests.month('K', -3, 1000)));
 select tests.login('treasurer');
 select public.confirm_payment(tests.id('k1'));
 select tests.throws($$select public.confirm_payment(tests.id('k2'))$$, 'month_already_paid', 'second payment for the same month cannot be confirmed');
+select tests.ok((select d ? 'name' and d ? 'ref' and d ? 'ym' from (select tests.detail($$select public.confirm_payment(tests.id('k2'))$$) d) x),
+  'the confirm-time month_already_paid names the member and month');
 select tests.ok((select status from public.payments where id = tests.id('k2')) = 'pending', 'refused payment stays pending');
 select public.reject_payment(tests.id('k2'), 'duplicate of another transfer');
 select tests.ok((select status from public.payments where id = tests.id('k2')) = 'rejected', 'duplicate rejected with a reason');
@@ -433,16 +447,41 @@ select tests.login('public');
 select tests.ok((select collected = 3000 and spent = 1000 and balance = 2000 and participants_paid = 1 and target_amount = 25000
                  from public.campaign_progress where campaign_id = tests.id('c6')), 'campaign progress after split payment, edit and expense');
 select tests.set('bal6', (select balance from public.fund_summary));
+-- a pending contribution blocks closing (audit C1)
+select tests.login('committee');
+select tests.pay('cp6', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)));
 select tests.login('treasurer');
+select tests.throws($$select public.close_campaign(tests.id('c6'), 'to_fund')$$, 'campaign_has_pending',
+  'a campaign with a pending contribution cannot be closed');
+select public.reject_payment(tests.id('cp6'), 'اختبار');
 select tests.ok(public.close_campaign(tests.id('c6'), 'to_fund') = 2000, 'closing moves the surplus to the fund');
 select tests.ok(public.close_campaign(tests.id('c6'), 'to_fund') = 0, 'closing twice is a no-op');
 select tests.throws($$select public.update_campaign(tests.id('c6'), 'x', null, null, null)$$, 'campaign_closed', 'closed campaigns are not edited');
 select tests.throws($$select public.record_payment(gen_random_uuid(), 'دافع', 'cash', 500, current_date,
   jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)))$$,
   'campaign_closed', 'no contributions after closing');
+select tests.throws($$select public.record_expense(gen_random_uuid(), current_date, 'other', 100, 'بعد الإغلاق', tests.id('c6'))$$,
+  'campaign_closed', 'no expenses on a closed campaign (audit C2)');
+-- a contribution still pending when a campaign closed (older data, or a race) cannot be confirmed (audit C1)
+select tests.set('c7', public.create_campaign('00000000-0000-0000-0000-00000000c007', 'حملة مغلقة'));
+select tests.login('committee');
+select tests.pay('cp7', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c7'), 'member_id', null, 'amount', 500)));
+select tests.login('server');
+update public.campaigns set status = 'closed', closed_at = now(), surplus_action = 'keep' where id = tests.id('c7');
+select tests.login('deputy');
+select tests.throws($$select public.confirm_payment(tests.id('cp7'))$$, 'campaign_closed',
+  'a contribution to a closed campaign cannot be confirmed');
+select public.reject_payment(tests.id('cp7'), 'الحملة مغلقة');
 select tests.login('public');
 select tests.ok((select balance from public.fund_summary) = tests.get('bal6')::int + 2000, 'main fund balance grows by the surplus');
 select tests.ok((select balance from public.campaign_progress where campaign_id = tests.id('c6')) = 0, 'campaign balance is zero after transfer');
+-- owner decision: closing always moves the leftover to the fund, even when an old client sends 'keep'
+select tests.login('treasurer');
+select tests.set('c8', public.create_campaign('00000000-0000-0000-0000-00000000c008', 'حملة ثامنة'));
+select public.record_payment(gen_random_uuid(), 'متبرع', 'cash', 700, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c8'), 'member_id', null, 'amount', 700)));
+select tests.ok(public.close_campaign(tests.id('c8'), 'keep') = 700, 'closing with keep still moves the leftover to the fund');
+select tests.ok((select surplus_action from public.campaigns where id = tests.id('c8')) = 'to_fund', 'and is stored as to_fund');
 
 select tests.login('public');
 select tests.ok((select monthly_amount from public.group_prices_public
@@ -623,6 +662,136 @@ select tests.throws($$select app_private.record_payment(gen_random_uuid(), 'x', 
 select public.verify_receipt('BQ-XXXX-0000');
 select tests.ok(true, 'anon still verifies receipts through the wrapper');
 
+/* ───────────── M17: month errors name the member and month ───────────── */
+
+select tests.login('server');
+select tests.set('paid_m', (select pm.member_id from public.payment_months pm join public.members m on m.id = pm.member_id
+                            where pm.released_at is null and m.id = tests.id('K') order by pm.year, pm.month limit 1));
+select tests.set('paid_y', (select pm.year from public.payment_months pm where pm.member_id = tests.id('K') and pm.released_at is null
+                            order by pm.year, pm.month limit 1));
+select tests.set('paid_mo', (select pm.month from public.payment_months pm where pm.member_id = tests.id('K') and pm.released_at is null
+                             order by pm.year, pm.month limit 1));
+select tests.login('committee');
+select tests.ok((select d ->> 'name' = 'عضو ك' and d ->> 'ref' = 'A-1005'
+                        and d ->> 'ym' = tests.get('paid_y') || '-' || lpad(tests.get('paid_mo'), 2, '0')
+                 from (select tests.detail(format($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 1000, current_date,
+                   jsonb_build_array(jsonb_build_object('kind', 'months', 'member_id', %L::uuid, 'year', %s, 'month', %s, 'amount', 1000)))$$,
+                   tests.get('paid_m'), tests.get('paid_y'), tests.get('paid_mo'))) d) x),
+  'month_already_paid names the member and the month');
+select tests.ok((select d ->> 'ym' = to_char(tests.m(-6), 'YYYY-MM') and d ->> 'ref' = 'A-1005' and not d ? 'price'
+                 from (select tests.detail($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 1000, current_date,
+                   jsonb_build_array(tests.month('K', -6, 1000)))$$) d) x),
+  'month_not_owed names the month before joining');
+select tests.ok((select (d ->> 'price')::int = 1000 and d ->> 'ym' = to_char(tests.m(1), 'YYYY-MM')
+                 from (select tests.detail($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 999, current_date,
+                   jsonb_build_array(tests.month('K', 1, 999)))$$) d) x),
+  'wrong_month_amount gives the month and its price');
+
+/* ───────────── M18: month prices, price fallback for owed ───────────── */
+
+select tests.login('public');
+select tests.ok((select price from public.member_months where member_id = tests.id('K') and year = extract(year from current_date)
+                 and month = extract(month from current_date)) = 1000, 'member_months gives the price a month must be paid with');
+select tests.login('server');
+insert into public.groups (code, name) values ('C', 'C');
+insert into public.group_prices (group_id, year, monthly_amount)
+select id, extract(year from current_date)::int - 3, 700 from public.groups where code = 'C';
+select tests.set('GC', public.add_member(9001, 'عضو ج', 'C', make_date(extract(year from current_date)::int - 2, 1, 1), null, null, 'active', 'A'));
+select tests.ok((select price is null and owed = 700 from app_private.month_grid()
+                 where member_id = tests.id('GC') and year = extract(year from current_date)::int - 2 and month = 1),
+  'a year without prices: no payable price, but owed uses the latest earlier price');
+select tests.login('public');
+select tests.ok((select price is null and state = 'late' from public.member_months
+                 where member_id = tests.id('GC') and year = extract(year from current_date)::int - 2 and month = 1),
+  'past-year late months are listed with their (missing) price');
+
+/* ───────────── M19: undo a status change, correct a join month ───────────── */
+
+select tests.login('admin');
+select tests.set('D', public.add_member(9002, 'عضو د', 'A', tests.m(-4)));
+select public.change_member_status(tests.id('D'), tests.m(-1), 'left', 'غادر');
+select tests.ok((select state from public.member_months where member_id = tests.id('D')
+                 and year = extract(year from tests.m(-1)) and month = extract(month from tests.m(-1))) = 'not_owed',
+  'a wrong «غادر» makes the month not owed');
+select tests.login('committee');
+select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'not_admin', 'only the admin undoes a period');
+select tests.login('admin');
+select tests.throws($$select public.cancel_last_period(tests.id('D'), '  ')$$, 'reason_required', 'undo needs a reason');
+select public.cancel_last_period(tests.id('D'), 'خطأ في الإدخال');
+select tests.ok((select state from public.member_months where member_id = tests.id('D')
+                 and year = extract(year from tests.m(-1)) and month = extract(month from tests.m(-1))) <> 'not_owed'
+                and (select count(*) = 1 and bool_and(from_month = tests.m(-4) and to_month is null and status = 'active')
+                     from public.membership_periods where member_id = tests.id('D') and cancelled_at is null)
+                and (select count(*) = 2 from public.membership_periods where member_id = tests.id('D') and cancelled_at is not null),
+  'undo: the wrong period and the closed one are cancelled, the previous period is open again');
+select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'no_previous_period', 'the first period cannot be undone');
+select public.record_payment(gen_random_uuid(), 'د', 'cash', 1000, current_date, jsonb_build_array(tests.month('D', -1, 1000)));
+select public.change_member_group(tests.id('D'), tests.m(-1), 'B', 'تغيير');
+select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'period_has_payments',
+  'no undo over a paid month');
+select public.set_join_month(tests.id('D'), tests.m(-6), 'تاريخ الانضمام الصحيح');
+select tests.ok((select state from public.member_months where member_id = tests.id('D')
+                 and year = extract(year from tests.m(-6)) and month = extract(month from tests.m(-6))) = 'late'
+                and (select from_month = tests.m(-6) and to_month = tests.m(-2) from public.membership_periods
+                     where member_id = tests.id('D') and cancelled_at is null order by from_month limit 1),
+  'an earlier join month makes those months owed, the period end is kept');
+select tests.throws($$select public.set_join_month(tests.id('D'), tests.m(-1), 'x')$$, 'join_month_invalid',
+  'the join month cannot move past the first period');
+select public.record_payment(gen_random_uuid(), 'د', 'cash', 1000, current_date, jsonb_build_array(tests.month('D', -5, 1000)));
+select tests.throws($$select public.set_join_month(tests.id('D'), tests.m(-4), 'x')$$, 'period_has_payments',
+  'the join month cannot move past a paid month');
+select tests.ok(public.set_join_month(tests.id('D'), tests.m(-6), 'x')
+                = (select id from public.membership_periods where member_id = tests.id('D') and cancelled_at is null
+                   order by from_month limit 1), 'same join month is a no-op');
+
+/* ───────────── M20: small guards ───────────── */
+
+select tests.login('server');
+update public.settings set opening_balance_on = make_date(extract(year from current_date)::int - 1, 1, 1) where id;
+select tests.login('admin');
+select tests.throws($$select public.record_expense(gen_random_uuid(), make_date(extract(year from current_date)::int - 2, 6, 1), 'other', 100)$$,
+  'before_opening', 'no expense before the records start');
+select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 100, make_date(extract(year from current_date)::int - 2, 6, 1),
+  jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)))$$,
+  'before_opening', 'no payment before the records start');
+select tests.ok((public.record_payment(gen_random_uuid(), 'سجل', 'paper', 100, make_date(extract(year from current_date)::int - 2, 6, 1),
+  jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100))) ->> 'status') = 'confirmed',
+  'paper records may be older');
+
+select tests.set('D2', public.add_member(9003, 'عضو هـ', 'A', tests.m(-4)));
+select tests.login('committee');
+select tests.pay('d2p', 1000, jsonb_build_array(tests.month('D2', -1, 1000)));
+select tests.login('admin');
+select tests.throws($$select public.change_member_status(tests.id('D2'), tests.m(-2), 'exempt', 'x')$$, 'months_pending_after',
+  'no back-dated exemption over a pending payment');
+select public.change_member_status(tests.id('D2'), tests.m(0), 'exempt', 'بعد الدفعة');
+
+select tests.login('server');
+select tests.throws($$select public.set_committee_member('00000000-0000-0000-0000-0000000000a1', 'المدير', 'treasurer')$$,
+  'last_admin', 'the only admin cannot be demoted');
+select tests.throws($$select public.set_committee_active('00000000-0000-0000-0000-0000000000a1', false)$$,
+  'last_admin', 'the only admin cannot be deactivated');
+
+/* ───────────── M16: backup snapshot and job runs ───────────── */
+
+select tests.login('server');
+select tests.ok((select jsonb_array_length(x -> 'members') = (select count(*) from public.members)
+                        and jsonb_array_length(x -> 'audit_log') = (select count(*) from public.audit_log)
+                        and x ?& array['members', 'audit_log'] and not x ? 'payments'
+                 from (select public.backup_snapshot(array['members', 'audit_log']) x) s),
+  'backup_snapshot returns exactly the listed tables, every row');
+select tests.throws($$select public.backup_snapshot(array['members', 'nope'])$$, 'invalid_input', 'unknown tables are refused');
+select tests.throws($$select public.backup_snapshot(array['users'])$$, 'invalid_input', 'only public tables');
+insert into public.job_runs (job, last_run_at, ok, detail, last_ok_at) values ('backup', now(), true, '2026/2026-09-28.json', now());
+select tests.login('admin');
+select tests.throws($$select public.backup_snapshot(array['members'])$$, '42501', 'the committee cannot call backup_snapshot');
+select tests.ok((select ok from public.job_runs where job = 'backup'), 'the committee reads the last backup result');
+select tests.throws($$insert into public.job_runs (job, last_run_at, ok) values ('backup', now(), false)$$, '42501',
+  'the committee cannot write job runs');
+select tests.login('public');
+select tests.throws($$select public.backup_snapshot(array['members'])$$, '42501', 'anon cannot call backup_snapshot');
+select tests.throws('select * from public.job_runs', '42501', 'anon cannot read job runs');
+
 /* ───────────── M8: terms and handover (keep last: it deactivates committee accounts) ───────────── */
 
 select tests.login('public');
@@ -649,17 +818,21 @@ select tests.throws($$select public.update_handover_draft(tests.id('h1'), '[{"la
   'negative counted amounts are refused');
 select public.submit_handover(tests.id('h1'));
 select tests.throws($$select public.accept_handover(tests.id('h1'))$$, 'not_admin', 'the treasurer cannot accept');
+-- money confirmed between submit and accept is fund activity, not a handover difference (audit H1)
+select tests.pay('hp', 1000, jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 1000)));
+select tests.login('deputy');
+select public.confirm_payment(tests.id('hp'));
 select tests.login('admin');
 select tests.ok(public.accept_handover(tests.id('h1'), 'الدورة الثانية') = 2, 'the incoming admin accepts: term 2 opens');
 select tests.ok(public.accept_handover(tests.id('h1')) = 2, 'accepting twice is a no-op');
 select tests.login('public');
 select tests.ok((select term_number from public.fund_summary) = 2, 'fund is now in term 2');
-select tests.ok((select balance from public.fund_summary) = tests.get('bal8')::int - 500,
-  'balance equals the counted money (difference booked)');
-select tests.ok((select closing_balance from public.terms_public where number = 1) = tests.get('bal8')::int - 500
+select tests.ok((select balance from public.fund_summary) = tests.get('bal8')::int - 500 + 1000,
+  'balance = counted money + the payment confirmed after submit (difference booked at submit)');
+select tests.ok((select closing_balance from public.terms_public where number = 1) = tests.get('bal8')::int + 500
                 and (select ended_on from public.terms_public where number = 1) is not null
-                and (select opening_balance from public.terms_public where number = 2) = tests.get('bal8')::int - 500,
-  'term 1 closed at the counted balance; term 2 opens with it');
+                and (select opening_balance from public.terms_public where number = 2) = tests.get('bal8')::int + 500,
+  'term 1 closes at the balance at acceptance; term 2 opens with it');
 select tests.ok((select amount from public.activity_feed where kind = 'balance_adjustment') = -500,
   'the handover difference is public as «فرق عند التسليم»');
 select tests.login('server');

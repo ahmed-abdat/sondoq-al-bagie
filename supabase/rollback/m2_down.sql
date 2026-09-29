@@ -1,6 +1,26 @@
--- Undo every migration after M1 (m2 … m13, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m20, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- small guards (m20); change_member_status is restored by the m7/m1 undos
+drop index if exists public.audit_log_actor_idx;
+drop trigger if exists z_keep_an_admin on public.committee;
+drop function if exists app_private.tg_keep_an_admin();
+drop trigger if exists b_not_before_opening on public.payments;
+drop trigger if exists b_not_before_opening on public.expenses;
+drop function if exists app_private.tg_not_before_opening();
+-- undo a period / join month (m19)
+drop function if exists public.cancel_last_period(uuid, text), public.set_join_month(uuid, date, text),
+  app_private.cancel_last_period(uuid, text), app_private.set_join_month(uuid, date, text),
+  app_private.member_has_months(uuid, date, date);
+-- month prices (m18): member_months/month_grid are dropped by the m1 undo; its body stays harmless until then
+-- month error detail (m17): other bodies are dropped or restored by the undos below
+drop function if exists app_private.month_error(text, uuid, integer, integer, integer);
+-- backup snapshot and job runs (m16)
+drop function if exists public.backup_snapshot(text[]);
+drop table if exists public.job_runs;
+-- m14 (handover difference at submit) and m15 (closed campaign guards) only replaced function bodies
+-- (accept_handover, public_terms, close_campaign, confirm_payment, record_expense); the m1/m6/m8 undos
+-- below drop or restore those functions, so they need no step of their own.
 -- security advisor wrappers (m13): the definer RPCs back into public
 drop function if exists public.accept_handover(p_id uuid, p_new_term_title text);
 alter function app_private.accept_handover(p_id uuid, p_new_term_title text) set schema public;

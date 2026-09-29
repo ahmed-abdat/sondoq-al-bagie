@@ -20,7 +20,7 @@ import type { ActionResult, IssuedCredentials } from "./types";
 
 type RpcResult = {
   data: unknown;
-  error: { code?: string; hint?: string | null; message?: string } | null;
+  error: { code?: string; hint?: string | null; message?: string; details?: string | null } | null;
 };
 
 async function run<S extends z.ZodType, T = undefined>(
@@ -42,7 +42,7 @@ async function run<S extends z.ZodType, T = undefined>(
   } catch {
     return failure("network");
   }
-  if (res.error) return failure(codeOf(res.error));
+  if (res.error) return failure(codeOf(res.error), res.error.details);
   if (opts.touchesPublic) updateTag(PUBLIC_TAG);
   return { ok: true, data: (opts.result ? opts.result(res.data) : undefined) as T };
 }
@@ -167,7 +167,7 @@ export async function confirmPayment(input: { id: string }) {
 
 export async function rejectPayment(input: { id: string; reason: string }) {
   return run(
-    s.paymentReasonSchema,
+    s.idReasonSchema,
     input,
     (sb, p) => sb.rpc("reject_payment", { p_payment_id: p.id, p_reason: p.reason }),
     { touchesPublic: false },
@@ -176,7 +176,7 @@ export async function rejectPayment(input: { id: string; reason: string }) {
 
 export async function cancelPayment(input: { id: string; reason: string }) {
   return run(
-    s.paymentReasonSchema,
+    s.idReasonSchema,
     input,
     (sb, p) => sb.rpc("cancel_payment", { p_payment_id: p.id, p_reason: p.reason }),
     { touchesPublic: true },
@@ -212,7 +212,7 @@ export async function recordExpense(input: s.RecordExpenseInput) {
 
 export async function cancelExpense(input: { id: string; reason: string }) {
   return run(
-    s.cancelExpenseSchema,
+    s.idReasonSchema,
     input,
     (sb, p) => sb.rpc("cancel_expense", { p_expense_id: p.id, p_reason: p.reason }),
     { touchesPublic: true },
@@ -427,6 +427,31 @@ export async function changeMemberStatus(input: s.ChangeMemberStatusInput) {
         p_status: p.status,
         p_reason: p.reason,
         p_group_code: p.groupCode,
+      }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
+/** Undo the last status/group change: the previous period is open again. Returns its new id. */
+export async function cancelLastPeriod(input: s.CancelLastPeriodInput) {
+  return run(
+    s.cancelLastPeriodSchema,
+    input,
+    (sb, p) => sb.rpc("cancel_last_period", { p_member_id: p.memberId, p_reason: p.reason }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
+/** Move the start of the member's first period (wrong join month). Returns the period id. */
+export async function setJoinMonth(input: s.SetJoinMonthInput) {
+  return run(
+    s.setJoinMonthSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("set_join_month", {
+        p_member_id: p.memberId,
+        p_from_month: p.fromMonth,
+        p_reason: p.reason,
       }),
     { touchesPublic: true, result: (d) => d as string },
   );

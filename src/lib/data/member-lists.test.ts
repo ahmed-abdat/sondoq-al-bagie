@@ -63,3 +63,50 @@ describe("member lists", () => {
     ]);
   });
 });
+
+describe("member rows: past-year arrears and month prices", () => {
+  const priced = (
+    month: number,
+    state: MemberMonth["state"],
+    price: number | null,
+    year = 2027,
+  ) => ({
+    ...mm("a", month, state, year),
+    price,
+  });
+
+  it("adds last years' late months, oldest first", () => {
+    const [row] = toMemberRows([member("a")], [priced(1, "upcoming", 1000)], 2027, {
+      pastLate: [priced(12, "late", 1000, 2026), priced(11, "late", 1000, 2026)],
+    });
+    expect(row.pastLate).toEqual(["2026-11", "2026-12"]);
+    expect(row.prices).toBeUndefined();
+  });
+
+  it("lists only payable months whose price differs from the current group price", () => {
+    const [row] = toMemberRows(
+      [member("a")],
+      [
+        priced(1, "late", 500), // was in group B in January
+        priced(2, "late", 1000),
+        priced(3, "paid", 500), // paid: not payable
+        priced(4, "upcoming", 1000),
+      ],
+      2027,
+      { pastLate: [priced(12, "late", 800, 2026)], groupPrices: { A: 1000 } },
+    );
+    expect(row.prices).toEqual({ "2027-01": 500, "2026-12": 800 });
+  });
+
+  it("marks months as unpriced when the year has no price yet", () => {
+    const [row] = toMemberRows([member("a")], [priced(1, "upcoming", null)], 2027, {
+      pastLate: [priced(12, "late", 1000, 2026)],
+      groupPrices: {},
+    });
+    expect(row.prices).toEqual({ "2026-12": 1000 });
+    const [same] = toMemberRows([member("a")], [priced(1, "upcoming", null)], 2027, {
+      groupPrices: { A: 1000 },
+    });
+    expect(same.prices).toEqual({ "2027-01": null });
+  });
+});

@@ -26,7 +26,6 @@ export const BACKUP_TABLES = [
   "audit_log",
 ] as const satisfies readonly (keyof Database["public"]["Tables"])[];
 
-const PAGE = 1000;
 const KEEP = 12; // weekly files kept (about three months)
 
 export type BackupFile = {
@@ -38,25 +37,18 @@ export type BackupFile = {
 
 type Admin = SupabaseClient<Database>;
 
-async function readAll(sb: Admin, table: (typeof BACKUP_TABLES)[number]): Promise<unknown[]> {
-  const rows: unknown[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await sb
-      .from(table)
-      .select("*")
-      .range(from, from + PAGE - 1);
-    if (error) throw new Error(`backup ${table}: ${error.message}`);
-    rows.push(...(data ?? []));
-    if (!data || data.length < PAGE) return rows;
-  }
-}
-
+/** Every table read in one database snapshot (`backup_snapshot`, service role only). */
 export async function buildBackup(sb: Admin, now = new Date()): Promise<BackupFile> {
+  const { data, error } = await sb.rpc("backup_snapshot", { p_tables: [...BACKUP_TABLES] });
+  if (error) throw new Error(`backup snapshot: ${error.message}`);
+  const snap = (data ?? {}) as Record<string, unknown[] | undefined>;
   const tables: Record<string, unknown[]> = {};
   const counts: Record<string, number> = {};
   for (const t of BACKUP_TABLES) {
-    tables[t] = await readAll(sb, t);
-    counts[t] = tables[t].length;
+    const rows = snap[t];
+    if (!Array.isArray(rows)) throw new Error(`backup snapshot: ${t} missing`);
+    tables[t] = rows;
+    counts[t] = rows.length;
   }
   return { format: "sondoq-backup/1", createdAt: now.toISOString(), counts, tables };
 }
@@ -95,4 +87,21 @@ export async function runBackup(sb: Admin, now = new Date()) {
   const prune = filesToPrune(all);
   if (prune.length) await sb.storage.from("backups").remove(prune);
   return { path, counts: file.counts, pruned: prune.length };
+}
+
+/**
+ * Stores the outcome of a backup run in `job_runs` (read by the committee settings). `last_ok_at`
+ * is only written on success, so a failure keeps the date of the last good file.
+ */
+export async function recordBackupRun(
+  sb: Admin,
+  r: { ok: true; path: string } | { ok: false; error: string },
+  now = new Date(),
+) {
+  const at = now.toISOString();
+  const row: Database["public"]["Tables"]["job_runs"]["Insert"] = r.ok
+    ? { job: "backup", last_run_at: at, ok: true, detail: r.path, last_ok_at: at }
+    : { job: "backup", last_run_at: at, ok: false, detail: r.error.slice(0, 200) };
+  const { error } = await sb.from("job_runs").upsert(row, { onConflict: "job" });
+  if (error) throw new Error(`backup record: ${error.message}`);
 }

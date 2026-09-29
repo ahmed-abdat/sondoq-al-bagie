@@ -29,8 +29,5 @@ export function supabaseEnv(): { url: string; key: string } | null {
   return url && key ? { url, key } : null;
 }
 
-export const MISSING_PUBLIC_MSG =
-  "[supabase] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or legacy NEXT_PUBLIC_SUPABASE_ANON_KEY).";
-
 export const MISSING_SECRET_MSG =
   "[supabase] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY). Get the secret key from Supabase → Settings → API → Secret keys.";

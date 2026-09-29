@@ -24,12 +24,12 @@ describe("map", () => {
   });
 
   it("keeps known month states and treats unknown ones as upcoming", () => {
-    expect(toMemberMonth({ member_id: "m", year: 2026, month: 3, state: "late" }).state).toBe(
-      "late",
-    );
-    expect(toMemberMonth({ member_id: "m", year: 2026, month: 3, state: "weird" }).state).toBe(
-      "upcoming",
-    );
+    const row = { member_id: "m", year: 2026, month: 3, price: 1000 };
+    expect(toMemberMonth({ ...row, state: "late" })).toMatchObject({ state: "late", price: 1000 });
+    expect(toMemberMonth({ ...row, state: "weird", price: null })).toMatchObject({
+      state: "upcoming",
+      price: null,
+    });
   });
 
   it("maps activity kinds and drops unknown ones", () => {

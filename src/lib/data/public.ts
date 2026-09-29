@@ -85,14 +85,21 @@ export async function getReport(opts: ReportOptions = {}) {
 
 /**
  * /members list: every listed member (not the ones who left) with this year's months as a
- * 12-letter code. Replaces getMembers() + getMemberMonths() on public pages (~12 bytes of months
+ * 12-letter code, last years' late months and the month prices that differ from the group price
+ * (the record screen prices each month with them). Replaces getMembers() + getMemberMonths() on public pages (~12 bytes of months
  * per member instead of 12 objects).
  */
 export const getMemberRows = cached(
   "member_rows",
   async (c: read.Client, year: number = new Date().getUTCFullYear()) => {
-    const [members, months] = await Promise.all([read.members(c), read.memberMonths(c, year)]);
-    return toMemberRows(members, months, year);
+    const [members, months, pastLate, prices] = await Promise.all([
+      read.members(c),
+      read.memberMonths(c, year),
+      read.pastLateMonths(c, year),
+      read.groupPrices(c, year),
+    ]);
+    const groupPrices = Object.fromEntries(prices.map((p) => [p.group, p.monthlyAmount]));
+    return toMemberRows(members, months, year, { pastLate, groupPrices });
   },
   [],
 );
