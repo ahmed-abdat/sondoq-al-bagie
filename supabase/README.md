@@ -105,8 +105,15 @@ Tests: `node --test supabase/import/import-paper.test.mts` (also run by `tests/l
 
 ## Types
 
-After a schema change regenerate `src/lib/supabase/database.types.ts`
-(`supabase gen types typescript --project-id vhcdgxgwdlflmxmqnxzf > src/lib/supabase/database.types.ts`).
+`src/lib/supabase/database.types.ts` follows the **production** schema, so it is updated after a
+migration is applied:
+
+- `pnpm db:types` regenerates it from the project (needs the `supabase` CLI logged into the owner's
+  account; Prettier formats it). Review `git diff` and commit.
+- Without that login, use the Supabase MCP `generate_typescript_types`, or patch the file by hand
+  for the change (the Functions/Views/Tables entry of what the migration touched).
+- Local generation (`supabase gen types --db-url` against the `run.sh` database) needs Docker
+  (postgres-meta); it is not part of the workflow.
 
 ## Remote state
 
