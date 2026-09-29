@@ -29,6 +29,7 @@ import {
   dayWords,
   fmt,
   groupLabel,
+  imageOpenError,
   MONTHS,
   monthsLabel,
   monthCount,
@@ -530,7 +531,7 @@ export function RecordBody({
       const url = await compressImage(f);
       if (seq === readSeq.current) setShot({ url, name: f.name });
     } catch {
-      if (seq === readSeq.current) setErr("تعذّر فتح الصورة. جرّب صورة أخرى.");
+      if (seq === readSeq.current) setErr(imageOpenError(f));
     }
   };
 
@@ -835,7 +836,8 @@ export function RecordBody({
               <div id="bq-rec-more-b" className="bq-rec-in">
                 <label className="bq-rec-field">
                   <span className="bq-rec-k">
-                    المبلغ المحوّل <Mark from={fromShot.has("amount")} ok={diff === 0} />
+                    المبلغ المحوّل (أوقية قديمة){" "}
+                    <Mark from={fromShot.has("amount")} ok={diff === 0} />
                   </span>
                   <input
                     ref={amountRef}
@@ -855,6 +857,8 @@ export function RecordBody({
                       "اتركه فارغًا إذا حُوّل المجموع نفسه."
                     ) : diff === 0 ? (
                       <>{I.check(16)} يطابق المجموع.</>
+                    ) : sent > 0 && sent * 10 === total ? (
+                      "يبدو أنك كتبت المبلغ بالأوقية الجديدة. اضربه في 10."
                     ) : diff < 0 ? (
                       <>
                         أقل من المجموع بـ <Num className="bq-strong">{fmt(-diff)}</Num> أوقية.
@@ -866,7 +870,19 @@ export function RecordBody({
                     )}
                   </span>
                 </label>
-                {fitMonths && (
+                {sent !== null && sent > 0 && sent * 10 === total && (
+                  <button
+                    type="button"
+                    className="bq-chip bq-press bq-rec-fit"
+                    onClick={() => {
+                      setSentTxt(String(sent * 10));
+                      touched("amount");
+                    }}
+                  >
+                    اجعله <Num>{fmt(sent * 10)}</Num> أوقية قديمة
+                  </button>
+                )}
+                {fitMonths && sent !== null && sent * 10 !== total && (
                   <button
                     type="button"
                     className="bq-chip bq-press bq-rec-fit"

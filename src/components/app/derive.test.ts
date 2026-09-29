@@ -3,6 +3,7 @@ import type { MemberStatus } from "@/lib/data/types";
 import {
   amountInWords,
   contributionCount,
+  imageOpenError,
   paymentCount,
   pendingForCampaign,
   clock,
@@ -209,5 +210,15 @@ describe("pending counts in words", () => {
     ];
     expect(pendingForCampaign(pending, "x")).toBe(2);
     expect(pendingForCampaign(pending, "z")).toBe(0);
+  });
+});
+
+describe("imageOpenError", () => {
+  it("HEIC asks for a screenshot", () => {
+    expect(imageOpenError({ type: "image/heic", name: "x" })).toContain("لقطة شاشة");
+    expect(imageOpenError({ type: "", name: "IMG_1.HEIF" })).toContain("لقطة شاشة");
+    expect(imageOpenError({ type: "image/jpeg", name: "a.jpg" })).toBe(
+      "تعذّر فتح الصورة. جرّب صورة أخرى.",
+    );
   });
 });

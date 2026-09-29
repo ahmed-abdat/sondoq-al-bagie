@@ -10,7 +10,7 @@ import { failure } from "@/lib/data/errors";
 import type { CampaignProgress, ExpenseAdmin, ExpenseCategory } from "@/lib/data/types";
 import { todayIso } from "@/lib/dates";
 import { parseAmount } from "@/lib/money";
-import { CATEGORY_LABEL, dayWords, fmt } from "./derive";
+import { CATEGORY_LABEL, dayWords, fmt, imageOpenError } from "./derive";
 import { DateField } from "./date-field";
 import { I } from "./icons";
 import { Num } from "./num";
@@ -20,9 +20,12 @@ const REASONS = ["سُجّل مرتين", "المبلغ غير صحيح", "لم 
 
 export function RecordExpenseBody({
   campaigns,
+  balance,
   onDone,
 }: {
   campaigns: CampaignProgress[];
+  /** main fund balance now; unknown = no check */
+  balance?: number;
   onDone: (text: string) => void;
 }) {
   const router = useRouter();
@@ -40,6 +43,10 @@ export function RecordExpenseBody({
   const amount = Math.round(parseAmount(amountTxt) ?? 0);
   const open = campaigns.filter((c) => c.status === "open");
   const ok = cat && amount > 0 && note.trim().length > 1;
+  // allowed (the treasurer may have advanced money), but worth a second look
+  const fromCamp = from ? open.find((c) => c.campaignId === from) : undefined;
+  const available = from ? fromCamp?.balance : balance;
+  const overBalance = available !== undefined && amount > available;
 
   const submit = async () => {
     if (!ok || !cat) return;
@@ -113,7 +120,14 @@ export function RecordExpenseBody({
         inputMode="numeric"
         dir="ltr"
         aria-label="المبلغ بالأوقية"
+        aria-describedby={overBalance ? "bq-exp-over" : undefined}
       />
+      {overBalance && (
+        <p className="bq-hint" id="bq-exp-over">
+          المبلغ أكبر من رصيد {from ? "الحملة" : "الصندوق"} الحالي (<Num>{fmt(available ?? 0)}</Num>{" "}
+          أوقية). تأكد منه.
+        </p>
+      )}
       <p className="bq-rec-k">التاريخ</p>
       <DateField value={day} onChange={setDay} label="تاريخ الصرف" noFuture />
       {open.length > 0 && (
@@ -152,7 +166,7 @@ export function RecordExpenseBody({
               setShot({ url: await compressImage(f), name: f.name });
               setErr("");
             } catch {
-              setErr("تعذّر قراءة الصورة. جرّب صورة أخرى.");
+              setErr(imageOpenError(f));
             }
           }}
         />

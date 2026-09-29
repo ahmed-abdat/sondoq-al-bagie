@@ -7,10 +7,14 @@ export const metadata: Metadata = { title: "المصاريف · صندوق ال�
 
 export default async function Expenses() {
   await src.requireCommittee("/committee/expenses");
-  const [expenses, campaigns] = await Promise.all([src.expensesAdmin(), src.campaigns()]);
+  const [expenses, campaigns, summary] = await Promise.all([
+    src.expensesAdmin(),
+    src.campaigns(),
+    src.fundSummary(),
+  ]);
   return (
     <Tab>
-      <ExpensesPage expenses={expenses} campaigns={campaigns} />
+      <ExpensesPage expenses={expenses} campaigns={campaigns} balance={summary.balance} />
     </Tab>
   );
 }

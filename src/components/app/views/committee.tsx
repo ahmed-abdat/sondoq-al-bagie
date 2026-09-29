@@ -321,9 +321,12 @@ export function LatePage({
 export function ExpensesPage({
   expenses: server,
   campaigns: serverCampaigns,
+  balance,
 }: {
   expenses: ExpenseAdmin[];
   campaigns: CampaignProgress[];
+  /** main fund balance now (an expense above it gets a second look) */
+  balance?: number;
 }) {
   const demo = useDemoState();
   const expenses = [...demo.expenses, ...server];
@@ -348,6 +351,7 @@ export function ExpensesPage({
         <Sheet key="expense" label="سجّل مصروفًا" onDone={() => setOpen(false)}>
           <RecordExpenseBody
             campaigns={campaigns}
+            balance={balance}
             onDone={(t) => {
               setOpen(false);
               say(t);

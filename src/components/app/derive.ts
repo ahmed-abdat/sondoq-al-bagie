@@ -35,6 +35,13 @@ export function monthCount(n: number) {
   return n <= 10 ? `${n} أشهر` : `${n} شهرًا`;
 }
 
+/** Why a picked image could not be opened: HEIC/HEIF photos need a screenshot instead. */
+export function imageOpenError(f: { type: string; name: string }) {
+  return /hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name)
+    ? "هذه الصورة بصيغة لا يقرؤها الهاتف. أرسل لقطة شاشة بدلًا منها."
+    : "تعذّر فتح الصورة. جرّب صورة أخرى.";
+}
+
 /** «دفعة واحدة / دفعتان / 3 دفعات / 12 دفعة» (subject of «توجد …»). */
 export function paymentCount(n: number) {
   if (n === 1) return "دفعة واحدة";
