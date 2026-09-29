@@ -2,10 +2,9 @@
 import { toWesternDigits } from "@/lib/money";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CommitteePushToggle } from "@/components/providers/committee-push";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import { useAct, useDemoState, useIsDemo } from "../act";
+import { useAct, useDemoState } from "../act";
 import type {
   CommitteeAccount,
   CommitteeRole,
@@ -19,7 +18,6 @@ import { ROLE_LABEL } from "../derive";
 import { DateField } from "../date-field";
 import { I } from "../icons";
 import { Sheet } from "../sheet";
-import { LogoutButton } from "../logout";
 import { useSnack } from "../shell";
 
 function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
@@ -104,11 +102,11 @@ function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
   );
 }
 
-type SaveState = { status: "idle" | "saving" | "saved" | "error"; message?: string };
-const IDLE: SaveState = { status: "idle" };
+export type SaveState = { status: "idle" | "saving" | "saved" | "error"; message?: string };
+export const IDLE: SaveState = { status: "idle" };
 
 /** Runs one save and reports saving → saved (fades after 2.5 s) or error (stays, with the reason). */
-async function runSave(
+export async function runSave(
   set: (s: SaveState) => void,
   fn: () => Promise<{ ok: true } | { ok: false; message: string }>,
 ): Promise<boolean> {
@@ -129,7 +127,7 @@ async function runSave(
 }
 
 /** Inline status under a setting: «جارٍ الحفظ…», «تم الحفظ», or why it failed. */
-function SaveNote({ s, id }: { s: SaveState; id?: string }) {
+export function SaveNote({ s, id }: { s: SaveState; id?: string }) {
   return (
     <p
       id={id}
@@ -159,10 +157,7 @@ export function SettingsView({
   committee,
   members,
   selfId,
-  canConfirm = false,
 }: {
-  /** may confirm payments: gets the new-payment notifications switch */
-  canConfirm?: boolean;
   role: CommitteeRole;
   displayName: string;
   showOwed: boolean;
@@ -177,7 +172,7 @@ export function SettingsView({
 }) {
   const router = useRouter();
   const online = useOnline();
-  const { setPassword, updateFundAccount, updateSettings } = useAct();
+  const { updateFundAccount, updateSettings } = useAct();
   const say = useSnack();
   const [owed, setOwed] = useState(showOwed);
   const [over, setOver] = useState<Record<string, boolean>>({});
@@ -199,17 +194,14 @@ export function SettingsView({
   const [waSave, setWaSave] = useState<SaveState>(IDLE);
   const [openSave, setOpenSave] = useState<SaveState>(IDLE);
   const [accSave, setAccSave] = useState<Record<string, SaveState>>({});
-  const [pwSave, setPwSave] = useState<SaveState>(IDLE);
   const saveOwed = async (next: boolean) => {
     setOwed(next);
     if (!(await runSave(setOwedSave, () => updateSettings({ showAmountOwed: next }))))
       setOwed(!next);
     else router.refresh();
   };
-  const [pw, setPw] = useState("");
   const [adding, setAdding] = useState(false);
   const admin = role === "admin";
-  const demo = useIsDemo();
 
   return (
     <>
@@ -223,19 +215,7 @@ export function SettingsView({
         </p>
       </header>
 
-      {canConfirm && (
-        <section className="bq-sec bq-sec-first" aria-labelledby="bq-push-h">
-          <h2 id="bq-push-h">الإشعارات</h2>
-          <p className="bq-hint">أعلمني عند وصول دفعة جديدة تنتظر التأكيد، على هذا الهاتف.</p>
-          {demo ? (
-            <p className="bq-hint">لا تعمل الإشعارات في النسخة التجريبية.</p>
-          ) : (
-            <CommitteePushToggle className="bq-small-top" />
-          )}
-        </section>
-      )}
-
-      <section className={`bq-sec ${canConfirm ? "" : "bq-sec-first"}`} aria-labelledby="bq-pub-h">
+      <section className="bq-sec bq-sec-first" aria-labelledby="bq-pub-h">
         <h2 id="bq-pub-h">ما يراه الأعضاء</h2>
         {!admin && <p className="bq-lead">يغيّرها المسؤول فقط.</p>}
         {confirmOwed ? (
@@ -456,43 +436,23 @@ export function SettingsView({
         </section>
       )}
 
-      <section className="bq-sec" aria-labelledby="bq-pw-h">
-        <h2 id="bq-pw-h">حسابك</h2>
-        <p className="bq-lead">{displayName} · غيّر كلمة السر التي تدخل بها أنت.</p>
-        <form
-          className="bq-login"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (await runSave(setPwSave, () => setPassword({ password: pw }))) setPw("");
-          }}
-        >
-          <label>
-            كلمة سر جديدة (8 أحرف أو أكثر)
-            <input
-              className="bq-input"
-              type="password"
-              dir="ltr"
-              autoComplete="new-password"
-              minLength={8}
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              required
-            />
-          </label>
-          <button
-            type="submit"
-            className="bq-btn bq-btn-soft bq-press"
-            disabled={!online || pw.length < 8 || pwSave.status === "saving"}
-          >
-            غيّر كلمة السر
-          </button>
-          <SaveNote s={pwSave} />
-        </form>
-        <div className="bq-small-top">
-          <LogoutButton className="bq-btn bq-btn-ghost bq-press">
-            {I.out2(20)} خروج من حساب اللجنة
-          </LogoutButton>
-        </div>
+      <section className="bq-sec" aria-label="حسابي">
+        <ul className="bq-list bq-menu">
+          <li>
+            <Link
+              href="/committee/account"
+              className="bq-row bq-press"
+              transitionTypes={["tab-fwd"]}
+            >
+              <span className="bq-disc">{I.lock(22)}</span>
+              <span className="bq-row-m">
+                <span className="bq-row-t">حسابي</span>
+                <span className="bq-row-s">كلمة السر، الإشعارات، الخروج</span>
+              </span>
+              <span className="bq-chev">{I.go(18)}</span>
+            </Link>
+          </li>
+        </ul>
       </section>
 
       {adding && (
