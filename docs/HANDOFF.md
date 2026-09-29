@@ -25,7 +25,7 @@ Read this, then [DECISIONS.md](DECISIONS.md). Extending the app: [RECIPES.md](RE
 ## Branches, lanes, shipping
 
 - `main` = **production** (Vercel deploys it). The lead updates it by pushing `m2-app:main`.
-- `m2-app` = integration branch. Lanes work in worktrees `.claude/worktrees/<lane>` on branches
+- `m2-app` = LOCAL integration branch (never pushed; only `main` deploys). Lanes work in worktrees `.claude/worktrees/<lane>` on branches
   cut from `m2-app`, commit small, never push, and tell the lead; the lead merges.
   - Lane A, backend: `m2-backend` (`supabase/**`, `src/lib/supabase/**`, `src/lib/data/**`, `src/app/api/**`).
   - Lane B, platform: `m2-pwa` (SW, manifest, `public/**`, `scripts/**`, offline, providers, `e2e/**`, `vercel.json`, `.github/**`).

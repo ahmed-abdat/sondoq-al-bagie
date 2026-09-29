@@ -31,7 +31,7 @@ pnpm format       # Prettier
 
 ## Deploy
 
-Live at https://baqie.vercel.app. Vercel (`vercel.json`, region `cdg1`) deploys `main`, which is production; `m2-app` is the integration branch that gets pushed to `main`. Crons: `/api/keepalive` daily (so the free Supabase project does not pause) and `/api/backup` weekly (Sunday 03:00 UTC). Set `CRON_SECRET` in Vercel. `SUPABASE_SECRET_KEY` is server-only and stays in Vercel settings.
+Live at https://baqie.vercel.app. Vercel (`vercel.json`, region `cdg1`) deploys only `main`, which is production; `m2-app` is a local integration branch (not pushed) that the lead checks and then pushes to `main`. Crons: `/api/keepalive` daily (so the free Supabase project does not pause) and `/api/backup` weekly (Sunday 03:00 UTC). Set `CRON_SECRET` in Vercel. `SUPABASE_SECRET_KEY` is server-only and stays in Vercel settings.
 
 ## Notes
 

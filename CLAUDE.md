@@ -29,4 +29,4 @@ A PWA for a village youth association fund (subscriptions, arrears, proof of pay
 - PWA: `src/app/sw.ts` (Serwist), `public/offline.html`, `src/app/manifest.ts`.
 - SQL: `supabase/migrations/` (m1–m13; RPC bodies in `app_private` as SECURITY DEFINER, `public` SECURITY INVOKER wrappers), tests via `supabase/tests/local/run.sh`. See `supabase/README.md`.
 - Demo mode: `SONDOQ_FIXTURES=1` on a non-production build (fictional data, writes simulated; `src/components/app/demo.ts`).
-- Deploy: live at https://baqie.vercel.app. `vercel.json` (region cdg1): `main` = production, updated by the lead pushing `m2-app:main`; `m2-app` is the integration branch. Crons: `/api/keepalive` daily, `/api/backup` weekly.
+- Deploy: live at https://baqie.vercel.app. `vercel.json` (region cdg1): only `main` deploys (production). `m2-app` is the lead's LOCAL integration branch (never pushed); the lead merges lane branches there, runs checks, then pushes `m2-app:main`. Crons: `/api/keepalive` daily, `/api/backup` weekly.
