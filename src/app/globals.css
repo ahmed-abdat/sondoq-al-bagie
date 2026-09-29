@@ -248,10 +248,10 @@
     white-space: nowrap;
   }
 
-  /* one press: scale only, spring release */
+  /* one press: scale only, a short plain release (no spring overshoot on money screens) */
   .bq-press {
     transition:
-      transform 420ms var(--spring),
+      transform 140ms var(--ease-out),
       background-color 180ms var(--ease-out),
       color 180ms var(--ease-out);
   }

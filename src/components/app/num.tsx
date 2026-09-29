@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { fmt } from "./derive";
 
 export const prefersReduced = () =>
@@ -14,38 +14,9 @@ export function Num({ children, className = "" }: { children: ReactNode; classNa
   );
 }
 
-/** Number roll: writes textContent inside rAF (no re-render per frame), 600ms ease-out. */
+/** A money figure, stable from its first frame (QA pass 3: no digit roll-up). */
 export function Roll({ value, className }: { value: number; className?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [first] = useState(value);
-  const prev = useRef(value);
-  useEffect(() => {
-    const el = ref.current;
-    const from = prev.current;
-    prev.current = value;
-    if (!el || from === value) return;
-    if (prefersReduced()) {
-      el.textContent = fmt(value);
-      return;
-    }
-    const t0 = performance.now();
-    let raf = 0;
-    const tick = (t: number) => {
-      const k = Math.min(1, (t - t0) / 600);
-      el.textContent = fmt(Math.round(from + (value - from) * (1 - Math.pow(1 - k, 4))));
-      if (k < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => {
-      cancelAnimationFrame(raf);
-      el.textContent = fmt(value);
-    };
-  }, [value]);
-  return (
-    <Num className={className}>
-      <span ref={ref}>{fmt(first)}</span>
-    </Num>
-  );
+  return <Num className={className}>{fmt(value)}</Num>;
 }
 
 const noSub = () => () => {};

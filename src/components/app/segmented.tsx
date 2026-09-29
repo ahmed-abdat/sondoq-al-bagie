@@ -44,7 +44,14 @@ export function Segmented<T extends string>({
       w.dataset.ready = "";
       markOver();
     };
-    place();
+    // first mount: put the indicator in place without animating from nowhere (QA pass 3)
+    if (!mounted.current && ind.current) {
+      const i = ind.current;
+      i.style.transition = "none";
+      place();
+      void i.offsetWidth;
+      i.style.transition = "";
+    } else place();
     // scroll only the chip row, horizontally — never the page; skip on mount
     const on = inner.current?.querySelector<HTMLElement>("[aria-pressed=true]");
     const t = track.current;

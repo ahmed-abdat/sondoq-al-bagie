@@ -19,7 +19,7 @@ import {
 import { Hero, type HeroData } from "./hero";
 import { Dots, useMoney } from "./money";
 import { I } from "./icons";
-import { Num, prefersReduced, Roll } from "./num";
+import { Num, Roll } from "./num";
 import { usePendingCount } from "./pending-count";
 
 const TABS = [
@@ -63,41 +63,14 @@ function useSnackState() {
   return [snack, say] as const;
 }
 
-/* ───────────── reveal: below the fold only, once per session, 300ms, no blur ───────────── */
-const REVEALED = new Set<string>();
-function reveal(el: HTMLElement, isFirst: boolean) {
-  const secs = [...el.querySelectorAll<HTMLElement>(".bq-rv")];
-  const reduce = prefersReduced();
-  let n = 0;
-  const io =
-    typeof IntersectionObserver === "undefined"
-      ? null
-      : new IntersectionObserver(
-          (ens) =>
-            ens.forEach((en) => {
-              if (!en.isIntersecting) return;
-              const t = en.target as HTMLElement;
-              t.style.transitionDelay = `${(n++ % 3) * 40}ms`;
-              t.classList.add("in");
-              REVEALED.add(t.dataset.rv ?? "");
-              io?.unobserve(t);
-            }),
-          { rootMargin: "0px 0px -6% 0px" },
-        );
-  secs.forEach((s) => {
-    const k = s.dataset.rv ?? "";
-    const above = s.getBoundingClientRect().top < window.innerHeight;
-    if (reduce || !io || REVEALED.has(k) || above) {
-      s.classList.add(isFirst && above && !reduce ? "in" : "seen");
-      s.style.transitionDelay = "0ms";
-      REVEALED.add(k);
-    } else {
-      s.classList.add("hide");
-      io.observe(s);
-    }
-  });
-  el.setAttribute("data-rv", "1");
-  return () => io?.disconnect();
+/* ───────────── reveal ───────────── */
+/**
+ * Sections used to slide in on scroll; routine content now shows at once, still (QA pass 3:
+ * nothing moves while someone reads money). Kept as the one hook so pages need no change.
+ */
+function reveal(el: HTMLElement) {
+  el.querySelectorAll<HTMLElement>(".bq-rv").forEach((s) => s.classList.add("seen"));
+  return () => {};
 }
 
 /* ───────────── compact bar: the hero, collapsed, once its balance leaves (mobile home) ───────────── */
@@ -170,11 +143,9 @@ export function AppShell({
   const idx = tapped && tapped.from === path ? tapped.i : real;
   const [snack, say] = useSnackState();
   const main = useRef<HTMLElement>(null);
-  const firstReveal = useRef(true);
   useLayoutEffect(() => {
     if (!main.current) return;
-    const cleanup = reveal(main.current, firstReveal.current);
-    firstReveal.current = false;
+    const cleanup = reveal(main.current);
     return cleanup;
   }, [path]);
   const compact = useCompact(path === "/");
