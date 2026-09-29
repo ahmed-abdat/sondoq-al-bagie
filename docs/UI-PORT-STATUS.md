@@ -564,6 +564,16 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - Reveal/grow CSS removed. 200% text: no overflow in Chromium/Firefox/WebKit incl. settings/late.
 - pass4-arabic.md rows applied (errors.ts and install.tsx are other lanes' files).
 
+## QA pass 5: honesty (r34)
+- `restLines` (payment-draft, tested): «على <اسم> …» / «يبقى … باسم <اسم>» when paying for
+  someone else; «عليك / يبقى لك» only for oneself. Waiting toast promises «دفعاتي»; a
+  notification only when `pushState("member") === "on"`.
+- Donation picker «اختر صورة التحويل»; slips/receipts get `campaignTitles` (hub, payments).
+- `remindedLabel` = «فُتحت رسالة واتساب · <وقت>»; no «ذُكّر» anywhere.
+- `copy.tsx` (`copyText`, `ManualCopy`): «نُسخ» only after the write resolved.
+- Share: «شارك الوصل», no delivery claim after the sheet, «اختر واتساب ثم اضغط إرسال.».
+- Picker and late list: a few names first, «عرض كل …» for the rest.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
