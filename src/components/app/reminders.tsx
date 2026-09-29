@@ -41,7 +41,11 @@ export function LateList({
   });
 
   const remind = (a: Arrear, inWalk = false) => {
-    window.open(reminderLink(a, withUrl()), "_blank", "noopener");
+    window.open(
+      reminderLink(a, { ...withUrl(), payUrl: `${window.location.origin}/?pay=1` }),
+      "_blank",
+      "noopener",
+    );
     const done = { ...sent, [a.memberId]: new Date().toISOString() };
     setSent(done);
     if (inWalk) next(skipped, done);

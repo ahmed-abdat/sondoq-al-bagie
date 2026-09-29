@@ -57,6 +57,7 @@ export function MemberCard({
   again = null,
   onAgainDone,
   welcome = false,
+  openPay = false,
 }: {
   /** from a dynamic page that already read the session (/me) */
   initial?: MemberHome | null;
@@ -67,6 +68,8 @@ export function MemberCard({
   onAgainDone?: () => void;
   /** home, first open of the personal link (/?welcome=1) */
   welcome?: boolean;
+  /** home from a personal reminder (/?pay=1): open «ادفع الآن» once when there is something due */
+  openPay?: boolean;
 }) {
   const [d, refresh] = useMemberHome(initial);
   const isDemo = useIsDemo();
@@ -119,12 +122,27 @@ export function MemberCard({
     setAgainKey(again.key);
     setSheet("again");
   }
+  // /?pay=1 (a personal reminder): open «ادفع الآن» once, when the card says late
+  const [payShown, setPayShown] = useState(false);
+  if (openPay && !payShown && d) {
+    setPayShown(true);
+    const mine = d.waitingMine + (isDemo ? pendingCounts(demo.sent, d.s.memberId).mine : 0);
+    if (youCard(d.s, d.months, d.year, mine).kind === "late") setSheet("pay");
+  }
   useEffect(() => {
-    if (sheet !== "again" || data !== undefined) return;
+    if (!payShown) return;
+    const u = new URL(window.location.href);
+    if (u.searchParams.has("pay")) {
+      u.searchParams.delete("pay");
+      history.replaceState(history.state, "", u.pathname + u.search + u.hash);
+    }
+  }, [payShown]);
+  useEffect(() => {
+    if ((sheet !== "again" && !(sheet === "pay" && openPay)) || data !== undefined) return;
     memberSheetData()
       .then(setData)
       .catch(() => setData(null));
-  }, [sheet, data]);
+  }, [sheet, data, openPay]);
 
   const open = (k: SheetKind) => {
     setSheet(k);

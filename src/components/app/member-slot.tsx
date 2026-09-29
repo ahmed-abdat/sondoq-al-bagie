@@ -25,5 +25,11 @@ export function MemberSlot() {
       typeof window !== "undefined" &&
       new URLSearchParams(window.location.search).get("welcome") === "1",
   );
-  return on ? <MemberCard welcome={welcome} /> : <MemberLinkPaste />;
+  // from a personal reminder (/?pay=1, UX-PATTERNS P4): open «ادفع الآن» at once
+  const [pay] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("pay") === "1",
+  );
+  return on ? <MemberCard welcome={welcome} openPay={pay} /> : <MemberLinkPaste />;
 }

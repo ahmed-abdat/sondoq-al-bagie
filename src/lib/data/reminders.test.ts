@@ -50,6 +50,19 @@ describe("reminders", () => {
     expect(t).toContain(ltr("+22200000000"));
   });
 
+  it("personal reminder links to «ادفع الآن» (/?pay=1) instead of the public list (P4)", () => {
+    const t = reminderText(arrear, {
+      ...ctx,
+      publicUrl: "https://x.test/members",
+      payUrl: "https://x.test/?pay=1",
+    });
+    expect(t).toContain(`ادفع وأرسل صورة التحويل من هنا: ${ltr("https://x.test/?pay=1")}`);
+    expect(t).not.toContain("x.test/members");
+    expect(reminderText(arrear, { ...ctx, publicUrl: "https://x.test/members" })).toContain(
+      "حالة الرسوم الشهرية",
+    );
+  });
+
   it("links to the member's WhatsApp", () => {
     expect(reminderLink(arrear, ctx)).toMatch(/^https:\/\/wa\.me\/22236123456\?text=/);
     expect(reminderLink({ ...arrear, phone: null }, ctx)).toMatch(/^https:\/\/wa\.me\/\?text=/);

@@ -47,6 +47,9 @@ export type ReminderContext = {
   whatsappContact: string | null;
   /** public page link, e.g. https://…/members */
   publicUrl?: string;
+  /** personal reminder: home with «ادفع الآن» open on a phone that holds the member's link,
+   *  e.g. https://…/?pay=1 (UX-PATTERNS P4); replaces the public link line */
+  payUrl?: string;
 };
 
 /** Personal reminder for one late member (sent privately, so the amount is included). */
@@ -63,7 +66,11 @@ export function reminderText(
     ctx.whatsappContact
       ? `بعد التحويل أرسلوا صورة الإيصال إلى ${ltr(ctx.whatsappContact)}.`
       : "بعد التحويل أرسلوا صورة الإيصال إلى هذا الرقم.",
-    ...(ctx.publicUrl ? [`حالة الرسوم الشهرية: ${ltr(ctx.publicUrl)}`] : []),
+    ...(ctx.payUrl
+      ? [`ادفع وأرسل صورة التحويل من هنا: ${ltr(ctx.payUrl)}`]
+      : ctx.publicUrl
+        ? [`حالة الرسوم الشهرية: ${ltr(ctx.publicUrl)}`]
+        : []),
     "جزاكم الله خيراً.",
   ].join("\n");
 }
