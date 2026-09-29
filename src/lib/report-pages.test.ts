@@ -9,7 +9,6 @@ import {
   memberCols,
   membersPerPage,
   membersWord,
-  numberOf,
   moneyBlocks,
   footerLabel,
   paginateBlocks,
@@ -65,13 +64,8 @@ it("chunkEven balances pages", () => {
   expect(chunkEven([], 20)).toEqual([]);
 });
 
-it("numberOf: the number alone on a group page", () => {
-  expect(numberOf({ memberRef: "A-12" })).toBe("12");
-  expect(numberOf({ memberRef: "7" })).toBe("7");
-});
-
-describe("month cells: a ✓ badge when paid, empty otherwise", () => {
-  it("paid and paid ahead get the badge; late, future and not owed stay empty", () => {
+describe("month cells: a ✓ when paid, empty otherwise", () => {
+  it("paid and paid ahead get the ✓; late, future and not owed stay empty", () => {
     const states: (ReportMonthState | undefined)[] = [
       "paid",
       "prepaid",
@@ -93,13 +87,13 @@ describe("month cells: a ✓ badge when paid, empty otherwise", () => {
     ).toBe(2500);
   });
 
-  it("12 badges fit on the 1080 page with room between them and for the name", () => {
+  it("12 checks fit on the 1080 page with room between them and for the name", () => {
     const c = memberCols(PHONE_PAGE.w);
     expect(c.cx(12) - c.badge).toBeGreaterThanOrEqual(L.pad);
-    expect(c.cell - 2 * c.badge).toBeGreaterThanOrEqual(10); // gap between two badges
+    expect(c.cell - 2 * c.badge).toBeGreaterThanOrEqual(10); // gap between two checks
     expect(2 * c.badge).toBeLessThanOrEqual(L.row - 8); // white space around the ✓ in its cell
     expect(c.cx(1) + c.badge).toBeLessThan(c.nameR - c.nameW);
-    expect(c.nameW).toBeGreaterThanOrEqual(380);
+    expect(c.nameW).toBeGreaterThanOrEqual(460); // wider now the number column is gone
   });
 });
 
@@ -120,13 +114,7 @@ describe("paginateReport", () => {
 
   it("cover, then each list in pages (gone members hidden), then money", () => {
     const pages = paginateReport(report(members, [expense(1)]));
-    expect(pages.map((p) => p.kind)).toEqual([
-      "cover",
-      "members",
-      "members",
-      "members",
-      "money",
-    ]);
+    expect(pages.map((p) => p.kind)).toEqual(["cover", "members", "members", "members", "money"]);
     const lists = pages.flatMap((p) =>
       p.kind === "members" ? [[p.list, p.rows.length, p.part, p.parts]] : [],
     );

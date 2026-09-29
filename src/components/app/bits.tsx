@@ -124,3 +124,28 @@ export function EmptyState({
     </div>
   );
 }
+
+/**
+ * A paid month in the months grid (/report, the member card): a plain green check, no filled
+ * disc (owner decision r25). Receipts keep their own ConfirmedMark.
+ */
+export function PaidCheck({
+  size = 18,
+  className = "bq-check",
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <path
+        d="M4.5 12.5l5 5L19.5 6.5"
+        fill="none"
+        stroke="var(--g7)"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

@@ -1,6 +1,6 @@
 /**
  * The fund report as a set of pages drawn on a canvas, for the WhatsApp group:
- * cover (summary), one or more pages per member list (a ✓ badge in each paid month),
+ * cover (summary), one or more pages per member list (a green ✓ in each paid month),
  * then expenses and campaigns. 1080×1350 for images; 1080×1575 for the PDF (A4 inside a 10 mm
  * margin). Loaded on demand by share-report.ts. Pagination is pure and unit tested.
  */
@@ -34,7 +34,7 @@ export const L = {
   pad: 48,
   band: 168,
   gap: 24,
-  /** the paper title line «صندوق رابطة شباب البقيع 2026» above the grid */
+  /** the month key line «1 = يناير … 12 = ديسمبر» above the grid */
   legend: 52,
   head: 44,
   /** one member row, tight like the paper sheet (28 rows on a phone page, 35 on A4) */
@@ -74,9 +74,6 @@ export type ReportPage =
 
 /** «A-12» → «A». */
 const listOf = (m: Pick<ReportMember, "memberRef">) => m.memberRef.split("-")[0];
-/** «A-12» → «12». */
-export const numberOf = (m: Pick<ReportMember, "memberRef">) =>
-  m.memberRef.split("-").slice(1).join("-") || m.memberRef;
 const listLabel = (code: string) => {
   const c = code.trim().toUpperCase();
   return c === "A" ? "أ" : c === "B" ? "ب" : code;
@@ -256,36 +253,32 @@ function band(
   );
 }
 
-/** A paid month: a green disc with a white check (the app's ConfirmedMark). */
-function okBadge(p: Pen, cx: number, cy: number, r: number) {
-  p.dot(cx, cy, r, T.green);
-  const k = r / 16;
+/** A paid month: a plain green check, no disc (owner decision r25). `r` = half its size. */
+function okMark(p: Pen, cx: number, cy: number, r: number) {
+  const k = r / 12;
   const x = p.x;
-  x.lineWidth = 3.2 * k;
+  x.lineWidth = 3.4 * k;
   x.lineCap = "round";
   x.lineJoin = "round";
-  x.strokeStyle = T.paper;
+  x.strokeStyle = T.green;
   x.beginPath();
-  x.moveTo(cx - 7 * k, cy);
-  x.lineTo(cx - 2 * k, cy + 5 * k);
-  x.lineTo(cx + 8 * k, cy - 6 * k);
+  x.moveTo(cx - 7.5 * k, cy + 0.5 * k);
+  x.lineTo(cx - 2.5 * k, cy + 5.5 * k);
+  x.lineTo(cx + 7.5 * k, cy - 5.5 * k);
   x.stroke();
 }
 
 /**
- * Member grid columns at width `w` (from the right): ref, name, then 12 month cells down to the
- * left margin. Pure, so the fit is unit tested.
+ * Member grid columns at width `w` (from the right): the name, then 12 month cells down to the
+ * left margin (no number column, owner decision r25). Pure, so the fit is unit tested.
  */
 export function memberCols(w: number) {
   const R = w - L.pad;
-  const refW = 76;
-  const nameR = R - refW - 12;
+  const nameR = R - 14;
   const cell = 40;
   const badge = 12;
   const monthsR = L.pad + 12 * cell;
   return {
-    refW,
-    cRef: R - refW / 2,
     nameR,
     nameW: nameR - monthsR - 16,
     cell,
@@ -302,8 +295,10 @@ export function membersWord(n: number) {
   return n >= 3 && n <= 10 ? `${n} أعضاء` : `${n} عضوًا`;
 }
 
-/** Printed-table lines (a little darker than Pebble, like the paper sheet). */
-const LINE = "#9AA59F";
+/** Table lines: a soft brand grey green (r25), the outer border a step darker. */
+const LINE = "#B3C5B9";
+const EDGE = "#7F9A88";
+const CORNER = 14;
 
 function drawMembers(
   p: Pen,
@@ -323,61 +318,51 @@ function drawMembers(
     ...(fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : []),
   ]);
 
-  // the paper's title line; the month key on the left
+  // the month key above the grid; no second title, the band already names the fund (r25)
   const ty = L.band + L.gap + 34;
-  p.text(`صندوق رابطة شباب البقيع ${card.year}`, R, ty, {
-    size: 28,
-    weight: 700,
-    face: "display",
-  });
-  p.text(`1 = ${monthName(1)} … 12 = ${monthName(12)}`, P, ty, {
-    size: 20,
-    color: T.slate,
-    align: "left",
-  });
+  p.text(`1 = ${monthName(1)} … 12 = ${monthName(12)}`, R, ty, { size: 20, color: T.slate });
 
-  const { cRef, nameR, nameW, cx, badge, cell, refW } = memberCols(w);
+  const { nameR, nameW, cx, badge, cell } = memberCols(w);
   const row = L.row;
   const hy = L.band + L.gap + L.legend;
   const rowsTop = hy + L.head;
   const rowsEnd = rowsTop + page.rows.length * row;
-  const head = { size: 22, weight: 700, color: T.ink } as const;
-  p.text("الرقم", cRef, hy + 30, { ...head, align: "center" });
+  // header row in the brand: green tint, forest bold (r25); the rows stay white
+  const x = p.x;
+  x.fillStyle = T.greenTint;
+  x.beginPath();
+  x.roundRect(P, hy, R - P, L.head, [CORNER, CORNER, 0, 0]);
+  x.fill();
+  const head = { size: 22, weight: 700, color: T.forest } as const;
   p.text("الاسم", nameR, hy + 30, head);
   for (let k = 1; k <= 12; k++)
     p.text(String(k), cx(k), hy + 30, { ...head, face: "display", align: "center", dir: "ltr" });
 
-  // white rows like paper: the number, the name, a ✓ in each paid month, empty otherwise
+  // white rows like paper: the name, a ✓ in each paid month, empty otherwise
   page.rows.forEach((m, i) => {
     const mid = rowsTop + i * row + row / 2;
-    // the page is one group («المجموعة أ»): the number alone
-    p.text(numberOf(m), cRef, mid + 8, {
-      size: 22,
-      weight: 600,
-      face: "display",
-      align: "center",
-      dir: "ltr",
-    });
     p.text(m.fullName, nameR, mid + 9, { size: 25, weight: 600, max: nameW });
-    for (let k = 1; k <= 12; k++) if (monthPaid(m.months[k - 1])) okBadge(p, cx(k), mid, badge);
+    for (let k = 1; k <= 12; k++) if (monthPaid(m.months[k - 1])) okMark(p, cx(k), mid, badge);
   });
 
-  // a fully bordered table: every cell, the outer border a little heavier
-  const x = p.x;
+  // a fully bordered table like the paper: crisp soft lines, rounded outer corners (r25)
   x.strokeStyle = LINE;
   x.lineWidth = 1.5;
   x.beginPath();
-  for (let i = 0; i <= page.rows.length; i++) {
+  for (let i = 0; i < page.rows.length; i++) {
     x.moveTo(P, rowsTop + i * row);
     x.lineTo(R, rowsTop + i * row);
   }
-  for (const vx of [...Array.from({ length: 12 }, (_, i) => P + (i + 1) * cell), R - refW]) {
+  for (const vx of Array.from({ length: 12 }, (_, i) => P + (i + 1) * cell)) {
     x.moveTo(vx, hy);
     x.lineTo(vx, rowsEnd);
   }
   x.stroke();
-  x.lineWidth = 2.5;
-  x.strokeRect(P, hy, R - P, rowsEnd - hy);
+  x.lineWidth = 2;
+  x.strokeStyle = EDGE;
+  x.beginPath();
+  x.roundRect(P, hy, R - P, rowsEnd - hy, CORNER);
+  x.stroke();
 
   // under the grid: «المجموع» once (the group's last page) and the legend
   const fy = rowsEnd + 38;
@@ -392,7 +377,7 @@ function drawMembers(
     color: T.slate,
     align: "left",
   });
-  okBadge(p, P + lw + 16, fy - 7, 10);
+  okMark(p, P + lw + 16, fy - 7, 11);
 }
 
 function drawMoney(

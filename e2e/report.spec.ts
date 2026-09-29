@@ -166,7 +166,7 @@ test("summary image alone goes to the share sheet as a 1080×1350 PNG", async ({
   expect(f.size).toBeGreaterThan(30_000);
 });
 
-test("members grid: a ✓ badge in each paid month, empty cells otherwise, no ✓ option", async ({
+test("members grid: one bordered table, a plain ✓ in each paid month, empty cells otherwise", async ({
   page,
 }) => {
   await page.goto("/report");
@@ -177,26 +177,41 @@ test("members grid: a ✓ badge in each paid month, empty cells otherwise, no �
   await expect(legend).toContainText("خانة فارغة: لم يُدفع");
   await expect(legend).not.toContainText(/غير مدفوع|متأخر|دفع حتى/);
   await expect(page.locator(".is-unpaid, .rp-swatch")).toHaveCount(0);
+  // r25: the ✓ is a plain green check, never a filled disc
+  await expect(page.locator(".rp-legend svg circle, .rp-mt svg circle")).toHaveCount(0);
   // «المجموع: … أوقية» under each group
-  await expect(page.locator(".rp-gtotal")).toHaveCount(await page.locator(".rp-members").count());
+  await expect(page.locator(".rp-gtotal")).toHaveCount(await page.locator(".rp-mt-narrow").count());
   await expect(page.locator(".rp-gtotal").first()).toHaveText(
     /^المجموع: [\d\s\u00a0\u202f]+ أوقية$/,
   );
-  await expect(page.locator(".rp-mhead").first().locator(".rp-cells > span")).toHaveCount(12);
-  const rows = page.locator(".rp-members li");
-  const cells = rows.first().locator(".rp-cells > span");
-  await expect(cells).toHaveCount(12);
-  // no circles: every mark in the grid is a ✓ badge, one per paid month
-  const marks = await page.locator(".rp-members .rp-cells svg").count();
+  // r25: no «الرقم» column
+  for (const t of await page.locator(".rp-mt").all()) await expect(t).not.toContainText("الرقم");
+  const narrow = page.locator(".rp-mt-narrow").first();
+  await expect(narrow.locator("thead th")).toHaveCount(12);
+  await expect(narrow.locator("tbody").first().locator(".rp-mt-c")).toHaveCount(12);
+  const marks = await page.locator(".rp-mt-narrow .rp-mt-c svg").count();
   expect(marks).toBeGreaterThan(0);
-  await expect(page.locator(".rp-members .rp-cells > span:empty").first()).toBeAttached();
-  for (const list of await page.locator(".rp-members").all())
-    await expect(list).not.toContainText(/منتظم|متأخر/);
-  // 12 cells fit a 390px phone row without overflow (group «أ» opened)
+  await expect(page.locator(".rp-mt-narrow .rp-mt-c:empty").first()).toBeAttached();
+  for (const t of await page.locator(".rp-mt-narrow").all())
+    await expect(t).not.toContainText(/منتظم|متأخر/);
+  // on a 390px phone the narrow table shows, without overflow (group «أ» opened)
   await page.locator(".rp-coll-h", { hasText: "المجموعة أ" }).first().click();
-  const box = await rows.first().locator(".rp-cells").boundingBox();
+  await expect(page.locator(".rp-mt-wide").first()).toBeHidden();
+  await expect(narrow).toBeVisible();
+  const box = await narrow.boundingBox();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+  // ≥600px: one line per member, «الاسم | 1 … 12»
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const wide = page.locator(".rp-mt-wide").first();
+  await expect(wide).toBeVisible();
+  await expect(narrow).toBeHidden();
+  await expect(wide.locator("thead th")).toHaveText([
+    "الاسم",
+    ...Array.from({ length: 12 }, (_, i) => String(i + 1)),
+  ]);
+  await expect(wide.locator("tbody tr").first().locator("td")).toHaveCount(13);
+  await page.setViewportSize({ width: 390, height: 844 });
 
   await page.getByRole("button", { name: "مشاركة التقرير" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();

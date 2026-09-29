@@ -11,7 +11,7 @@ import {
   isGone,
   MONTHS,
 } from "@/components/app/derive";
-import { MemberNo } from "@/components/app/bits";
+import { PaidCheck } from "@/components/app/bits";
 import { Collapsible } from "@/components/app/collapsible";
 import { Engaged } from "@/components/app/engaged";
 import { SITE_URL } from "@/components/app/site";
@@ -156,7 +156,7 @@ export default async function ReportPage() {
 
       <p className="rp-note rp-legend">
         <span>
-          <OkMark /> مدفوع · خانة فارغة: لم يُدفع
+          <PaidCheck /> مدفوع · خانة فارغة: لم يُدفع
         </span>
         <span>
           1 = {MONTHS[0]} … 12 = {MONTHS[11]}
@@ -166,41 +166,16 @@ export default async function ReportPage() {
         const rows = shown.filter((m) => listOf(m) === l);
         return (
           <Collapsible key={l} title={`المجموعة ${groupLabel(l)}`} count={rows.length}>
-            {/* like the paper sheet (r22): bordered month cells, a ✓ when paid, empty otherwise */}
-            <div className="rp-mhead" aria-hidden="true">
-              <span className="rp-cells">
-                {MONTHS.map((_, i) => (
-                  <span key={i}>{i + 1}</span>
-                ))}
-              </span>
-            </div>
-            <ul className="rp-members">
-              {rows.map((m) => {
-                const paid = m.months.flatMap((st, i) => (monthPaid(st) ? [MONTHS[i]] : []));
-                return (
-                  <li key={m.memberId}>
-                    <span className="rp-ref">
-                      <MemberNo m={m} scoped />
-                    </span>
-                    <span className="rp-mname">{m.fullName}</span>
-                    {r.showAmountOwed && m.amountOwed ? (
-                      <span className="rp-mst">
-                        عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num> أوقية
-                      </span>
-                    ) : null}
-                    <span
-                      className="rp-cells"
-                      role="img"
-                      aria-label={paid.length ? `مدفوع: ${paid.join("، ")}` : "لا أشهر مدفوعة"}
-                    >
-                      {m.months.map((st, i) => (
-                        <span key={i}>{monthPaid(st) ? <OkMark /> : null}</span>
-                      ))}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+            {/* variant A (r25): ≥600px one bordered table, a line per member; on a phone the
+                same table, each member a name row with its 12 cells beneath */}
+            <MembersTable
+              rows={rows.map((m) => ({
+                id: m.memberId,
+                name: m.fullName,
+                owed: r.showAmountOwed && m.amountOwed ? m.amountOwed : 0,
+                paid: m.months.map(monthPaid),
+              }))}
+            />
             <p className="rp-gtotal">
               المجموع: <Num>{fmt(paidTotal(rows, r.groupPrices))}</Num> أوقية
             </p>
@@ -271,20 +246,82 @@ export default async function ReportPage() {
   );
 }
 
-/** A paid month: a green disc with a white check, as on the shared images. */
-function OkMark() {
+const M12 = Array.from({ length: 12 }, (_, i) => i + 1);
+
+type GridRow = { id: string; name: string; owed: number; paid: boolean[] };
+
+const Owed = ({ n }: { n: number }) =>
+  n ? (
+    <span className="rp-owed">
+      عليه حتى الآن <Num>{fmt(n)}</Num> أوقية
+    </span>
+  ) : null;
+
+const paidLabel = (paid: boolean[]) => {
+  const p = paid.flatMap((x, i) => (x ? [MONTHS[i]] : []));
+  return p.length ? `مدفوع: ${p.join("، ")}` : "لا أشهر مدفوعة";
+};
+
+/**
+ * The members' months like the paper sheet: white bordered cells, a green ✓ when paid, empty
+ * otherwise. Two tables, one shown by width (CSS): wide «الاسم | 1 … 12», narrow name rows.
+ */
+function MembersTable({ rows }: { rows: GridRow[] }) {
   return (
-    <svg className="rp-okm" viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
-      <circle cx="16" cy="16" r="16" fill="var(--g7)" />
-      <path
-        d="M9 16l5 5 10-11"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <>
+      <table className="rp-mt rp-mt-wide">
+        <thead>
+          <tr>
+            <th className="rp-mt-name">الاسم</th>
+            {M12.map((n) => (
+              <th key={n}>{n}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((m) => (
+            <tr key={m.id} aria-label={`${m.name}: ${paidLabel(m.paid)}`}>
+              <td className="rp-mt-name">
+                {m.name}
+                <Owed n={m.owed} />
+              </td>
+              {m.paid.map((p, i) => (
+                <td key={i} className="rp-mt-c">
+                  {p ? <PaidCheck /> : null}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <table className="rp-mt rp-mt-narrow">
+        <thead>
+          <tr>
+            {M12.map((n) => (
+              <th key={n}>{n}</th>
+            ))}
+          </tr>
+        </thead>
+        {rows.map((m) => (
+          <tbody key={m.id} aria-label={`${m.name}: ${paidLabel(m.paid)}`}>
+            <tr className="rp-mt-nrow">
+              <td colSpan={12}>
+                <span className="rp-mt-nm">{m.name}</span>
+                <Owed n={m.owed} />
+              </td>
+            </tr>
+            <tr className="rp-mt-cells">
+              {m.paid.map((p, i) => (
+                <td key={i} className="rp-mt-c">
+                  {p ? <PaidCheck size={16} /> : null}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        ))}
+      </table>
+    </>
   );
 }
 
