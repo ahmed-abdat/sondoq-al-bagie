@@ -168,107 +168,112 @@ export function MemberCard({
           أهلًا {s.fullName.split(" ")[0]}. هذا رابطك الخاص: تجد هنا أشهرك وترسل صورة تحويلك.
         </p>
       )}
+      {/* owner pick «c»: a list-item header on the page (no card box), «دفعاتي» at its side */}
       <div className="bq-you-head">
-        <Avatar m={s} size={48} />
+        <Avatar m={s} size={40} />
         <div className="bq-row-m">
-          <p className="bq-you-k">أنت</p>
           <h2 id="bq-you-h" className="bq-you-t">
+            <span className="bq-sr">أنت، </span>
             {s.fullName}
           </h2>
-          <p className="bq-hint">
+          <p className="bq-you-sub">
             رقم <MemberNo m={s} /> · المجموعة {groupLabel(s.groupCode)}
           </p>
         </div>
+        {!onMe && (
+          <Link className="bq-you-me bq-press" href="/me" transitionTypes={["tab-fwd"]}>
+            دفعاتي {I.go(16)}
+          </Link>
+        )}
       </div>
-      {d.profiles.length > 1 && (
-        <div className="bq-you-sw" role="group" aria-label="أشخاص آخرون على هذا الهاتف">
-          <span className="bq-hint">على هذا الهاتف أيضًا:</span>
-          {d.profiles
-            .filter((p) => !p.active && p.memberId !== s.memberId)
-            .map((p) => (
-              <button
-                key={p.linkId}
-                type="button"
-                className="bq-chip bq-press"
-                disabled={!!switching}
-                aria-label={`انتقل إلى ${p.fullName}`}
-                onClick={() => void switchTo(p.linkId, p.fullName)}
-              >
-                {switching === p.linkId && <span className="bq-spin" aria-hidden="true" />}
-                {p.fullName}
-              </button>
-            ))}
-        </div>
-      )}
-      <p className={`bq-you-st ${st.kind === "late" ? "is-late" : "is-ok"}`}>
-        {st.kind === "late" || st.kind === "pending" ? I.clock(20) : I.check(20)}
-        <span>{st.text}</span>
-      </p>
-      {st.kind === "full" && <p className="bq-hint">شكرًا لك</p>}
-      <div className="bq-you-grid">
-        <ol
-          className="bq-you-cells"
-          role="img"
-          aria-label={
-            paidNames.length ? `أشهر ${d.year} المدفوعة: ${paidNames.join("، ")}` : `أشهر ${d.year}`
-          }
+      <div className="bq-you-body">
+        {d.profiles.length > 1 && (
+          <div className="bq-you-sw" role="group" aria-label="أشخاص آخرون على هذا الهاتف">
+            <span className="bq-hint">على هذا الهاتف أيضًا:</span>
+            {d.profiles
+              .filter((p) => !p.active && p.memberId !== s.memberId)
+              .map((p) => (
+                <button
+                  key={p.linkId}
+                  type="button"
+                  className="bq-chip bq-press"
+                  disabled={!!switching}
+                  aria-label={`انتقل إلى ${p.fullName}`}
+                  onClick={() => void switchTo(p.linkId, p.fullName)}
+                >
+                  {switching === p.linkId && <span className="bq-spin" aria-hidden="true" />}
+                  {p.fullName}
+                </button>
+              ))}
+          </div>
+        )}
+        <p
+          className={`bq-you-st ${st.kind === "late" || st.kind === "pending" ? "is-late" : "is-ok"}`}
         >
-          {dots.map((x) => (
-            <li key={x.month}>{x.state === "paid" ? <PaidCheck /> : null}</li>
-          ))}
-        </ol>
-        <ol className="bq-you-nums" aria-hidden="true">
-          {dots.map((x) => (
-            <li key={x.month}>{x.month}</li>
-          ))}
-        </ol>
-      </div>
-      <p className="bq-you-key" aria-hidden="true">
-        <PaidCheck /> مدفوع
-      </p>
-      {s.credit > 0 && (
-        <p className="bq-hint">
-          لك رصيد <Num>{fmt(s.credit)}</Num> أوقية.
+          {st.kind === "late" || st.kind === "pending" ? I.clock(20) : I.check(20)}
+          <span>
+            {st.text}
+            {st.kind === "full" && <span className="bq-you-thanks"> · شكرًا لك</span>}
+          </span>
         </p>
-      )}
-      {waiting > 0 && (
-        <Link className="bq-you-wait bq-press" href="/me" transitionTypes={["tab-fwd"]}>
-          {I.clock(18)} {waitingLine(waiting)}
-        </Link>
-      )}
-      <div className="bq-btn-col bq-small-top">
-        {st.kind === "late" && (
+        <div className="bq-you-grid">
+          <ol
+            className="bq-you-cells"
+            role="img"
+            aria-label={
+              paidNames.length
+                ? `أشهر ${d.year} المدفوعة: ${paidNames.join("، ")}`
+                : `أشهر ${d.year}`
+            }
+          >
+            {dots.map((x) => (
+              <li key={x.month}>{x.state === "paid" ? <PaidCheck /> : null}</li>
+            ))}
+          </ol>
+          <ol className="bq-you-nums" aria-hidden="true">
+            {dots.map((x) => (
+              <li key={x.month}>{x.month}</li>
+            ))}
+          </ol>
+        </div>
+        {s.credit > 0 && (
+          <p className="bq-hint">
+            لك رصيد <Num>{fmt(s.credit)}</Num> أوقية.
+          </p>
+        )}
+        {waiting > 0 && (
+          <Link className="bq-you-wait bq-press" href="/me" transitionTypes={["tab-fwd"]}>
+            {I.clock(18)} {waitingLine(waiting)}
+          </Link>
+        )}
+        <div className="bq-you-pills">
+          {st.kind === "late" && (
+            <button
+              type="button"
+              className="bq-you-pill is-filled bq-press"
+              onClick={() => open("pay")}
+            >
+              ادفع الآن
+            </button>
+          )}
+          {st.kind === "upto" && (
+            <button
+              type="button"
+              className="bq-you-pill is-tonal bq-press"
+              onClick={() => open("self")}
+            >
+              ادفع أشهرًا قادمة
+            </button>
+          )}
           <button
             type="button"
-            className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-            onClick={() => open("pay")}
+            className="bq-you-pill is-tonal bq-press"
+            onClick={() => open("others")}
           >
-            ادفع الآن
+            ادفع عن شخص آخر
           </button>
-        )}
-        {st.kind === "upto" && (
-          <button
-            type="button"
-            className="bq-btn bq-btn-soft bq-press"
-            onClick={() => open("self")}
-          >
-            ادفع أشهرًا قادمة
-          </button>
-        )}
-        <button
-          type="button"
-          className="bq-btn bq-btn-soft bq-press"
-          onClick={() => open("others")}
-        >
-          ادفع عن شخص آخر
-        </button>
+        </div>
       </div>
-      {!onMe && (
-        <Link className="bq-link bq-press" href="/me" transitionTypes={["tab-fwd"]}>
-          دفعاتي
-          {I.go(18)}
-        </Link>
-      )}
 
       {(sheet === "self" || sheet === "others" || sheet === "again") && (
         <Sheet

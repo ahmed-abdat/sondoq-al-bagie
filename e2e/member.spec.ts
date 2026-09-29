@@ -3,8 +3,9 @@ import { expect, test } from "@playwright/test";
 // A member's personal link (docs/MEMBER-ACCESS.md), with the demo member of the fixtures build:
 // /m/demo is the demo stand-in for /m/<token>.
 
+// the «أنت» card (its heading reads «أنت، <name>» to screen readers; no visible overline since r30)
 const you = (page: import("@playwright/test").Page) =>
-  page.getByRole("region").filter({ has: page.getByText("أنت", { exact: true }) });
+  page.getByRole("region").filter({ has: page.getByRole("heading", { name: /^أنت، / }) });
 
 test("the link sets the cookies and home shows «أنت»", async ({ page, context }) => {
   await page.goto("/m/demo");

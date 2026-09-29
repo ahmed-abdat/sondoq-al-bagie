@@ -3405,6 +3405,23 @@
     justify-content: space-between;
     gap: 4px 12px;
   }
+  /* home band, short (owner pick «a»): balance + one line, the breakdown on /accounts */
+  .bq-hero.is-band {
+    padding-block-end: 22px;
+  }
+  .bq-hero.is-band .bq-hero-bal {
+    margin-block-start: 16px;
+  }
+  .bq-hero-how {
+    color: #fff;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--gold);
+    text-underline-offset: 3px;
+  }
+  .bq-hero.is-band .bq-money-hint {
+    margin-block-start: 10px;
+  }
   /* the snack leaves the way it came, a touch faster */
   .bq-snack.is-out {
     transform: translateY(6px);
@@ -5105,6 +5122,91 @@
   }
 }
 /* ───── end Lane C member link ───── */
+@layer components {
+  /* «أنت», owner pick «c» (r30): flat on the page, no box or shadow; a list-item header, the
+     rest indented under the name, one thin divider under it; pill buttons in one row */
+  .bq-you {
+    background: none;
+    border-radius: 0;
+    padding: 0;
+    gap: 8px;
+  }
+  .bq-you-head {
+    min-height: 56px;
+  }
+  .bq-you-head .bq-av {
+    background: var(--g1);
+    box-shadow: none;
+  }
+  .bq-you-t {
+    font-size: 18px;
+  }
+  .bq-you-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+  .bq-you-me {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 44px;
+    padding-inline: 8px;
+    margin-inline-end: -8px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--g8);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .bq-you-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-inline-start: 56px;
+    padding-block-end: 16px;
+    border-block-end: 1px solid var(--n2);
+  }
+  .bq-you-thanks {
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .bq-you .bq-you-cells {
+    background: transparent;
+    border-color: var(--n3);
+  }
+  .bq-you .bq-you-cells li + li {
+    border-inline-start-color: var(--n3);
+  }
+  /* one row: the pills use the full width (not indented), so both fit at 360px */
+  .bq-you-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-inline-start: -56px;
+  }
+  .bq-you-pill {
+    min-height: 44px;
+    padding-inline: 20px;
+    white-space: nowrap;
+    border-radius: 999px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .bq-you-pill.is-filled {
+    background: var(--g8);
+    color: #fff;
+  }
+  .bq-you-pill.is-tonal {
+    background: var(--g1);
+    color: var(--g9);
+  }
+  .bq-you-sw .bq-chip {
+    background: var(--g0);
+  }
+}
 @layer components {
   /* «تبديل:» other people on this phone (up to 5 profiles) */
   .bq-you-sw {

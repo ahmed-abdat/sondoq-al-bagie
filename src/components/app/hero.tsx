@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { ASSOC, fmt } from "./derive";
 import { I } from "./icons";
@@ -14,14 +15,19 @@ export type HeroData = {
   term?: string | null;
 };
 
-/** The one green field: brand, balance, two stats, a note. Band on mobile, panel on desktop. */
+/**
+ * The one green field. Panel (desktop aside): brand, balance, two stats, a note. Band (mobile
+ * home, owner pick «a»): short, brand + balance + one freshness line with «كيف حُسب الرصيد؟»
+ * (collected, spent and the start date live on /accounts), so the member lookup shows sooner.
+ */
 export function Hero({ data, variant }: { data: HeroData; variant: "band" | "panel" }) {
   const m = useMoney();
   const s = m?.summary;
+  const band = variant === "band";
   return (
     <section className={`bq-hero is-${variant}`} aria-label="رصيد الصندوق">
       <div className="bq-brand">
-        <span className="bq-logo">
+        <span className={`bq-logo ${band ? "bq-logo-s" : ""}`}>
           <Image src="/logo.jpg" alt="شعار الرابطة" width={96} height={96} priority />
         </span>
         <span className="bq-brand-t">
@@ -43,26 +49,37 @@ export function Hero({ data, variant }: { data: HeroData; variant: "band" | "pan
           <span className="bq-hero-u">أوقية</span>
         </p>
       </div>
-      <dl className="bq-hero-stats">
-        <div>
-          <dt>جُمع هذا العام</dt>
-          <dd>{s ? <Roll value={s.collectedThisYear} /> : <Dots />}</dd>
-        </div>
-        <div>
-          <dt>صُرف هذا العام</dt>
-          <dd>{s ? <Num>{fmt(s.spentThisYear)}</Num> : <Dots />}</dd>
-        </div>
-      </dl>
+      {band ? (
+        <p className="bq-hero-t">
+          {data.note} ·{" "}
+          <Link href="/accounts#bq-sum" className="bq-hero-how">
+            كيف حُسب الرصيد؟
+          </Link>
+        </p>
+      ) : (
+        <dl className="bq-hero-stats">
+          <div>
+            <dt>جُمع هذا العام</dt>
+            <dd>{s ? <Roll value={s.collectedThisYear} /> : <Dots />}</dd>
+          </div>
+          <div>
+            <dt>صُرف هذا العام</dt>
+            <dd>{s ? <Num>{fmt(s.spentThisYear)}</Num> : <Dots />}</dd>
+          </div>
+        </dl>
+      )}
       <MoneyHint tone="green" />
-      <p className="bq-hero-t">
-        {data.note}
-        {data.term ? (
-          <>
-            <br />
-            {data.term}
-          </>
-        ) : null}
-      </p>
+      {!band && (
+        <p className="bq-hero-t">
+          {data.note}
+          {data.term ? (
+            <>
+              <br />
+              {data.term}
+            </>
+          ) : null}
+        </p>
+      )}
     </section>
   );
 }

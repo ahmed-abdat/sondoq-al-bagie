@@ -27,7 +27,7 @@ test("whole year paid: thanks, no pay button; «ادفع عن شخص آخر» �
   // months like the report: 12 bordered cells, a ✓ in each paid month
   await expect(card.locator(".bq-you-cells li")).toHaveCount(12);
   await expect(card.locator(".bq-you-cells li svg")).toHaveCount(12);
-  await expect(card.locator(".bq-you-key")).toHaveText(/مدفوع/);
+  await expect(card.locator(".bq-you-cells")).toHaveAttribute("aria-label", /المدفوعة/);
 
   await card.getByRole("button", { name: "ادفع عن شخص آخر" }).click();
   const sheet = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
