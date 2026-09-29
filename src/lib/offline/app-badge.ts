@@ -7,7 +7,7 @@ export interface BadgeNavigator {
   clearAppBadge?: () => Promise<void>;
 }
 
-export const badgeSupported = (nav: BadgeNavigator | undefined): boolean =>
+const badgeSupported = (nav: BadgeNavigator | undefined): boolean =>
   typeof nav?.setAppBadge === "function";
 
 /** Shows `count` on the app icon; 0 clears it. Never throws. */

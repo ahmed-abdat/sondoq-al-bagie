@@ -4,7 +4,7 @@ import { del, get, set } from "idb-keyval";
 
 /** Only queries whose key starts with "public" are saved on the phone (never committee data). */
 export const PUBLIC_KEY = "public";
-export const PERSIST_KEY = "sondoq-query-cache";
+const PERSIST_KEY = "sondoq-query-cache";
 /** Saved data older than this is dropped instead of shown. */
 export const PERSIST_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 

@@ -29,14 +29,10 @@ describe("isPublicViewRead", () => {
 });
 
 describe("isPrivatePath", () => {
-  it.each([
-    "/committee",
-    "/committee/pending",
-    "/login",
-    "/auth/confirm",
-    "/api/keepalive",
-    "/r/BQ-AB12-0001",
-  ])("%s is private", (p) => expect(isPrivatePath(p)).toBe(true));
+  it.each(["/committee", "/committee/pending", "/login", "/api/keepalive", "/r/BQ-AB12-0001"])(
+    "%s is private",
+    (p) => expect(isPrivatePath(p)).toBe(true),
+  );
   it.each(["/", "/members", "/accounts", "/donations", "/report", "/rules", "/committees-info"])(
     "%s is public",
     (p) => expect(isPrivatePath(p)).toBe(false),

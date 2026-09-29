@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { CampaignsPage } from "@/components/app/views/committee";
@@ -7,8 +6,7 @@ import { CampaignsPage } from "@/components/app/views/committee";
 export const metadata: Metadata = { title: "حملات التبرع · اللجنة" };
 
 export default async function Campaigns() {
-  const session = await src.committeeSession();
-  if (session?.role === "committee") redirect("/committee");
+  await src.requireCommittee("/committee/campaigns", { roles: src.MANAGERS });
   return (
     <Tab>
       <CampaignsPage campaigns={await src.campaigns()} />

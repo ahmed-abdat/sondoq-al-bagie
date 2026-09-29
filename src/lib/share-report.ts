@@ -51,8 +51,8 @@ export interface ReportSummaryData {
 /** What the report renderers take (Lane A's ReportData, with the monthly fee per list). */
 export type ReportInput = ReportData;
 
-export const REPORT_W = 1080;
-export const REPORT_H = 1350;
+const REPORT_W = 1080;
+const REPORT_H = 1350;
 
 /* ─────────────── text & numbers (pure) ─────────────── */
 
@@ -108,8 +108,7 @@ export function compactAmount(n: number): string {
 /** The share functions take Lane A's ReportData as is (or an already-built cover). */
 export type ReportSource = ReportData | ReportSummaryData;
 
-export const toCard = (d: ReportSource): ReportSummaryData =>
-  "summary" in d ? reportSummary(d) : d;
+const toCard = (d: ReportSource): ReportSummaryData => ("summary" in d ? reportSummary(d) : d);
 
 export function paidLine(d: Pick<ReportSummaryData, "paidCount" | "activeCount" | "month">) {
   return `${d.paidCount} من ${d.activeCount} دفعوا رسوم ${monthName(d.month)}`;
@@ -129,7 +128,7 @@ export function reportUrl(origin: string): string {
  * The public site for links printed on shared images: the production URL (set at build time in
  * next.config.ts), never localhost or a preview; the page's own origin only as a last resort.
  */
-export function publicOrigin(): string {
+function publicOrigin(): string {
   return process.env.NEXT_PUBLIC_SITE_ORIGIN || location.origin;
 }
 
@@ -481,7 +480,7 @@ async function drawKit(): Promise<{ fonts: CanvasFonts; logo: HTMLImageElement |
   return { fonts, logo };
 }
 
-export async function renderReportSummaryPng(
+async function renderReportSummaryPng(
   d: ReportSource,
   url = reportUrl(publicOrigin()),
 ): Promise<Blob> {
@@ -510,11 +509,6 @@ export async function shareReportSummary(
   );
 }
 
-export async function saveReportSummaryPng(d: ReportSource): Promise<void> {
-  const card = toCard(d);
-  downloadPng(await renderReportSummaryPng(card), reportFileName(card.year, card.month));
-}
-
 /* ─────────────── the whole report: PNG pages / PDF ─────────────── */
 
 type Prepared = { pages?: Promise<File[]>; pdf?: Promise<File> };
@@ -526,7 +520,7 @@ const slot = (d: ReportInput) => {
 };
 
 /** The report as 1080×1350 PNG files, one per page (rendered once per ReportInput). */
-export function reportPageFiles(d: ReportInput, url = reportUrl(publicOrigin())): Promise<File[]> {
+function reportPageFiles(d: ReportInput, url = reportUrl(publicOrigin())): Promise<File[]> {
   const s = slot(d);
   s.pages ??= (async () => {
     const pages = await import("./report-pages");
@@ -540,7 +534,7 @@ export function reportPageFiles(d: ReportInput, url = reportUrl(publicOrigin()))
 }
 
 /** The report as an A4 PDF (the same pages at A4 ratio, as JPEG), built on the phone. */
-export function reportPdfFile(d: ReportInput, url = reportUrl(publicOrigin())): Promise<File> {
+function reportPdfFile(d: ReportInput, url = reportUrl(publicOrigin())): Promise<File> {
   const s = slot(d);
   s.pdf ??= (async () => {
     const [pages, { jpegsToPdf, A4_PT }] = await Promise.all([
@@ -577,11 +571,6 @@ export function reportPdfFile(d: ReportInput, url = reportUrl(publicOrigin())): 
   })();
   s.pdf.catch(() => (s.pdf = undefined));
   return s.pdf;
-}
-
-/** The report pages as PNG blobs (the share sheet's preview); same cache as the share. */
-export async function renderReportPages(d: ReportInput, url?: string): Promise<Blob[]> {
-  return reportPageFiles(d, url);
 }
 
 /** Start rendering in the background (call when the share sheet opens), so the tap shares at once. */
@@ -621,11 +610,6 @@ export async function shareReportImages(
     if (res) return res;
   }
   return shareReportSummary(d, url, opts);
-}
-
-/** Build the PDF on the phone. */
-export async function buildReportPdf(d: ReportInput, url?: string): Promise<Blob> {
-  return reportPdfFile(d, url);
 }
 
 /** Share the PDF through the share sheet; if files cannot be shared, download it. */

@@ -77,7 +77,12 @@ const now = () => new Date().toISOString();
 let receiptSeq = 0;
 const nextCode = () => `BQ-DEMO-${String(++receiptSeq).padStart(4, "0")}`;
 
-const demo: Partial<Actions> = {
+/**
+ * Every server action, decided for demo mode: a simulation, or "real" when it is safe to reach the
+ * server (none today). A new action in `@/lib/data/actions` is a type error here until it is added.
+ */
+type Sim = { [K in keyof Actions]: Actions[K] | "real" };
+const demo = {
   async recordPayment(p) {
     const pay: PendingPayment = {
       id: p.id,
@@ -387,7 +392,10 @@ const demo: Partial<Actions> = {
     }));
     return ok("demo");
   },
-} as Partial<Actions>;
+  setGroupPrice: async () => ok(undefined),
+  savePushSubscription: async () => ok(undefined),
+  deletePushSubscription: async () => ok(undefined),
+} satisfies Sim;
 
 /* ───────────── context ───────────── */
 const DemoCtx = createContext(false);
@@ -398,7 +406,16 @@ export function DemoProvider({ demo: on, children }: { demo: boolean; children: 
 }
 export const useIsDemo = () => useContext(DemoCtx);
 
-const DEMO_ACTIONS = { ...real, ...demo } as Actions;
+// built once (stable identities); a key with no decision fails loudly instead of calling the server
+const DEMO_ACTIONS = Object.fromEntries(
+  Object.keys(real).map((k) => {
+    const d = (demo as Record<string, unknown>)[k];
+    const fail = () => {
+      throw new Error(`demo: no simulation for ${k}`);
+    };
+    return [k, d === "real" ? real[k as keyof Actions] : (d ?? fail)];
+  }),
+) as Actions;
 
 /** Committee actions: real server actions, or simulated ones in demo mode (stable identities). */
 export function useAct(): Actions {

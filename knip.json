@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/app/**/*.{ts,tsx}",
+    "src/app/sw.ts",
+    "scripts/*.mts",
+    "e2e/**/*.ts",
+    "supabase/import/*.mts",
+    "supabase/tests/local/*.mjs"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mts", "e2e/**/*.ts", "supabase/**/*.{mts,mjs}"],
+  "ignore": ["src/lib/supabase/database.types.ts"],
+  "ignoreDependencies": ["@tesseract.js-data/ara", "@tesseract.js-data/fra", "tailwindcss"]
+}

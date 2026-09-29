@@ -2,8 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # main is production; m2-app is the integration branch the lanes merge into
+    branches: [main, m2-app]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -15,6 +21,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
+          # 22 resolves to the latest 22.x (≥ 22.18: runs .mts files without flags)
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
@@ -22,3 +29,23 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # unused files/exports/deps; report-only until the findings are cleaned up
+      - run: pnpm knip
+        continue-on-error: true
+
+  # The SQL harness: migrations in order, SQL tests (RLS, RPC rules), no unbounded writes, seed
+  # shape, the double-confirm race, rollback + re-apply, idempotent paper import. A throwaway
+  # Postgres from the runner's own binaries; no Docker, no Supabase, no pnpm install (Node
+  # builtins only).
+  sql:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # ubuntu-latest ships PostgreSQL (service stopped, binaries not on PATH); pgcrypto and
+      # btree_gist come with it
+      - run: echo "$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1)" >> "$GITHUB_PATH"
+      - run: initdb --version
+      - run: supabase/tests/local/run.sh

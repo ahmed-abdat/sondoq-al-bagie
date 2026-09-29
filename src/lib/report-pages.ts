@@ -75,17 +75,16 @@ export type ReportPage =
   | { kind: "money"; title: string; blocks: Block[]; part: number; parts: number };
 
 /** «A-12» → «A». */
-export const listOf = (m: Pick<ReportMember, "memberRef">) => m.memberRef.split("-")[0];
+const listOf = (m: Pick<ReportMember, "memberRef">) => m.memberRef.split("-")[0];
 /** «A-12» → «12». */
 export const numberOf = (m: Pick<ReportMember, "memberRef">) =>
   m.memberRef.split("-").slice(1).join("-") || m.memberRef;
-export const listLabel = (code: string) => {
+const listLabel = (code: string) => {
   const c = code.trim().toUpperCase();
   return c === "A" ? "أ" : c === "B" ? "ب" : code;
 };
 /** Left / deceased members are hidden, as on the public lists. */
-export const isShown = (m: Pick<ReportMember, "status">) =>
-  m.status !== "left" && m.status !== "deceased";
+const isShown = (m: Pick<ReportMember, "status">) => m.status !== "left" && m.status !== "deceased";
 
 export function membersPerPage(size: PageSize): number {
   return Math.floor((size.h - L.band - L.gap - L.legend - L.head - L.foot) / L.row);
@@ -102,7 +101,7 @@ export function chunkEven<X>(xs: X[], max: number): X[][] {
 }
 
 /** Campaigns worth showing: open ones, and closed ones that moved money. */
-export const shownCampaigns = (r: ReportData) =>
+const shownCampaigns = (r: ReportData) =>
   r.campaigns.filter((c) => c.status === "open" || c.collected !== 0 || c.spent !== 0);
 
 /** Expenses and campaigns; empty sections are left out, and nothing at all when both are. */
@@ -217,7 +216,7 @@ export function statusPill(m: Pick<ReportMember, "status" | "statusLabel" | "mon
 
 /* ─────────────── drawing ─────────────── */
 
-export interface PageDrawOptions {
+interface PageDrawOptions {
   url: string;
   fonts: CanvasFonts;
   logo?: CanvasImageSource | null;
@@ -570,7 +569,7 @@ function drawMoney(
   }
 }
 
-export function drawReportPage(
+function drawReportPage(
   x: CanvasRenderingContext2D,
   page: ReportPage,
   r: ReportInput,

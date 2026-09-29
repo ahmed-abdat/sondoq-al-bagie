@@ -12,7 +12,7 @@ export default async function CommitteePage({ searchParams }: PageProps<"/commit
   // demo only: try the first sign-in setup
   if (src.demoMode && (await searchParams).setup === "1") redirect("/committee/setup");
   const [session, pending, members, ctx, accounts, arrears, campaigns] = await Promise.all([
-    src.committeeSession(),
+    src.requireCommittee("/committee"),
     src.pendingPayments(),
     src.memberRows(),
     memberCtx(),
@@ -20,16 +20,15 @@ export default async function CommitteePage({ searchParams }: PageProps<"/commit
     src.arrears(),
     src.campaigns(),
   ]);
-  if (!session) redirect("/login?next=/committee");
   return (
     <Tab>
       <CommitteeView
         pending={pending}
         me={{
-          by: session?.displayName ?? "",
-          role: session ? ROLE_LABEL[session.role] : "",
-          canConfirm: !!session?.canConfirm,
-          memberId: session?.memberId ?? null,
+          by: session.displayName,
+          role: ROLE_LABEL[session.role],
+          canConfirm: session.canConfirm,
+          memberId: session.memberId,
         }}
         members={members.filter((m) => m.status === "active" || m.status === "exempt")}
         ctx={ctx}
@@ -37,7 +36,7 @@ export default async function CommitteePage({ searchParams }: PageProps<"/commit
         campaigns={campaigns}
         lateCount={arrears.length}
         memberCount={members.filter((m) => m.status === "active").length}
-        canManage={!!session && session.role !== "committee"}
+        canManage={session.role !== "committee"}
       />
     </Tab>
   );

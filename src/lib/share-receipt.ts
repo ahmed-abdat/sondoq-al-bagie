@@ -31,7 +31,7 @@ export interface ReceiptCover {
   months: number[];
 }
 
-export type ReceiptStatus =
+type ReceiptStatus =
   | { kind: "confirmed"; by: string; role: string }
   | { kind: "pending" }
   | { kind: "cancelled"; reason?: string };
@@ -138,8 +138,8 @@ export function receiptShareText(r: ShareableReceipt, url: string): string {
 
 /* ─────────────── drawing ─────────────── */
 
-export const RECEIPT_W = 720;
-export const RECEIPT_H = 1120;
+const RECEIPT_W = 720;
+const RECEIPT_H = 1120;
 
 const C = {
   green: "#237A3B",
@@ -285,10 +285,7 @@ export function drawReceipt(x: Ctx, r: ShareableReceipt, o: DrawOptions): void {
 /* ─────────────── browser ─────────────── */
 
 /** Renders the receipt to a PNG blob (2× for sharp text on phone screens). */
-export async function renderReceiptPng(
-  r: ShareableReceipt,
-  origin = location.origin,
-): Promise<Blob> {
+async function renderReceiptPng(r: ShareableReceipt, origin = location.origin): Promise<Blob> {
   const [fonts, logo] = await Promise.all([
     appFonts(),
     loadImage("/icons/icon-192.png").catch(() => null),

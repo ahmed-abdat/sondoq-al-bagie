@@ -2,7 +2,7 @@
 // imported by src/app/sw.ts. Rule of thumb: only public, read-only data is ever cached.
 
 /** Public read-only Supabase views (no phones, no proof images). Safe to show offline. */
-export const PUBLIC_VIEWS = [
+const PUBLIC_VIEWS = [
   "fund_summary",
   "member_status",
   "member_months",
@@ -22,7 +22,7 @@ export const PUBLIC_VIEWS = [
  * Never cached: pages that need a login (nothing private stays on a shared phone), and receipt
  * verification `/r/<code>`, which must always be fresh (a cancelled receipt must show as cancelled).
  */
-export const PRIVATE_PREFIXES = ["/committee", "/login", "/auth", "/api", "/r"] as const;
+const PRIVATE_PREFIXES = ["/committee", "/login", "/api", "/r"] as const;
 
 function underPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);

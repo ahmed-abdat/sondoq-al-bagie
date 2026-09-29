@@ -22,9 +22,3 @@ export function waLink(phone: string | undefined | null, text: string): string {
   const q = `text=${encodeURIComponent(text)}`;
   return phone ? `https://wa.me/${waPhone(phone)}?${q}` : `https://wa.me/?${q}`;
 }
-
-/** Absolute URL for links sent in messages. */
-export function absoluteUrl(path: string): string {
-  if (typeof window === "undefined") return path;
-  return new URL(path, window.location.origin).toString();
-}

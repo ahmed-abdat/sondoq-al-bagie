@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { pendingPaymentPayload } from "@/lib/push/payload";
 import { notificationOptions, parsePushPayload, safePath } from "./push-payload";
 
 describe("parsePushPayload", () => {
@@ -21,7 +22,7 @@ describe("parsePushPayload", () => {
   });
   it("falls back safely", () => {
     expect(parsePushPayload(null)).toEqual({
-      title: "صندوق الشباب",
+      title: "صندوق الرابطة",
       body: "",
       url: "/committee",
       tag: "sondoq",
@@ -29,7 +30,7 @@ describe("parsePushPayload", () => {
     expect(parsePushPayload("نص عادي").body).toBe("نص عادي");
     expect(
       parsePushPayload(JSON.stringify({ title: 5, url: "https://evil.example" })),
-    ).toMatchObject({ title: "صندوق الشباب", url: "/committee" });
+    ).toMatchObject({ title: "صندوق الرابطة", url: "/committee" });
     expect(parsePushPayload(JSON.stringify({ body: "x".repeat(500) })).body).toHaveLength(200);
   });
 });
@@ -55,4 +56,17 @@ it("notification options: Arabic, RTL, icon + monochrome badge, tap target", () 
     renotify: true,
     data: { url: "/committee" },
   });
+});
+
+it("reads exactly what the server builds (round trip over the wire)", () => {
+  const sent = {
+    ...pendingPaymentPayload({
+      id: "p-42",
+      payerName: "محمد ولد أحمد",
+      amount: 1500,
+      allocations: [{ kind: "months", year: 2026, month: 9 }],
+    }),
+    badgeCount: 3,
+  };
+  expect(parsePushPayload(JSON.stringify(sent))).toEqual(sent);
 });

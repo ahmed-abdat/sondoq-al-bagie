@@ -13,7 +13,7 @@ export function detectPlatform(userAgent: string, maxTouchPoints = 0): InstallPl
 /** Browsers built into other apps (Facebook, Instagram, WhatsApp, TikTok, Android WebView…). */
 const IN_APP = /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|Snapchat|TikTok|musical_ly|; wv\)/i;
 
-export function isInAppBrowser(userAgent: string): boolean {
+function isInAppBrowser(userAgent: string): boolean {
   return IN_APP.test(userAgent);
 }
 
@@ -24,7 +24,7 @@ export function isIosSafari(userAgent: string): boolean {
   );
 }
 
-export function isSamsungInternet(userAgent: string): boolean {
+function isSamsungInternet(userAgent: string): boolean {
   return /SamsungBrowser/i.test(userAgent);
 }
 
@@ -77,7 +77,7 @@ export function isDismissed(dismissedAt: string | null, now: number = Date.now()
 
 /** After each «✕»/«ليس الآن»: wait 1, then 3, 7, 14, then 30 days (capped). */
 export const BACKOFF_KEY = "sondoq:install-backoff";
-export const BACKOFF_DAYS = [1, 3, 7, 14, 30] as const;
+const BACKOFF_DAYS = [1, 3, 7, 14, 30] as const;
 
 /** Stored as "count,nextAt" (ms). Anything unreadable counts as never dismissed. */
 export function parseBackoff(stored: string | null): { count: number; nextAt: number } {
@@ -131,5 +131,5 @@ export function shouldInvite(o: {
 
 /** Paths where the banner never shows (someone checking a receipt, signing in). */
 export function bannerAllowedOn(pathname: string): boolean {
-  return !/^\/(r|login|auth)(\/|$)/.test(pathname);
+  return !/^\/(r|login)(\/|$)/.test(pathname);
 }

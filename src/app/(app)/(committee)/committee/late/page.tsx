@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { LatePage } from "@/components/app/views/committee";
@@ -9,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Late() {
-  if (!(await src.committeeSession())) redirect("/login?next=/committee");
+  await src.requireCommittee("/committee/late");
   const [arrears, accounts, info] = await Promise.all([
     src.arrears(),
     src.fundAccounts(),

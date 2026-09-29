@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { SubHead } from "@/components/app/views/committee";
@@ -8,8 +7,7 @@ import { HandoverView } from "@/components/app/handover";
 export const metadata: Metadata = { title: "تسليم الصندوق · اللجنة" };
 
 export default async function HandoverPage() {
-  const session = await src.committeeSession();
-  if (!session || session.role === "committee") redirect("/committee");
+  const session = await src.requireCommittee("/committee/handover", { roles: src.MANAGERS });
   const [handovers, summary, accounts, people] = await Promise.all([
     src.handovers(),
     src.fundSummary(),
