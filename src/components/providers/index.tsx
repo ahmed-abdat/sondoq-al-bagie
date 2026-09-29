@@ -1,7 +1,10 @@
 "use client";
 
 import { QueryClient } from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import {
+  PersistQueryClientProvider,
+  persistQueryClientSave,
+} from "@tanstack/react-query-persist-client";
 import { useState, type ReactNode } from "react";
 import { createIdbPersister, isPersistable, PERSIST_MAX_AGE } from "@/lib/offline/persister";
 import { OfflineBanner } from "./offline-banner";
@@ -48,17 +51,23 @@ export function makeClient() {
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(makeClient);
   const [persister] = useState(createIdbPersister);
+  const persistOptions = {
+    persister,
+    maxAge: PERSIST_MAX_AGE,
+    buster: CACHE_VERSION,
+    dehydrateOptions: { shouldDehydrateQuery: isPersistable },
+  };
+  // Saving only starts once the saved copy is restored; data put in before that (the page's
+  // PublicCacheSeed) would wait for the next change, so save once right after the restore.
+  const saveNow = () => persistQueryClientSave({ ...persistOptions, queryClient: client });
   return (
     <>
       <InstallCapture />
       <PersistQueryClientProvider
         client={client}
-        persistOptions={{
-          persister,
-          maxAge: PERSIST_MAX_AGE,
-          buster: CACHE_VERSION,
-          dehydrateOptions: { shouldDehydrateQuery: isPersistable },
-        }}
+        persistOptions={persistOptions}
+        onSuccess={saveNow}
+        onError={saveNow}
       >
         <OnlineSync />
         <OfflineBanner />

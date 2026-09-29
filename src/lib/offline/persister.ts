@@ -1,15 +1,24 @@
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import type { Query } from "@tanstack/react-query";
 import { del, get, set } from "idb-keyval";
+import { PUBLIC_VIEWS } from "./cache-rules";
 
-/** Only queries whose key starts with "public" are saved on the phone (never committee data). */
+/**
+ * Only ["public", <amount-free view>] queries are saved on the phone: never committee data, never
+ * money (docs/MONEY-PRIVACY.md), even if a money read is ever put under a "public" key.
+ */
 export const PUBLIC_KEY = "public";
 const PERSIST_KEY = "sondoq-query-cache";
 /** Saved data older than this is dropped instead of shown. */
 export const PERSIST_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 
 export function isPersistable(query: Pick<Query, "queryKey" | "state">): boolean {
-  return query.queryKey[0] === PUBLIC_KEY && query.state.status === "success";
+  const [scope, name] = query.queryKey;
+  return (
+    scope === PUBLIC_KEY &&
+    (PUBLIC_VIEWS as readonly unknown[]).includes(name) &&
+    query.state.status === "success"
+  );
 }
 
 /** IndexedDB storage; every call is guarded so private mode / quota errors never break the app. */
