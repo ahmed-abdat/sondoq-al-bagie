@@ -76,6 +76,11 @@ describe("summarize: amounts", () => {
     );
     expect(s).toMatchObject({ creditTo: "m-b2", credit: 500, block: null });
   });
+  it("a rest bigger than one month's fee asks for a check (QA pass 3)", () => {
+    expect(summarize(d({ sentText: "3500" })).bigCredit).toBe(false); // 500 < 1000
+    expect(summarize(d({ sentText: "15000" })).bigCredit).toBe(true); // 12 000 left
+    expect(summarize(d({ sentText: "3000" })).bigCredit).toBe(false);
+  });
   it("Arabic-Indic digits in the typed amounts", () => {
     expect(summarize(d({ sentText: "٣٠٠٠" })).sent).toBe(3000);
   });

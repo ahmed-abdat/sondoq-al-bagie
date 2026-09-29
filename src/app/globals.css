@@ -5767,3 +5767,17 @@
     min-width: 8em;
   }
 }
+@layer components {
+  /* «سجّل دفعة»: an unusually large rest, one check before sending (QA pass 3) */
+  .bq-rec-check {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border-radius: var(--r-lg);
+    background: var(--g0);
+  }
+  .bq-rec-check .bq-slip-btns {
+    margin-block-start: 6px;
+  }
+}

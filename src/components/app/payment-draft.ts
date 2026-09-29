@@ -133,7 +133,24 @@ export function summarize(d: Draft) {
     return n >= 1 && n < ms.length ? n : null;
   })();
 
-  return { feeTotal, campAmt, total, sent, diff, missingPrice, creditTo, credit, block, fitMonths };
+  // a rest bigger than one month's fee is unusual (a wrong unit, a typo): ask before sending
+  const creditRow = rows.find((r) => r.m.memberId === creditTo);
+  const monthFee = creditRow ? d.prices[creditRow.m.groupCode] || 0 : 0;
+  const bigCredit = credit > 0 && monthFee > 0 && credit > monthFee;
+
+  return {
+    feeTotal,
+    campAmt,
+    total,
+    sent,
+    diff,
+    missingPrice,
+    creditTo,
+    credit,
+    bigCredit,
+    block,
+    fitMonths,
+  };
 }
 
 /** The recordPayment input for a draft with nothing blocking (method set). */

@@ -12,7 +12,7 @@ import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import type { CampaignProgress, FundAccount, MemberRow, PaymentMethod } from "@/lib/data/types";
 import { todayIso } from "@/lib/dates";
 import { MAIN_METHODS, METHOD_LABELS, METHODS } from "@/lib/methods";
-import { toWesternDigits } from "@/lib/money";
+import { mroToMru, toWesternDigits } from "@/lib/money";
 import { monthStates } from "@/lib/data/month-code";
 import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
 import { safeStorage } from "@/lib/safe-storage";
@@ -586,7 +586,20 @@ export function RecordBody({
     campaignText: campTxt,
     year: ctx.year,
   };
-  const { campAmt, total, sent, diff, creditTo, credit, block: rule, fitMonths } = summarize(draft);
+  const {
+    campAmt,
+    total,
+    sent,
+    diff,
+    creditTo,
+    credit,
+    bigCredit,
+    block: rule,
+    fitMonths,
+  } = summarize(draft);
+  // an unusually large rest (QA pass 3): say the units and the rest, then ask once
+  const [surplusOk, setSurplusOk] = useState<number | null>(null);
+  const askSurplus = bigCredit && sent !== null && surplusOk !== sent;
   const block: { msg: string; step?: AnyStep } | null =
     // member mode: the screenshot comes right after who and which months (screen order)
     member && !shot && !(rule && (!rule.step || rule.step === "months"))
@@ -1303,24 +1316,62 @@ export function RecordBody({
               <p className={diff < 0 && !fitMonths ? "bq-alert" : "bq-hint"}>{block.msg}</p>
             )
           )}
-          <button
-            type="button"
-            className={`bq-btn bq-btn-lg bq-press ${block?.step ? "bq-btn-soft" : "bq-btn-primary"}`}
-            disabled={busy || !online || (!!block && !block.step)}
-            onClick={() => (block?.step ? goTo(block.step) : void submit())}
-          >
-            {busy
-              ? member
-                ? "جارٍ الإرسال…"
-                : "جارٍ الحفظ…"
-              : block?.step
-                ? member && block.step === "method"
-                  ? "اختر كيف دفعت"
-                  : STEP_CTA[block.step]
-                : member
-                  ? "أرسل إلى اللجنة"
-                  : "سجّل الدفعة"}
-          </button>
+          {askSurplus && !block && sent !== null ? (
+            <div className="bq-rec-check" role="alert">
+              <p>
+                {fromShot.has("amount") ? "في الصورة" : "المبلغ المكتوب"}{" "}
+                <Num className="bq-strong">{fmt(mroToMru(sent))}</Num> أوقية جديدة، أي{" "}
+                <Num className="bq-strong">{fmt(sent)}</Num> قديمة.
+              </p>
+              <p>
+                {member ? "عليك" : "المطلوب"} <Num>{fmt(total)}</Num>.{" "}
+                {member ? "سيبقى لك" : "يبقى رصيدًا"} <Num>{fmt(credit)}</Num>
+                {member ? "." : ` لـ ${creditName}.`}
+              </p>
+              <p className="bq-strong">
+                {member ? "هل هذا ما حوّلته؟" : "هل هذا هو المبلغ المحوّل؟"}
+              </p>
+              <div className="bq-slip-btns">
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-primary bq-press"
+                  onClick={() => goTo("amount")}
+                >
+                  راجع المبلغ
+                </button>
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-tonal bq-press"
+                  disabled={busy || !online}
+                  onClick={() => {
+                    setSurplusOk(sent);
+                    void submit();
+                  }}
+                >
+                  {member ? "نعم، أرسله" : "نعم، سجّله"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={`bq-btn bq-btn-lg bq-press ${block?.step ? "bq-btn-soft" : "bq-btn-primary"}`}
+              disabled={busy || !online || (!!block && !block.step)}
+              onClick={() => (block?.step ? goTo(block.step) : void submit())}
+            >
+              {busy
+                ? member
+                  ? "جارٍ الإرسال…"
+                  : "جارٍ الحفظ…"
+                : block?.step
+                  ? member && block.step === "method"
+                    ? "اختر كيف دفعت"
+                    : STEP_CTA[block.step]
+                  : member
+                    ? "أرسل إلى اللجنة"
+                    : "سجّل الدفعة"}
+            </button>
+          )}
           <OfflineWriteHint />
         </div>
       )}
