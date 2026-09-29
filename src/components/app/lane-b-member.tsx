@@ -1,12 +1,6 @@
 "use client";
-// TODO(lane-b): stand-ins for MemberLinkPaste, MemberPushToggle and forgetMemberOnThisDevice from
+// TODO(lane-b): stand-ins for MemberPushToggle and forgetMemberOnThisDevice from
 // "@/components/providers". Swap the imports when they land, then delete this file.
-
-/** Installed app with no member cookie: «لديك رابط؟ الصقه هنا» (Lane B). */
-export function MemberLinkPaste(props: { hasMember: boolean }) {
-  void props;
-  return null;
-}
 /** Member notifications on /me (Lane B). */
 export function MemberPushToggle() {
   return null;

@@ -25,12 +25,7 @@ import type {
   PendingPayment,
   VerifiedReceipt,
 } from "@/lib/data/types";
-import type {
-  Beneficiary,
-  MemberHistoryItem,
-  MemberLinkInfo,
-  MemberSession,
-} from "./member-types";
+import type { Beneficiary, MemberHistoryItem, MemberLinkInfo, MemberSession } from "./member-types";
 
 export const FX_TODAY = new Date("2026-09-28T10:25:00Z");
 const YEAR = 2026;
@@ -724,7 +719,10 @@ export function fxMemberHistory(): MemberHistoryItem[] {
       payerName: ME.name,
       sentByMe: false,
       forMe: true,
-      allocations: monthsOf(ME, ME.paid.filter((k) => k > 0)),
+      allocations: monthsOf(
+        ME,
+        ME.paid.filter((k) => k > 0),
+      ),
     },
     {
       id: uuid("d", 1),
@@ -753,9 +751,6 @@ export function fxMemberLinks(): Record<string, MemberLinkInfo> {
       { m: ME, createdAt: "2026-09-01T10:00:00Z", lastUsedAt: "2026-09-26T19:30:00Z" },
       { m: RAW[0], createdAt: "2026-09-02T10:00:00Z", lastUsedAt: null },
       { m: RAW[30], createdAt: "2026-09-10T10:00:00Z", lastUsedAt: "2026-09-12T08:00:00Z" },
-    ].map((x) => [
-      x.m.id,
-      { memberId: x.m.id, createdAt: x.createdAt, lastUsedAt: x.lastUsedAt },
-    ]),
+    ].map((x) => [x.m.id, { memberId: x.m.id, createdAt: x.createdAt, lastUsedAt: x.lastUsedAt }]),
   );
 }

@@ -1,15 +1,14 @@
 "use client";
-// The seam for member-link writes, like useAct() for the committee: the real server actions, or
-// in demo mode a simulation in the browser (never the server). A member's submission also shows
-// up in the demo committee queue with «أرسلها العضو … عبر رابطه».
+// The seam for member-link writes (personal link), like useAct() for the committee: the real
+// server actions, or in demo mode a simulation in the browser (never the server). A member's
+// submission also shows up in the demo committee queue with «أرسلها العضو … عبر رابطه».
+// The committee's createMemberLink / revokeMemberLink go through useAct().
 import { useSyncExternalStore } from "react";
 import { reportActionError } from "@/components/providers";
 import type { ActionResult, PendingPayment } from "@/lib/data/types";
 import { knownMember, pushDemoPending, useIsDemo } from "./act";
-// TODO(lane-a): import from "@/lib/data/member-actions" (member writes) and use useAct() for
-// createMemberLink / revokeMemberLink once they are in "@/lib/data/actions".
-import * as real from "./lane-a-member-actions";
-import type { MemberHistoryItem, MemberLinkInfo, MemberSession } from "./member-types";
+import * as real from "@/lib/data/member-actions";
+import type { MemberHistoryItem, MemberSession } from "./member-types";
 import { demoMemberSignOut } from "./member-view-action";
 import { safeAct } from "./safe-act";
 
@@ -19,10 +18,8 @@ type Actions = typeof real;
 export type MemberDemo = {
   /** submissions sent in this demo session, newest first */
   sent: MemberHistoryItem[];
-  /** committee: links created (info) or stopped (null) in this demo session */
-  links: Record<string, MemberLinkInfo | null>;
 };
-const EMPTY: MemberDemo = { sent: [], links: {} };
+const EMPTY: MemberDemo = { sent: [] };
 let state = EMPTY;
 const subs = new Set<() => void>();
 const update = (f: (s: MemberDemo) => MemberDemo) => {
@@ -90,9 +87,7 @@ const demo: Actions = {
         };
       }),
     };
-    const pay: PendingPayment & {
-      submittedByMember: { memberRef: string; fullName: string } | null;
-    } = {
+    const pay: PendingPayment = {
       id: p.id,
       status: "pending",
       payerName: p.payerName,
@@ -140,18 +135,9 @@ const demo: Actions = {
     update(() => EMPTY);
     return demoMemberSignOut();
   },
-  async createMemberLink({ memberId }) {
-    update((s) => ({
-      ...s,
-      links: { ...s.links, [memberId]: { memberId, createdAt: now(), lastUsedAt: null } },
-    }));
-    // the demo link opens the demo member (a real link opens this member)
-    return ok({ memberId, url: `${window.location.origin}/m/demo` });
-  },
-  async revokeMemberLink({ memberId }) {
-    update((s) => ({ ...s, links: { ...s.links, [memberId]: null } }));
-    return ok(undefined);
-  },
+  // Lane B's push toggle (demo: nothing is stored)
+  memberSavePush: async () => ok(undefined),
+  memberDeletePush: async () => ok(undefined),
 };
 
 const wrap = (acts: Actions, report?: (e: unknown) => boolean) =>

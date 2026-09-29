@@ -13,7 +13,7 @@ import { fromVerified } from "./receipt-model";
 import { toLedger } from "./ledger";
 import { assembleReport } from "@/lib/data/report";
 import type { LedgerEntry, MyProfile } from "./types";
-import * as memberData from "./lane-a-member";
+import * as memberData from "@/lib/data/member";
 import {
   DEMO_MEMBER_TOKEN,
   MEMBER_COOKIE,

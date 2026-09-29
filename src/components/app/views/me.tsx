@@ -9,7 +9,8 @@ import { waLink } from "@/lib/whatsapp";
 import { MethodBadge } from "../bits";
 import { dayWords, fmt } from "../derive";
 import { I } from "../icons";
-import { forgetMemberOnThisDevice, MemberLinkPaste, MemberPushToggle } from "../lane-b-member";
+import { MemberLinkPaste } from "@/components/providers";
+import { forgetMemberOnThisDevice, MemberPushToggle } from "../lane-b-member";
 import { useMemberAct, useMemberDemo } from "../member-act";
 import { forgetMemberCard, MemberCard } from "../member-card";
 import { coverLines, historySections } from "../member-model";
@@ -41,7 +42,7 @@ export function MeView({
               اطلب رابطك من اللجنة، ثم افتحه على هذا الجهاز لترى دفعاتك وترسل دفعة جديدة.
             </p>
           </div>
-          <MemberLinkPaste hasMember={false} />
+          <MemberLinkPaste />
           <Link className="bq-link bq-press" href="/" transitionTypes={["tab-back"]}>
             إلى الصفحة الرئيسية {I.go(18)}
           </Link>
@@ -64,9 +65,7 @@ export function MeView({
       {s.waiting.length > 0 && (
         <Group id="bq-me-wait" title="بانتظار التأكيد" items={s.waiting} {...who} />
       )}
-      {s.rejected.length > 0 && (
-        <Group id="bq-me-rej" title="مرفوضة" items={s.rejected} {...who} />
-      )}
+      {s.rejected.length > 0 && <Group id="bq-me-rej" title="مرفوضة" items={s.rejected} {...who} />}
       <Group
         id="bq-me-mine"
         title="دفعاتي المؤكَّدة"
@@ -124,10 +123,7 @@ function HistoryRow({ x, me, myName }: { x: MemberHistoryItem; me: string; myNam
   const url = code ? `${SITE_URL}${verifyPath(code)}` : "";
   return (
     <li className="bq-me-row">
-      <span
-        className={`bq-disc ${x.status === "confirmed" ? "is-in" : ""}`}
-        aria-hidden="true"
-      >
+      <span className={`bq-disc ${x.status === "confirmed" ? "is-in" : ""}`} aria-hidden="true">
         {x.status === "confirmed" ? I.check(22) : x.status === "rejected" ? I.ban(22) : I.clock(22)}
       </span>
       <span className="bq-row-m">
@@ -224,7 +220,11 @@ function SignOut() {
         >
           {busy ? "جارٍ الخروج…" : "نعم، اخرج"}
         </button>
-        <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={() => setAsk(false)}>
+        <button
+          type="button"
+          className="bq-btn bq-btn-ghost bq-press"
+          onClick={() => setAsk(false)}
+        >
           رجوع
         </button>
       </div>

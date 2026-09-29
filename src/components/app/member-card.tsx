@@ -4,14 +4,19 @@
 // flow in member mode) and «ادفع الآن» (the fund's wallets and the amount due).
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { MemberLinkPaste } from "@/components/providers";
 import { useIsDemo } from "./act";
 import { Avatar, MemberNo } from "./bits";
 import { fmt, groupLabel } from "./derive";
 import { I } from "./icons";
-import { MemberLinkPaste } from "./lane-b-member";
 import { rememberDemoMember, useMemberDemo } from "./member-act";
 import { DOT_WORD, waitingLine, youDots, youStatus } from "./member-model";
-import { memberHome, memberSheetData, type MemberHome, type MemberSheetData } from "./member-view-action";
+import {
+  memberHome,
+  memberSheetData,
+  type MemberHome,
+  type MemberSheetData,
+} from "./member-view-action";
 import { Num } from "./num";
 import { PayTo } from "./pay-to";
 import { RecordBody } from "./record";
@@ -75,7 +80,7 @@ export function MemberCard({
   };
 
   if (d === undefined) return null;
-  if (d === null) return onMe ? null : <MemberLinkPaste hasMember={false} />;
+  if (d === null) return onMe ? null : <MemberLinkPaste />;
 
   const { s } = d;
   const st = youStatus(s);
@@ -131,11 +136,7 @@ export function MemberCard({
         >
           {I.image(20)} أرسلت دفعة
         </button>
-        <button
-          type="button"
-          className="bq-btn bq-btn-soft bq-press"
-          onClick={() => open("pay")}
-        >
+        <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => open("pay")}>
           ادفع الآن
         </button>
       </div>

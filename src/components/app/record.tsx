@@ -944,7 +944,8 @@ export function RecordBody({
 
           <div className="bq-rec-sec" ref={methodRef}>
             <p className="bq-rec-k" id="bq-rec-meth">
-              {member ? "كيف دفعت؟" : "كيف دفع؟"} <Mark from={fromShot.has("method")} ok={!!checks?.method} />
+              {member ? "كيف دفعت؟" : "كيف دفع؟"}{" "}
+              <Mark from={fromShot.has("method")} ok={!!checks?.method} />
             </p>
             <div className="bq-meth-grid" role="radiogroup" aria-labelledby="bq-rec-meth">
               {methods.map((m) => (

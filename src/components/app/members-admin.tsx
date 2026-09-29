@@ -9,7 +9,6 @@ import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { type MemberAdmin, type SettableStatus } from "@/lib/data/types";
 import { useAct, useDemoState } from "./act";
 import { MemberLinkSection } from "./member-link-admin";
-import { useMemberDemo } from "./member-act";
 import type { MemberLinkInfo } from "./member-types";
 import { sendOnce, useOnceId } from "./once-id";
 import { Avatar, MemberNo, StatusTag } from "./bits";
@@ -754,9 +753,7 @@ export function MembersAdmin({
 }) {
   const say = useSnack();
   const demo = useDemoState();
-  const linkDemo = useMemberDemo();
-  const linkOf = (id: string) =>
-    id in linkDemo.links ? linkDemo.links[id] : (links[id] ?? null);
+  const linkOf = (id: string) => (id in demo.links ? demo.links[id] : (links[id] ?? null));
   const members = useMemo(
     () =>
       [...server, ...demo.members]

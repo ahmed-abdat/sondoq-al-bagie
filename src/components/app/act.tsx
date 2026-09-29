@@ -15,6 +15,7 @@ import type {
   PendingPayment,
 } from "@/lib/data/types";
 import { generatePassword, parseLogin } from "@/lib/data/logins";
+import type { MemberLinkInfo } from "@/lib/data/member-types";
 import { DEMO_USER } from "./demo";
 import { safeAct } from "./safe-act";
 
@@ -33,6 +34,8 @@ export type DemoState = {
   handover: Handover | null;
   /** months paid from credit in the demo, "YYYY-MM" per member */
   creditPaid: Record<string, string[]>;
+  /** member links created (info) or stopped (null) in the demo */
+  links: Record<string, MemberLinkInfo | null>;
 };
 const EMPTY: DemoState = {
   pending: [],
@@ -44,6 +47,7 @@ const EMPTY: DemoState = {
   memberPatch: {},
   handover: null,
   creditPaid: {},
+  links: {},
 };
 let state = EMPTY;
 const subs = new Set<() => void>();
@@ -455,8 +459,21 @@ const demo = {
     return ok({ id: p.id, replay: false, receiptCode: nextCode() });
   },
   cancelLastPeriod: async () => ok("demo"),
-  createMemberLink: async (p) => ok({ memberId: p.memberId, url: `${location.origin}/m/demo` }),
-  revokeMemberLink: async () => ok(undefined),
+  async createMemberLink(p) {
+    update((s) => ({
+      ...s,
+      links: {
+        ...s.links,
+        [p.memberId]: { memberId: p.memberId, createdAt: now(), lastUsedAt: null },
+      },
+    }));
+    // the demo link opens the demo member (a real link opens this member)
+    return ok({ memberId: p.memberId, url: `${location.origin}/m/demo` });
+  },
+  async revokeMemberLink(p) {
+    update((s) => ({ ...s, links: { ...s.links, [p.memberId]: null } }));
+    return ok(undefined);
+  },
   async setJoinMonth(p) {
     update((s) => ({
       ...s,

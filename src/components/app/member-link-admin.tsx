@@ -9,7 +9,7 @@ import type { MemberAdmin } from "@/lib/data/types";
 import { waLink } from "@/lib/whatsapp";
 import { dayWords, relativeAgo } from "./derive";
 import { I } from "./icons";
-import { useMemberAct } from "./member-act";
+import { useAct } from "./act";
 import type { MemberLinkInfo } from "./member-types";
 import { useNow } from "./num";
 
@@ -43,7 +43,7 @@ export function MemberLinkSection({
   const router = useRouter();
   const online = useOnline();
   const now = useNow();
-  const { createMemberLink, revokeMemberLink } = useMemberAct();
+  const { createMemberLink, revokeMemberLink } = useAct();
   const [mode, setMode] = useState<Mode>("view");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");

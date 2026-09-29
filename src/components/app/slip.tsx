@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct } from "./act";
-import type { QueuedPayment } from "./member-types";
+import type { PendingPayment } from "@/lib/data/types";
 import { shareReceipt } from "@/lib/share-receipt";
 import { MemberNo, MethodBadge } from "./bits";
 import { dayWords, fmt, monthsInWords, relativeAgo } from "./derive";
@@ -40,7 +40,7 @@ export function PendingSlip({
   onFull,
   onDecided,
 }: {
-  p: QueuedPayment;
+  p: PendingPayment;
   /** who is deciding: name + role label; may they confirm, and their own member id */
   me: { by: string; role: string; canConfirm?: boolean; memberId?: string | null };
   onFull: (r: ReceiptView) => void;

@@ -299,6 +299,36 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   «المختار» carries «غير مربوط بعضو»; a demo credit payment lowers the shown arrears and credit.
   Report-images e2e was flaky (the share mock pushed files one by one); it now publishes at once.
 
+## Member access, Lane C (docs/MEMBER-ACCESS.md)
+- Home «أنت» (`member-slot.tsx` → lazy `member-card.tsx`): only when the readable `bq_member_on`
+  flag exists (`hasMemberFlag`); then the server action `memberHome()` (`member-view-action.ts`)
+  reads the session. Home stays static; non-members load none of this code and see Lane B's
+  `MemberLinkPaste` (installed app only). Card: name, «أ 3», «أنت منتظم» / «عليك 3 أشهر · 3 000
+  أوقية», this year's months as dots (+ key), credit, «دفعة واحدة بانتظار التأكيد», «أرسلت دفعة»,
+  «ادفع الآن» (PayTo + amount due), link «دفعاتي».
+- «أرسلت دفعة» = `RecordBody` with `member={ selfId, selfName, recent }`: picker «أنت» → «دفعت لهم
+  سابقًا» → everyone; screenshot required (CTA «أرفق صورة التحويل», right after months); «كيف
+  دفعت؟»; payer defaults to the member; optional «ملاحظة للجنة»; footer «سيُرسل … / أرسل إلى
+  اللجنة»; one id per sheet (`sendOnce`) for `memberUploadProof` + `memberSubmitPayment`; result
+  snack «أُرسلت إلى اللجنة. ستصلك رسالة عند التأكيد.» (+ pending overlap note). Sheet data loads on
+  open (`memberSheetData()`).
+- `/me` «دفعاتي» (`(app)/me`, dynamic): card, «بانتظار التأكيد», «مرفوضة» (reason), «دفعاتي
+  المؤكَّدة» (receipt link + WhatsApp share), «دفعات أرسلتها لغيري», «هذا الجهاز» (push toggle
+  slot, «خروج من هذا الجهاز» → forgetMemberOnThisDevice → memberSignOut). No session: calm empty
+  state + paste field.
+- Committee: «رابط العضو» in the admin member sheet (`member-link-admin.tsx`): create → URL once +
+  «إرسال عبر واتساب» («هذا رابطك الخاص في صندوق الرابطة:» text, member's phone) / copy; «رابط جديد»
+  (confirm: the old stops); «إيقاف الرابط»; «آخر استخدام قبل …». Links from `src.memberLinks()`.
+  Queue slip: «أرسلها العضو X عبر رابطه» (`submittedByMember`), reject shows «يصل السبب إلى العضو.»
+- `/m/invalid` (calm page), `/m/demo` (route handler, demo only: `bq_member=demo` + flag, 303 →
+  `/?welcome=1`); `source.memberSession/History/Beneficiaries` serve fixtures for the demo cookie
+  (demo member A-3, late July to September; history has a rejected and two confirmed payments).
+- Demo: member writes in `member-act.tsx` (`useMemberAct`), a submission also lands in the demo
+  committee queue (same tab, client navigation). Link create/stop stubs in `act.tsx` (`links`).
+- Tests: `member-model.test.ts`; e2e `e2e/member.spec.ts` (5; suite 56/56 on fixtures).
+- Waiting on Lane B: `MemberPushToggle`, `forgetMemberOnThisDevice` (stand-ins in
+  `lane-b-member.tsx`, swap and delete), the `/m/[token]` route.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.

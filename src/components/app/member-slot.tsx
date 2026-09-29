@@ -3,15 +3,14 @@
 // marker cookie). Everyone else gets the public page unchanged and loads none of this code.
 import dynamic from "next/dynamic";
 import { useSyncExternalStore } from "react";
-import { MemberLinkPaste } from "./lane-b-member";
-import { MEMBER_MARKER_COOKIE } from "./member-types";
+import { MemberLinkPaste } from "@/components/providers";
+import { hasMemberFlag } from "@/lib/member-link";
 
 const MemberCard = dynamic(() => import("./member-card").then((m) => m.MemberCard), {
   ssr: false,
 });
 
-const re = new RegExp(`(?:^|;\\s*)${MEMBER_MARKER_COOKIE}=1(?:;|$)`);
-const hasMarker = () => re.test(document.cookie);
+const hasMarker = () => hasMemberFlag(document.cookie);
 
 export function MemberSlot() {
   const on = useSyncExternalStore(
@@ -19,5 +18,5 @@ export function MemberSlot() {
     hasMarker,
     () => false,
   );
-  return on ? <MemberCard /> : <MemberLinkPaste hasMember={false} />;
+  return on ? <MemberCard /> : <MemberLinkPaste />;
 }
