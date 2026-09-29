@@ -32,7 +32,13 @@ test("send in order: WhatsApp opens with the link, the walk advances, the row sh
   await page.goto("/committee/member-links");
   await expect(page.getByRole("heading", { name: "روابط الأعضاء", level: 1 })).toBeVisible();
   await expect(page.getByText(/\d+ من \d+ لهم رابط · بقي \d+/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "المجموعة أ" })).toBeVisible();
+  // owner pick «b» (r31): group selector, one walk button, search and a filter
+  await expect(page.getByRole("button", { name: /المجموعة أ/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "أرسل للجميع بالترتيب" })).toBeVisible();
+  await page.getByRole("button", { name: /المجموعة أ/ }).click();
+  await expect(page.getByRole("button", { name: "أرسل للمجموعة أ بالترتيب" })).toBeVisible();
+  await page.getByRole("button", { name: /^الكل$/ }).first().click();
+  await page.getByRole("button", { name: /^الكل \d+$/ }).click();
   // fixtures: some links made, one used, some members without a phone; words, not ✓ (audit C6);
   // never «أُرسل»: WhatsApp delivery is unknown (audit B10)
   await expect(page.locator(".bq-ml-tick", { hasText: "أُنشئ الرابط" }).first()).toBeVisible();
@@ -41,6 +47,7 @@ test("send in order: WhatsApp opens with the link, the walk advances, the row sh
   await expect(page.locator(".bq-ml-legend")).toHaveCount(0);
   await expect(page.getByText("بلا رقم هاتف").first()).toBeVisible();
 
+  await page.getByRole("button", { name: /^لم يُنشأ لهم رابط/ }).click();
   await page.getByRole("button", { name: /أرسل للجميع بالترتيب/ }).click();
   const walk = page.locator(".bq-ml-walk");
   const first = (await walk.locator(".bq-ml-walk-t").textContent())!.split(" · ")[1].trim();
@@ -68,6 +75,7 @@ test("send in order: WhatsApp opens with the link, the walk advances, the row sh
   await expect(walk).toHaveCount(0);
 
   // a link made earlier (its URL is not kept): a new one asks first (the old one stops)
+  await page.getByRole("button", { name: /^أُنشئ الرابط \d+/ }).click();
   const again = page.getByRole("button", { name: /^رابط جديد: / }).first();
   const other = (await again.getAttribute("aria-label"))!.replace("رابط جديد: ", "");
   await again.click();

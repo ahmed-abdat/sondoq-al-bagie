@@ -5629,3 +5629,32 @@
     transform: none;
   }
 }
+
+/* ───── member links, owner pick «b» (r31): flat, the group first ───── */
+@layer components {
+  .bq-ml-count {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-block-end: 12px;
+  }
+  .bq-ml-count + .bq-seg,
+  .bq-ml-count + * {
+    margin-block-end: 12px;
+  }
+  .bq-slip.bq-ml-walk {
+    background: var(--g0);
+    box-shadow: none;
+    border-radius: var(--r-lg);
+  }
+  .bq-ml-filter {
+    margin-block: 12px 4px;
+  }
+  .bq-ml-filter .bq-chip[aria-pressed="true"] {
+    background: var(--g1);
+    color: var(--g9);
+  }
+  .bq-ml-list > li + li {
+    border-block-start: 1px solid var(--n2);
+  }
+}
