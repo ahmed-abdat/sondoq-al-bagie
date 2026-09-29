@@ -467,24 +467,7 @@
     display: none;
   }
 
-  /* reveal: 300ms, no blur, below the fold only, once per session; visible without JS */
-  [data-rv] .bq-rv.hide:not(.in) {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  .bq-rv {
-    transition:
-      opacity 240ms var(--ease-out),
-      transform 240ms var(--ease-out);
-  }
-  .bq-rv.in .bq-grow > span,
-  .bq-rv.in .bq-grow .bq-mbar-f {
-    animation: bq-grow 450ms var(--ease-out) both;
-  }
-  .bq-rv.in .bq-grow .bq-mbar-f {
-    animation-name: bq-grow-y;
-    animation-delay: calc(var(--i, 0) * 20ms);
-  }
+  /* routine content never slides in and bars never grow (QA pass 3/4): shown still */
 
   /* ───── search ───── */
   .bq-search {
@@ -2427,16 +2410,6 @@
   }
 }
 
-@keyframes bq-grow {
-  from {
-    transform: scaleX(0);
-  }
-}
-@keyframes bq-grow-y {
-  from {
-    transform: scaleY(0);
-  }
-}
 @keyframes bq-fade {
   from {
     opacity: 0;
@@ -2565,10 +2538,6 @@
   }
   .bq-press:active,
   .bq-nav-i:active .bq-nav-ic {
-    transform: none;
-  }
-  [data-rv] .bq-rv.hide:not(.in) {
-    opacity: 1;
     transform: none;
   }
   .bq-sheet,
