@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "icons": "tsx scripts/icons.mts",
+    "screenshots": "tsx scripts/manifest-screenshots.mts",
     "ocr-assets": "tsx scripts/ocr-assets.mts",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "postinstall": "tsx scripts/ocr-assets.mts"

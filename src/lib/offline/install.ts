@@ -1,4 +1,4 @@
-// Pure helpers for the "install the app" prompt. Unit tested.
+// Pure helpers for the "install the app" flow. Unit tested.
 
 export type InstallPlatform = "android" | "ios" | "other";
 
@@ -10,12 +10,59 @@ export function detectPlatform(userAgent: string, maxTouchPoints = 0): InstallPl
   return "other";
 }
 
+/** Browsers built into other apps (Facebook, Instagram, WhatsApp, TikTok, Android WebView…). */
+const IN_APP = /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|Snapchat|TikTok|musical_ly|; wv\)/i;
+
+export function isInAppBrowser(userAgent: string): boolean {
+  return IN_APP.test(userAgent);
+}
+
 /** iOS can only "Add to Home Screen" from Safari itself (not from WhatsApp/Chrome in-app views). */
 export function isIosSafari(userAgent: string): boolean {
   return (
     /Safari/i.test(userAgent) && !/CriOS|FxiOS|EdgiOS|FBAN|FBAV|Instagram|WhatsApp/i.test(userAgent)
   );
 }
+
+export function isSamsungInternet(userAgent: string): boolean {
+  return /SamsungBrowser/i.test(userAgent);
+}
+
+/**
+ * How this phone can install the app:
+ * - installed: already running as the app, or known to be installed;
+ * - native: the browser gave us its install dialog (Chrome, Edge, Samsung on Android; desktop);
+ * - android / samsung / desktop: no dialog yet (engagement rules, dismissed before): menu steps;
+ * - in-app: inside Facebook/Instagram/WhatsApp's own browser: open the link in Chrome / Safari;
+ * - ios: Safari's Share → «إضافة إلى الشاشة الرئيسية»; ios-other: open in Safari first.
+ */
+export type InstallMode =
+  "installed" | "native" | "android" | "samsung" | "desktop" | "in-app" | "ios" | "ios-other";
+
+export function installMode(o: {
+  userAgent: string;
+  maxTouchPoints?: number;
+  standalone: boolean;
+  installed?: boolean;
+  hasPrompt: boolean;
+}): InstallMode {
+  if (o.standalone || o.installed) return "installed";
+  const ua = o.userAgent;
+  const platform = detectPlatform(ua, o.maxTouchPoints);
+  if (isInAppBrowser(ua)) return "in-app";
+  if (platform === "ios") return isIosSafari(ua) ? "ios" : "ios-other";
+  if (o.hasPrompt) return "native";
+  if (platform === "android") return isSamsungInternet(ua) ? "samsung" : "android";
+  return "desktop";
+}
+
+/** Chrome's own "open this link in Chrome" URL, for Android in-app browsers. */
+export function chromeIntentUrl(href: string): string {
+  const u = new URL(href);
+  return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(":", "")};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(href)};end`;
+}
+
+/* ───────────── when to invite ───────────── */
 
 export const DISMISS_KEY = "sondoq:install-dismissed-at";
 /** After «ليس الآن», ask again only after two weeks. */
@@ -24,4 +71,31 @@ export const DISMISS_FOR_MS = 14 * 24 * 60 * 60 * 1000;
 export function isDismissed(dismissedAt: string | null, now: number = Date.now()): boolean {
   const t = Number(dismissedAt);
   return Number.isFinite(t) && t > 0 && now - t < DISMISS_FOR_MS;
+}
+
+export const VISITS_KEY = "sondoq:visit-days";
+export const ENGAGED_KEY = "sondoq:engaged";
+
+/** Adds today (YYYY-MM-DD) to the stored list of visit days; keeps the last 5. */
+export function recordVisitDay(stored: string | null, today: string): string {
+  const day = /^\d{4}-\d{2}-\d{2}$/;
+  const days = (stored ?? "").split(",").filter((d) => day.test(d));
+  if (day.test(today) && !days.includes(today)) days.push(today);
+  return days.slice(-5).join(",");
+}
+
+/**
+ * Invite to install only when it means something: from the second day of use, or right after a
+ * meaningful action (found one's own name, opened a receipt…), never on the very first page, and
+ * not for two weeks after «ليس الآن».
+ */
+export function shouldInvite(o: {
+  visitDays: string | null;
+  engaged: boolean;
+  dismissedAt: string | null;
+  now?: number;
+}): boolean {
+  if (isDismissed(o.dismissedAt, o.now)) return false;
+  const days = (o.visitDays ?? "").split(",").filter(Boolean).length;
+  return o.engaged || days >= 2;
 }

@@ -41,6 +41,13 @@ test("manifest is valid and the app is installable", async ({ page, request }) =
       ),
     ).toBe(true);
   }
+  expect(m.screenshots.some((s: { form_factor?: string }) => s.form_factor === "narrow")).toBe(
+    true,
+  );
+  for (const shot of m.screenshots) {
+    const r = await request.get(shot.src);
+    expect(r.headers()["content-type"], shot.src).toBe("image/jpeg");
+  }
   for (const icon of [...m.icons, ...m.shortcuts.flatMap((s: { icons: unknown[] }) => s.icons)]) {
     const r = await request.get(icon.src);
     expect(r.headers()["content-type"], icon.src).toBe("image/png");

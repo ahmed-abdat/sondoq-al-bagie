@@ -8,11 +8,19 @@ import { OfflineBanner } from "./offline-banner";
 import { OnlineSync } from "./online";
 import { PullToRefresh } from "./pull-to-refresh";
 import { AppToaster } from "./toaster";
+import { InstallCapture, InstallWatcher } from "./install";
 import { SaveVisitedPages, ServiceWorkerUpdates } from "./sw-update";
 
 export { useOnline } from "./online";
 export { OfflineBanner, OfflineWriteHint } from "./offline-banner";
-export { InstallCard, IosInstallSheet, useInstallPrompt } from "./install";
+export {
+  InstallCard,
+  InstallEntry,
+  InstallSheet,
+  markInstallEngaged,
+  promptInstall,
+  useInstallMode,
+} from "./install";
 
 // Bump when the shape of saved public data changes, so old copies are dropped.
 const CACHE_VERSION = "1";
@@ -42,22 +50,26 @@ export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(makeClient);
   const [persister] = useState(createIdbPersister);
   return (
-    <PersistQueryClientProvider
-      client={client}
-      persistOptions={{
-        persister,
-        maxAge: PERSIST_MAX_AGE,
-        buster: CACHE_VERSION,
-        dehydrateOptions: { shouldDehydrateQuery: isPersistable },
-      }}
-    >
-      <OnlineSync />
-      <OfflineBanner />
-      <ServiceWorkerUpdates />
-      <SaveVisitedPages />
-      <PullToRefresh />
-      {children}
-      <AppToaster />
-    </PersistQueryClientProvider>
+    <>
+      <InstallCapture />
+      <PersistQueryClientProvider
+        client={client}
+        persistOptions={{
+          persister,
+          maxAge: PERSIST_MAX_AGE,
+          buster: CACHE_VERSION,
+          dehydrateOptions: { shouldDehydrateQuery: isPersistable },
+        }}
+      >
+        <OnlineSync />
+        <OfflineBanner />
+        <ServiceWorkerUpdates />
+        <SaveVisitedPages />
+        <PullToRefresh />
+        {children}
+        <InstallWatcher />
+        <AppToaster />
+      </PersistQueryClientProvider>
+    </>
   );
 }
