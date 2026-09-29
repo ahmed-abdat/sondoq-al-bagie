@@ -52,6 +52,23 @@ export const DOT_WORD: Record<Dot["state"], string> = {
   off: "غير مستحق",
 };
 
+/**
+ * My submissions still waiting (audit B09): `sent` = everything sent through this link (the
+ * «بانتظار التأكيد» line), `mine` = only those covering my own months. Only `mine` may turn the
+ * late card into «تنتظر تأكيد اللجنة»; proof sent for someone else never hides my «ادفع الآن».
+ */
+export function pendingCounts(
+  items: Pick<MemberHistoryItem, "status" | "sentByMe" | "allocations">[],
+  meId: string,
+) {
+  const sent = items.filter((x) => x.status === "pending" && x.sentByMe);
+  return {
+    sent: sent.length,
+    mine: sent.filter((x) => x.allocations.some((a) => a.kind === "months" && a.memberId === meId))
+      .length,
+  };
+}
+
 /** «دفعة بانتظار التأكيد» / «دفعتان …» / «3 دفعات …». */
 export function waitingLine(n: number) {
   if (n <= 0) return "";

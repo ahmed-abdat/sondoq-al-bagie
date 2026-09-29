@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   coverLines,
   historySections,
+  pendingCounts,
   waitingLine,
   youCard,
   youDots,
@@ -123,5 +124,26 @@ describe("historySections", () => {
     expect(s.rejected.map((x) => x.id)).toEqual(["2"]);
     expect(s.mine.map((x) => x.id)).toEqual(["3"]);
     expect(s.forOthers.map((x) => x.id)).toEqual(["4"]);
+  });
+});
+
+describe("pendingCounts (audit B09)", () => {
+  it("proof sent for someone else counts as sent, never as mine", () => {
+    const items = [
+      item({ id: "a", status: "pending", allocations: [alloc("b1", "بلال", 9)] }),
+      item({ id: "b", status: "pending", allocations: [alloc("me", "سيدي", 7)] }),
+      item({ id: "c", status: "confirmed", allocations: [alloc("me", "سيدي", 6)] }),
+      item({ id: "d", status: "pending", sentByMe: false, allocations: [alloc("me", "سيدي", 8)] }),
+    ];
+    expect(pendingCounts(items, "me")).toEqual({ sent: 2, mine: 1 });
+    expect(pendingCounts(items.slice(0, 1), "me")).toEqual({ sent: 1, mine: 0 });
+  });
+  it("a late member who paid only for another keeps «ادفع الآن»", () => {
+    const late = { status: "active" as const, monthsBehind: 3, amountOwed: 3000 };
+    const { mine } = pendingCounts(
+      [item({ status: "pending", allocations: [alloc("b1", "بلال", 9)] })],
+      "me",
+    );
+    expect(youCard(late, "PPPPPPLLLUUU", 2026, mine).kind).toBe("late");
   });
 });
