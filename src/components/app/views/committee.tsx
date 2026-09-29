@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { InstallEntry } from "@/components/providers";
 import { usePaymentsRealtime } from "@/lib/data/realtime";
 import type {
   Arrear,
@@ -225,6 +226,9 @@ export function CommitteeView({
             title="مشاركة التقرير"
             sub="صور أو PDF لمجموعة الواتساب"
           />
+          <li>
+            <InstallEntry />
+          </li>
           <MenuRow
             href="/committee/settings"
             icon={I.lock(22)}

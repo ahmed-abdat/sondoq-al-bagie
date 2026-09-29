@@ -13,6 +13,7 @@ import {
 } from "@/components/app/derive";
 import { MemberNo } from "@/components/app/bits";
 import { Collapsible } from "@/components/app/collapsible";
+import { Engaged } from "@/components/app/engaged";
 import { ReportShare } from "@/components/app/report-share";
 import * as src from "@/components/app/source";
 
@@ -80,6 +81,7 @@ export default async function ReportPage() {
 
   return (
     <main className="rp">
+      <Engaged />
       <Link href="/accounts" className="bq-link bq-link-s bq-press bq-back rp-back">
         رجوع إلى الحسابات
       </Link>
