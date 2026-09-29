@@ -536,7 +536,8 @@ export function fxArrears(): Arrear[] {
       months: owed(m).map((k) => `${YEAR}-${String(k).padStart(2, "0")}`),
       monthsCount: owed(m).length,
       amountOwed: owed(m).length * FX_PRICE[m.group],
-      credit: 0,
+      // B-12 overpaid once: 2 000 of credit, enough for her late months
+      credit: m.group === "B" && m.no === 12 ? 2000 : 0,
       lastRemindedAt:
         m.no % 5 === 0 ? "2026-09-25T10:00:00Z" : m.no % 7 === 0 ? "2026-09-27T09:00:00Z" : null,
     }));
@@ -564,9 +565,12 @@ export const fxMembersAdmin = (): MemberAdmin[] =>
     phone: RAW[i].phone,
     note: null,
     amountOwed: amountOwed ?? 0,
-    joinedMonth: "2020-01-01",
-    formerDebtMonths: null,
-    formerDebtAmount: null,
+    joinedMonth: JOINED[rest.memberRef]
+      ? `${YEAR}-${String(JOINED[rest.memberRef]).padStart(2, "0")}-01`
+      : "2020-01-01",
+    // B-33 left in May with March and April unpaid
+    formerDebtMonths: rest.memberRef === "B-33" ? [`${YEAR}-03`, `${YEAR}-04`] : null,
+    formerDebtAmount: rest.memberRef === "B-33" ? 2 * FX_PRICE.B : null,
   }));
 
 export const fxCommitteeAccounts = (): CommitteeAccount[] => [

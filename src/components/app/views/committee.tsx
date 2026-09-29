@@ -24,7 +24,7 @@ import { ShareBtns } from "../entries";
 import { ExpenseAdminList, RecordExpenseBody } from "../expense";
 import { I } from "../icons";
 import type { MemberCtx } from "../member";
-import { MembersAdmin } from "../members-admin";
+import { MembersAdmin, type MemberCredit } from "../members-admin";
 import { Num } from "../num";
 import { Receipt } from "../receipt";
 import type { ReceiptView } from "../receipt-model";
@@ -368,18 +368,26 @@ export function MembersPage({
   prices,
   thisMonth,
   admin = false,
+  credit = {},
 }: {
   members: MemberAdmin[];
   prices: Record<string, number>;
   /** admin: may undo the last change and correct the join month */
   admin?: boolean;
+  credit?: Record<string, MemberCredit>;
   thisMonth: string;
 }) {
   return (
     <>
       <SubHead title="الأعضاء" />
       <section className="bq-sec bq-sec-first">
-        <MembersAdmin members={members} prices={prices} thisMonth={thisMonth} admin={admin} />
+        <MembersAdmin
+          members={members}
+          prices={prices}
+          thisMonth={thisMonth}
+          admin={admin}
+          credit={credit}
+        />
       </section>
     </>
   );

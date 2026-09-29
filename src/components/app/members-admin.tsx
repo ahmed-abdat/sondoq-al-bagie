@@ -8,12 +8,15 @@ import { useMemo, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { type MemberAdmin, type SettableStatus } from "@/lib/data/types";
 import { useAct, useDemoState } from "./act";
+import { sendOnce, useOnceId } from "./once-id";
 import { Avatar, MemberNo, StatusTag } from "./bits";
 import {
   fmt,
   groupLabel,
   memberLabel,
   monthsWord,
+  monthCount,
+  monthsLabel,
   MONTHS,
   nextFreeNumber,
   searchMembers,
@@ -34,6 +37,15 @@ const LISTS = ["A", "B"] as const;
 
 /** "YYYY-MM" (month input) → "YYYY-MM-01" (action input). */
 const firstOf = (ym: string) => `${ym}-01`;
+/** «من يوليو إلى سبتمبر 2026», one run per year. */
+function creditMonthsLabel(keys: string[]) {
+  const by = new Map<number, number[]>();
+  for (const k of keys) {
+    const y = Number(k.slice(0, 4));
+    by.set(y, [...(by.get(y) ?? []), Number(k.slice(5, 7))]);
+  }
+  return [...by].map(([y, ms]) => `${monthsLabel(ms)} ${y}`).join("، ");
+}
 const ymLabel = (ym: string) => {
   const [y, m] = ym.split("-").map(Number);
   return `${MONTHS[m - 1]} ${y}`;
@@ -174,11 +186,17 @@ export function MemberAdminBody({
   members = [],
   thisMonth,
   admin = false,
+  credit,
+  price = 0,
   onDone,
 }: {
   m: MemberAdmin;
   /** admin only: «تراجع عن آخر تغيير», «تصحيح شهر الانضمام» */
   admin?: boolean;
+  /** the member's credit, when they have some */
+  credit?: MemberCredit;
+  /** this year's monthly fee of the member's group (how many months the credit pays) */
+  price?: number;
   /** everyone, to say at once when a new number is taken */
   members?: MemberAdmin[];
   thisMonth: string;
@@ -186,9 +204,21 @@ export function MemberAdminBody({
 }) {
   const router = useRouter();
   const online = useOnline();
-  const { updateMember, changeMemberStatus, changeMemberGroup, cancelLastPeriod, setJoinMonth } =
-    useAct();
-  const [mode, setMode] = useState<"view" | "edit" | "state" | "move" | "undo" | "join">("view");
+  const {
+    updateMember,
+    changeMemberStatus,
+    changeMemberGroup,
+    cancelLastPeriod,
+    setJoinMonth,
+    applyCredit,
+  } = useAct();
+  const once = useOnceId();
+  const [mode, setMode] = useState<"view" | "edit" | "state" | "move" | "undo" | "join" | "credit">(
+    "view",
+  );
+  // the late months the credit pays, oldest first (the server checks each month's own price)
+  const payable =
+    credit && price > 0 ? credit.months.slice(0, Math.floor(credit.amount / price)) : [];
   const [joinYm, setJoinYm] = useState(m.joinedMonth?.slice(0, 7) ?? thisMonth);
   const [name, setName] = useState(m.fullName);
   const [phone, setPhone] = useState(m.phone ?? "");
@@ -251,6 +281,18 @@ export function MemberAdminBody({
           "لا تُحسب عليه رسوم الآن."
         )}
       </p>
+      {!!m.formerDebtMonths?.length && (
+        <p className="bq-mline">
+          عليه رسوم شهرية سابقة لم تُدفع: {monthCount(m.formerDebtMonths.length)} ·{" "}
+          <Num>{fmt(m.formerDebtAmount ?? 0)}</Num> أوقية
+        </p>
+      )}
+      {!!credit?.amount && (
+        <p className="bq-hint">
+          له رصيد <Num>{fmt(credit.amount)}</Num> أوقية
+          {payable.length ? "." : "، لا يكفي لشهر كامل."}
+        </p>
+      )}
       {m.phone ? (
         <a className="bq-link bq-press" href={`tel:${m.phone}`}>
           {I.phone(18)}
@@ -270,6 +312,56 @@ export function MemberAdminBody({
           <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("state")}>
             تغيير الحالة
           </button>
+        </div>
+      )}
+      {mode === "view" && payable.length > 0 && (
+        <button type="button" className="bq-btn bq-btn-tonal bq-press" onClick={() => go("credit")}>
+          ادفع من الرصيد
+        </button>
+      )}
+      {mode === "credit" && (
+        <div className="bq-rej bq-small-top">
+          <p className="bq-rej-l">ادفع من الرصيد</p>
+          <p className="bq-lead">
+            تُدفع رسوم {monthCount(payable.length)} ({creditMonthsLabel(payable)}) من رصيد{" "}
+            {m.fullName}: <Num>{fmt(payable.length * price)}</Num> أوقية. لا يدخل مال جديد إلى
+            الصندوق.
+          </p>
+          <Err text={err} />
+          <div className="bq-slip-btns bq-small-top">
+            <button
+              type="button"
+              className="bq-btn bq-btn-primary bq-press"
+              disabled={busy || !online}
+              onClick={() =>
+                run(
+                  // the same id on every retry: the server replays instead of paying twice
+                  () =>
+                    sendOnce(once, (id) =>
+                      applyCredit({
+                        id,
+                        memberId: m.memberId,
+                        months: payable.map((k) => ({
+                          year: Number(k.slice(0, 4)),
+                          month: Number(k.slice(5, 7)),
+                        })),
+                      }),
+                    ),
+                  `دُفعت رسوم ${monthCount(payable.length)} من رصيد ${m.fullName}`,
+                )
+              }
+            >
+              ادفع {monthCount(payable.length)}
+            </button>
+            <button
+              type="button"
+              className="bq-btn bq-btn-ghost bq-press"
+              onClick={() => go("view")}
+            >
+              رجوع
+            </button>
+          </div>
+          <OfflineWriteHint />
         </div>
       )}
       {mode === "view" && (
@@ -634,16 +726,21 @@ type SF = "active" | "exempt" | "gone" | "all";
 const inFilter = (m: MemberAdmin, f: SF) =>
   f === "all" || (f === "gone" ? m.status === "left" || m.status === "deceased" : m.status === f);
 
+/** A member's credit and their late months ("YYYY-MM", oldest first) it could pay. */
+export type MemberCredit = { amount: number; months: string[] };
+
 export function MembersAdmin({
   members: server,
   prices,
   thisMonth,
   admin = false,
+  credit = {},
 }: {
   members: MemberAdmin[];
   prices: Record<string, number>;
   thisMonth: string;
   admin?: boolean;
+  credit?: Record<string, MemberCredit>;
 }) {
   const say = useSnack();
   const demo = useDemoState();
@@ -791,6 +888,8 @@ export function MembersAdmin({
             members={members}
             thisMonth={thisMonth}
             admin={admin}
+            credit={credit[open.memberId]}
+            price={prices[open.groupCode] ?? 0}
             onDone={done}
           />
         </Sheet>
