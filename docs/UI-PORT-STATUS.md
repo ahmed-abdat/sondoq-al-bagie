@@ -258,6 +258,32 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - Remaining: the reading has no sender name (Lane B/OCR); with it the payer or member could be
   suggested. Starting from a WhatsApp share (share target) would save the gallery step.
 
+## Edge-case fixes (docs/EDGE-CASES.md, Lane C list)
+- M1: one id per open form (`once-id.ts`: `useOnceId`, `sendOnce`) in record payment, expense,
+  new campaign, handover start; reused on every retry and for `uploadProof`, renewed only after ok
+  (closing the form drops it). Unit test `once-id.test.ts` (retry after a lost answer sends the
+  same id to upload and record). Demo stubs replay on the same id like the server. No e2e: demo
+  writes never touch the network, so a lost answer cannot be staged there.
+- M2: `safe-act.ts` + `useAct()` wraps every action: a throw becomes `network`; with the real
+  actions Lane B's `reportActionError` is asked first (old app after a deploy → update toast,
+  `stale_app`, empty message). Busy reset in `finally` in the run helpers.
+- M3: a decided slip shows the mark only once the server accepted; «جارٍ الإرسال…» meanwhile,
+  after 15 s «لم يصل التأكيد بعد…» + «أعد المحاولة».
+- M9: record offers only late/upcoming months (`payableMonths` in payment-draft.ts, tested);
+  «غير مستحق» chips disabled. Fixture B-12 joined in June to show it.
+- C1/H1/H2: close-campaign sheet counts pending contributions (`pendingForCampaign`) and waits for
+  them; the leftover always goes to the fund (no «keep» choice, owner decision). Handover: pending
+  payments before submit and accept; accept screen shows «زاد/نقص الرصيد بـ … منذ إرسال التسليم»
+  (fund balance − computedBalance at submit; demo submit simulates +1 000).
+- P2: M16 «(أوقية قديمة)» + ×10 offer; O4 HEIC message; C3 expense above the fund/campaign balance
+  note; E3 member number editable with the swap hint; U5 «login taken» offers a new password for
+  that account (demo: the same login twice is taken).
+- e2e `e2e/edge-cases.spec.ts` (M9, M16, H1/H2). Shots `/private/tmp/claude-502/sondoq-shots/r17/`
+  (script `r17/shots.mjs 390`, incl. the stalled slip via a held demo timer).
+- Waiting for Lane A (m2-backend): per-month price and past-year late months (M8/M11/M12),
+  cancelLastPeriod/setJoinMonth (E1), getBackupStatus (D2), then credit (M7), confirmer link flag
+  (E6), former members' debt (M14). `campaign_has_pending` / H1 server fix are Lane A's.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
