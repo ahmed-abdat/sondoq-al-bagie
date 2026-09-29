@@ -171,10 +171,13 @@ export function AddMemberBody({
 
 export function MemberAdminBody({
   m,
+  members = [],
   thisMonth,
   onDone,
 }: {
   m: MemberAdmin;
+  /** everyone, to say at once when a new number is taken */
+  members?: MemberAdmin[];
   thisMonth: string;
   onDone: (t: string) => void;
 }) {
@@ -185,6 +188,11 @@ export function MemberAdminBody({
   const [name, setName] = useState(m.fullName);
   const [phone, setPhone] = useState(m.phone ?? "");
   const [note, setNote] = useState(m.note ?? "");
+  const [numTxt, setNumTxt] = useState(String(m.number));
+  const num = Number(numTxt);
+  const numTaken =
+    num !== m.number &&
+    members.some((x) => x.listCode === m.listCode && x.number === num && x.memberId !== m.memberId);
   const [state, setState] = useState<State | null>(null);
   const [from, setFrom] = useState(thisMonth);
   const [reason, setReason] = useState("");
@@ -274,6 +282,25 @@ export function MemberAdminBody({
             onChange={(e) => setName(e.target.value)}
             aria-label="الاسم الكامل"
           />
+          <p className="bq-rec-k">الرقم</p>
+          <div className="bq-field">
+            <span className="bq-strong">{groupLabel(m.listCode)}</span>
+            <input
+              className="bq-input"
+              value={numTxt}
+              onChange={(e) => setNumTxt(toWesternDigits(e.target.value).replace(/[^\d]/g, ""))}
+              inputMode="numeric"
+              dir="ltr"
+              aria-label="رقم العضو"
+              aria-describedby="bq-num-h"
+            />
+          </div>
+          {numTaken && (
+            <p className="bq-hint" id="bq-num-h">
+              هذا الرقم مأخوذ في هذه المجموعة. لتبديل رقمين: اختر رقمًا غير مستخدم، ثم غيّر الرقم
+              الآخر.
+            </p>
+          )}
           <p className="bq-rec-k">رقم الهاتف (اختياري)</p>
           <input
             className="bq-input"
@@ -296,7 +323,7 @@ export function MemberAdminBody({
               <button
                 type="button"
                 className="bq-btn bq-btn-primary bq-press"
-                disabled={name.trim().length < 3 || busy || !online}
+                disabled={name.trim().length < 3 || !(num > 0) || numTaken || busy || !online}
                 onClick={() =>
                   run(
                     () =>
@@ -305,6 +332,7 @@ export function MemberAdminBody({
                         fullName: name.trim(),
                         phone: phone.trim() || null,
                         note: note.trim() || null,
+                        number: num !== m.number ? num : undefined,
                       }),
                     "حُفظت البيانات",
                   )
@@ -641,7 +669,7 @@ export function MembersAdmin({
       )}
       {open && (
         <Sheet key={open.memberId} label={open.fullName} onDone={() => setSheet(null)}>
-          <MemberAdminBody m={open} thisMonth={thisMonth} onDone={done} />
+          <MemberAdminBody m={open} members={members} thisMonth={thisMonth} onDone={done} />
         </Sheet>
       )}
     </>

@@ -380,6 +380,7 @@ const demo = {
           fullName: p.fullName,
           phone: p.phone,
           note: p.note,
+          ...(p.number ? { number: p.number } : {}),
         },
       },
     }));
