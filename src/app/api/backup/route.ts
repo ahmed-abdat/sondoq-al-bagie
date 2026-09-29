@@ -1,4 +1,5 @@
 import { recordBackupRun, runBackup } from "@/lib/backup/export";
+import { pruneOrphanProofs } from "@/lib/backup/orphans";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,12 @@ export async function GET(request: Request) {
     await recordBackupRun(admin, { ok: true, path: result.path }).catch((err) =>
       console.error("[backup] record", err),
     );
-    return Response.json({ ok: true, ...result });
+    // housekeeping after a good backup: proof images no record points at (best effort)
+    const orphans = await pruneOrphanProofs(admin).catch((err) => {
+      console.error("[backup] orphan proofs", err);
+      return { removed: 0 };
+    });
+    return Response.json({ ok: true, ...result, orphanProofsRemoved: orphans.removed });
   } catch (err) {
     console.error("[backup]", err);
     const error = err instanceof Error ? err.message : String(err);

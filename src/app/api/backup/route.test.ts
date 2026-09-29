@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 const runBackup = vi.fn();
 const recordBackupRun = vi.fn(async () => {});
+const pruneOrphanProofs = vi.fn(async () => ({ removed: 2 }));
+vi.mock("@/lib/backup/orphans", () => ({ pruneOrphanProofs: () => pruneOrphanProofs() }));
 vi.mock("@/lib/backup/export", () => ({
   runBackup: (...a: unknown[]) => runBackup(...a),
   recordBackupRun: (...a: unknown[]) => recordBackupRun(...(a as [])),
@@ -65,5 +67,19 @@ describe("backup route", () => {
     recordBackupRun.mockRejectedValueOnce(new Error("db down"));
     expect((await GET(req("Bearer s3cret"))).status).toBe(500);
     expect(recordBackupRun).toHaveBeenLastCalledWith(admin, { ok: false, error: "upload failed" });
+  });
+
+  it("prunes orphan proofs after a good backup, and survives a failure there", async () => {
+    vi.stubEnv("CRON_SECRET", "s3cret");
+    runBackup.mockResolvedValue({ path: "2026/2026-09-28.json", counts: {}, pruned: 0 });
+    expect(await (await GET(req("Bearer s3cret"))).json()).toMatchObject({
+      ok: true,
+      orphanProofsRemoved: 2,
+    });
+    pruneOrphanProofs.mockRejectedValueOnce(new Error("list failed"));
+    expect(await (await GET(req("Bearer s3cret"))).json()).toMatchObject({
+      ok: true,
+      orphanProofsRemoved: 0,
+    });
   });
 });
