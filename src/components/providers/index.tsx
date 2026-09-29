@@ -16,6 +16,7 @@ export { AppBadgeSync } from "./app-badge";
 // The committee's push pieces (server actions) live in "./committee-push"; import them from there.
 export { OfflineWriteHint } from "./offline-banner";
 export { InstallEntry, markInstallEngaged } from "./install";
+export { reportActionError } from "./sw-update";
 
 // Bump when the shape of saved public data changes, so old copies are dropped.
 const CACHE_VERSION = "1";

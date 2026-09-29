@@ -1,12 +1,48 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { unstable_isUnrecognizedActionError, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { isPublicPage } from "@/lib/offline/cache-rules";
 import { allowsBackgroundDownload, whenIdle, type NetworkInfo } from "@/lib/offline/data-saver";
 
 const PAGES_CACHE = "pages"; // same name as the NetworkFirst page cache in src/app/sw.ts
+
+/* ───────────── update requested by the member ───────────── */
+
+let updateRequested = false;
+
+/** «تحديث»: activate the waiting worker (the page reloads when it takes over), else reload. */
+function requestUpdate(worker: ServiceWorker | null | undefined) {
+  updateRequested = true;
+  if (worker) worker.postMessage({ type: "SKIP_WAITING" });
+  else window.location.reload();
+}
+
+/**
+ * The app on this phone is older than the server (a deploy happened while it was open): its
+ * server actions no longer exist there. Offer the update instead of a silent failure.
+ */
+async function offerStaleAppUpdate() {
+  const reg = await navigator.serviceWorker?.getRegistration().catch(() => undefined);
+  await reg?.update().catch(() => {});
+  toast("نسخة جديدة من التطبيق متاحة", {
+    id: "stale-app",
+    description: "اضغط «تحديث» ثم أعد المحاولة.",
+    duration: Infinity,
+    action: { label: "تحديث", onClick: () => requestUpdate(reg?.waiting ?? reg?.installing) },
+  });
+}
+
+/**
+ * Call from a failed server action (e.g. in a catch). Returns true when the failure is an app
+ * version mismatch; the update toast is then shown and the caller can stay quiet.
+ */
+export function reportActionError(error: unknown): boolean {
+  if (!unstable_isUnrecognizedActionError(error)) return false;
+  void offerStaleAppUpdate();
+  return true;
+}
 
 /**
  * When a new version of the service worker is installed and waiting, show «تحديث جديد متاح».
@@ -26,7 +62,7 @@ export function ServiceWorkerUpdates() {
       toast("تحديث جديد متاح", {
         description: "نسخة أحدث من التطبيق جاهزة.",
         duration: Infinity,
-        action: { label: "تحديث", onClick: () => worker.postMessage({ type: "SKIP_WAITING" }) },
+        action: { label: "تحديث", onClick: () => requestUpdate(worker) },
       });
     };
     const track = (worker: ServiceWorker | null) => {
@@ -36,11 +72,16 @@ export function ServiceWorkerUpdates() {
     };
     const onUpdateFound = () => track(reg?.installing ?? null);
     const onControllerChange = () => {
-      if (!shown || reloading) return; // only reload when the user asked for the update
+      if (!updateRequested || reloading) return; // only reload when the user asked for the update
       reloading = true;
       window.location.reload();
     };
     const onVisible = () => document.visibilityState === "visible" && void reg?.update();
+    // safety net: a server action from an older app version that nobody caught
+    const onRejection = (e: PromiseRejectionEvent) => {
+      if (reportActionError(e.reason)) e.preventDefault();
+    };
+    window.addEventListener("unhandledrejection", onRejection);
 
     navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
     document.addEventListener("visibilitychange", onVisible);
@@ -53,6 +94,7 @@ export function ServiceWorkerUpdates() {
     return () => {
       navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("unhandledrejection", onRejection);
       reg?.removeEventListener("updatefound", onUpdateFound);
     };
   }, []);
