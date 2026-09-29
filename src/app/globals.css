@@ -5859,3 +5859,27 @@
     background: var(--n1);
   }
 }
+@layer components {
+  /* QA pass 5: the last small targets, and long logins on /committee/account at 200% text */
+  .bq-hero-how {
+    padding-block: 10px;
+    margin-block: -10px;
+  }
+  .bq-link-s {
+    min-width: 48px;
+    justify-content: center;
+  }
+  .bq-me-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+  }
+  .bq-mini-switch {
+    min-height: 48px;
+  }
+  .bq-facts dd,
+  .bq-facts dt {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
