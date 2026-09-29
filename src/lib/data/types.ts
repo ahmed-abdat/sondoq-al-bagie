@@ -112,6 +112,21 @@ export type MemberStatus = {
   amountOwed: number | null;
 };
 
+/** A public list row: the member card plus this year's months as a 12-letter code
+ * ("PPPPPPPPLLUU", see month-code.ts: monthStates / decodeMonths). */
+export type MemberRow = MemberStatus & { months: string };
+
+/** Home search and counts: no months, no money. */
+export type MemberIndex = {
+  members: Pick<MemberStatus, "memberId" | "memberRef" | "fullName" | "status" | "statusLabel">[];
+  /** active members («X من N») */
+  activeCount: number;
+  /** active members who paid `month` of `year` */
+  paidThisMonth: number;
+  year: number;
+  month: number;
+};
+
 /** paid · late (due and unpaid) · upcoming (not due yet) · not_owed (exempt/away/left/deceased). */
 export type MonthState = "paid" | "late" | "upcoming" | "not_owed";
 

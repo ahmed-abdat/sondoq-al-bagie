@@ -22,7 +22,10 @@ export {
   getCurrentTerm,
   getTerms,
   getReport,
+  getMemberRows,
+  getMemberIndex,
 } from "./public";
+export { decodeMonths, encodeMonths, monthStates } from "./month-code";
 export type { ReportOptions } from "./report";
 export {
   getArrears,
