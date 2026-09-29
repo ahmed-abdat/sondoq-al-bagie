@@ -377,6 +377,18 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   /report group headers never had it (name + count). The summary image and /report summary keep
   their paid line (not a group header).
 
+## Report grid like the paper sheet (owner decision r21)
+- Images + PDF (`report-pages.ts`): thin Pebble lines around every cell (header, رقم, الاسم, each
+  month). Owed month (active member, late or still to come this year) = Gold Track cell; paid =
+  green ✓; not owed (before joining, exempt) = white. Legend «✓ مدفوع  ░ غير مدفوع» (swatch).
+  «المجموع: 156 000 أوقية» under the group's last page (`paidTotal` = paid months × the member's
+  group fee, shown rows). `memberChunks` keeps room for it (last page ≤ 20 rows phone, 25 A4).
+- /report: light month column lines, `.is-unpaid` sand cells, the swatch in the legend,
+  `.rp-gtotal` under each group. Rules in `src/lib/report-check.ts` (`monthCell`, `paidTotal`,
+  tested). DESIGN.md: Gold Track exception for the report grid.
+- Contrast: sand vs white survives a 50% JPEG at half size. Shots `/private/tmp/claude-502/sondoq-shots/r21/`.
+- Member link message stays the 4-line `linkMessage` (lead, r21).
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.

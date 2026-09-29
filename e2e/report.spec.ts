@@ -173,7 +173,16 @@ test("members grid: a ✓ badge in each paid month, empty cells otherwise, no �
   const legend = page.locator(".rp-legend");
   await expect(legend).toContainText("مدفوع");
   await expect(legend).toContainText("12 = ديسمبر");
-  await expect(legend).not.toContainText(/غير مدفوع|متأخر|دفع حتى/);
+  // r21: an owed month is a sand cell, in the legend too; no status words
+  await expect(legend).toContainText("غير مدفوع");
+  await expect(legend.locator(".rp-swatch")).toHaveCount(1);
+  await expect(legend).not.toContainText(/متأخر|دفع حتى/);
+  await expect(page.locator(".rp-members .rp-cells > span.is-unpaid").first()).toBeAttached();
+  // «المجموع: … أوقية» under each group
+  await expect(page.locator(".rp-gtotal")).toHaveCount(await page.locator(".rp-members").count());
+  await expect(page.locator(".rp-gtotal").first()).toHaveText(
+    /^المجموع: [\d\s\u00a0\u202f]+ أوقية$/,
+  );
   await expect(page.locator(".rp-mhead").first().locator(".rp-cells > span")).toHaveCount(12);
   const rows = page.locator(".rp-members li");
   const cells = rows.first().locator(".rp-cells > span");
