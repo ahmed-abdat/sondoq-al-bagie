@@ -185,6 +185,14 @@ export function InstallWatcher() {
       safeStorage.setItem(SESSIONS_KEY, String(Math.min(n, 99)));
       emit();
     }
+    // just arrived from a member's personal link (/m/<token> → /?welcome=1): invite to install
+    // in this browser, and drop the marker from the address
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("welcome") === "1") {
+      markInstallEngaged();
+      url.searchParams.delete("welcome");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    }
     const nav = navigator as Navigator & {
       getInstalledRelatedApps?: () => Promise<{ platform: string }[]>;
     };

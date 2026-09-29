@@ -29,14 +29,27 @@ describe("isPublicViewRead", () => {
 });
 
 describe("isPrivatePath", () => {
-  it.each(["/committee", "/committee/pending", "/login", "/api/keepalive", "/r/BQ-AB12-0001"])(
-    "%s is private",
-    (p) => expect(isPrivatePath(p)).toBe(true),
-  );
-  it.each(["/", "/members", "/accounts", "/donations", "/report", "/rules", "/committees-info"])(
-    "%s is public",
-    (p) => expect(isPrivatePath(p)).toBe(false),
-  );
+  it.each([
+    "/committee",
+    "/committee/pending",
+    "/login",
+    "/api/keepalive",
+    "/r/BQ-AB12-0001",
+    "/m/AbC_-123",
+    "/me",
+    "/me/payments",
+  ])("%s is private", (p) => expect(isPrivatePath(p)).toBe(true));
+  it.each([
+    "/",
+    "/members",
+    "/members/b-12",
+    "/accounts",
+    "/donations",
+    "/report",
+    "/rules",
+    "/committees-info",
+    "/media",
+  ])("%s is public", (p) => expect(isPrivatePath(p)).toBe(false));
 });
 
 describe("isPublicPage", () => {
