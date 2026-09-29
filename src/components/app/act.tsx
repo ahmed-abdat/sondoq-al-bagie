@@ -188,7 +188,9 @@ const demo = {
   async proofUrl({ path }) {
     await wait();
     if (path.startsWith("demo:blob:")) return { ok: true, data: path.slice(5) };
-    return { ok: false, code: "demo", message: "صورة تجريبية" };
+    // fixture slips: a fictional wallet screenshot drawn here, so the demo proof opens
+    const url = demoProofImage(path);
+    return url ? { ok: true, data: url } : { ok: false, code: "demo", message: "صورة تجريبية" };
   },
   async recordExpense(p) {
     if (state.expenses.some((x) => x.id === p.id)) return ok(p.id);
@@ -526,4 +528,33 @@ const REAL_ACTIONS = safeAll(real, reportActionError);
 /** Committee actions: real server actions, or simulated ones in demo mode (stable identities). */
 export function useAct(): Actions {
   return useContext(DemoCtx) ? DEMO_ACTIONS : REAL_ACTIONS;
+}
+
+/** Demo only: a plainly fictional transfer screenshot (PNG data URL), one look per path. */
+function demoProofImage(path: string): string | null {
+  if (typeof document === "undefined") return null;
+  const c = document.createElement("canvas");
+  c.width = 360;
+  c.height = 640;
+  const g = c.getContext("2d");
+  if (!g) return null;
+  const n = [...path].reduce((a, ch) => a + ch.charCodeAt(0), 0);
+  g.fillStyle = "#f2f4f3";
+  g.fillRect(0, 0, 360, 640);
+  g.fillStyle = "#1a5f2e";
+  g.fillRect(0, 0, 360, 120);
+  g.fillStyle = "#fff";
+  g.font = "bold 26px system-ui";
+  g.textAlign = "center";
+  g.fillText("تحويل ناجح", 180, 72);
+  g.fillStyle = "#14201a";
+  g.font = "bold 34px system-ui";
+  g.fillText(`${(n % 9) + 1}00 MRU`, 180, 220);
+  g.font = "20px system-ui";
+  g.fillStyle = "#56645c";
+  g.fillText("صورة تجريبية، ليست إيصالًا حقيقيًا", 180, 280);
+  g.fillText(`TX-DEMO-${1000 + (n % 9000)}`, 180, 330);
+  g.fillStyle = "#cdd5d0";
+  for (let i = 0; i < 4; i++) g.fillRect(60, 400 + i * 40, i % 2 ? 180 : 240, 12);
+  return c.toDataURL("image/png");
 }

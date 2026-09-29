@@ -260,12 +260,15 @@ export function Proof({
   path,
   wide = false,
   actions,
+  onFail,
 }: {
   path: string | null;
   amount?: number;
   method?: ReceiptView["method"];
   wide?: boolean;
   actions?: ReactNode;
+  /** the picture could not be loaded (the slip then blocks «تأكيد الاستلام») */
+  onFail?: (failed: true) => void;
 }) {
   const dlg = useRef<HTMLDialogElement>(null);
   const pushed = useRef(false);
@@ -280,13 +283,20 @@ export function Proof({
         if (!live) return;
         const u = r.ok ? safeReceiptSrc(r.data) : null;
         if (u) setSrc(u);
-        else setFailed(true);
+        else {
+          setFailed(true);
+          onFail?.(true);
+        }
       })
-      .catch(() => live && setFailed(true));
+      .catch(() => {
+        if (!live) return;
+        setFailed(true);
+        onFail?.(true);
+      });
     return () => {
       live = false;
     };
-  }, [path, proofUrl]);
+  }, [path, proofUrl, onFail]);
   // Back closes the picture, as in WhatsApp
   useEffect(() => {
     const onPop = () => {
@@ -322,7 +332,16 @@ export function Proof({
       >
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL
-          <img src={src} alt="" className="rc-shot" />
+          <img
+            src={src}
+            alt=""
+            className="rc-shot"
+            onError={() => {
+              setSrc(null);
+              setFailed(true);
+              onFail?.(true);
+            }}
+          />
         ) : (
           <ShotMock />
         )}

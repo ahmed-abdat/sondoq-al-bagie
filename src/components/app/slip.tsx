@@ -144,6 +144,9 @@ export function PendingSlip({
   };
   const own = !!me.memberId && p.allocations.some((a) => a.memberId === me.memberId);
   const mayDecide = (me.canConfirm ?? true) && !own;
+  // a proof that does not open blocks the confirmation (QA pass 3); cash/paper slips have none
+  const [proofBad, setProofBad] = useState(false);
+  const blocked = proofBad && !!p.proofPath;
   const undo = () => {
     onDecided?.(false);
     if (timer.current !== null) clearTimeout(timer.current);
@@ -271,13 +274,14 @@ export function PendingSlip({
         <Proof
           path={p.proofPath}
           wide
+          onFail={setProofBad}
           actions={
             st.s === "pending" && !rejecting && mayDecide ? (
               <>
                 <button
                   type="button"
                   className="bq-btn bq-btn-primary bq-press"
-                  disabled={!online}
+                  disabled={!online || blocked}
                   onClick={() => decide("confirmed")}
                 >
                   {I.check(20)} تأكيد الاستلام
@@ -342,15 +346,25 @@ export function PendingSlip({
       )}
       {st.s === "pending" && !rejecting && mayDecide && (
         <>
-          <p className="bq-slip-hint">
-            {I.search(18)}
-            <span>طابِق المبلغ ورقم العملية مع محفظة الصندوق قبل التأكيد.</span>
-          </p>
+          {blocked ? (
+            <p className="bq-alert" role="alert">
+              الصورة لا تفتح الآن. لا تؤكد الدفعة حتى تراجع التحويل.
+            </p>
+          ) : (
+            <p className="bq-slip-hint">
+              {I.search(18)}
+              <span>
+                {p.method === "cash"
+                  ? "راجع المبلغ النقدي الذي استلمته."
+                  : "طابِق المبلغ ورقم العملية مع محفظة الصندوق قبل التأكيد."}
+              </span>
+            </p>
+          )}
           <div className="bq-slip-btns">
             <button
               type="button"
               className="bq-btn bq-btn-primary bq-press"
-              disabled={!online}
+              disabled={!online || blocked}
               onClick={() => decide("confirmed")}
             >
               {I.check(20)} تأكيد الاستلام
