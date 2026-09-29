@@ -1,5 +1,6 @@
 "use client";
 // Committee campaigns: open one, edit it while open, close it (surplus to the fund or kept).
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
@@ -8,17 +9,20 @@ import type { ActionResult, CampaignProgress } from "@/lib/data/types";
 import { failure } from "@/lib/data/errors";
 import { sendOnce, useOnceId } from "./once-id";
 import { parseAmount } from "@/lib/money";
-import { dayWords, fmt } from "./derive";
+import { contributionCount, dayWords, fmt } from "./derive";
 import { DateField } from "./date-field";
 import { I } from "./icons";
 import { Num } from "./num";
 
 export function CampaignFormBody({
   campaign,
+  pendingCount = 0,
   onDone,
 }: {
   /** edit this one; omit to open a new campaign */
   campaign?: CampaignProgress;
+  /** pending payments that carry a contribution to it (closing waits for them) */
+  pendingCount?: number;
   onDone: (text: string) => void;
 }) {
   const router = useRouter();
@@ -71,7 +75,12 @@ export function CampaignFormBody({
 
   if (campaign && closing)
     return (
-      <CloseCampaignBody campaign={campaign} onDone={onDone} onBack={() => setClosing(false)} />
+      <CloseCampaignBody
+        campaign={campaign}
+        pendingCount={pendingCount}
+        onDone={onDone}
+        onBack={() => setClosing(false)}
+      />
     );
   return (
     <div className="bq-rec">
@@ -136,10 +145,12 @@ export function CampaignFormBody({
 
 export function CloseCampaignBody({
   campaign,
+  pendingCount = 0,
   onDone,
   onBack,
 }: {
   campaign: CampaignProgress;
+  pendingCount?: number;
   onDone: (t: string) => void;
   onBack?: () => void;
 }) {
@@ -203,6 +214,16 @@ export function CloseCampaignBody({
       <p className="bq-hint bq-small-top">
         بعد الإغلاق لا تُقبل مساهمات جديدة، ولا يمكن فتحها من جديد.
       </p>
+      {pendingCount > 0 && (
+        <div className="bq-wait" role="status">
+          <p>
+            للحملة {contributionCount(pendingCount)} بانتظار التأكيد. أكّدها أو ارفضها قبل الإغلاق.
+          </p>
+          <Link className="bq-link bq-link-s bq-press" href="/committee">
+            افتح الدفعات {I.go(18)}
+          </Link>
+        </div>
+      )}
       <div className="bq-rec-foot">
         {err && (
           <p className="bq-alert" role="alert">
@@ -212,7 +233,7 @@ export function CloseCampaignBody({
         <button
           type="button"
           className="bq-btn bq-btn-tonal bq-btn-lg bq-press"
-          disabled={!choice || busy || !online}
+          disabled={!choice || busy || !online || pendingCount > 0}
           onClick={async () => {
             if (!choice) return;
             setBusy(true);

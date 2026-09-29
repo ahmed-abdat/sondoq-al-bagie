@@ -35,6 +35,34 @@ export function monthCount(n: number) {
   return n <= 10 ? `${n} أشهر` : `${n} شهرًا`;
 }
 
+/** «دفعة واحدة / دفعتان / 3 دفعات / 12 دفعة» (subject of «توجد …»). */
+export function paymentCount(n: number) {
+  if (n === 1) return "دفعة واحدة";
+  if (n === 2) return "دفعتان";
+  return n <= 10 ? `${n} دفعات` : `${n} دفعة`;
+}
+
+/** «مساهمة واحدة / مساهمتان / 3 مساهمات / 12 مساهمة». */
+export function contributionCount(n: number) {
+  if (n === 1) return "مساهمة واحدة";
+  if (n === 2) return "مساهمتان";
+  return n <= 10 ? `${n} مساهمات` : `${n} مساهمة`;
+}
+
+/** Pending payments that carry a contribution to this campaign. */
+export function pendingForCampaign(
+  pending: { id: string; allocations: { kind: string; campaignId?: string | null }[] }[],
+  campaignId: string,
+) {
+  return new Set(
+    pending
+      .filter((p) =>
+        p.allocations.some((a) => a.kind === "campaign" && a.campaignId === campaignId),
+      )
+      .map((p) => p.id),
+  ).size;
+}
+
 function runs(ms: number[]) {
   const out: number[][] = [];
   for (const m of [...new Set(ms)].sort((a, b) => a - b)) {

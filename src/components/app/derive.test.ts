@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { MemberStatus } from "@/lib/data/types";
 import {
   amountInWords,
+  contributionCount,
+  paymentCount,
+  pendingForCampaign,
   clock,
   currentDueMonth,
   dayDate,
@@ -183,5 +186,28 @@ describe("dates and money", () => {
     expect(fmt(249000)).toBe("249 000");
     expect(maskTxn("BKL-2609281012-482917")).toBe("•••• 2917");
     expect(maskTxn(null)).toBe("");
+  });
+});
+
+describe("pending counts in words", () => {
+  it("payments and contributions", () => {
+    expect([1, 2, 3, 11].map(paymentCount)).toEqual(["دفعة واحدة", "دفعتان", "3 دفعات", "11 دفعة"]);
+    expect([1, 2, 5, 20].map(contributionCount)).toEqual([
+      "مساهمة واحدة",
+      "مساهمتان",
+      "5 مساهمات",
+      "20 مساهمة",
+    ]);
+  });
+  it("pending for one campaign counts each payment once", () => {
+    const c = (id: string) => ({ kind: "campaign", campaignId: id });
+    const pending = [
+      { id: "p1", allocations: [c("x"), c("x")] },
+      { id: "p2", allocations: [{ kind: "months" }, c("x")] },
+      { id: "p3", allocations: [c("y")] },
+      { id: "p4", allocations: [{ kind: "months" }] },
+    ];
+    expect(pendingForCampaign(pending, "x")).toBe(2);
+    expect(pendingForCampaign(pending, "z")).toBe(0);
   });
 });

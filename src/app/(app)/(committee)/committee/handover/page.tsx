@@ -8,11 +8,12 @@ export const metadata: Metadata = { title: "تسليم الصندوق · الل�
 
 export default async function HandoverPage() {
   const session = await src.requireCommittee("/committee/handover", { roles: src.MANAGERS });
-  const [handovers, summary, accounts, people] = await Promise.all([
+  const [handovers, summary, accounts, people, pending] = await Promise.all([
     src.handovers(),
     src.fundSummary(),
     src.fundAccountsAdmin(),
     src.committeeAccounts(),
+    src.pendingPayments(),
   ]);
   // the open one (draft or submitted), else the latest for its result
   const open =
@@ -26,6 +27,7 @@ export default async function HandoverPage() {
         termNumber={summary.termNumber ?? 1}
         accounts={accounts}
         people={people.filter((p) => p.active)}
+        pending={pending}
         me={{ name: session.displayName, admin: session.role === "admin" }}
       />
     </Tab>

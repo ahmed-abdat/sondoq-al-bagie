@@ -67,6 +67,11 @@ export function rememberMembers(
 ) {
   for (const m of list) known.set(m.memberId, m);
 }
+/** Demo only: the fund balance the handover screen shows (the submit stub records it). */
+let handoverBalance = 0;
+export function rememberHandoverBalance(b: number) {
+  handoverBalance = b;
+}
 const nameOf = (id: string | null | undefined, fallback: string) =>
   (id && known.get(id)) || { fullName: fallback, listCode: "", number: 0 };
 const wait = () => new Promise((r) => setTimeout(r, 400));
@@ -292,10 +297,12 @@ const demo = {
       s.handover
         ? {
             ...s,
-            // demo: submitted by «someone else» so the accept step can be tried too
+            // demo: submitted by «someone else» so the accept step can be tried too, and a
+            // 1 000 transfer confirmed after the submit, so the accept screen shows the change
             handover: {
               ...s.handover,
               status: "submitted",
+              computedBalance: handoverBalance - 1000,
               submittedAt: now(),
               startedByName: "أمين الصندوق السابق",
               submittedByName: "أمين الصندوق السابق",

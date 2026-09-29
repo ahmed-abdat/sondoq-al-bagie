@@ -3,16 +3,23 @@
 // says who stays on the committee, and submits; an admin who did not submit accepts, which
 // starts the next term («الدورة N»). One page, calm steps, no red for a difference.
 import { failure } from "@/lib/data/errors";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import type { CommitteeAccount, CountedLine, FundAccountAdmin, Handover } from "@/lib/data/types";
+import type {
+  CommitteeAccount,
+  CountedLine,
+  FundAccountAdmin,
+  Handover,
+  PendingPayment,
+} from "@/lib/data/types";
 import { METHOD_LABELS } from "@/lib/methods";
 import { parseAmount, toWesternDigits } from "@/lib/money";
 import { waLink } from "@/lib/whatsapp";
-import { useAct, useDemoState, useIsDemo } from "./act";
+import { rememberHandoverBalance, useAct, useDemoState, useIsDemo } from "./act";
 import { sendOnce, useOnceId } from "./once-id";
-import { dayDate, fmt, ROLE_LABEL } from "./derive";
+import { dayDate, fmt, paymentCount, ROLE_LABEL } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
 import { Stamp } from "./receipt";
@@ -67,9 +74,12 @@ export function HandoverView({
   termNumber,
   accounts,
   people,
+  pending: serverPending,
   me,
 }: {
   handover: Handover | null;
+  /** pending payments: better decided before the money is handed over */
+  pending: PendingPayment[];
   /** app balance now */
   balance: number;
   termNumber: number;
@@ -84,6 +94,8 @@ export function HandoverView({
   const demo = useDemoState();
   const demoOn = useIsDemo();
   const h = demo.handover ?? server;
+  const waiting = new Set([...serverPending, ...demo.pending].map((p) => p.id)).size;
+  if (demoOn) rememberHandoverBalance(balance);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const run = async (f: () => Promise<{ ok: boolean; message?: string }>) => {
@@ -151,6 +163,7 @@ export function HandoverView({
         balance={balance}
         accounts={accounts}
         people={people}
+        waiting={waiting}
         run={run}
         busy={busy}
         err={err}
@@ -164,6 +177,7 @@ export function HandoverView({
         balance={balance}
         termNumber={termNumber}
         me={me}
+        waiting={waiting}
         run={run}
         busy={busy}
         err={err}
@@ -206,6 +220,20 @@ export function HandoverView({
         </button>
       </div>
     </section>
+  );
+}
+
+function PendingWait({ n, before }: { n: number; before: string }) {
+  if (!n) return null;
+  return (
+    <div className="bq-wait" role="status">
+      <p>
+        توجد {paymentCount(n)} بانتظار التأكيد. أكّدها أو ارفضها قبل {before}.
+      </p>
+      <Link className="bq-link bq-link-s bq-press" href="/committee">
+        افتح الدفعات {I.go(18)}
+      </Link>
+    </div>
   );
 }
 
@@ -255,6 +283,7 @@ function Draft({
   balance,
   accounts,
   people,
+  waiting,
   run,
   busy,
   err,
@@ -263,6 +292,7 @@ function Draft({
   balance: number;
   accounts: FundAccountAdmin[];
   people: CommitteeAccount[];
+  waiting: number;
   run: RunFn;
   busy: boolean;
   err: string;
@@ -432,6 +462,7 @@ function Draft({
         <p className="bq-lead">
           بعد الإرسال لا يمكن التعديل. يقبله مسؤول آخر فتبدأ الدورة الجديدة.
         </p>
+        <PendingWait n={waiting} before="التسليم" />
         {err && (
           <p className="bq-alert" role="alert">
             {err}
@@ -470,6 +501,7 @@ function Submitted({
   balance,
   termNumber,
   me,
+  waiting,
   run,
   busy,
   err,
@@ -478,6 +510,7 @@ function Submitted({
   balance: number;
   termNumber: number;
   me: { name: string; admin: boolean };
+  waiting: number;
   run: RunFn;
   busy: boolean;
   err: string;
@@ -490,6 +523,9 @@ function Submitted({
   const [reason, setReason] = useState("");
   const canAccept = me.admin && h.submittedByName !== me.name && h.startedByName !== me.name;
   const next = termNumber + 1;
+  // money recorded after the submit (the count was made against the balance at submit).
+  // TODO(lane-a, H1): accept_handover must book counted − balance at submit, not at accept.
+  const moved = h.computedBalance === null ? 0 : balance - h.computedBalance;
   return (
     <section className="bq-sec bq-sec-first">
       <div className="bq-verify-s is-none">
@@ -501,6 +537,15 @@ function Submitted({
         </p>
       </div>
       <Summary h={h} computed={h.computedBalance ?? (h.liveBalance || balance)} />
+      {moved !== 0 && (
+        <div className="bq-wait" role="status">
+          <p>
+            {moved > 0 ? "زاد" : "نقص"} الرصيد بـ <Num>{fmt(Math.abs(moved))}</Num> أوقية منذ إرسال
+            التسليم. الرصيد الآن <Num>{fmt(balance)}</Num> أوقية.
+          </p>
+        </div>
+      )}
+      {canAccept && <PendingWait n={waiting} before="القبول" />}
       {err && (
         <p className="bq-alert" role="alert">
           {err}

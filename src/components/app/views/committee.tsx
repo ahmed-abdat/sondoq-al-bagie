@@ -19,6 +19,7 @@ import type {
 import { useDemoState } from "../act";
 import { EmptyState } from "../bits";
 import { CampaignAdminList, CampaignFormBody } from "../campaign-form";
+import { pendingForCampaign } from "../derive";
 import { ShareBtns } from "../entries";
 import { ExpenseAdminList, RecordExpenseBody } from "../expense";
 import { I } from "../icons";
@@ -377,8 +378,16 @@ export function MembersPage({
   );
 }
 
-export function CampaignsPage({ campaigns: server }: { campaigns: CampaignProgress[] }) {
+export function CampaignsPage({
+  campaigns: server,
+  pending: serverPending,
+}: {
+  campaigns: CampaignProgress[];
+  /** pending payments: a campaign with pending contributions is not closed yet */
+  pending: PendingPayment[];
+}) {
   const demo = useDemoState();
+  const pending = [...serverPending, ...demo.pending];
   const campaigns = [...demo.campaigns, ...server].map((c) => ({
     ...c,
     ...demo.campaignPatch[c.campaignId],
@@ -409,7 +418,11 @@ export function CampaignsPage({ campaigns: server }: { campaigns: CampaignProgre
           label={sheet.c ? "الحملة" : "حملة جديدة"}
           onDone={() => setSheet(null)}
         >
-          <CampaignFormBody campaign={sheet.c} onDone={done} />
+          <CampaignFormBody
+            campaign={sheet.c}
+            pendingCount={sheet.c ? pendingForCampaign(pending, sheet.c.campaignId) : 0}
+            onDone={done}
+          />
         </Sheet>
       )}
     </>

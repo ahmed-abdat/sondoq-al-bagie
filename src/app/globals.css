@@ -2173,6 +2173,22 @@
     font-size: 14px;
     font-weight: 600;
   }
+  /* something waits elsewhere first (pending payments): calm, not an error */
+  .bq-wait {
+    margin-block: 14px;
+    padding: 12px 16px;
+    border-radius: var(--r-md);
+    background: var(--n1);
+    color: var(--ink);
+    font-size: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .bq-wait p {
+    margin: 0;
+  }
   .bq-alert {
     padding: 12px 16px;
     border-radius: var(--r-md);
