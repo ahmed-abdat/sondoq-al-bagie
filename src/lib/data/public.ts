@@ -30,9 +30,7 @@ function cached<A extends unknown[], R>(
 export const getFundSummary = cached("fund_summary", read.fundSummary, toFundSummary(null));
 export const getGroupPrices = cached("group_prices", read.groupPrices, []);
 export const getMembers = cached("member_status", read.members, []);
-export const getLateMembers = cached("late_members", read.lateMembers, []);
 export const getMemberMonths = cached("member_months", read.memberMonths, []);
-export const getMemberMonthsOf = cached("member_months_of", read.memberMonthsOf, []);
 export const getMonthlyCollection = cached("monthly_collection", read.monthlyCollection, []);
 export const getExpenseTotals = cached("expense_totals", read.expenseTotals, []);
 export const getRecentExpenses = cached("recent_expenses", read.recentExpenses, []);
@@ -48,7 +46,6 @@ export const getReceipt = cached("verify_receipt", read.verifyReceipt, {
   status: "not_found",
 } as const);
 export const getTerms = cached("terms", read.terms, []);
-export const getCurrentTerm = cached("current_term", read.currentTerm, null);
 export const getFundAccounts = cached("fund_accounts_public", read.fundAccounts, []);
 export const getFundInfo = cached("fund_info", read.fundInfo, toFundInfo(null));
 

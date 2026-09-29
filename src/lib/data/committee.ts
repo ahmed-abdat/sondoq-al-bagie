@@ -2,7 +2,6 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { displayLogin } from "./logins";
-import { isProofPath } from "./proof";
 import * as read from "./read";
 import type { CommitteeRole, CommitteeSession, MyProfile } from "./types";
 
@@ -58,24 +57,14 @@ function committee<A extends unknown[], R>(
 
 export const getPendingPayments = committee(read.pendingPayments, []);
 export const getRecentPayments = committee(read.recentPayments, []);
-export const getPayment = committee(read.paymentById, null);
 export const getMembersAdmin = committee(read.membersAdmin, []);
 export const getArrears = committee(read.arrears, []);
 export const getExpensesAdmin = committee(read.expensesAdmin, []);
 export const getCommitteeAccounts = committee(read.committeeAccounts, []);
 export const getHandovers = committee(read.handovers, []);
-export const getHandover = committee(read.handoverById, null);
 export const getFundAccountsAdmin = committee(read.fundAccountsAdmin, []);
 /** Settings row with opening balance + date (null when signed out / not committee). */
 export const getFundSettings = committee(read.fundSettings, null);
-
-/** 5-minute signed link to a proof image, or null (not a committee member / missing file). */
-export async function getProofUrl(path: string): Promise<string | null> {
-  if (!isProofPath(path)) return null;
-  const c = await createClient();
-  const { data } = (await c?.storage.from("proofs").createSignedUrl(path, 300)) ?? { data: null };
-  return data?.signedUrl ?? null;
-}
 
 /** «حسابي»: the signed-in, active committee member's own account, or null. */
 export async function getMyProfile(): Promise<MyProfile | null> {

@@ -12,7 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useEffectEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { supabaseEnv } from "@/lib/supabase/env";
-import { COMMITTEE_KEY, PUBLIC_KEY } from "./tags";
+import { PUBLIC_KEY } from "./tags";
 
 export type PaymentChangeKind = "pending" | "confirmed" | "rejected" | "cancelled" | "other";
 
@@ -127,8 +127,8 @@ export function coalesce(fn: () => void, ms: number) {
 
 /** What a payment change makes stale. Pure; unit tested. */
 export function invalidateAfterPaymentChange(qc: Pick<QueryClient, "invalidateQueries">) {
-  void qc.invalidateQueries({ queryKey: [COMMITTEE_KEY, "payments"] });
-  void qc.invalidateQueries({ queryKey: [COMMITTEE_KEY, "arrears"] });
+  // Committee screens are server-rendered and refresh with router.refresh() (onRefresh); only the
+  // cached public numbers live in TanStack Query.
   void qc.invalidateQueries({ queryKey: [PUBLIC_KEY] });
 }
 
