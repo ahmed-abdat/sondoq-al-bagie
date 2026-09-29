@@ -92,12 +92,28 @@ export async function sendPush(
   return counts;
 }
 
-/** «دفعة بانتظار التأكيد» to every confirmer except the recorder. Never throws. */
+/** How many payments are waiting for confirmation, or undefined if it cannot be read. */
+export async function pendingCount(admin: Admin): Promise<number | undefined> {
+  const { count, error } = await admin
+    .from("payments")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  return error || count === null ? undefined : count;
+}
+
+/**
+ * «دفعة بانتظار التأكيد» to every confirmer except the recorder, with the current number of
+ * pending payments as `badgeCount`. Never throws.
+ */
 export async function notifyConfirmers(recorderId: string | null, payload: PushPayload) {
   const admin = tryCreateAdminClient();
   if (!admin || !vapid()) return;
   try {
-    await sendPush(await confirmerIds(admin, recorderId), payload, { admin });
+    const [ids, badgeCount] = await Promise.all([
+      confirmerIds(admin, recorderId),
+      pendingCount(admin).catch(() => undefined),
+    ]);
+    await sendPush(ids, badgeCount === undefined ? payload : { ...payload, badgeCount }, { admin });
   } catch (err) {
     console.error("[push]", err);
   }
