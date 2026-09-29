@@ -8,6 +8,7 @@ import {
   L,
   memberCols,
   membersPerPage,
+  membersWord,
   numberOf,
   moneyBlocks,
   footerLabel,
@@ -205,4 +206,15 @@ describe("money pages", () => {
     const pages = paginateBlocks(blocks, BLOCK_H.note + BLOCK_H.heading + 10);
     expect(pages.map((p) => p.map((b) => b.t))).toEqual([["note"], ["heading", "note"]]);
   });
+});
+
+it("group band: the group's size, no current-month count", () => {
+  expect([1, 2, 7, 10, 11, 20].map(membersWord)).toEqual([
+    "عضو واحد",
+    "عضوان",
+    "7 أعضاء",
+    "10 أعضاء",
+    "11 عضوًا",
+    "20 عضوًا",
+  ]);
 });

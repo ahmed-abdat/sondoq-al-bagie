@@ -5,12 +5,7 @@
  * margin). Loaded on demand by share-report.ts. Pagination is pure and unit tested.
  */
 import { renderPng, type CanvasFonts } from "./canvas-share";
-import type {
-  ReportCampaign,
-  ReportData,
-  ReportExpense,
-  ReportMember,
-} from "./data/types";
+import type { ReportCampaign, ReportData, ReportExpense, ReportMember } from "./data/types";
 import { formatDay, monthName } from "./dates";
 import { monthPaid } from "./report-check";
 import { formatNumber } from "./format";
@@ -295,6 +290,13 @@ export function memberCols(w: number) {
   };
 }
 
+/** «عضو واحد» «عضوان» «7 أعضاء» «20 عضوًا». */
+export function membersWord(n: number) {
+  if (n === 1) return "عضو واحد";
+  if (n === 2) return "عضوان";
+  return n >= 3 && n <= 10 ? `${n} أعضاء` : `${n} عضوًا`;
+}
+
 function drawMembers(
   p: Pen,
   page: Extract<ReportPage, { kind: "members" }>,
@@ -306,11 +308,10 @@ function drawMembers(
   const R = w - L.pad;
   const P = L.pad;
   const all = r.members.filter((m) => isShown(m) && listOf(m) === page.list);
-  const active = all.filter((m) => m.status === "active");
-  const paid = active.filter((m) => monthPaid(m.months[card.month - 1])).length;
   const fee = (r.groupPrices as Record<string, number | undefined>)[page.list];
+  // no current-month count here (owner decision r20): the group, its size and its fee
   band(p, w, card, o.logo, `المجموعة ${listLabel(page.list)}`, [
-    `${paid} من ${active.length} دفعوا رسوم ${monthName(card.month)}`,
+    membersWord(all.length),
     ...(fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : []),
   ]);
 
