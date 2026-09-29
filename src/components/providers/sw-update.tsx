@@ -3,8 +3,8 @@
 import { unstable_isUnrecognizedActionError, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { isPublicPage, PAGES_CACHE } from "@/lib/offline/cache-rules";
-import { allowsBackgroundDownload, whenIdle, type NetworkInfo } from "@/lib/offline/data-saver";
+import { isPublicPage, mayStore, PAGES_CACHE } from "@/lib/offline/cache-rules";
+import { allowsBackgroundDownload, type NetworkInfo } from "@/lib/offline/data-saver";
 
 /* ───────────── update requested by the member ───────────── */
 
@@ -101,40 +101,42 @@ export function ServiceWorkerUpdates() {
 
 /**
  * In-app navigation only downloads RSC data, so the full page would be missing offline.
- * After each public page visit, save its HTML once, when the phone is idle. Skipped for
- * committee pages, when already saved, and in data-saver mode or on 2G (the page is 170 to
- * 230 KB). Replaces Serwist's cacheOnNavigation, which would also save logged-in pages.
+ * After each public page visit, save its HTML once, at once: on flaky 3G the connection can drop
+ * a second later, and the page being read must open offline then (not after the phone is idle,
+ * nor after the worker takes control: the saved copy is served as soon as it does). A page loaded
+ * in full is copied from the browser's own HTTP cache (no second download). Skipped for committee
+ * pages, when already saved, and in data-saver mode or on 2G (the page is 170 to 230 KB).
+ * Replaces Serwist's cacheOnNavigation, which would also save logged-in pages.
  */
+/** The path the document was loaded on (then null: later paths come by in-app navigation). */
+let firstPath: string | null = typeof window === "undefined" ? null : window.location.pathname;
+
 export function SaveVisitedPages() {
   const pathname = usePathname();
   useEffect(() => {
-    const sw = navigator.serviceWorker;
-    if (!sw || !("caches" in window)) return;
+    if (!("serviceWorker" in navigator) || !("caches" in window)) return;
     const url = new URL(pathname, location.origin);
     if (!isPublicPage(url, true)) return;
-    let cancelled = false;
-    let cancelIdle = () => {};
-    const save = async () => {
+    // the first page of this load came as a full document: the browser's HTTP cache has it
+    const fullLoad = pathname === firstPath;
+    firstPath = null;
+    void (async () => {
       const conn = (navigator as Navigator & { connection?: NetworkInfo }).connection;
-      if (cancelled || !navigator.onLine || !allowsBackgroundDownload(conn)) return;
+      if (!navigator.onLine || !allowsBackgroundDownload(conn)) return;
       try {
         const cache = await caches.open(PAGES_CACHE);
         if (await cache.match(url.href, { ignoreVary: true })) return;
-        const res = await fetch(url.href, { credentials: "same-origin" });
-        if (res.ok && !res.redirected) await cache.put(url.href, res);
+        const res = await fetch(url.href, {
+          credentials: "same-origin",
+          cache: fullLoad ? "force-cache" : "default",
+        });
+        // as in the worker: nothing marked personal or not-to-keep (money privacy)
+        if (res.ok && !res.redirected && mayStore(res.headers.get("cache-control")))
+          await cache.put(url.href, res);
       } catch {
         /* offline or storage full: nothing to do */
       }
-    };
-    const later = () => (cancelIdle = whenIdle(() => void save()));
-    // First visit: the worker takes control a moment after load (clientsClaim); save then.
-    if (sw.controller) later();
-    else sw.addEventListener("controllerchange", later, { once: true });
-    return () => {
-      cancelled = true;
-      cancelIdle();
-      sw.removeEventListener("controllerchange", later);
-    };
+    })();
   }, [pathname]);
   return null;
 }
