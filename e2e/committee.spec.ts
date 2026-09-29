@@ -62,3 +62,21 @@ test("late reminders: «ذكّر الجميع بالترتيب» walks the list 
   await walk.getByRole("button", { name: "إيقاف" }).click();
   await expect(walk).toHaveCount(0);
 });
+
+test("hub, demo queue: empty (?demoQueue=0) says so and offers a cash record", async ({ page }) => {
+  await page.goto("/committee?demoQueue=0");
+  await expect(page.getByText("لا دفعات تنتظر")).toBeVisible();
+  await expect(page.getByRole("button", { name: /سجّل دفعة نقدًا أو تحويلًا/ })).toBeVisible();
+  await expect(page.locator("article.bq-slip")).toHaveCount(0);
+});
+
+test("hub, demo queue: 12 pending (?demoQueue=12) shows one open slip and five rows", async ({
+  page,
+}) => {
+  await page.goto("/committee?demoQueue=12");
+  await expect(page.getByRole("button", { name: /للمراجعة\s*12/ })).toBeVisible();
+  await expect(page.locator("article.bq-slip")).toHaveCount(1);
+  await expect(page.locator(".bq-rev-row")).toHaveCount(4);
+  await page.getByRole("button", { name: /عرض الكل/ }).click();
+  await expect(page.locator(".bq-rev-row")).toHaveCount(11);
+});
