@@ -11,7 +11,7 @@ import type {
   ExpenseAdmin,
   FundAccount,
   MemberAdmin,
-  MemberStatus,
+  MemberRow,
   PendingPayment,
 } from "@/lib/data/types";
 import { useDemoState } from "../act";
@@ -104,7 +104,7 @@ export function CommitteeView({
 }: {
   pending: PendingPayment[];
   me: { by: string; role: string; canConfirm?: boolean; memberId?: string | null };
-  members: MemberStatus[];
+  members: MemberRow[];
   ctx: MemberCtx;
   accounts: FundAccount[];
   campaigns: CampaignProgress[];

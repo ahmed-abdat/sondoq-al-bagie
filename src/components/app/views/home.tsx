@@ -2,9 +2,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { InstallCard } from "@/components/providers";
-import type { MemberStatus } from "@/lib/data/types";
+import type { MemberIndex } from "@/lib/data/types";
 import { Track } from "../bits";
-import { searchMembers } from "../derive";
+import { memberLabel, searchMembers } from "../derive";
 import dynamic from "next/dynamic";
 import { EntryRow } from "../entry-row";
 
@@ -14,17 +14,21 @@ const EntrySheetBody = dynamic(() => import("../entries").then((m) => m.EntryShe
 });
 import { Hero, type HeroData } from "../hero";
 import { I } from "../icons";
-import { MemberRow, MemberSheetBody, type MemberCtx } from "../member";
+import { Avatar } from "../bits";
 import { Num } from "../num";
 import { Sheet, useSheet } from "../sheet";
 import type { LedgerEntry } from "../types";
 
-type S = { t: "member"; m: MemberStatus } | { t: "entry"; e: LedgerEntry };
+type S = { t: "entry"; e: LedgerEntry };
+/** Only what a search result shows; keeps the home payload small. */
+export type IndexMember = Pick<
+  MemberIndex["members"][number],
+  "memberRef" | "fullName" | "statusLabel"
+>;
 
 export function HomeView({
   hero,
   members,
-  ctx,
   paidCount,
   activeCount,
   monthName,
@@ -32,8 +36,8 @@ export function HomeView({
   campaign,
 }: {
   hero: HeroData;
-  members: MemberStatus[];
-  ctx: MemberCtx;
+  /** light search index (no months): a result opens the member on /members */
+  members: IndexMember[];
   paidCount: number;
   /** FundSummary.membersActive */
   activeCount: number;
@@ -44,15 +48,11 @@ export function HomeView({
   const [q, setQ] = useState("");
   const res = useMemo(() => searchMembers(members, q), [members, q]);
   const sheet = useSheet<S>();
-  // same source as the members page: the active members in the list
-  const total = members.filter((m) => m.status === "active").length || activeCount;
-  const pick = (m: MemberStatus, from: HTMLElement | null) =>
-    sheet.open({ t: "member", m }, from, "bq-av");
+  const total = activeCount;
   const openEntry = (e: LedgerEntry, el: HTMLElement) =>
     sheet.open({ t: "entry", e }, e.receipt ? el : null, "bq-rc");
   const s = sheet.state;
-  const sm = s?.value.t === "member" ? s.value.m : null;
-  const se = s?.value.t === "entry" ? s.value.e : null;
+  const se = s?.value.e ?? null;
   return (
     <>
       <div className="bq-mob-only">
@@ -87,7 +87,7 @@ export function HomeView({
             <>
               <ul className="bq-list" aria-live="polite">
                 {res.slice(0, 5).map((m) => (
-                  <MemberRow key={m.memberId} m={m} onPick={pick} />
+                  <IndexRow key={m.memberRef} m={m} />
                 ))}
               </ul>
               {res.length > 5 && (
@@ -172,17 +172,6 @@ export function HomeView({
         </section>
       )}
 
-      {s && sm && (
-        <Sheet
-          key={`m${sm.memberId}`}
-          label={sm.fullName}
-          vt={s.vt}
-          onDone={sheet.done}
-          tryVTClose={sheet.tryVTClose}
-        >
-          <MemberSheetBody m={sm} ctx={ctx} vt={s.vt} />
-        </Sheet>
-      )}
       {s && se && (
         <Sheet
           key={`e${se.id}`}
@@ -195,5 +184,29 @@ export function HomeView({
         </Sheet>
       )}
     </>
+  );
+}
+
+/** A search result: tap to open the member's months on /members. */
+function IndexRow({ m }: { m: IndexMember }) {
+  const late = m.statusLabel === "متأخر";
+  return (
+    <li>
+      <Link
+        href={`/members?m=${encodeURIComponent(m.memberRef)}`}
+        className="bq-row bq-press"
+        transitionTypes={["tab-fwd"]}
+        aria-label={`${memberLabel(m)}، ${m.fullName}`}
+      >
+        <Avatar m={m} />
+        <span className="bq-row-m">
+          <span className="bq-row-t">{m.fullName}</span>
+        </span>
+        <span className={`bq-tag ${late ? "is-late" : "is-ok"}`}>
+          {late ? I.clock(16) : I.check(16)}
+          {m.statusLabel}
+        </span>
+      </Link>
+    </li>
   );
 }

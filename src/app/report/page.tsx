@@ -11,6 +11,7 @@ import {
   MONTHS,
   statusLabel,
 } from "@/components/app/derive";
+import { MemberNo } from "@/components/app/bits";
 import { Collapsible } from "@/components/app/collapsible";
 import { ReportShare } from "@/components/app/report-share";
 import * as src from "@/components/app/source";
@@ -167,7 +168,7 @@ export default async function ReportPage() {
               {rows.map((m) => (
                 <li key={m.memberId}>
                   <span className="rp-ref">
-                    <Num>{m.memberRef}</Num>
+                    <MemberNo m={m} scoped />
                   </span>
                   <span className="rp-mname">{m.fullName}</span>
                   <span className="rp-mst">

@@ -1,11 +1,12 @@
 "use client";
 // Member row (list) and the member sheet body (twelve months in words).
-import type { MemberMonth, MemberStatus } from "@/lib/data/types";
-import { Avatar, StatusTag } from "./bits";
+import { decodeMonths } from "@/lib/data/month-code";
+import type { MemberRow, MemberStatus } from "@/lib/data/types";
+import { Avatar, MemberNo, StatusTag } from "./bits";
 import {
   fmt,
   groupLabel,
-  memberCode,
+  memberLabel,
   memberState,
   monthCells,
   monthsLabel,
@@ -15,12 +16,15 @@ import {
 import { I } from "./icons";
 import { Num } from "./num";
 
-export function MemberRow({
+export function MemberRow<T extends MemberStatus>({
   m,
   onPick,
+  scoped,
 }: {
-  m: MemberStatus;
-  onPick: (m: MemberStatus, from: HTMLElement | null) => void;
+  m: T;
+  onPick: (m: T, from: HTMLElement | null) => void;
+  /** inside one group's section: number only */
+  scoped?: boolean;
 }) {
   return (
     <li>
@@ -28,9 +32,9 @@ export function MemberRow({
         type="button"
         className="bq-row bq-press"
         onClick={(e) => onPick(m, e.currentTarget.querySelector<HTMLElement>(".bq-av"))}
-        aria-label={`${memberCode(m)}، ${m.fullName}`}
+        aria-label={`${memberLabel(m)}، ${m.fullName}`}
       >
-        <Avatar code={memberCode(m)} />
+        <Avatar m={m} scoped={scoped} />
         <span className="bq-row-m">
           <span className="bq-row-t">{m.fullName}</span>
           <span className="bq-row-s">المجموعة {groupLabel(m.groupCode)}</span>
@@ -43,8 +47,6 @@ export function MemberRow({
 
 /** What the member sheet needs besides the member (server-computed, same for every member). */
 export type MemberCtx = {
-  /** this year's months of every member */
-  months: MemberMonth[];
   year: number;
   dueMonth: number;
   prices: Record<string, number>;
@@ -52,14 +54,11 @@ export type MemberCtx = {
   showOwed: boolean;
 };
 
-export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCtx; vt: boolean }) {
+export function MemberSheetBody({ m, ctx, vt }: { m: MemberRow; ctx: MemberCtx; vt: boolean }) {
   const { year } = ctx;
   const price = ctx.prices[m.groupCode] ?? null;
   const showOwed = ctx.showOwed;
-  const cells = monthCells(
-    ctx.months.filter((x) => x.memberId === m.memberId),
-    ctx.dueMonth,
-  );
+  const cells = monthCells(decodeMonths(m.months, m.memberId, ctx.year), ctx.dueMonth);
   const owed = cells.filter((c) => c.state === "owed").map((c) => c.month);
   const paidDue = cells.filter((c) => c.state === "paid").length;
   const aheadMonths = cells.filter((c) => c.state === "ahead").map((c) => c.month);
@@ -70,22 +69,11 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberStatus; ctx: MemberCt
   return (
     <>
       <div className="bq-mhead">
-        <span
-          className="bq-av"
-          style={{
-            width: 56,
-            height: 56,
-            fontSize: 24,
-            viewTransitionName: vt ? "bq-av" : undefined,
-          }}
-          aria-hidden="true"
-        >
-          <Num>{memberCode(m)}</Num>
-        </span>
+        <Avatar m={m} size={56} vt={vt} />
         <div>
           <h2>{m.fullName}</h2>
           <p className="bq-hint">
-            رقم <Num>{memberCode(m)}</Num> · المجموعة {groupLabel(m.groupCode)}
+            رقم <MemberNo m={m} /> · المجموعة {groupLabel(m.groupCode)}
             {price ? (
               <>
                 {" "}

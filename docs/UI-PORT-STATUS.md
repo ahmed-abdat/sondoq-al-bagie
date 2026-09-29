@@ -136,6 +136,12 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
    campaign) and participants for fixed/per-group campaigns — not built.
 3. Lane A copy: `src/lib/data/reminders.ts` still says «حالة الاشتراكات» (must be «الرسوم الشهرية»).
 
+## Payloads (fixtures, 89 members)
+Home reads `getMemberIndex` (search index only: ref, name, status label; a result opens
+`/members?m=REF`); /members and the record sheet read `getMemberRows` (12-letter month code).
+Home prefetch RSC 134.8 KB → 24.7 KB, /members 132.9 KB → 40.0 KB, home HTML 170 KB → 46 KB.
+Nav probe (`nav.mjs`, CPU 4×, Fast 3G): 0 blank frames, nav never remounts, pill slides on every tab.
+
 ## How to verify
 `pnpm check && pnpm build`. Screenshots: `SONDOQ_FIXTURES=1 pnpm dev -p 3400`; /committee needs a
 signed-in committee user, or a temporary UNCOMMITTED bypass in `src/proxy.ts`

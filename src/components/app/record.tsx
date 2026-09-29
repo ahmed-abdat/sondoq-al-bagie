@@ -7,10 +7,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
-import type { CampaignProgress, FundAccount, MemberStatus, PaymentMethod } from "@/lib/data/types";
+import type { CampaignProgress, FundAccount, MemberRow, PaymentMethod } from "@/lib/data/types";
 import { todayIso } from "@/lib/dates";
 import { MAIN_METHODS, METHOD_LABELS, METHODS } from "@/lib/methods";
 import { parseAmount, toWesternDigits } from "@/lib/money";
+import { monthStates } from "@/lib/data/month-code";
 import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
 import { safeStorage } from "@/lib/safe-storage";
 import { rememberMembers, useAct } from "./act";
@@ -18,15 +19,7 @@ import { ShareBtns } from "./entries";
 import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
-import {
-  fmt,
-  groupLabel,
-  memberCode,
-  MONTHS,
-  monthsLabel,
-  monthCount,
-  searchMembers,
-} from "./derive";
+import { fmt, groupLabel, MONTHS, monthsLabel, monthCount, searchMembers } from "./derive";
 import { DateField } from "./date-field";
 import { I } from "./icons";
 import type { MemberCtx } from "./member";
@@ -40,17 +33,15 @@ const OTHER_METHODS: PaymentMethod[] = METHODS.filter(
 const Check = ({ bad }: { bad: boolean | undefined }) =>
   bad ? <span className="bq-tag is-late bq-tag-inline">{I.search(16)} تحقق</span> : null;
 
-type Row = { m: MemberStatus; months: number[]; edit: boolean };
+type Row = { m: MemberRow; months: number[]; edit: boolean };
 
-function paidSet(ctx: MemberCtx, memberId: string) {
-  return new Set(
-    ctx.months.filter((x) => x.memberId === memberId && x.state === "paid").map((x) => x.month),
-  );
+function paidSet(m: MemberRow) {
+  return new Set(monthStates(m.months).flatMap((st, i) => (st === "paid" ? [i + 1] : [])));
 }
 
 /** Default months: the unpaid ones that are due (late); if none, the whole rest of the year. */
-function defaultMonths(ctx: MemberCtx, memberId: string) {
-  const paid = paidSet(ctx, memberId);
+function defaultMonths(ctx: MemberCtx, m: MemberRow) {
+  const paid = paidSet(m);
   const open = MONTHS.map((_, k) => k + 1).filter((k) => !paid.has(k));
   const late = open.filter((k) => k <= ctx.dueMonth);
   return late.length ? late : open;
@@ -74,10 +65,12 @@ function PickRow({
   m,
   onPick,
   dim,
+  scoped,
 }: {
-  m: MemberStatus;
-  onPick: (m: MemberStatus) => void;
+  m: MemberRow;
+  onPick: (m: MemberRow) => void;
   dim?: boolean;
+  scoped?: boolean;
 }) {
   return (
     <li>
@@ -86,7 +79,7 @@ function PickRow({
         className={`bq-row bq-press ${dim ? "is-dim" : ""}`}
         onClick={() => onPick(m)}
       >
-        <Avatar code={memberCode(m)} />
+        <Avatar m={m} scoped={scoped} />
         <span className="bq-row-m">
           <span className="bq-row-t">{m.fullName}</span>
         </span>
@@ -98,7 +91,7 @@ function PickRow({
 
 /**
  * Step 1: the whole member list, ready to scroll and tap; the search at the top filters it
- * (name, «A-12», «ب12», Arabic digits). Active members by group, exempt ones dimmed at the end.
+ * (name, «12», «ب 12», «B12», Arabic digits). Active members by group, exempt ones dimmed at the end.
  */
 function MemberPicker({
   members,
@@ -106,9 +99,9 @@ function MemberPicker({
   onPick,
   autoFocus,
 }: {
-  members: MemberStatus[];
+  members: MemberRow[];
   exclude: Set<string>;
-  onPick: (m: MemberStatus) => void;
+  onPick: (m: MemberRow) => void;
   autoFocus?: boolean;
 }) {
   const [q, setQ] = useState("");
@@ -123,10 +116,8 @@ function MemberPicker({
   const res = useMemo(() => (q.trim() ? searchMembers(pool, q) : pool), [pool, q]);
   const recent = q.trim()
     ? []
-    : recentIds
-        .map((id) => pool.find((m) => m.memberId === id))
-        .filter((m): m is MemberStatus => !!m);
-  const listOf = (m: MemberStatus) => m.memberRef.split("-")[0];
+    : recentIds.map((id) => pool.find((m) => m.memberId === id)).filter((m): m is MemberRow => !!m);
+  const listOf = (m: MemberRow) => m.memberRef.split("-")[0];
   const lists = [...new Set(res.filter((m) => m.status === "active").map(listOf))].sort();
   const exempt = res.filter((m) => m.status === "exempt");
   return (
@@ -136,7 +127,7 @@ function MemberPicker({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="ابحث بالاسم أو الرقم، مثل B-12"
+          placeholder="ابحث بالاسم أو الرقم، مثل ب 12"
           aria-label="ابحث عن العضو"
           type="search"
           autoFocus={autoFocus}
@@ -160,7 +151,7 @@ function MemberPicker({
             {res
               .filter((m) => m.status === "active" && listOf(m) === l)
               .map((m) => (
-                <PickRow key={m.memberId} m={m} onPick={onPick} />
+                <PickRow key={m.memberId} m={m} onPick={onPick} scoped />
               ))}
           </ul>
         </section>
@@ -192,7 +183,7 @@ function RowCard({
   onChange: (r: Row) => void;
   onRemove?: () => void;
 }) {
-  const paid = paidSet(ctx, row.m.memberId);
+  const paid = paidSet(row.m);
   const open = MONTHS.map((_, k) => k + 1).filter((k) => !paid.has(k));
   const late = open.filter((k) => k <= ctx.dueMonth);
   const same = (a: number[], b: number[]) => a.length === b.length && a.every((x, i) => x === b[i]);
@@ -204,7 +195,7 @@ function RowCard({
   return (
     <div className="bq-rec-row">
       <div className="bq-rec-who">
-        <Avatar code={memberCode(row.m)} />
+        <Avatar m={row.m} />
         <span className="bq-row-m">
           <span className="bq-row-t">{row.m.fullName}</span>
           <span className="bq-row-s">
@@ -304,7 +295,7 @@ export function RecordBody({
   me,
   onDone,
 }: {
-  members: MemberStatus[];
+  members: MemberRow[];
   ctx: MemberCtx;
   /** the fund's wallets: the receipt reading checks the money went to one of them */
   accounts: FundAccount[];
@@ -341,7 +332,7 @@ export function RecordBody({
     return () => void terminateOcr();
   }, []);
 
-  const priceOf = (m: MemberStatus) => ctx.prices[m.groupCode] ?? 0;
+  const priceOf = (m: MemberRow) => ctx.prices[m.groupCode] ?? 0;
   const feeTotal = rows.reduce((s, r) => s + r.months.length * priceOf(r.m), 0);
   const campAmt = camp ? Math.max(0, Math.round(parseAmount(campTxt) ?? 0)) : 0;
   const total = feeTotal + campAmt;
@@ -368,8 +359,8 @@ export function RecordBody({
                 ? `المبلغ المحوّل أكبر من المجموع بـ ${fmt(diff)} أوقية. احفظ الباقي رصيدًا لأحدهم أو زِد الأشهر.`
                 : "";
 
-  const addRow = (m: MemberStatus) => {
-    setRows((rs) => [...rs, { m, months: defaultMonths(ctx, m.memberId), edit: false }]);
+  const addRow = (m: MemberRow) => {
+    setRows((rs) => [...rs, { m, months: defaultMonths(ctx, m), edit: false }]);
     setAdding(false);
   };
 

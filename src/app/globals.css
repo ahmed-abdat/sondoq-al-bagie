@@ -641,6 +641,16 @@
     color: var(--ink);
     font-family: var(--font-display);
     font-weight: 700;
+    align-content: center;
+    line-height: 1;
+  }
+  .bq-nowrap {
+    white-space: nowrap;
+  }
+  .bq-av-l {
+    margin-top: 1px;
+    font-weight: 600;
+    opacity: 0.72;
   }
   .bq-disc {
     flex: none;

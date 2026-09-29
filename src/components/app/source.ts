@@ -6,6 +6,7 @@ import * as data from "@/lib/data";
 import type { ActivityItem, Expense, ReportData } from "@/lib/data/types";
 import { categoryLabel, currentDueMonth, monthCount, relativeAgo } from "./derive";
 import { DEMO_USER, isDemo } from "./demo";
+import { toMemberIndex, toMemberRows } from "@/lib/data/member-lists";
 import * as fx from "./fixtures";
 import { fromVerified } from "./receipt-model";
 import type { LedgerEntry } from "./types";
@@ -191,6 +192,22 @@ export const fundSettings = () =>
     }),
     () => data.getFundSettings(),
   );
+/** /members (and the committee record sheet): members with this year's months as a 12-letter code. */
+export const memberRows = (year = thisYear()) =>
+  pick(
+    () => toMemberRows(fx.fxMembers(), fx.fxMemberMonths(), year),
+    () => data.getMemberRows(year),
+  );
+/** Home: search index and «X من N دفعوا» for this month. */
+export const memberIndex = () => {
+  const t = today();
+  const y = t.getUTCFullYear();
+  const m = t.getUTCMonth() + 1;
+  return pick(
+    () => toMemberIndex(fx.fxMembers(), fx.fxMemberMonths(), y, m),
+    () => data.getMemberIndex(y, m),
+  );
+};
 export const terms = () => pick(fx.fxTerms, () => data.getTerms());
 export const handovers = () => pick(fx.fxHandovers, () => data.getHandovers());
 export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());

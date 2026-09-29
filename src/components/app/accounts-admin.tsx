@@ -8,7 +8,7 @@ import type { CommitteeAccount, CommitteeRole, IssuedCredentials } from "@/lib/d
 import { parseLogin } from "@/lib/data/logins";
 import { waLink } from "@/lib/whatsapp";
 import { useAct } from "./act";
-import { relativeAgo, ROLE_LABEL } from "./derive";
+import { memberLabel, parseMemberRef, relativeAgo, ROLE_LABEL } from "./derive";
 import { I } from "./icons";
 import { Num, useNow } from "./num";
 import { Sheet } from "./sheet";
@@ -120,7 +120,8 @@ function AddAccountForm({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const loginOk = !!parseLogin(login);
-  const ref = memberRef.trim().replace(/\s+/g, "");
+  const typed = memberRef.trim();
+  const ref = typed ? (parseMemberRef(typed) ?? typed) : "";
   const member = ref ? members.find((m) => m.memberRef.toUpperCase() === ref) : undefined;
   const ok = name.trim().length > 1 && loginOk && (!ref || !!member);
   return (
@@ -164,9 +165,8 @@ function AddAccountForm({
       <input
         className="bq-input"
         value={memberRef}
-        onChange={(e) => setMemberRef(e.target.value.toUpperCase())}
-        dir="ltr"
-        placeholder="مثل A-12"
+        onChange={(e) => setMemberRef(e.target.value)}
+        placeholder="مثل أ 12"
         aria-label="رقم العضو"
       />
       <p className="bq-hint">
@@ -222,8 +222,10 @@ export function CommitteeAccounts({
   const [sheet, setSheet] = useState<{ t: "add" } | { t: "creds"; c: Creds } | null>(null);
   const [note, setNote] = useState<Record<string, string>>({});
   const list = server.map((a) => ({ ...a, active: activeOver[a.userId] ?? a.active }));
-  const refOf = (id: string | null) =>
-    id ? members.find((m) => m.memberId === id)?.memberRef : undefined;
+  const refOf = (id: string | null) => {
+    const m = id ? members.find((x) => x.memberId === id) : undefined;
+    return m ? memberLabel(m) : undefined;
+  };
   return (
     <>
       <button
@@ -249,7 +251,7 @@ export function CommitteeAccounts({
                     {refOf(a.memberId) ? (
                       <>
                         {" "}
-                        · <Num>{refOf(a.memberId)}</Num>
+                        · <bdi className="bq-num">{refOf(a.memberId)}</bdi>
                       </>
                     ) : null}
                   </span>
