@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { RecentPaymentsPage } from "@/components/app/views/payments";
@@ -9,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Payments() {
-  if (!(await src.committeeSession())) redirect("/login?next=/committee");
+  await src.requireCommittee("/committee/payments");
   const payments = await src.recentPayments();
   return (
     <Tab>

@@ -12,7 +12,7 @@ import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import type { CampaignProgress, FundAccount, MemberRow, PaymentMethod } from "@/lib/data/types";
 import { todayIso } from "@/lib/dates";
 import { MAIN_METHODS, METHOD_LABELS, METHODS } from "@/lib/methods";
-import { parseAmount, toWesternDigits } from "@/lib/money";
+import { toWesternDigits } from "@/lib/money";
 import { monthStates } from "@/lib/data/month-code";
 import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
 import { safeStorage } from "@/lib/safe-storage";
@@ -20,6 +20,7 @@ import { rememberMembers, useAct } from "./act";
 import { ShareBtns } from "./entries";
 import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
+import { summarize, toRecordInput, type Draft, type Step } from "./payment-draft";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
 import {
   byMostLate,
@@ -354,8 +355,6 @@ function Mark({ from, ok }: { from: boolean; ok: boolean }) {
 }
 
 /** What still stops the save, in plain words, and the one step that fixes it. */
-type Step = "months" | "method" | "payer" | "amount" | "credit";
-type Block = { msg: string; step?: Step } | null;
 const STEP_CTA: Record<Step, string> = {
   months: "اختر الأشهر",
   method: "اختر كيف دفع",
@@ -428,23 +427,21 @@ export function RecordBody({
   }, [rows]);
 
   const priceOf = (m: MemberRow) => ctx.prices[m.groupCode] ?? 0;
-  const feeTotal = rows.reduce((s, r) => s + r.months.length * priceOf(r.m), 0);
-  const campAmt = camp ? Math.max(0, Math.round(parseAmount(campTxt) ?? 0)) : 0;
-  const total = feeTotal + campAmt;
-  const sent = sentTxt.trim() ? Math.round(parseAmount(sentTxt) ?? 0) : null;
-  const diff = sent === null ? 0 : sent - total;
   const openCamps = campaigns.filter((c) => c.status === "open");
   const payerName = (payer ?? rows[0]?.m.fullName ?? "").trim();
   const exclude = useMemo(() => new Set(rows.map((r) => r.m.memberId)), [rows]);
-  const missingPrice = rows.some((r) => r.months.length > 0 && !priceOf(r.m));
-  // one member: the rest of a bigger transfer is kept for them unless someone else is chosen
-  const creditTo =
-    creditFor && rows.some((r) => r.m.memberId === creditFor)
-      ? creditFor
-      : rows.length === 1
-        ? rows[0].m.memberId
-        : null;
-  const credit = diff > 0 && creditTo ? diff : 0;
+  const draft: Draft = {
+    rows,
+    prices: ctx.prices,
+    method: meth,
+    payerName,
+    sentText: sentTxt,
+    creditFor,
+    campaignId: camp,
+    campaignText: campTxt,
+    year: ctx.year,
+  };
+  const { campAmt, total, sent, diff, creditTo, credit, block, fitMonths } = summarize(draft);
   // anything that needs a look inside «تفاصيل أخرى» opens it (and it stays open)
   if (!more && (diff !== 0 || (rows.length > 0 && !payerName))) setMore(true);
 
@@ -468,28 +465,6 @@ export function RecordBody({
     });
   };
 
-  const block: Block = !rows.length
-    ? { msg: "اختر العضو أولًا." }
-    : total <= 0
-      ? { msg: "اختر شهرًا واحدًا على الأقل أو أضف مساهمة.", step: "months" }
-      : missingPrice
-        ? { msg: "لا نعرف الرسوم الشهرية لفئة هذا العضو. راجع المسؤول." }
-        : !meth
-          ? { msg: "بقي أن تختار كيف دفع.", step: "method" }
-          : !payerName
-            ? { msg: "اكتب اسم الدافع.", step: "payer" }
-            : diff < 0
-              ? {
-                  msg: `المبلغ المحوّل أقل من المجموع بـ ${fmt(-diff)} أوقية.`,
-                  step: "amount",
-                }
-              : diff > 0 && !creditTo
-                ? {
-                    msg: `المبلغ المحوّل أكبر من المجموع بـ ${fmt(diff)} أوقية. اختر لمن يُحفظ الباقي.`,
-                    step: "credit",
-                  }
-                : null;
-
   /** The footer button when something is missing: take the user to it. */
   const goTo = (step: Step) => {
     if (step === "months") {
@@ -504,14 +479,6 @@ export function RecordBody({
     else if (step === "amount") show(amountRef.current?.parentElement ?? null, amountRef.current);
     else show(creditRef.current);
   };
-
-  // short transfer, one member: offer to record only the months the money covers
-  const fitMonths = (() => {
-    if (diff >= 0 || sent === null || rows.length !== 1) return null;
-    const p = priceOf(rows[0].m);
-    const n = p ? Math.floor((sent - campAmt) / p) : 0;
-    return n >= 1 && n < rows[0].months.length ? n : null;
-  })();
 
   const addRow = (m: MemberRow) => {
     focusNext.current = m.memberId;
@@ -587,40 +554,18 @@ export function RecordBody({
       proof = up.data;
     }
     rememberMembers(rows.map((r) => r.m));
-    const r = await recordPayment({
-      id,
-      payerName,
-      method: meth,
-      amount: total + credit,
-      paidOn,
-      allocations: [
-        ...rows.flatMap((row) =>
-          row.months.map((month) => ({
-            kind: "months" as const,
-            memberId: row.m.memberId,
-            year: ctx.year,
-            month,
-            amount: priceOf(row.m),
-          })),
-        ),
-        ...(camp && campAmt > 0
-          ? [
-              {
-                kind: "campaign" as const,
-                campaignId: camp,
-                memberId: rows[0].m.memberId,
-                amount: campAmt,
-              },
-            ]
-          : []),
-        ...(credit && creditTo
-          ? [{ kind: "credit" as const, memberId: creditTo, amount: credit }]
-          : []),
-      ],
-      txnRef: txn.trim() || undefined,
-      proofPath: proof?.path,
-      proofHash: proof?.hash,
-    });
+    const r = await recordPayment(
+      toRecordInput(
+        { ...draft, method: meth },
+        {
+          id,
+          paidOn,
+          txnRef: txn.trim() || undefined,
+          proofPath: proof?.path,
+          proofHash: proof?.hash,
+        },
+      ),
+    );
     setBusy(false);
     if (!r.ok) {
       setErr(r.message);

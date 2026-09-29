@@ -2,10 +2,9 @@
 // One calm, one-time card on the committee hub for members who confirm payments: turn on
 // new-payment notifications. «✕» hides it on this phone for good. Not shown in demo mode.
 import { useEffect, useState } from "react";
-import { savePushSubscription } from "@/lib/data/actions";
 import { pushState, subscribePush } from "@/lib/push";
 import { safeStorage } from "@/lib/safe-storage";
-import { useIsDemo } from "./act";
+import { useAct, useIsDemo } from "./act";
 import { I } from "./icons";
 import { useSnack } from "./shell";
 
@@ -13,6 +12,7 @@ const KEY = "bq-push-suggest-done";
 
 export function PushSuggest() {
   const demo = useIsDemo();
+  const { savePushSubscription } = useAct();
   const say = useSnack();
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
