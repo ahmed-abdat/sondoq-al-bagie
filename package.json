@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:flows": "scripts/e2e-flows.sh",
     "icons": "tsx scripts/icons.mts",
     "screenshots": "tsx scripts/manifest-screenshots.mts",
     "knip": "knip",

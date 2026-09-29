@@ -6,6 +6,9 @@ on:
     branches: [main, m2-app]
   pull_request:
   workflow_dispatch:
+  # nightly: the two-person flows (job "flows") against a fresh local Supabase
+  schedule:
+    - cron: "0 2 * * *"
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -49,3 +52,36 @@ jobs:
       - run: echo "$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1)" >> "$GITHUB_PATH"
       - run: initdb --version
       - run: supabase/tests/local/run.sh
+
+  # Two-person flows (e2e/flows): the real app against a LOCAL Supabase in Docker (fictional
+  # data, never the production project: up.sh and the helpers refuse anything but 127.0.0.1).
+  # Heavier than the other jobs, so only: by hand, nightly, and on pull requests to main.
+  flows:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: pnpm exec playwright install --with-deps chromium
+      # up.sh (start + reset + .env.e2e), build with that env, run playwright.flows.config.ts
+      - run: pnpm test:flows
+        env:
+          CI: "1"
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flows-traces
+          path: test-results/
+          retention-days: 7

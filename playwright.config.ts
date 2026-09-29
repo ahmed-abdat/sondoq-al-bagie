@@ -9,6 +9,8 @@ const PORT = Number(process.env.PORT ?? 3100);
 
 export default defineConfig({
   testDir: "./e2e",
+  // the two-person flows need the local Supabase stack: playwright.flows.config.ts
+  testIgnore: ["flows/**"],
   globalSetup: "./e2e/global-setup.ts",
   timeout: 60_000,
   fullyParallel: false,
