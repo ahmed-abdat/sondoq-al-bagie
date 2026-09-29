@@ -20,7 +20,8 @@
     "screenshots": "tsx scripts/manifest-screenshots.mts",
     "ocr-assets": "tsx scripts/ocr-assets.mts",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
-    "postinstall": "tsx scripts/ocr-assets.mts"
+    "postinstall": "tsx scripts/ocr-assets.mts",
+    "db:types": "supabase gen types typescript --project-id vhcdgxgwdlflmxmqnxzf --schema public > database.types.tmp && mv database.types.tmp src/lib/supabase/database.types.ts && prettier --write src/lib/supabase/database.types.ts || (rm -f database.types.tmp; exit 1)"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

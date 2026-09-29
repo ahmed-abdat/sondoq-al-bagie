@@ -5,7 +5,6 @@
   "git": {
     "deploymentEnabled": {
       "main": true,
-      "m2-app": true,
       "*": false,
       "**": false
     }
