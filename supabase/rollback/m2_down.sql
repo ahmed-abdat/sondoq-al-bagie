@@ -1,6 +1,13 @@
--- Undo every migration after M1 (m2 … m19, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m20, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- small guards (m20); change_member_status is restored by the m7/m1 undos
+drop index if exists public.audit_log_actor_idx;
+drop trigger if exists z_keep_an_admin on public.committee;
+drop function if exists app_private.tg_keep_an_admin();
+drop trigger if exists b_not_before_opening on public.payments;
+drop trigger if exists b_not_before_opening on public.expenses;
+drop function if exists app_private.tg_not_before_opening();
 -- undo a period / join month (m19)
 drop function if exists public.cancel_last_period(uuid, text), public.set_join_month(uuid, date, text),
   app_private.cancel_last_period(uuid, text), app_private.set_join_month(uuid, date, text),

@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m19; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m20; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -736,6 +736,34 @@ select tests.throws($$select public.set_join_month(tests.id('D'), tests.m(-4), '
 select tests.ok(public.set_join_month(tests.id('D'), tests.m(-6), 'x')
                 = (select id from public.membership_periods where member_id = tests.id('D') and cancelled_at is null
                    order by from_month limit 1), 'same join month is a no-op');
+
+/* ───────────── M20: small guards ───────────── */
+
+select tests.login('server');
+update public.settings set opening_balance_on = make_date(extract(year from current_date)::int - 1, 1, 1) where id;
+select tests.login('admin');
+select tests.throws($$select public.record_expense(gen_random_uuid(), make_date(extract(year from current_date)::int - 2, 6, 1), 'other', 100)$$,
+  'before_opening', 'no expense before the records start');
+select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 100, make_date(extract(year from current_date)::int - 2, 6, 1),
+  jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)))$$,
+  'before_opening', 'no payment before the records start');
+select tests.ok((public.record_payment(gen_random_uuid(), 'سجل', 'paper', 100, make_date(extract(year from current_date)::int - 2, 6, 1),
+  jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100))) ->> 'status') = 'confirmed',
+  'paper records may be older');
+
+select tests.set('D2', public.add_member(9003, 'عضو هـ', 'A', tests.m(-4)));
+select tests.login('committee');
+select tests.pay('d2p', 1000, jsonb_build_array(tests.month('D2', -1, 1000)));
+select tests.login('admin');
+select tests.throws($$select public.change_member_status(tests.id('D2'), tests.m(-2), 'exempt', 'x')$$, 'months_pending_after',
+  'no back-dated exemption over a pending payment');
+select public.change_member_status(tests.id('D2'), tests.m(0), 'exempt', 'بعد الدفعة');
+
+select tests.login('server');
+select tests.throws($$select public.set_committee_member('00000000-0000-0000-0000-0000000000a1', 'المدير', 'treasurer')$$,
+  'last_admin', 'the only admin cannot be demoted');
+select tests.throws($$select public.set_committee_active('00000000-0000-0000-0000-0000000000a1', false)$$,
+  'last_admin', 'the only admin cannot be deactivated');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
