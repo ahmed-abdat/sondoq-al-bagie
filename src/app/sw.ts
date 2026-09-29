@@ -15,6 +15,7 @@ import {
   isPublicPage,
   isPublicViewRead,
 } from "@/lib/offline/cache-rules";
+import { nextBadgeCount, syncAppBadge } from "@/lib/offline/app-badge";
 import { notificationOptions, parsePushPayload, safePath } from "@/lib/offline/push-payload";
 
 declare const self: ServiceWorkerGlobalScope &
@@ -103,7 +104,16 @@ self.addEventListener("push", (event) => {
     /* unreadable payload: show the default notification */
   }
   const p = parsePushPayload(raw);
-  event.waitUntil(self.registration.showNotification(p.title, notificationOptions(p)));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(p.title, notificationOptions(p)),
+      // the number on the app icon (0 clears); no count sent → leave it as it is
+      (() => {
+        const next = nextBadgeCount(p);
+        return next === null ? undefined : syncAppBadge(next, self.navigator);
+      })(),
+    ]),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

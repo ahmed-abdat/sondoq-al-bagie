@@ -9,6 +9,7 @@ import {
   forgetPushOnThisPhone,
   type PushSubscriptionData,
 } from "@/lib/push";
+import { clearAppBadge } from "@/lib/offline/app-badge";
 import { PushToggle } from "./push-toggle";
 
 const save = (s: PushSubscriptionData) =>
@@ -19,8 +20,9 @@ export function CommitteePushToggle({ className }: { className?: string }) {
   return <PushToggle save={save} remove={remove} className={className} />;
 }
 
-/** Call before signing out (await it). */
-export const forgetCommitteePush = () => forgetPushOnThisPhone(remove);
+/** Call before signing out (await it): no more alerts, no number left on the app icon. */
+export const forgetCommitteePush = () =>
+  Promise.all([forgetPushOnThisPhone(remove), clearAppBadge()]).then(() => undefined);
 
 /** Mount on the committee page with the ids of payments still waiting for confirmation. */
 export function CloseStalePushNotifications({ pendingIds }: { pendingIds: string[] }) {

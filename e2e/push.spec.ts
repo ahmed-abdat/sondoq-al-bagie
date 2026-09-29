@@ -77,6 +77,30 @@ test("a link to another site is never followed", async ({ page }) => {
   expect(shown.find((n) => n.tag === "other")?.url).toBe("/committee");
 });
 
+test("the app icon shows the pending count sent with the push", async ({ page }) => {
+  const sw = await worker(page);
+  // record what the worker asks of the Badging API
+  await sw.evaluate(() => {
+    const g = self as unknown as { __badges: (number | "clear")[] };
+    g.__badges = [];
+    Object.defineProperty(self.navigator, "setAppBadge", {
+      configurable: true,
+      value: async (n?: number) => void g.__badges.push(n ?? 0),
+    });
+    Object.defineProperty(self.navigator, "clearAppBadge", {
+      configurable: true,
+      value: async () => void g.__badges.push("clear"),
+    });
+  });
+  const badges = () =>
+    sw.evaluate(() => (self as unknown as { __badges: (number | "clear")[] }).__badges);
+
+  await push(sw, JSON.stringify({ title: "a", tag: "pending-1", badgeCount: 3 }));
+  await push(sw, JSON.stringify({ title: "b", tag: "pending-2" })); // no count: unchanged
+  await push(sw, JSON.stringify({ title: "c", tag: "done", badgeCount: 0 }));
+  expect(await badges()).toEqual([3, "clear"]);
+});
+
 test("the notification badge is a small PNG", async ({ request }) => {
   const r = await request.get("/icons/badge-96.png");
   expect(r.headers()["content-type"]).toBe("image/png");
