@@ -1,4 +1,4 @@
-# صندوق البقيع — PRD v1
+# صندوق الرابطة — PRD v1
 
 Owner: AHMED (committee member, 2026 term) · Status: draft for approval · Date: 2026-09-28
 

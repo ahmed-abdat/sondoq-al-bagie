@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# صندوق البقيع (Sondoq al-Baqie)
+# صندوق الرابطة (Sondoq al-Baqie, «رابطة شباب قرية البقيع»)
 
 A PWA for a village youth association fund (subscriptions, arrears, proof of payment, expenses, donation campaigns). Arabic RTL UI.
 

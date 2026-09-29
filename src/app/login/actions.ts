@@ -11,8 +11,12 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const supabase = await createClient();
   if (!supabase) return { error: "الخادم غير مهيأ بعد (إعدادات Supabase)." };
 
-  const raw = String(formData.get("login") ?? formData.get("email") ?? "");
-  const password = String(formData.get("password") ?? "");
+  // Text copied from a WhatsApp message carries invisible direction marks (LRI/PDI, LRM…) and
+  // stray spaces around the login or password; they are never part of either, so drop them.
+  const clean = (v: FormDataEntryValue | null) =>
+    String(v ?? "").replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, "").trim();
+  const raw = clean(formData.get("login") ?? formData.get("email"));
+  const password = clean(formData.get("password"));
   if (!raw.trim() || !password) return { error: "أدخل البريد أو رقم الهاتف وكلمة السر." };
   const who = parseLogin(raw);
   if (!who) return { error: "أدخل بريداً صحيحاً أو رقم هاتف موريتاني من 8 أرقام." };

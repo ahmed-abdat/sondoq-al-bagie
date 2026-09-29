@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const rpc = vi.fn();
 const updateTag = vi.fn();
 vi.mock("server-only", () => ({}));
+vi.mock("next/server", () => ({ after: () => {} }));
+vi.mock("@/lib/push/send", () => ({ notifyConfirmers: async () => {} }));
 vi.mock("next/cache", () => ({ updateTag: (t: string) => updateTag(t) }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("./committee", () => ({ getCommitteeSession: async () => null }));
@@ -24,6 +26,30 @@ beforeEach(() => {
 type Case = [string, () => Promise<unknown>, string, Record<string, unknown>, boolean];
 
 const cases: Case[] = [
+  [
+    "savePushSubscription",
+    () =>
+      a.savePushSubscription({
+        endpoint: "https://fcm.googleapis.com/fcm/send/abc",
+        keys: { p256dh: "B".repeat(87), auth: "a".repeat(22) },
+        userAgent: "Android",
+      }),
+    "save_push_subscription",
+    {
+      p_endpoint: "https://fcm.googleapis.com/fcm/send/abc",
+      p_p256dh: "B".repeat(87),
+      p_auth: "a".repeat(22),
+      p_user_agent: "Android",
+    },
+    false,
+  ],
+  [
+    "deletePushSubscription",
+    () => a.deletePushSubscription({ endpoint: "https://fcm.googleapis.com/fcm/send/abc" }),
+    "delete_push_subscription",
+    { p_endpoint: "https://fcm.googleapis.com/fcm/send/abc" },
+    false,
+  ],
   [
     "cancelPayment",
     () => a.cancelPayment({ id, reason: "خطأ" }),

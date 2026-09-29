@@ -134,12 +134,12 @@ export function publicOrigin(): string {
 }
 
 export function reportFileName(year: number, month: number): string {
-  return `ملخص-صندوق-الشباب-${year}-${String(month).padStart(2, "0")}.png`;
+  return `ملخص-صندوق-الرابطة-${year}-${String(month).padStart(2, "0")}.png`;
 }
 
-/** «تقرير-صندوق-الشباب-2026-09-28» from the report's date (+ «-1.png» per page, or «.pdf»). */
+/** «تقرير-صندوق-الرابطة-2026-09-28» from the report's date (+ «-1.png» per page, or «.pdf»). */
 export function reportFileBase(iso: string): string {
-  return `تقرير-صندوق-الشباب-${iso.slice(0, 10)}`;
+  return `تقرير-صندوق-الرابطة-${iso.slice(0, 10)}`;
 }
 
 export function reportShareText(src: ReportSource, url: string): string {
@@ -295,7 +295,7 @@ export function makePen(x: CanvasRenderingContext2D, fonts: CanvasFonts) {
     x.restore();
   }
 
-  /** Page footer: «صندوق الشباب · الصفحة 2 من 6 · حتى …» on the right, the link on the left. */
+  /** Page footer: «صندوق الرابطة · الصفحة 2 من 6 · حتى …» on the right, the link on the left. */
   function footer(w: number, h: number, label: string, url: string, pad = 64) {
     const y = h - 44;
     const uw = url
@@ -320,7 +320,7 @@ export interface ReportDrawOptions {
   logo?: CanvasImageSource | null;
   /** Page height: 1350 (phone) or the PDF page's. Width is always 1080. */
   height?: number;
-  /** Footer text; default «صندوق الشباب · حتى <date>». */
+  /** Footer text; default «صندوق الرابطة · حتى <date>». */
   footer?: string;
   /**
    * "card" (default): the summary image shared alone, ending with paid counts per list and
