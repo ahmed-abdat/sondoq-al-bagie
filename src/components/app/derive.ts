@@ -135,7 +135,7 @@ const OFF_LABEL: Record<Exclude<MembershipStatus, "active">, string> = {
   exempt: "معفى",
   away: "مسافر",
   left: "غادر",
-  deceased: "متوفى، رحمه الله",
+  deceased: "غادر",
 };
 
 /** States the committee can set (no "away"/paused, no «متوفى»; owner 2026-09-28). */
@@ -144,6 +144,8 @@ export const STATE_LABEL: Record<SettableStatus, string> = {
   exempt: "معفى",
   left: "غادر",
 };
+/** The states the committee can choose: نشط / معفى / غادر. */
+export const STATE_CHOICES = ["active", "exempt", "left"] as const;
 
 /** Hidden from public lists by default. */
 export const isGone = (s: MembershipStatus) => s === "left" || s === "deceased";

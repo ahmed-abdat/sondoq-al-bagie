@@ -11,10 +11,21 @@ import {
   MONTHS,
   statusLabel,
 } from "@/components/app/derive";
-import { ReportTools } from "@/components/app/report-tools";
+import { Collapsible } from "@/components/app/collapsible";
+import { ReportShare } from "@/components/app/report-share";
 import * as src from "@/components/app/source";
 
-export const metadata: Metadata = { title: "تقرير الصندوق · صندوق الشباب" };
+export const metadata: Metadata = {
+  title: "تقرير الصندوق · صندوق الشباب",
+  description: "ما في الصندوق الآن، وما جُمع كل شهر، ومن دفع من الأعضاء، والمصاريف والحملات.",
+  openGraph: {
+    title: "تقرير صندوق الشباب",
+    description: "ما في الصندوق الآن، ومن دفع رسوم هذا الشهر. افتح التقرير الكامل.",
+    type: "article",
+    locale: "ar_MR",
+    siteName: "صندوق الشباب",
+  },
+};
 
 const Num = ({ children }: { children: React.ReactNode }) => (
   <bdi dir="ltr" className="bq-num">
@@ -47,10 +58,28 @@ export default async function ReportPage() {
   const yearExpenses = r.expenses;
   const campaigns = r.campaigns;
 
+  // the report shows paid / late / not yet only (owner): paid-ahead months are simply paid
+  const dot = (st: string) =>
+    st === "paid" || st === "prepaid" ? "is-paid" : st === "late" ? "is-late" : "";
+  const cards: { k: string; v: number; sign?: string }[] = [
+    { k: "رصيد سابق", v: summary.openingBalance },
+    { k: "جُمع من الرسوم", v: summary.moneyIn, sign: "+" },
+    ...(summary.transfersIn > 0 ? [{ k: "من الحملات", v: summary.transfersIn, sign: "+" }] : []),
+    { k: "صُرف", v: summary.moneyOut, sign: "−" },
+    ...(summary.adjustments !== 0
+      ? [
+          {
+            k: "فرق عند التسليم",
+            v: Math.abs(summary.adjustments),
+            sign: summary.adjustments > 0 ? "+" : "−",
+          },
+        ]
+      : []),
+  ];
+
   return (
     <main className="rp">
-      <ReportTools data={r} />
-      <Link href="/accounts" className="bq-link bq-link-s bq-press rp-back">
+      <Link href="/accounts" className="bq-link bq-link-s bq-press bq-back rp-back">
         رجوع إلى الحسابات
       </Link>
 
@@ -63,69 +92,38 @@ export default async function ReportPage() {
           <p>
             سنة <Num>{year}</Num>
             {termLabel ? ` · ${termLabel}` : ""}
-            {current
-              ? ` (منذ ${dayWords(current.startedOn)} ${current.startedOn.slice(0, 4)})`
-              : ""}{" "}
-            · حتى {dayDate(today)}
+            {current ? ` منذ ${dayWords(current.startedOn)} ${current.startedOn.slice(0, 4)}` : ""}
           </p>
-          <p className="rp-sub">{ASSOC}</p>
+          <p className="rp-sub">حتى {dayDate(today)}</p>
         </div>
       </header>
 
-      <section className="rp-sec">
-        <h2>الملخّص</h2>
-        <table className="rp-sum">
-          <tbody>
-            <tr>
-              <th>رصيد مُرحَّل من السنوات السابقة</th>
-              <td>
-                <Num>{fmt(summary.openingBalance)}</Num>
-              </td>
-            </tr>
-            <tr>
-              <th>+ جُمع من الرسوم الشهرية</th>
-              <td>
-                <Num>{fmt(summary.moneyIn)}</Num>
-              </td>
-            </tr>
-            {summary.transfersIn > 0 && (
-              <tr>
-                <th>+ حُوّل من الحملات</th>
-                <td>
-                  <Num>{fmt(summary.transfersIn)}</Num>
-                </td>
-              </tr>
-            )}
-            <tr>
-              <th>− صُرف على الأنشطة</th>
-              <td>
-                <Num>{fmt(summary.moneyOut)}</Num>
-              </td>
-            </tr>
-            {summary.adjustments !== 0 && (
-              <tr>
-                <th>{summary.adjustments > 0 ? "+" : "−"} فرق عند التسليم</th>
-                <td>
-                  <Num>{fmt(Math.abs(summary.adjustments))}</Num>
-                </td>
-              </tr>
-            )}
-            <tr className="is-total">
-              <th>= في الصندوق الآن</th>
-              <td>
-                <Num>{fmt(summary.balance)}</Num> أوقية
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <p className="rp-note">
-          <Num>{paidNow}</Num> من <Num>{active.length}</Num> عضوًا دفعوا رسوم {MONTHS[month - 1]}.
-          المبالغ بالأوقية القديمة.
-        </p>
+      <ReportShare data={r} />
+
+      <section className="rp-sec" aria-label="الملخّص">
+        <div className="rp-now">
+          <span>في الصندوق الآن</span>
+          <strong>
+            <Num>{fmt(summary.balance)}</Num> <small>أوقية</small>
+          </strong>
+          <span>
+            <Num>{paidNow}</Num> من <Num>{active.length}</Num> عضوًا دفعوا رسوم {MONTHS[month - 1]}
+          </span>
+        </div>
+        <ul className="rp-cards">
+          {cards.map((c) => (
+            <li key={c.k}>
+              <span>{c.k}</span>
+              <strong>
+                <Num>{`${c.sign ?? ""}${fmt(c.v)}`}</Num>
+              </strong>
+            </li>
+          ))}
+        </ul>
+        <p className="rp-note">المبالغ بالأوقية القديمة. تبرعات الحملات في حسابها الخاص.</p>
       </section>
 
-      <section className="rp-sec">
-        <h2>ما جُمع كل شهر</h2>
+      <Collapsible title="ما جُمع كل شهر" open>
         <table className="rp-table">
           <thead>
             <tr>
@@ -155,83 +153,70 @@ export default async function ReportPage() {
             })}
           </tbody>
         </table>
-      </section>
+      </Collapsible>
 
-      <section className="rp-sec rp-break">
-        <h2>الأعضاء والأشهر</h2>
-        <p className="rp-note">
-          <span className="rp-c is-paid">✓</span> مدفوع · <span className="rp-c is-ahead">✓</span>{" "}
-          مدفوع مقدَّمًا · <span className="rp-c is-late" /> غير مدفوع ·{" "}
-          <span className="rp-c is-off">·</span> غير مستحق
-        </p>
-        {lists.map((l) => (
-          <table key={l} className="rp-table rp-grid">
-            <caption>المجموعة {groupLabel(l)}</caption>
-            <thead>
-              <tr>
-                <th>رقم</th>
-                <th className="rp-name">الاسم</th>
-                {MONTHS.map((n, i) => (
-                  <th key={n} className="rp-m" title={n}>
-                    <Num>{i + 1}</Num>
-                  </th>
-                ))}
-                <th>الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown
-                .filter((m) => listOf(m) === l)
-                .map((m) => {
-                  return (
-                    <tr key={m.memberId}>
-                      <td>
-                        <Num>{m.memberRef}</Num>
-                      </td>
-                      <td className="rp-name">{m.fullName}</td>
-                      {m.months.map((st, i) => (
-                        <td
-                          key={i}
-                          className={`rp-m ${st === "paid" ? "is-paid" : st === "prepaid" ? "is-ahead" : st === "late" ? "is-late" : st === "not_owed" ? "is-off" : ""}`}
-                        >
-                          {st === "paid" || st === "prepaid" ? "✓" : st === "not_owed" ? "·" : ""}
-                        </td>
-                      ))}
-                      <td className="rp-st">
-                        {m.status === "active"
-                          ? statusLabel(
-                              {
-                                status: m.status,
-                                monthsBehind: m.monthsBehind,
-                                monthsPaidThisYear: m.monthsPaid,
-                              },
-                              month,
-                            )
-                          : m.statusLabel}
-                        {r.showAmountOwed && m.amountOwed ? (
-                          <>
-                            {" "}
-                            · <Num>{fmt(m.amountOwed)}</Num>
-                          </>
-                        ) : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        ))}
-      </section>
+      <p className="rp-note rp-legend">
+        <span className="rp-d is-paid" /> مدفوع <span className="rp-d is-late" /> متأخر{" "}
+        <span className="rp-d" /> لم يحن بعد
+      </p>
+      {lists.map((l) => {
+        const rows = shown.filter((m) => listOf(m) === l);
+        return (
+          <Collapsible key={l} title={`المجموعة ${groupLabel(l)}`} count={rows.length}>
+            <ul className="rp-members">
+              {rows.map((m) => (
+                <li key={m.memberId}>
+                  <span className="rp-ref">
+                    <Num>{m.memberRef}</Num>
+                  </span>
+                  <span className="rp-mname">{m.fullName}</span>
+                  <span className="rp-mst">
+                    {statusLabel(
+                      {
+                        status: m.status,
+                        monthsBehind: m.monthsBehind,
+                        monthsPaidThisYear: m.monthsPaid,
+                      },
+                      12,
+                    )}{" "}
+                    · دفع <Num>{m.monthsPaid}</Num> من <Num>12</Num> شهرًا
+                    {r.showAmountOwed && m.amountOwed ? (
+                      <>
+                        {" "}
+                        · <Num>{fmt(m.amountOwed)}</Num>
+                      </>
+                    ) : null}
+                  </span>
+                  <span
+                    className="rp-dots"
+                    aria-label={m.months
+                      .map(
+                        (st, i) =>
+                          `${MONTHS[i]}: ${st === "paid" || st === "prepaid" ? "مدفوع" : st === "late" ? "متأخر" : "لم يحن بعد"}`,
+                      )
+                      .join("، ")}
+                  >
+                    {m.months.map((st, i) => (
+                      <span key={i} className={`rp-d ${dot(st)}`} title={MONTHS[i]} />
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Collapsible>
+        );
+      })}
 
-      <section className="rp-sec">
-        <h2>المصاريف{!r.expensesComplete ? " (آخر 50 مصروفًا)" : ""}</h2>
+      <Collapsible
+        title={`المصاريف${!r.expensesComplete ? " (آخر 50)" : ""}`}
+        count={yearExpenses.length}
+      >
         {yearExpenses.length ? (
           <table className="rp-table">
             <thead>
               <tr>
                 <th>التاريخ</th>
                 <th className="rp-name">البيان</th>
-                <th>النشاط</th>
                 <th>المبلغ</th>
               </tr>
             </thead>
@@ -239,8 +224,10 @@ export default async function ReportPage() {
               {yearExpenses.map((e, i) => (
                 <tr key={`${e.spentOn}-${i}`}>
                   <td>{dayWords(e.spentOn)}</td>
-                  <td className="rp-name">{e.note ?? e.categoryLabel}</td>
-                  <td>{e.categoryLabel}</td>
+                  <td className="rp-name">
+                    {e.note ?? e.categoryLabel}
+                    {e.note ? <span className="rp-cat"> · {e.categoryLabel}</span> : null}
+                  </td>
                   <td>
                     <Num>{fmt(e.amount)}</Num>
                   </td>
@@ -251,42 +238,35 @@ export default async function ReportPage() {
         ) : (
           <p className="rp-note">لم يُصرف شيء هذا العام.</p>
         )}
-      </section>
+      </Collapsible>
 
       {campaigns.length > 0 && (
-        <section className="rp-sec">
-          <h2>حملات التبرع</h2>
-          <table className="rp-table">
-            <thead>
-              <tr>
-                <th className="rp-name">الحملة</th>
-                <th>الهدف</th>
-                <th>ما جُمع</th>
-                <th>ما صُرف</th>
-                <th>الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {campaigns.map((c) => (
-                <tr key={c.campaignId}>
-                  <td className="rp-name">{c.title}</td>
-                  <td>{c.targetAmount ? <Num>{fmt(c.targetAmount)}</Num> : "بلا هدف"}</td>
-                  <td>
-                    <Num>{fmt(c.collected)}</Num>
-                  </td>
-                  <td>
-                    <Num>{fmt(c.spent)}</Num>
-                  </td>
-                  <td>{c.status === "open" ? "مفتوحة" : "مغلقة"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+        <Collapsible title="حملات التبرع" count={campaigns.length}>
+          <ul className="rp-cards rp-camps">
+            {campaigns.map((c) => (
+              <li key={c.campaignId}>
+                <span>
+                  {c.title} · {c.status === "open" ? "مفتوحة" : "مغلقة"}
+                </span>
+                <strong>
+                  <Num>{fmt(c.collected)}</Num>
+                </strong>
+                <span>
+                  {c.targetAmount ? (
+                    <>
+                      من هدف <Num>{fmt(c.targetAmount)}</Num>.{" "}
+                    </>
+                  ) : null}
+                  صُرف <Num>{fmt(c.spent)}</Num>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Collapsible>
       )}
 
       <footer className="rp-foot">
-        صندوق الشباب · رابط التحقق: <ReportLink />
+        صندوق الشباب · {ASSOC} · رابط التحقق: <ReportLink />
       </footer>
     </main>
   );
