@@ -129,7 +129,10 @@ export function shouldInvite(o: {
   return o.engaged || days >= 2 || (o.sessions ?? 0) >= 2;
 }
 
-/** Paths where the banner never shows (someone checking a receipt, signing in). */
+/**
+ * Paths where the banner never shows: someone checking a receipt, signing in, and the report
+ * (a page to read, print and share, with its own tools at the bottom).
+ */
 export function bannerAllowedOn(pathname: string): boolean {
-  return !/^\/(r|login)(\/|$)/.test(pathname);
+  return !/^\/(r|login|report)(\/|$)/.test(pathname);
 }

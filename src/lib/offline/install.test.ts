@@ -147,7 +147,8 @@ describe("backoff after «✕»", () => {
   it("never on receipt checks or sign-in", () => {
     expect(bannerAllowedOn("/")).toBe(true);
     expect(bannerAllowedOn("/members")).toBe(true);
-    expect(bannerAllowedOn("/report")).toBe(true);
+    expect(bannerAllowedOn("/report")).toBe(false);
+    expect(bannerAllowedOn("/reports")).toBe(true);
     expect(bannerAllowedOn("/r/BQ-1")).toBe(false);
     expect(bannerAllowedOn("/login")).toBe(false);
   });
