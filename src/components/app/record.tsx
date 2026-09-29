@@ -640,6 +640,10 @@ export function RecordBody({
       return;
     }
     rememberRecent(rows.map((r) => r.m.memberId));
+    // TODO(lane-a e06d0b4): RecordPaymentResult.pendingOverlap; optional until it lands
+    const overlap = (r.data as { pendingOverlap?: boolean }).pendingOverlap
+      ? " يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر."
+      : "";
     router.refresh();
     const who =
       rows.length > 1
@@ -648,7 +652,7 @@ export function RecordBody({
     if (r.data.status === "confirmed") {
       // recorded by someone who may confirm: confirmed at once — show the stamp and the receipt
       setConfirmed({
-        text: `سُجّلت دفعة ${who} وأُكّدت.`,
+        text: `سُجّلت دفعة ${who} وأُكّدت.${overlap}`,
         r: {
           no: null,
           code: r.data.receiptCode,
@@ -683,7 +687,7 @@ export function RecordBody({
       });
       return;
     }
-    onDone(`سُجّلت دفعة ${who}. تنتظر التأكيد.`);
+    onDone(`سُجّلت دفعة ${who}. تنتظر التأكيد.${overlap}`);
   };
 
   if (confirmed)

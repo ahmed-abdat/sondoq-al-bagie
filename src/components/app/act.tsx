@@ -31,6 +31,8 @@ export type DemoState = {
   memberPatch: Record<string, Partial<MemberAdmin>>;
   /** the handover being prepared in the demo (null = none / use the server's) */
   handover: Handover | null;
+  /** months paid from credit in the demo, "YYYY-MM" per member */
+  creditPaid: Record<string, string[]>;
 };
 const EMPTY: DemoState = {
   pending: [],
@@ -41,6 +43,7 @@ const EMPTY: DemoState = {
   members: [],
   memberPatch: {},
   handover: null,
+  creditPaid: {},
 };
 let state = EMPTY;
 const subs = new Set<() => void>();
@@ -134,8 +137,19 @@ const demo = {
               },
       ),
     };
+    // like the server (m23): another pending payment already covers one of these months
+    const key = (a: { kind: string; memberId?: string | null; year?: number; month?: number }) =>
+      a.kind === "months" ? `${a.memberId}:${a.year}-${a.month}` : "";
+    const mine = new Set(p.allocations.map(key).filter(Boolean));
+    const pendingOverlap = state.pending.some((x) => x.allocations.some((a) => mine.has(key(a))));
     update((s) => ({ ...s, pending: [...s.pending, pay] }));
-    return ok({ id: p.id, status: "pending" as const, replay: false, receiptCode: null });
+    return ok({
+      id: p.id,
+      status: "pending" as const,
+      replay: false,
+      receiptCode: null,
+      pendingOverlap,
+    });
   },
   async confirmPayment() {
     return ok({
@@ -416,7 +430,17 @@ const demo = {
     }));
     return ok("demo");
   },
-  applyCredit: async (p) => ok({ id: p.id, replay: false, receiptCode: nextCode() }),
+  async applyCredit(p) {
+    const keys = p.months.map((x) => `${x.year}-${String(x.month).padStart(2, "0")}`);
+    update((s) => ({
+      ...s,
+      creditPaid: {
+        ...s.creditPaid,
+        [p.memberId]: [...new Set([...(s.creditPaid[p.memberId] ?? []), ...keys])],
+      },
+    }));
+    return ok({ id: p.id, replay: false, receiptCode: nextCode() });
+  },
   cancelLastPeriod: async () => ok("demo"),
   async setJoinMonth(p) {
     update((s) => ({
