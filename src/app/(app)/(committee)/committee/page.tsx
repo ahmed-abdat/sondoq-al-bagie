@@ -6,7 +6,7 @@ import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { CommitteeView } from "@/components/app/views/committee";
 
-export const metadata: Metadata = { title: "اللجنة · صندوق الشباب", robots: { index: false } };
+export const metadata: Metadata = { title: "اللجنة · صندوق الشباب" };
 
 export default async function CommitteePage() {
   const [session, pending, members, ctx, accounts, arrears, campaigns] = await Promise.all([

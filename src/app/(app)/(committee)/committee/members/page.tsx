@@ -4,7 +4,7 @@ import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { MembersPage } from "@/components/app/views/committee";
 
-export const metadata: Metadata = { title: "الأعضاء · اللجنة", robots: { index: false } };
+export const metadata: Metadata = { title: "الأعضاء · اللجنة" };
 
 export default async function Members() {
   const session = await src.committeeSession();

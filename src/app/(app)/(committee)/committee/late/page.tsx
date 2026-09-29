@@ -6,7 +6,6 @@ import { LatePage } from "@/components/app/views/committee";
 
 export const metadata: Metadata = {
   title: "تذكير المتأخرين · صندوق الشباب",
-  robots: { index: false },
 };
 
 export default async function Late() {

@@ -14,6 +14,7 @@ import {
 import { MemberNo } from "@/components/app/bits";
 import { Collapsible } from "@/components/app/collapsible";
 import { Engaged } from "@/components/app/engaged";
+import { SITE_URL } from "@/components/app/site";
 import { ReportShare } from "@/components/app/report-share";
 import * as src from "@/components/app/source";
 
@@ -276,11 +277,7 @@ export default async function ReportPage() {
 }
 
 function ReportLink() {
-  const site =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : "");
+  const site = SITE_URL;
   return (
     <bdi dir="ltr" className="bq-num">
       {site ? `${site.replace(/\/$/, "")}/report` : "/report"}

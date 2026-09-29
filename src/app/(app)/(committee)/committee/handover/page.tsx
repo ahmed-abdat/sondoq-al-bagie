@@ -5,7 +5,7 @@ import { Tab } from "@/components/app/tab";
 import { SubHead } from "@/components/app/views/committee";
 import { HandoverView } from "@/components/app/handover";
 
-export const metadata: Metadata = { title: "تسليم الصندوق · اللجنة", robots: { index: false } };
+export const metadata: Metadata = { title: "تسليم الصندوق · اللجنة" };
 
 export default async function HandoverPage() {
   const session = await src.committeeSession();
