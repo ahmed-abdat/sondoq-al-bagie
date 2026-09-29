@@ -1,18 +1,19 @@
-// «روابط الأعضاء»: who has a personal link (sent), who opened it (using), groups and the
-// «أرسل للجميع بالترتيب» walk. Pure, unit tested.
+// «روابط الأعضاء»: who has a personal link (made), who opened it (using), groups and the
+// «أرسل للجميع بالترتيب» walk. Pure, unit tested. «made» is all we know: the app cannot see
+// whether the WhatsApp message was actually sent (audit B10), so the UI never says «أُرسل».
 import type { MemberLinkInfo } from "@/lib/data/member-types";
 import type { MemberAdmin } from "@/lib/data/types";
 
-export type LinkState = "none" | "sent" | "using";
+export type LinkState = "none" | "made" | "using";
 
 export type LinkRow = Pick<
   MemberAdmin,
   "memberId" | "memberRef" | "listCode" | "number" | "fullName" | "phone" | "groupCode"
 > & { state: LinkState };
 
-/** An active link = sent; one used at least once = using. */
+/** An active link = made; one used at least once = using. */
 export const linkState = (link: MemberLinkInfo | null | undefined): LinkState =>
-  !link ? "none" : link.lastUsedAt ? "using" : "sent";
+  !link ? "none" : link.lastUsedAt ? "using" : "made";
 
 /** Active members only, in paper order (list, number), with their link state. */
 export function linkRows(
@@ -39,18 +40,18 @@ export function linkRows(
     );
 }
 
-/** One section per fee group, with «sent/total». */
+/** One section per fee group, with «with a link/total». */
 export function linkGroups(rows: LinkRow[]) {
   const codes = [...new Set(rows.map((r) => r.groupCode))];
   return codes.map((code) => {
     const items = rows.filter((r) => r.groupCode === code);
-    return { code, items, sent: items.filter((r) => r.state !== "none").length };
+    return { code, items, made: items.filter((r) => r.state !== "none").length };
   });
 }
 
 export function linkCounts(rows: LinkRow[]) {
-  const sent = rows.filter((r) => r.state !== "none").length;
-  return { total: rows.length, sent, left: rows.length - sent };
+  const made = rows.filter((r) => r.state !== "none").length;
+  return { total: rows.length, made, left: rows.length - made };
 }
 
 /**

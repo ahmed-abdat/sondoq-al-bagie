@@ -344,6 +344,26 @@ export async function activityPublic(c: Client) {
     .filter((a): a is PublicActivityItem => a !== null);
 }
 
+/** The newest `limit` confirmed payments and `limit` expenses, amount-free: enough for a short
+ *  ledger (merge with toLedger, then keep `limit`). */
+export async function ledgerPublic(c: Client, limit: number) {
+  const [acts, exps] = await Promise.all([
+    c
+      .from("activity_public")
+      .select("*")
+      .eq("kind", "payment_confirmed")
+      .order("at", { ascending: false })
+      .limit(limit),
+    c.from("expenses_public").select("*").order("spent_on", { ascending: false }).limit(limit),
+  ]);
+  return {
+    activity: many("activity_public", acts)
+      .map(map.toPublicActivityItem)
+      .filter((a): a is PublicActivityItem => a !== null),
+    expenses: many("expenses_public", exps).map(map.toExpensePublic),
+  };
+}
+
 export async function campaignsPublic(c: Client) {
   return many("campaigns_public", await c.from("campaigns_public").select("*")).map(
     map.toCampaignPublic,

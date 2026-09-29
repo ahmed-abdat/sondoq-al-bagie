@@ -6,6 +6,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Drawer } from "@base-ui/react/drawer";
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -70,7 +71,8 @@ function useDesktop() {
 
 /**
  * Mount it to open, unmount it (in `onDone`) after it closes. `label` names the dialog for screen
- * readers (the visible heading stays in `children`); `description` is optional.
+ * readers (the visible heading stays in `children`; the hidden title is not a heading, so it is
+ * not announced twice, audit B08); `description` is optional.
  */
 export function Sheet({
   label,
@@ -89,6 +91,24 @@ export function Sheet({
 }) {
   const desktop = useDesktop();
   const [open, setOpen] = useState(true);
+  // The sheet is mounted by the caller (no Base UI trigger), so remember what had focus when it
+  // opened and give focus back there on close (audit B05); not <body>.
+  const [opener] = useState(() => {
+    const a = typeof document === "undefined" ? null : document.activeElement;
+    return a instanceof HTMLElement && a !== document.body ? a : null;
+  });
+  const finalFocus = () => (opener?.isConnected ? opener : true);
+  // the morph close unmounts without Base UI's close path: restore focus once gone
+  useEffect(
+    () => () => {
+      requestAnimationFrame(() => {
+        const a = document.activeElement;
+        if (opener?.isConnected && (!a || a === document.body))
+          opener.focus({ preventScroll: true });
+      });
+    },
+    [opener],
+  );
   const closing = useRef(false);
   const popup = useRef<HTMLDivElement>(null);
   // focus the sheet itself (screen readers read its title), unless a field inside took focus
@@ -135,12 +155,15 @@ export function Sheet({
             <Dialog.Popup
               ref={popup}
               initialFocus={initialFocus}
+              finalFocus={finalFocus}
               className={`bq-sheet is-dialog ${vt ? "is-vt" : ""}`}
               style={sheetStyle}
             >
               {inner(
                 <>
-                  <Dialog.Title className="bq-sr-only">{label}</Dialog.Title>
+                  <Dialog.Title className="bq-sr-only" render={<span />}>
+                    {label}
+                  </Dialog.Title>
                   {description && (
                     <Dialog.Description className="bq-sr-only">{description}</Dialog.Description>
                   )}
@@ -165,13 +188,16 @@ export function Sheet({
           <Drawer.Popup
             ref={popup}
             initialFocus={initialFocus}
+            finalFocus={finalFocus}
             className={`bq-sheet ${vt ? "is-vt" : ""}`}
             style={sheetStyle}
           >
             <Drawer.Content className="bq-sheet-c">
               {inner(
                 <>
-                  <Drawer.Title className="bq-sr-only">{label}</Drawer.Title>
+                  <Drawer.Title className="bq-sr-only" render={<span />}>
+                    {label}
+                  </Drawer.Title>
                   {description && (
                     <Drawer.Description className="bq-sr-only">{description}</Drawer.Description>
                   )}

@@ -30,9 +30,13 @@ import {
   type MemberSession,
 } from "@/lib/data/member-types";
 
-export const usingFixtures = process.env.SONDOQ_FIXTURES === "1";
 /** Fixtures + committee writes simulated in the browser; never on production (see demo.ts). */
 export const demoMode = isDemo();
+/**
+ * Fictional reads follow the same fail-closed decision as simulated writes (audit B01 / arch 1):
+ * SONDOQ_FIXTURES=1 on a production deployment serves real reads, never fixtures.
+ */
+export const usingFixtures = demoMode;
 const pick = <T>(fixture: () => T, real: () => Promise<T>): Promise<T> =>
   usingFixtures ? Promise.resolve(fixture()) : real();
 
@@ -317,6 +321,21 @@ export const contributorsPublic = (campaignId: string, limit = 20) =>
 export async function ledgerPublic(): Promise<LedgerEntry[]> {
   const [acts, exps] = await Promise.all([activityPublic(), expensesPublic()]);
   return toLedger(acts, exps, today());
+}
+/** Home: the newest `n` ledger rows, amount-free; the server reads only `n` of each kind. */
+export async function ledgerRecent(n = 3): Promise<LedgerEntry[]> {
+  const { activity, expenses } = await pick(
+    () => ({
+      activity: fx
+        .fxActivity()
+        .map((a) =>
+          strip(a, ["amount", "targetAmount", "receiptCode"] as const),
+        ) as PublicActivityItem[],
+      expenses: fx.fxExpenses().map((e) => strip(e, ["amount"] as const)),
+    }),
+    () => data.getLedgerPublic(n),
+  );
+  return toLedger(activity, expenses, today()).slice(0, n);
 }
 /** /report for strangers and link previews: the grid and structure, no money. */
 export async function reportShell(): Promise<ReportShell> {

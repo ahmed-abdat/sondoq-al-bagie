@@ -16,6 +16,7 @@ import {
 } from "@/lib/member-cookies";
 import { isDemoToken } from "./demo-member";
 import type { MemberProfile, MemberSession } from "@/lib/data/member-types";
+import { pendingCounts } from "./member-model";
 import { memberCtx } from "./page-data";
 import * as src from "./source";
 
@@ -25,8 +26,10 @@ export type MemberHome = {
   months: string;
   year: number;
   dueMonth: number;
-  /** my submissions still waiting for the committee */
+  /** my submissions still waiting for the committee (for anyone) */
   waiting: number;
+  /** of those, the ones covering my own months (only these hide «ادفع الآن») */
+  waitingMine: number;
   /** every member profile on this phone (the switcher shows when there is more than one) */
   profiles: MemberProfile[];
 };
@@ -42,12 +45,14 @@ export async function memberHome(): Promise<MemberHome | null> {
     src.memberProfiles(),
   ]);
   const row = rows.find((r) => r.memberId === s.memberId);
+  const pending = pendingCounts(history, s.memberId);
   return {
     s,
     months: row?.months ?? "NNNNNNNNNNNN",
     year: ctx.year,
     dueMonth: ctx.dueMonth,
-    waiting: history.filter((h) => h.status === "pending" && h.sentByMe).length,
+    waiting: pending.sent,
+    waitingMine: pending.mine,
     profiles,
   };
 }

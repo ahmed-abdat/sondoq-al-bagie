@@ -13,6 +13,7 @@ import { parseAmount } from "@/lib/money";
 import { CATEGORY_LABEL, dayWords, fmt, imageOpenError } from "./derive";
 import { DateField } from "./date-field";
 import { I } from "./icons";
+import { radioKeys, radioTab } from "./radio-keys";
 import { Num } from "./num";
 
 const CATS = Object.keys(CATEGORY_LABEL) as ExpenseCategory[];
@@ -108,13 +109,20 @@ export function RecordExpenseBody({
     <div className="bq-rec">
       <h2>سجّل مصروفًا</h2>
       <p className="bq-rec-k">على أي نشاط؟</p>
-      <div className="bq-chips" role="radiogroup" aria-label="النشاط" ref={catRef}>
-        {CATS.map((c) => (
+      <div
+        className="bq-chips"
+        role="radiogroup"
+        aria-label="النشاط"
+        ref={catRef}
+        onKeyDown={radioKeys}
+      >
+        {CATS.map((c, i) => (
           <button
             key={c}
             type="button"
             role="radio"
             aria-checked={cat === c}
+            tabIndex={radioTab(cat === c, i, CATS.includes(cat as (typeof CATS)[number]))}
             className="bq-chip bq-press"
             onClick={() => setCat(c)}
           >
@@ -153,16 +161,21 @@ export function RecordExpenseBody({
       {open.length > 0 && (
         <>
           <p className="bq-rec-k">من أين صُرف؟</p>
-          <div className="bq-chips" role="radiogroup" aria-label="مصدر المال">
+          <div className="bq-chips" role="radiogroup" aria-label="مصدر المال" onKeyDown={radioKeys}>
             {[
               { id: "", t: "الصندوق الرئيسي" },
               ...open.map((c) => ({ id: c.campaignId, t: `حملة: ${c.title}` })),
-            ].map((o) => (
+            ].map((o, i, all) => (
               <button
                 key={o.id || "main"}
                 type="button"
                 role="radio"
                 aria-checked={from === o.id}
+                tabIndex={radioTab(
+                  from === o.id,
+                  i,
+                  all.some((x) => x.id === from),
+                )}
                 className="bq-chip bq-press"
                 onClick={() => setFrom(o.id)}
               >
@@ -267,6 +280,7 @@ export function ExpenseAdminList({
                       setOther("");
                     }}
                     aria-expanded={open === e.id}
+                    aria-label={`إلغاء مصروف ${e.note ?? CATEGORY_LABEL[e.category]} ${fmt(e.amount)} أوقية`}
                   >
                     إلغاء
                   </button>
@@ -276,13 +290,19 @@ export function ExpenseAdminList({
             {open === e.id && !cancelled && (
               <div className="bq-rej">
                 <p className="bq-rej-l">لماذا تلغي هذا المصروف؟</p>
-                <div className="bq-chips" role="radiogroup" aria-label="سبب الإلغاء">
-                  {REASONS.map((x) => (
+                <div
+                  className="bq-chips"
+                  role="radiogroup"
+                  aria-label="سبب الإلغاء"
+                  onKeyDown={radioKeys}
+                >
+                  {REASONS.map((x, i) => (
                     <button
                       key={x}
                       type="button"
                       role="radio"
                       aria-checked={pick === x}
+                      tabIndex={radioTab(pick === x, i, !!pick)}
                       className="bq-chip bq-press"
                       onClick={() => setPick(x)}
                     >

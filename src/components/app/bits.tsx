@@ -72,10 +72,13 @@ export function MethodBadge({
   method,
   size = 28,
   label = true,
+  decorative = false,
 }: {
   method: PaymentMethod;
   size?: number;
   label?: boolean;
+  /** the wallet name is already written next to it: the logo says nothing (audit B11) */
+  decorative?: boolean;
 }) {
   const logo = methodLogo(method);
   return (
@@ -85,7 +88,7 @@ export function MethodBadge({
         style={{ width: size, height: size, borderRadius: Math.round(size * 0.28) }}
       >
         {logo ? (
-          <Image src={logo} alt={label ? "" : METHOD_LABELS[method]} width={size} height={size} />
+          <Image src={logo} alt={label || decorative ? "" : METHOD_LABELS[method]} width={size} height={size} />
         ) : method === "cash" ? (
           I.cash(Math.round(size * 0.64))
         ) : (

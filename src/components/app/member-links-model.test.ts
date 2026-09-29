@@ -47,20 +47,20 @@ const links: Record<string, MemberLinkInfo> = { a2: link("a2"), b1: link("b1", t
 const rows = linkRows(members, (id) => links[id]);
 
 describe("member links", () => {
-  it("state: none / sent / using", () => {
+  it("state: none / made / using", () => {
     expect(linkState(null)).toBe("none");
-    expect(linkState(link("a"))).toBe("sent");
+    expect(linkState(link("a"))).toBe("made");
     expect(linkState(link("a", true))).toBe("using");
   });
 
   it("active members only, in paper order", () => {
     expect(rows.map((r) => r.memberRef)).toEqual(["A-1", "A-2", "A-10", "B-1", "B-2"]);
-    expect(rows.map((r) => r.state)).toEqual(["none", "sent", "none", "using", "none"]);
+    expect(rows.map((r) => r.state)).toEqual(["none", "made", "none", "using", "none"]);
   });
 
   it("counts and groups", () => {
-    expect(linkCounts(rows)).toEqual({ total: 5, sent: 2, left: 3 });
-    expect(linkGroups(rows).map((g) => [g.code, g.sent, g.items.length])).toEqual([
+    expect(linkCounts(rows)).toEqual({ total: 5, made: 2, left: 3 });
+    expect(linkGroups(rows).map((g) => [g.code, g.made, g.items.length])).toEqual([
       ["A", 1, 3],
       ["B", 1, 2],
     ]);
@@ -74,7 +74,7 @@ describe("member links", () => {
     expect(nextInWalk(rows, null, new Set(["a1", "a10"]))).toBe("b2");
   });
 
-  it("walk after a send: the sent row no longer counts", () => {
+  it("walk after a send: the row with a new link no longer counts", () => {
     const after = linkRows(members, (id) => (id === "a1" ? link("a1") : links[id]));
     expect(nextInWalk(after, null)).toBe("a10");
     expect(nextInWalk(after, "a1")).toBe("a10");

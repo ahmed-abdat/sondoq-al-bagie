@@ -13,7 +13,7 @@ import { Avatar, MemberNo, PaidCheck } from "./bits";
 import { fmt, groupLabel, monthCount } from "./derive";
 import { I } from "./icons";
 import { rememberDemoMember, useMemberAct, useMemberDemo } from "./member-act";
-import { waitingLine, youCard, youDots } from "./member-model";
+import { pendingCounts, waitingLine, youCard, youDots } from "./member-model";
 import {
   memberHome,
   memberSheetData,
@@ -125,8 +125,9 @@ export function MemberCard({
   if (d === null) return onMe ? null : <MemberLinkPaste />;
 
   const { s } = d;
-  const waiting = d.waiting + (isDemo ? demo.sent.filter((x) => x.status === "pending").length : 0);
-  const st = youCard(s, d.months, d.year, waiting);
+  const local = isDemo ? pendingCounts(demo.sent, s.memberId) : { sent: 0, mine: 0 };
+  const waiting = d.waiting + local.sent;
+  const st = youCard(s, d.months, d.year, d.waitingMine + local.mine);
   const dots = youDots(d.months);
   const paidNames = dots.filter((x) => x.state === "paid").map((x) => x.name);
   return (

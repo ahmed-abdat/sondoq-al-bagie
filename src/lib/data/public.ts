@@ -79,6 +79,12 @@ export const getMemberIndex = cached(
 
 export const getFundStats = cached("fund_stats", read.fundStats, toFundStats(null));
 export const getActivityPublic = cached("activity_public", read.activityPublic, []);
+/** Home: the newest `limit` payments and expenses, amount-free (not the whole feed). */
+export const getLedgerPublic = cached(
+  "ledger_public",
+  (c: read.Client, limit: number = 3) => read.ledgerPublic(c, limit),
+  { activity: [], expenses: [] },
+);
 export const getCampaignsPublic = cached("campaigns_public", read.campaignsPublic, []);
 export const getExpensesPublic = cached("expenses_public", read.expensesPublic, []);
 export const getTermsInfo = cached("terms_info", read.termsInfo, []);

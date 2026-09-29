@@ -284,7 +284,8 @@ export function CommitteeView({
         </ul>
       </section>
 
-      {!sheet && <Fab onClick={() => setSheet({ t: "record" })} />}
+      {/* stays mounted under the sheet's scrim: closing the sheet gives focus back to it (B05) */}
+      <Fab onClick={() => setSheet({ t: "record" })} />
 
       {sheet?.t === "record" && (
         <Sheet key="record" label="سجّل دفعة" onDone={() => setSheet(null)}>

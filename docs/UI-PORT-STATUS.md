@@ -466,6 +466,31 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - e2e `money-privacy.spec.ts` (stranger HTML/network clean, member and committee see figures);
   share/report specs updated. 75/75. Shots `/private/tmp/claude-502/sondoq-shots/r27/`.
 
+## Codex QA pass 2 fixes (r28)
+- B09: `pendingCounts(history, meId)` (member-model, tested): only pending payments sent here
+  that cover MY months turn the late card into «تنتظر تأكيد اللجنة»; proof for someone else shows
+  only the «دفعة بانتظار التأكيد» line and keeps «ادفع الآن». `MemberHome.waitingMine`.
+- B02: `.bq-btn-wrap` (long name buttons wrap; «إزالة … من هذا الهاتف»). B03: `tabIndex()` is
+  -1 outside the five tabs (/me): no `aria-current`, pill hidden (`[data-none]`).
+- B04: expense «إلغاء» aria-label «إلغاء مصروف <وصف> <مبلغ> أوقية».
+- B10: member links say «أُنشئ الرابط» / «لهم رابط» (delivery is unknown, never «أُرسل»); a
+  link made on this page keeps its URL in memory → «أرسل مرة أخرى» reopens WhatsApp with the
+  same link (nothing stops); older links still go through «رابط جديد» + confirm. LinkState
+  `made` (was `sent`).
+- B01: demo opens no Realtime socket (`CommitteeLive` only when `!isDemo()`); `usingFixtures`
+  = `demoMode` (one fail-closed decision: fixtures flag on production = real reads).
+- Home reads `src.ledgerRecent(3)` (`getLedgerPublic(n)`, amount-free); /accounts keeps
+  `ledgerPublic()`.
+- B05: `Sheet` remembers the focused opener and returns focus on close (finalFocus + after
+  the morph close); the committee FAB stays mounted under the sheet. B08: the hidden dialog
+  title renders as `<span>` (not a second heading). B11: `MethodBadge decorative` where the
+  wallet name is written beside it. B06: `radio-keys.ts` (`radioTab`, `radioKeys`, tested):
+  expense and record radio groups have one Tab stop, RTL arrows, Home/End. Other chip radio
+  groups (members-admin, settings, setup, slip, cancel-payment, search-field) not yet.
+- Not done (owner prototypes): home hero, committee hub, donations order, roster.
+- e2e touched (Lane B): `member-links.spec.ts` (B10 wording, same-link resend), new B09/B02/B03
+  test in `member-ui.spec.ts`.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
