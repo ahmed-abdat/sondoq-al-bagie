@@ -118,7 +118,7 @@ describe("actions", () => {
     const r = await recordPayment(payment);
     expect(r).toEqual({
       ok: true,
-      data: { id, status: "confirmed", replay: false, receiptCode: null },
+      data: { id, status: "confirmed", replay: false, receiptCode: null, pendingOverlap: false },
     });
     expect(rpc).toHaveBeenCalledWith(
       "record_payment",

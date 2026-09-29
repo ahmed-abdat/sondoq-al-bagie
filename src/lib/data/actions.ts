@@ -55,6 +55,8 @@ export type RecordPaymentResult = {
   replay: boolean;
   /** set when the payment was confirmed at once */
   receiptCode: string | null;
+  /** another pending payment already covers one of these member-months: only one can be confirmed */
+  pendingOverlap: boolean;
 };
 
 /**
@@ -119,12 +121,14 @@ async function record(input: s.RecordPaymentInput) {
           status: RecordPaymentResult["status"];
           replay: boolean;
           receipt_code?: string | null;
+          pending_overlap?: boolean;
         };
         return {
           id: r.id,
           status: r.status,
           replay: r.replay,
           receiptCode: r.receipt_code ?? null,
+          pendingOverlap: r.pending_overlap ?? false,
         };
       },
     },
