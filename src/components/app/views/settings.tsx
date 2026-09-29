@@ -2,9 +2,10 @@
 import { toWesternDigits } from "@/lib/money";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { CommitteePushToggle } from "@/components/providers/committee-push";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import { useAct, useDemoState } from "../act";
+import { useAct, useDemoState, useIsDemo } from "../act";
 import type {
   CommitteeAccount,
   CommitteeRole,
@@ -158,7 +159,10 @@ export function SettingsView({
   committee,
   members,
   selfId,
+  canConfirm = false,
 }: {
+  /** may confirm payments: gets the new-payment notifications switch */
+  canConfirm?: boolean;
   role: CommitteeRole;
   displayName: string;
   showOwed: boolean;
@@ -205,6 +209,7 @@ export function SettingsView({
   const [pw, setPw] = useState("");
   const [adding, setAdding] = useState(false);
   const admin = role === "admin";
+  const demo = useIsDemo();
 
   return (
     <>
@@ -218,7 +223,19 @@ export function SettingsView({
         </p>
       </header>
 
-      <section className="bq-sec bq-sec-first" aria-labelledby="bq-pub-h">
+      {canConfirm && (
+        <section className="bq-sec bq-sec-first" aria-labelledby="bq-push-h">
+          <h2 id="bq-push-h">الإشعارات</h2>
+          <p className="bq-hint">أعلمني عند وصول دفعة جديدة تنتظر التأكيد، على هذا الهاتف.</p>
+          {demo ? (
+            <p className="bq-hint">لا تعمل الإشعارات في النسخة التجريبية.</p>
+          ) : (
+            <CommitteePushToggle className="bq-small-top" />
+          )}
+        </section>
+      )}
+
+      <section className={`bq-sec ${canConfirm ? "" : "bq-sec-first"}`} aria-labelledby="bq-pub-h">
         <h2 id="bq-pub-h">ما يراه الأعضاء</h2>
         {!admin && <p className="bq-lead">يغيّرها المسؤول فقط.</p>}
         {confirmOwed ? (

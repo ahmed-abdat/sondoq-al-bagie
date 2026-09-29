@@ -2,6 +2,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { logout } from "@/app/login/actions";
+import { forgetCommitteePush } from "@/components/providers/committee-push";
 import { useIsDemo } from "./act";
 
 /** «خروج»: signs out; in demo mode there is no session, so it just goes home. */
@@ -14,7 +15,13 @@ export function LogoutButton({ className, children }: { className: string; child
       </Link>
     );
   return (
-    <form action={logout}>
+    <form
+      action={async () => {
+        // stop this phone's payment notifications before the session ends
+        await forgetCommitteePush().catch(() => {});
+        await logout();
+      }}
+    >
       <button type="submit" className={className}>
         {children}
       </button>

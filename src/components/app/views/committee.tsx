@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { InstallEntry } from "@/components/providers";
+import { CloseStalePushNotifications } from "@/components/providers/committee-push";
 import { usePaymentsRealtime } from "@/lib/data/realtime";
 import type {
   Arrear,
@@ -26,6 +27,7 @@ import { MembersAdmin } from "../members-admin";
 import { Num } from "../num";
 import { Receipt } from "../receipt";
 import type { ReceiptView } from "../receipt-model";
+import { PushSuggest } from "../push-suggest";
 import { RecordBody } from "../record";
 import { LateList } from "../reminders";
 import { Sheet } from "../sheet";
@@ -143,6 +145,8 @@ export function CommitteeView({
         </p>
       </header>
 
+      <CloseStalePushNotifications pendingIds={serverPending.map((p) => p.id)} />
+      {me.canConfirm && <PushSuggest />}
       <section className="bq-sec bq-sec-first" aria-labelledby="bq-wait-h">
         <h2 id="bq-wait-h" className="bq-h-count">
           بانتظار التأكيد <Num className="bq-com-n">{waiting}</Num>
