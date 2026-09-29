@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { InstallEntry } from "@/components/providers";
 import { CloseStalePushNotifications } from "@/components/providers/committee-push";
-import { usePaymentsRealtime } from "@/lib/data/realtime";
+import { toastFor, usePaymentsRealtime } from "@/lib/data/realtime";
 import type {
   Arrear,
   CampaignProgress,
@@ -38,7 +38,14 @@ import { PendingSlip } from "../slip";
 /** Live updates: another committee member recorded or confirmed a payment → refetch the page. */
 export function CommitteeLive() {
   const router = useRouter();
-  usePaymentsRealtime(() => router.refresh());
+  const say = useSnack();
+  usePaymentsRealtime({
+    onRefresh: () => router.refresh(),
+    onChange: (c) => {
+      const text = toastFor(c);
+      if (text) say(text, { label: "عرض", run: () => router.push("/committee") });
+    },
+  });
   return null;
 }
 
