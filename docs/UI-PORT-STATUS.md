@@ -553,6 +553,17 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - Committee loading line «جارٍ فتح صفحة اللجنة…».
 - Word table applied (see commit); install banner wording is in providers/install.tsx (Lane B file).
 
+## QA pass 4 (r33)
+- Donations step 4 = `donate-proof.tsx`: member link → upload + `memberSubmitPayment` with a
+  campaign allocation (pending in the committee queue); stranger → `navigator.share({files})` when
+  `canShare`, else WhatsApp text + «أرفقها في واتساب». WhatsApp handoff labels say «افتح…/جهّز…».
+- Counts: `arCount` / `monthCount(n, "obl")` / `memberCount` / `memberNoun` / `linkCount` (tested).
+- Link walk end «انتهت القائمة» (+ «جُهّز N») ; settings arrears «للأعضاء واللجنة».
+- Demo QA: `/committee?demoQueue=0|12` (demo only, `src.demoQueue`), e2e in committee.spec.
+- 48px: search mic/keypad, `.bq-ml-wa`, `.bq-icon-btn`, install buttons, hint link.
+- Reveal/grow CSS removed. 200% text: no overflow in Chromium/Firefox/WebKit incl. settings/late.
+- pass4-arabic.md rows applied (errors.ts and install.tsx are other lanes' files).
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
