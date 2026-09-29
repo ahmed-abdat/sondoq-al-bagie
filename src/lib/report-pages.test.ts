@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { ReportData, ReportExpense, ReportMember, ReportMonthState } from "./data/types";
-import { monthPaid } from "./report-check";
+import { monthCell, monthPaid, paidTotal } from "./report-check";
 import {
   A4_PAGE,
   BLOCK_H,
   chunkEven,
   L,
   memberCols,
+  memberChunks,
   membersPerPage,
   membersWord,
   numberOf,
@@ -56,6 +57,20 @@ const report = (members: ReportMember[], expenses: ReportExpense[] = []): Report
 it("fits 21 member rows on a phone page and 26 on an A4 page", () => {
   expect(membersPerPage(PHONE_PAGE)).toBe(21);
   expect(membersPerPage(A4_PAGE)).toBe(26);
+  // the group's last page keeps room for «المجموع»
+  expect(membersPerPage(PHONE_PAGE, true)).toBe(20);
+  expect(membersPerPage(A4_PAGE, true)).toBe(25);
+});
+
+it("memberChunks: even pages, the last one with room for the total", () => {
+  const len = (n: number, size = PHONE_PAGE) =>
+    memberChunks([...Array(n).keys()], size).map((c) => c.length);
+  expect(len(20)).toEqual([20]);
+  expect(len(21)).toEqual([11, 10]);
+  expect(len(40)).toEqual([20, 20]);
+  expect(len(42).at(-1)).toBeLessThanOrEqual(20);
+  expect(len(68)).toEqual([17, 17, 17, 17]);
+  expect(len(26, A4_PAGE)).toEqual([13, 13]);
 });
 
 it("chunkEven balances pages", () => {
@@ -81,6 +96,35 @@ describe("month cells: a ✓ badge when paid, empty otherwise", () => {
       undefined,
     ];
     expect(states.map(monthPaid)).toEqual([true, true, false, false, false, false]);
+  });
+
+  it("cell: paid ✓, owed by an active member = sand (late or to come), else white", () => {
+    const states: ReportMonthState[] = ["paid", "prepaid", "late", "upcoming", "not_owed"];
+    expect(states.map((s) => monthCell("active", s))).toEqual([
+      "paid",
+      "paid",
+      "unpaid",
+      "unpaid",
+      "none",
+    ]);
+    expect(states.map((s) => monthCell("exempt", s))).toEqual([
+      "paid",
+      "paid",
+      "none",
+      "none",
+      "none",
+    ]);
+    expect(monthCell("left", "late")).toBe("none");
+  });
+
+  it("group total: paid months × the member's group fee", () => {
+    const m = (groupCode: string, months: ReportMonthState[]) => ({ groupCode, months });
+    expect(
+      paidTotal(
+        [m("A", ["paid", "prepaid", "late"]), m("B", ["paid", "not_owed"]), m("A", ["late"])],
+        { A: 1000, B: 500 },
+      ),
+    ).toBe(2500);
   });
 
   it("12 badges fit on the 1080 page with room between them and for the name", () => {
@@ -134,7 +178,7 @@ describe("paginateReport", () => {
   });
 
   it("A4 pages hold more rows", () => {
-    const many = Array.from({ length: 26 }, (_, i) => member(`A-${i + 1}`));
+    const many = Array.from({ length: 25 }, (_, i) => member(`A-${i + 1}`));
     const count = (size?: typeof A4_PAGE) =>
       paginateReport(report(many), size).filter((p) => p.kind === "members").length;
     expect(count(A4_PAGE)).toBe(1);

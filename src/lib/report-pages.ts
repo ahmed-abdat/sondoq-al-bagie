@@ -7,7 +7,7 @@
 import { renderPng, type CanvasFonts } from "./canvas-share";
 import type { ReportCampaign, ReportData, ReportExpense, ReportMember } from "./data/types";
 import { formatDay, monthName } from "./dates";
-import { monthPaid } from "./report-check";
+import { monthCell, paidTotal } from "./report-check";
 import { formatNumber } from "./format";
 import { FUND_NAME } from "./share-receipt";
 import {
@@ -38,6 +38,8 @@ export const L = {
   head: 52,
   /** one member row height everywhere */
   row: 44,
+  /** «المجموع: … أوقية» under a group's last page */
+  total: 64,
   foot: 92,
 } as const;
 
@@ -81,8 +83,16 @@ const listLabel = (code: string) => {
 /** Left / deceased members are hidden, as on the public lists. */
 const isShown = (m: Pick<ReportMember, "status">) => m.status !== "left" && m.status !== "deceased";
 
-export function membersPerPage(size: PageSize): number {
-  return Math.floor((size.h - L.band - L.gap - L.legend - L.head - L.foot) / L.row);
+export function membersPerPage(size: PageSize, withTotal = false): number {
+  const avail = size.h - L.band - L.gap - L.legend - L.head - L.foot - (withTotal ? L.total : 0);
+  return Math.floor(avail / L.row);
+}
+
+/** A group's pages: as even as possible, the last one keeping room for «المجموع». */
+export function memberChunks<X>(xs: X[], size: PageSize): X[][] {
+  const chunks = chunkEven(xs, membersPerPage(size));
+  const last = membersPerPage(size, true);
+  return (chunks.at(-1)?.length ?? 0) > last ? chunkEven(xs, last) : chunks;
 }
 
 /** Split into the fewest pages of at most `max`, as even as possible (45 by 20 → 15, 15, 15). */
@@ -171,9 +181,9 @@ export function paginateReport(r: ReportData, size: PageSize = PHONE_PAGE): Repo
   const shown = r.members.filter(isShown);
   const lists = [...new Set(shown.map(listOf))].sort();
   for (const list of lists) {
-    const chunks = chunkEven(
+    const chunks = memberChunks(
       shown.filter((m) => listOf(m) === list),
-      membersPerPage(size),
+      size,
     );
     chunks.forEach((rows, i) =>
       pages.push({ kind: "members", list, rows, part: i + 1, parts: chunks.length }),
@@ -297,6 +307,10 @@ export function membersWord(n: number) {
   return n >= 3 && n <= 10 ? `${n} أعضاء` : `${n} عضوًا`;
 }
 
+/** Unpaid month cell (gold track, calm, never red) and the grid's lines. */
+const UNPAID = T.goldTrack;
+const GRID = T.pebble;
+
 function drawMembers(
   p: Pen,
   page: Extract<ReportPage, { kind: "members" }>,
@@ -315,17 +329,24 @@ function drawMembers(
     ...(fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : []),
   ]);
 
-  // Legend: «✓ مدفوع» on the right, the month numbers' key on the left
+  // Legend: «✓ مدفوع  ░ غير مدفوع» on the right, the month numbers' key on the left
   const ly = L.band + L.gap + 36;
   okBadge(p, R - 14, ly - 9, 14);
   p.text("مدفوع", R - 38, ly, { size: 24, color: T.slate });
+  const sw = R - 140;
+  p.x.fillStyle = UNPAID;
+  p.x.fillRect(sw - 24, ly - 22, 24, 24);
+  p.x.strokeStyle = GRID;
+  p.x.lineWidth = 1.5;
+  p.x.strokeRect(sw - 24, ly - 22, 24, 24);
+  p.text("غير مدفوع", sw - 36, ly, { size: 24, color: T.slate });
   p.text(`1 = ${monthName(1)} … 12 = ${monthName(12)}`, P, ly, {
     size: 20,
     color: T.slate,
     align: "left",
   });
 
-  const { cRef, nameR, nameW, cx, badge } = memberCols(w);
+  const { cRef, nameR, nameW, cx, badge, cell } = memberCols(w);
   const row = L.row;
 
   const hy = L.band + L.gap + L.legend;
@@ -341,10 +362,20 @@ function drawMembers(
       dir: "ltr",
     });
 
+  // the paper grid: a light line around every cell (header included)
+  const rowsEnd = rowsTop + page.rows.length * row;
   page.rows.forEach((m, i) => {
     const y = rowsTop + i * row;
     const mid = y + row / 2;
-    if (i % 2 === 1) p.box(P - 12, y, w - 2 * P + 24, row, 12, T.greenWash);
+    if (i % 2 === 1) {
+      p.x.fillStyle = T.greenWash;
+      p.x.fillRect(P, y, R - P, row);
+    }
+    for (let k = 1; k <= 12; k++)
+      if (monthCell(m.status, m.months[k - 1]) === "unpaid") {
+        p.x.fillStyle = UNPAID;
+        p.x.fillRect(cx(k) - cell / 2, y, cell, row);
+      }
     // the page is one group («المجموعة أ»): the number alone
     p.text(numberOf(m), cRef, mid + 8, {
       size: 24,
@@ -355,8 +386,33 @@ function drawMembers(
       dir: "ltr",
     });
     p.text(m.fullName, nameR, mid + 11, { size: 30, weight: 600, max: nameW });
-    for (let k = 1; k <= 12; k++) if (monthPaid(m.months[k - 1])) okBadge(p, cx(k), mid, badge);
+    for (let k = 1; k <= 12; k++)
+      if (monthCell(m.status, m.months[k - 1]) === "paid") okBadge(p, cx(k), mid, badge);
   });
+  const x = p.x;
+  x.strokeStyle = GRID;
+  x.lineWidth = 1.5;
+  x.beginPath();
+  for (const y of [
+    hy,
+    ...Array.from({ length: page.rows.length + 1 }, (_, i) => rowsTop + i * row),
+  ]) {
+    x.moveTo(P, y);
+    x.lineTo(R, y);
+  }
+  for (const vx of [P, ...Array.from({ length: 12 }, (_, i) => P + (i + 1) * cell), R - 76, R]) {
+    x.moveTo(vx, hy);
+    x.lineTo(vx, rowsEnd);
+  }
+  x.stroke();
+
+  // «المجموع» once, under the group's last page
+  if (page.part === page.parts)
+    p.text(`المجموع: ${formatNumber(paidTotal(all, r.groupPrices))} أوقية`, R, rowsEnd + 46, {
+      size: 28,
+      weight: 700,
+      face: "display",
+    });
 }
 
 function drawMoney(
