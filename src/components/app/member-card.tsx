@@ -95,10 +95,10 @@ export function MemberCard({
   if (d === null) return onMe ? null : <MemberLinkPaste />;
 
   const { s } = d;
-  const st = youCard(s, d.months, d.year);
+  const waiting = d.waiting + (isDemo ? demo.sent.filter((x) => x.status === "pending").length : 0);
+  const st = youCard(s, d.months, d.year, waiting);
   const dots = youDots(d.months);
   const paidNames = dots.filter((x) => x.state === "paid").map((x) => x.name);
-  const waiting = d.waiting + (isDemo ? demo.sent.filter((x) => x.status === "pending").length : 0);
   return (
     <section className="bq-sec bq-you" aria-labelledby="bq-you-h">
       <div className="bq-you-head">
@@ -134,7 +134,7 @@ export function MemberCard({
         </div>
       )}
       <p className={`bq-you-st ${st.kind === "late" ? "is-late" : "is-ok"}`}>
-        {st.kind === "late" ? I.clock(20) : I.check(20)}
+        {st.kind === "late" || st.kind === "pending" ? I.clock(20) : I.check(20)}
         <span>{st.text}</span>
       </p>
       {st.kind === "full" && <p className="bq-hint">شكرًا لك</p>}

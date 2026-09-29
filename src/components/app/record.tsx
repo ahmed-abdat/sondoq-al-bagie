@@ -506,6 +506,8 @@ export function RecordBody({
   const [more, setMore] = useState(false);
   const [reading, setReading] = useState(false);
   const [checks, setChecks] = useState<ReceiptChecks | null>(null);
+  /** a recipient number or name was read at all (a failed read is not a wrong wallet) */
+  const [recipientRead, setRecipientRead] = useState(false);
   const [read, setRead] = useState<{ ok: boolean } | null>(null);
   const [fromShot, setFromShot] = useState<Set<ShotField>>(() => new Set());
   const [busy, setBusy] = useState(false);
@@ -641,6 +643,7 @@ export function RecordBody({
         }
         setFromShot(got);
         setChecks(r.checks);
+        setRecipientRead(!!(r.recipientNumber || r.recipientName));
         setRead({ ok: got.size > 0 });
       })
       .catch(() => seq === readSeq.current && setRead({ ok: false }))
@@ -947,7 +950,12 @@ export function RecordBody({
             />
           </label>
           {checks && !checks.recipient && (
-            <p className="bq-hint">{I.search(16)} تحقق: المستلم في الصورة ليس من أرقام الصندوق.</p>
+            <p className="bq-hint">
+              {I.search(16)}{" "}
+              {recipientRead
+                ? "تحقق: المستلم في الصورة ليس من أرقام الصندوق."
+                : "لم نقرأ رقم المستلم. تأكد أنه أحد أرقام الصندوق."}
+            </p>
           )}
 
           <div className="bq-rec-sec" ref={methodRef}>

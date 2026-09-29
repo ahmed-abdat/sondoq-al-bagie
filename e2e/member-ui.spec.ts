@@ -81,7 +81,21 @@ test("late: one «ادفع الآن» → amount and wallets → «دفعت؟ أ
   const sheet = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
   await expect(sheet).toContainText("الحسن ولد عبد الله");
   await expect(sheet).toContainText(/يوليو|سبتمبر/);
-  await expect(sheet.locator(".bq-rec-foot").getByRole("button")).toHaveText("أرفق صورة التحويل");
+  const btn = sheet.locator(".bq-rec-foot").getByRole("button");
+  await expect(btn).toHaveText("أرفق صورة التحويل");
+
+  // after sending, the card says it arrived and drops the big «ادفع الآن» (audit M1)
+  await sheet.locator('input[type="file"]').setInputFiles(SHOT);
+  await expect(btn).not.toHaveText("أرفق صورة التحويل");
+  if ((await btn.textContent())?.includes("كيف")) {
+    await btn.click();
+    await sheet.getByRole("radio", { name: "بنكيلي" }).click();
+  }
+  await expect(btn).toHaveText("أرسل إلى اللجنة");
+  await btn.click();
+  await expect(card).toContainText("أرسلت صورة التحويل. تنتظر تأكيد اللجنة.");
+  await expect(card).not.toContainText("عليك 3 أشهر");
+  await expect(card.getByRole("button", { name: "ادفع الآن" })).toHaveCount(0);
 });
 
 test("«إزالة … من هذا الهاتف» forgets the link here", async ({ page }) => {
