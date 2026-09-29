@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { SettingsView } from "@/components/app/views/settings";
-import { BackupCard, YearPrices } from "@/components/app/settings-cards";
+import { BackupCard, CurrentPrices, YearPrices } from "@/components/app/settings-cards";
 
 export const metadata: Metadata = { title: "الإعدادات · صندوق الرابطة" };
 
@@ -55,6 +55,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/committ
         selfId={session.userId}
         accounts={accounts}
       >
+        {priceYear !== year && <CurrentPrices year={year} prices={current} />}
         {priceYear && (
           <YearPrices
             year={priceYear}

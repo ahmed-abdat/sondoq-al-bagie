@@ -417,7 +417,7 @@ function AccountSheet({
       </div>
       <dl className="bq-facts">
         <div className="is-wide">
-          <dt>رقم الدخول</dt>
+          <dt>البريد أو الهاتف للدخول</dt>
           <dd>
             <bdi dir="ltr" className="bq-num">
               {a.login}

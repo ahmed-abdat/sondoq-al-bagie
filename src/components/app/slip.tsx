@@ -197,11 +197,12 @@ export function PendingSlip({
         {done && toShareable(done) && (
           <button
             type="button"
-            className="bq-icon-btn bq-press"
+            className="bq-btn bq-btn-soft bq-press bq-slip-one-wa"
             onClick={() => void shareReceipt(toShareable(done)!)}
-            aria-label={`أرسل إيصال ${p.payerName} عبر واتساب`}
+            aria-label={`أرسل وصل ${p.payerName} عبر واتساب`}
           >
-            {I.wa(22)}
+            {/* icon plus a word (audit C19) */}
+            {I.wa(20)} الوصل
           </button>
         )}
       </div>
@@ -225,7 +226,7 @@ export function PendingSlip({
       </p>
       {base.covers.map((c) => (
         <p key={`${c.name}-${c.year}`} className="bq-slip-cov">
-          {multi || c.name !== p.payerName || c.ref ? (
+          {multi || c.name !== p.payerName ? (
             <>
               عن {c.name}
               {c.ref && (
@@ -234,12 +235,20 @@ export function PendingSlip({
                   (<MemberNo m={{ memberRef: c.ref }} />)
                 </>
               )}
-              :{" "}
+              : رسوم {monthsInWords(c.months, c.year)}
             </>
           ) : (
-            "عن: "
+            // payer = the member: no second name (audit C12)
+            <>
+              عن: رسوم {monthsInWords(c.months, c.year)}
+              {c.ref && (
+                <>
+                  {" "}
+                  (<MemberNo m={{ memberRef: c.ref }} />)
+                </>
+              )}
+            </>
           )}
-          رسوم {monthsInWords(c.months, c.year)}
         </p>
       ))}
       {base.campaigns.length > 0 && (

@@ -511,7 +511,8 @@
     outline: none;
   }
   .bq-search input::placeholder {
-    color: #5e6a63;
+    color: var(--muted);
+    opacity: 0.85;
   }
   .bq-search input::-webkit-search-cancel-button {
     display: none;
@@ -1335,7 +1336,7 @@
   .bq-gate-i {
     width: 64px;
     height: 64px;
-    border-radius: 22px;
+    border-radius: var(--r-lg);
     display: grid;
     place-items: center;
     background: var(--g1);
@@ -1512,6 +1513,12 @@
     min-height: 64px;
     padding-inline: 4px;
     animation: bq-fade 200ms var(--ease-out) both;
+  }
+  .bq-slip-one-wa {
+    flex: none;
+    min-height: 44px;
+    padding-inline: 14px;
+    font-size: 15px;
   }
   .bq-slip-one .bq-row-t {
     flex: 1;

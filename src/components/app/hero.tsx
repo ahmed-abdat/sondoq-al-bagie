@@ -10,7 +10,7 @@ export type HeroData = {
   spent: number;
   /** «آخر تحديث: …» or, for the committee, the pending count */
   note: ReactNode;
-  /** «الدورة 2 · منذ 1 يناير 2026» */
+  /** «منذ 1 يناير 2026» */
   term?: string | null;
 };
 

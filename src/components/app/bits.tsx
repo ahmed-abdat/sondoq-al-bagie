@@ -38,7 +38,7 @@ export function Avatar({
         {n}
       </span>
       {!scoped && (
-        <span className="bq-av-l" style={{ fontSize: Math.max(10, Math.round(size * 0.24)) }}>
+        <span className="bq-av-l" style={{ fontSize: Math.max(12, Math.round(size * 0.28)) }}>
           {letter}
         </span>
       )}

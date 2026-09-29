@@ -54,7 +54,6 @@ export default async function ReportPage() {
   const paidNow = active.filter((m) => monthPaid(m.months[month - 1])).length;
   const payers = (k: number) => shown.filter((m) => monthPaid(m.months[k - 1])).length;
   const current = r.term;
-  const termLabel = summary.termNumber ? `الدورة ${summary.termNumber}` : null;
   const monthly = r.monthly;
   const yearExpenses = r.expenses;
   const campaigns = r.campaigns.filter((c) => !isEmptyClosedCampaign(c));
@@ -90,8 +89,9 @@ export default async function ReportPage() {
           <h1>تقرير صندوق رابطة شباب البقيع</h1>
           <p>
             سنة <Num>{year}</Num>
-            {termLabel ? ` · ${termLabel}` : ""}
-            {current ? ` منذ ${dayWords(current.startedOn)} ${current.startedOn.slice(0, 4)}` : ""}
+            {current
+              ? ` · منذ ${dayWords(current.startedOn)} ${current.startedOn.slice(0, 4)}`
+              : ""}
           </p>
           <p className="rp-sub">حتى {dayDate(today)}</p>
         </div>

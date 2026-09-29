@@ -105,7 +105,7 @@ function CancelForm({
         )}
         {r.payer} · <Num>{fmt(r.amount)}</Num> أوقية
       </p>
-      <p className="bq-lead">تبقى في السجل مع السبب، وتُحذف أشهرها من حساب العضو.</p>
+      <p className="bq-lead">تبقى في السجل مع السبب، ولا تُحسب أشهرها للعضو بعد الآن.</p>
       <p className="bq-rej-l">لماذا تلغيها؟</p>
       <div className="bq-chips" role="radiogroup" aria-label="سبب الإلغاء">
         {CANCEL_REASONS.map((x) => (

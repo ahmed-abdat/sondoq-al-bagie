@@ -222,7 +222,7 @@ export function CommitteeView({
           />
           <MenuRow
             href="/committee/late"
-            icon={I.wa(22)}
+            icon={I.clock(22)}
             title="تذكير المتأخرين"
             sub="رسالة واتساب لكل متأخر أو للمجموعة"
             count={lateCount}
@@ -244,7 +244,7 @@ export function CommitteeView({
           )}
           <MenuRow
             href="/committee/member-links"
-            icon={I.wa(22)}
+            icon={I.copy(22)}
             title="روابط الأعضاء"
             sub="أرسل لكل عضو رابطه الخاص في واتساب"
           />
@@ -262,7 +262,7 @@ export function CommitteeView({
           )}
           <MenuRow
             href="/report#share"
-            icon={I.wa(22)}
+            icon={I.image(22)}
             title="مشاركة التقرير"
             sub="صور أو PDF لمجموعة الواتساب"
           />
