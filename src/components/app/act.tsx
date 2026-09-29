@@ -230,6 +230,7 @@ const demo: Partial<Actions> = {
     return ok({ userId: "demo", login: "+22236123456", password: generatePassword() });
   },
   setCommitteeActive: async () => ok(undefined),
+  setCommitteeMember: async () => ok(undefined),
   async startHandover(p) {
     const h: Handover = {
       id: p.id,

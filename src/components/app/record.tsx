@@ -133,9 +133,7 @@ function MemberPicker({
       ),
     [pool, q, g],
   );
-  const late = res
-    .filter((m) => m.status === "active" && m.monthsBehind > 0)
-    .sort(byMostLate);
+  const late = res.filter((m) => m.status === "active" && m.monthsBehind > 0).sort(byMostLate);
   const recent = q.trim()
     ? []
     : recentIds.map((id) => pool.find((m) => m.memberId === id)).filter((m): m is MemberRow => !!m);
