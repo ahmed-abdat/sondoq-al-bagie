@@ -68,9 +68,11 @@ async function noShare(page: Page) {
   });
 }
 
+/** Share is committee only: from the hub (demo committee) to /report#share, the sheet opens. */
 async function openSheet(page: Page) {
-  await page.goto("/report");
-  await page.getByRole("button", { name: "مشاركة التقرير" }).click();
+  await page.goto("/committee");
+  await page.getByRole("link", { name: /مشاركة التقرير/ }).click();
+  await expect(page.getByRole("dialog", { name: "مشاركة التقرير" })).toBeVisible();
 }
 
 test("opens, and opens offline after a visit", async ({ page, context }) => {
@@ -101,7 +103,7 @@ test("«طباعة» opens the print dialog", async ({ page }) => {
 test("report images: every page as a 1080×1350 PNG in one share", async ({ page }) => {
   await shareSheet(page);
   await openSheet(page);
-  await page.getByRole("button", { name: /صور التقرير/ }).click();
+  await page.getByRole("button", { name: /صور لواتساب/ }).click();
 
   await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).not.toHaveLength(0);
   const files = await win(page, "__shared");
@@ -141,7 +143,7 @@ test("report images without a share sheet fall back to WhatsApp text with the li
 }) => {
   await noShare(page);
   await openSheet(page);
-  await page.getByRole("button", { name: /صور التقرير/ }).click();
+  await page.getByRole("button", { name: /صور لواتساب/ }).click();
 
   await expect.poll(() => win(page, "__opened")).toHaveLength(1);
   const [url] = await win(page, "__opened");
@@ -212,9 +214,27 @@ test("members grid: one bordered table, a plain ✓ in each paid month, empty ce
   ]);
   await expect(wide.locator("tbody tr").first().locator("td")).toHaveCount(13);
   await page.setViewportSize({ width: 390, height: 844 });
+});
 
-  await page.getByRole("button", { name: "مشاركة التقرير" }).click();
+test("«مشاركة التقرير» is for the committee only: a visitor reads, #share opens nothing", async ({
+  page,
+}) => {
+  await page.goto("/report#share");
+  await expect(heading(page)).toBeVisible();
+  await expect(page.getByRole("button", { name: "طباعة" })).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(page.getByRole("button", { name: "مشاركة التقرير" })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.goto("/accounts");
+  await expect(page.getByRole("link", { name: /مشاركة التقرير/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /التقرير كاملًا/ })).toBeVisible();
+});
+
+test("committee (demo): the hub opens the share sheet on the report", async ({ page }) => {
+  await openSheet(page);
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("radio")).toHaveCount(0);
   await expect(page.getByRole("dialog")).not.toContainText("✓ يعني");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "مشاركة التقرير" })).toBeVisible();
 });

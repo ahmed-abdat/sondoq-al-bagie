@@ -12,6 +12,7 @@ import {
 } from "@/lib/share-report";
 import { I } from "./icons";
 import { Sheet } from "./sheet";
+import { useCommitteeViewer } from "./viewer";
 
 type Result = "shared" | "whatsapp" | "cancelled" | "downloaded" | "retry" | "copied";
 
@@ -23,16 +24,21 @@ const DONE: Record<Exclude<Result, "retry">, string> = {
   copied: "نُسخ الرابط. الصقه في مجموعة الواتساب.",
 };
 
+/**
+ * Committee only (owner rule): visitors and members read the report; a signed-in committee member
+ * (any role) also gets «مشاركة التقرير» and the #share sheet. Hidden until known, so no flash.
+ */
 export function ReportShare({ data, autoOpen = false }: { data: ReportData; autoOpen?: boolean }) {
+  const committee = useCommitteeViewer();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [retry, setRetry] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   useEffect(() => {
-    if (!autoOpen && window.location.hash !== "#share") return;
+    if (!committee || (!autoOpen && window.location.hash !== "#share")) return;
     const t = window.setTimeout(() => setOpen(true));
     return () => clearTimeout(t);
-  }, [autoOpen]);
+  }, [autoOpen, committee]);
   useEffect(() => {
     if (open) prepareReportShare(data);
   }, [open, data]);
@@ -66,7 +72,7 @@ export function ReportShare({ data, autoOpen = false }: { data: ReportData; auto
     {
       key: "images",
       icon: I.image(24),
-      title: "صور التقرير (واتساب)",
+      title: "صور لواتساب",
       sub: "صفحات التقرير صورًا، تُرسل دفعة واحدة",
       run: () => shareReportImages(data),
     },
@@ -79,7 +85,7 @@ export function ReportShare({ data, autoOpen = false }: { data: ReportData; auto
     },
     {
       key: "summary",
-      icon: I.heart(24),
+      icon: I.image(24),
       title: "صورة الملخص فقط",
       sub: "صورة واحدة: ما في الصندوق ومن دفع",
       run: () => shareReportSummary(data),
@@ -99,13 +105,15 @@ export function ReportShare({ data, autoOpen = false }: { data: ReportData; auto
   return (
     <>
       <div className="rp-tools">
-        <button
-          type="button"
-          className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-          onClick={() => setOpen(true)}
-        >
-          {I.wa(22)} مشاركة التقرير
-        </button>
+        {committee && (
+          <button
+            type="button"
+            className="bq-btn bq-btn-primary bq-btn-lg bq-press"
+            onClick={() => setOpen(true)}
+          >
+            {I.wa(22)} مشاركة التقرير
+          </button>
+        )}
         <button
           type="button"
           className="bq-link bq-link-s bq-link-quiet bq-press"
@@ -114,7 +122,7 @@ export function ReportShare({ data, autoOpen = false }: { data: ReportData; auto
           طباعة
         </button>
       </div>
-      {open && (
+      {open && committee && (
         <Sheet label="مشاركة التقرير" onDone={() => setOpen(false)}>
           <div className="bq-rec">
             <h2>مشاركة التقرير</h2>
