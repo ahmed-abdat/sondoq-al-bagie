@@ -78,23 +78,6 @@ export async function members(c: Client) {
   ).map(map.toMemberStatus);
 }
 
-/**
- * Public late list, most months behind first. `amountOwed` stays null unless the admin turned
- * on settings.show_amount_owed (the database decides).
- */
-export async function lateMembers(c: Client) {
-  return many(
-    "member_status",
-    await c
-      .from("member_status")
-      .select("*")
-      .eq("member_status", "active")
-      .gt("months_behind", 0)
-      .order("months_behind", { ascending: false })
-      .order("number"),
-  ).map(map.toMemberStatus);
-}
-
 /** Month grid of every member for one year (default: this year). */
 export async function memberMonths(c: Client, year: number = thisYear()) {
   const rows = await paged("member_months", (from, to) =>
@@ -107,19 +90,6 @@ export async function memberMonths(c: Client, year: number = thisYear()) {
       .range(from, to),
   );
   return rows.map(map.toMemberMonth);
-}
-
-/** One member's months, all years. */
-export async function memberMonthsOf(c: Client, memberId: string) {
-  return many(
-    "member_months",
-    await c
-      .from("member_months")
-      .select("*")
-      .eq("member_id", memberId)
-      .order("year")
-      .order("month"),
-  ).map(map.toMemberMonth);
 }
 
 export async function monthlyCollection(c: Client, year: number = thisYear()) {
@@ -183,11 +153,6 @@ export async function terms(c: Client) {
   );
 }
 
-/** The open term, or null before the terms migration. */
-export async function currentTerm(c: Client) {
-  return (await terms(c)).find((t) => t.endedOn === null) ?? null;
-}
-
 export async function fundAccounts(c: Client) {
   return many("fund_accounts_public", await c.from("fund_accounts_public").select("*")).map(
     map.toFundAccount,
@@ -218,14 +183,6 @@ export async function recentPayments(c: Client, limit = 50) {
       .order("created_at", { ascending: false })
       .limit(limit),
   ).map(map.toPendingPayment);
-}
-
-export async function paymentById(c: Client, id: string) {
-  const row = must(
-    "payment_queue",
-    await c.from("payment_queue").select("*").eq("id", id).maybeSingle(),
-  );
-  return row ? map.toPendingPayment(row) : null;
 }
 
 export async function arrears(c: Client) {
@@ -283,14 +240,6 @@ export async function handovers(c: Client) {
     "handovers_admin",
     await c.from("handovers_admin").select("*").order("started_at", { ascending: false }),
   ).map(map.toHandover);
-}
-
-export async function handoverById(c: Client, id: string) {
-  const row = must(
-    "handovers_admin",
-    await c.from("handovers_admin").select("*").eq("id", id).maybeSingle(),
-  );
-  return row ? map.toHandover(row) : null;
 }
 
 /** Committee accounts with their login (admin only; others get an empty list). */
