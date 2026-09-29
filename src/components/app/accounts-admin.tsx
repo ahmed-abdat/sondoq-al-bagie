@@ -10,7 +10,7 @@ import { waLink } from "@/lib/whatsapp";
 import { useAct } from "./act";
 import { memberLabel, parseMemberRef, relativeAgo, ROLE_LABEL } from "./derive";
 import { I } from "./icons";
-import { Num, useNow } from "./num";
+import { useNow } from "./num";
 import { Sheet } from "./sheet";
 
 type Creds = { name: string; login: string; password: string };

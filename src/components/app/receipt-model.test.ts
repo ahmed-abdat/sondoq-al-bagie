@@ -49,8 +49,8 @@ describe("receipt model", () => {
     const r = fromPending(pending);
     expect(r.status).toEqual({ kind: "pending" });
     expect(r.covers).toEqual([
-      { name: "عالي ولد محمد", year: 2026, months: [9] },
-      { name: "الداه ولد محمد", year: 2026, months: [9] },
+      { name: "عالي ولد محمد", ref: "A-7", year: 2026, months: [9] },
+      { name: "الداه ولد محمد", ref: "B-40", year: 2026, months: [9] },
     ]);
     expect(r.txn).toBe("TR20260928391");
     expect(r.txnLast4).toBe("8391");

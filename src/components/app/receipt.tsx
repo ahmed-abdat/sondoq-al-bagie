@@ -20,6 +20,7 @@ import {
   monthCount,
   monthsInWords,
 } from "./derive";
+import { MemberNo } from "./bits";
 import { I } from "./icons";
 import { verifyPath, type ReceiptView } from "./receipt-model";
 
@@ -57,7 +58,7 @@ export function Stamp({
   seed = 3,
   className = "",
 }: {
-  variant?: "confirmed" | "rejected";
+  variant?: "confirmed" | "rejected" | "cancelled";
   date: string;
   size?: number;
   press?: boolean;
@@ -68,10 +69,10 @@ export function Stamp({
   const top = `rct${uid}`;
   const bot = `rcb${uid}`;
   const ink = `rci${uid}`;
-  const word = variant === "rejected" ? "مرفوض" : "مؤكَّد";
+  const word = variant === "rejected" ? "مرفوض" : variant === "cancelled" ? "ملغى" : "مؤكَّد";
   return (
     <span
-      className={`rc-stamp ${variant === "rejected" ? "is-rej" : ""} ${press ? "is-press" : ""} ${className}`}
+      className={`rc-stamp ${variant !== "confirmed" ? "is-rej" : ""} ${press ? "is-press" : ""} ${className}`}
       style={{ width: size, height: size }}
       role="img"
       aria-label={`ختم ${ASSOC}: ${word} ${dayDate(date)}`}
@@ -443,10 +444,9 @@ function StatusBlock({ r, press }: { r: ReceiptView; press: boolean }) {
     );
   else
     body = (
-      <div className="rc-st-body">
-        <span className="rc-st-ico is-void">{I.ban(22)}</span>
+      <div className="rc-st-body has-stamp">
         <div>
-          <p className="rc-st-h">أُلغي هذا الوصل</p>
+          <p className="rc-st-h is-rej">{I.ban(20)} أُلغي هذا الوصل</p>
           {st.reason && (
             <p className="rc-st-p">
               <span className="rc-st-k">السبب:</span> {st.reason}
@@ -468,7 +468,7 @@ function StatusBlock({ r, press }: { r: ReceiptView; press: boolean }) {
         </div>
       )}
       <div className={`rc-st-layer ${press ? "is-in" : ""}`}>{body}</div>
-      {(st.kind === "confirmed" || st.kind === "rejected") && (
+      {(st.kind === "confirmed" || st.kind === "rejected" || st.kind === "cancelled") && (
         <Stamp
           variant={st.kind}
           date={st.at}
@@ -505,8 +505,8 @@ export function Receipt({
               <Image src="/logo.jpg" alt="" width={44} height={44} />
             </span>
             <span className="rc-org">
-              <strong>{ASSOC}</strong>
-              <span>{FUND}</span>
+              <strong>{FUND}</strong>
+              <span>{ASSOC}</span>
             </span>
           </header>
 
@@ -544,8 +544,16 @@ export function Receipt({
                 <dd>
                   {r.covers.map((c) => (
                     <span key={`${c.name}-${c.year}`} className="rc-cover">
-                      {(multi || c.name !== r.payer) && (
-                        <span className="rc-for">عن: {c.name}</span>
+                      {(multi || c.name !== r.payer || c.ref) && (
+                        <span className="rc-for">
+                          عن: {c.name}
+                          {c.ref && (
+                            <>
+                              {" "}
+                              (<MemberNo m={{ memberRef: c.ref }} />)
+                            </>
+                          )}
+                        </span>
                       )}
                       <span className="rc-months">{monthsInWords(c.months, c.year)}</span>
                       <span className="rc-count">{monthCount(c.months.length)}</span>

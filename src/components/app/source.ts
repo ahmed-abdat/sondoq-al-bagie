@@ -76,6 +76,7 @@ export async function ledger(): Promise<LedgerEntry[]> {
     )
     .map((a): LedgerEntry => ({
       id: `p-${a.paymentId}`,
+      paymentId: a.paymentId,
       kind: a.months > 0 ? "payment" : "donation",
       title: a.memberNames,
       sub:
@@ -123,6 +124,8 @@ export const committeeSession = () =>
     ? Promise.resolve({ ...fx.fxSession(), displayName: DEMO_USER, role: "admin" as const })
     : data.getCommitteeSession();
 export const pendingPayments = () => pick(fx.fxPending, () => data.getPendingPayments());
+/** Latest payments (any status), newest first: the committee finds one to fix here. */
+export const recentPayments = () => pick(fx.fxRecent, () => data.getRecentPayments());
 export const arrears = () => pick(fx.fxArrears, () => data.getArrears());
 export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFundAccountsAdmin());
 /** Committee member list: every member, any status, with phone and current group. */

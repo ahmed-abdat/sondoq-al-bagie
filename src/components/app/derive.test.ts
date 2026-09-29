@@ -139,7 +139,7 @@ describe("search", () => {
     expect(searchMembers(two, "12").map((x) => x.fullName)).toEqual(["س", "ص"]);
     expect(parseMemberRef("ب 7")).toBe("B-7");
     expect(parseMemberRef("محمد")).toBeNull();
-    expect(memberLabel({ memberRef: "B-7" })).toBe("ب\u20097");
+    expect(memberLabel({ memberRef: "B-7" })).toBe("ب 7");
     expect(memberLabel({ memberRef: "B-7" }, { scoped: true })).toBe("7");
     expect(
       nextFreeNumber(

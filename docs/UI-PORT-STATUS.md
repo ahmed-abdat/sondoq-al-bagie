@@ -136,6 +136,15 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
    campaign) and participants for fixed/per-group campaigns — not built.
 3. Lane A copy: `src/lib/data/reminders.ts` still says «حالة الاشتراكات» (must be «الرسوم الشهرية»).
 
+## Member numbers and cancelling payments
+- Numbers read «أ 12» where groups mix and «12» inside one group (`memberLabel`, `MemberNo`,
+  `Avatar` in `derive.ts`/`bits.tsx`; the mixed form reuses `memberNumber` from share-receipt).
+  memberRef «A-12» stays the internal key. Search accepts 12، أ12، أ 12، A12، a-12، Arabic digits.
+- «إلغاء هذه الدفعة» under a confirmed receipt for admin, treasurer, deputy (`cancel-payment.tsx`).
+  Public pages are cached, so the viewer's role comes from `viewer.ts`: seeded by the committee
+  layout, or one server action (`whoCanCancel`) when a Supabase session cookie exists.
+- /committee/payments: recent confirmed payments (`getRecentPayments`), cancelled ones dimmed.
+
 ## Payloads (fixtures, 89 members)
 Home reads `getMemberIndex` (search index only: ref, name, status label; a result opens
 `/members?m=REF`); /members and the record sheet read `getMemberRows` (12-letter month code).
