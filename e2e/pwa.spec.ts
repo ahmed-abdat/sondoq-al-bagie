@@ -127,3 +127,26 @@ test("public pages visited by in-app navigation open offline", async ({ page, co
   }
   await context.setOffline(false);
 });
+
+test("in data-saver mode, visited pages are not downloaded again for offline", async ({ page }) => {
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: { saveData: true, effectiveType: "4g" },
+    }),
+  );
+  await page.goto("/");
+  await waitForServiceWorker(page);
+  const hits: string[] = [];
+  page.on("request", (r) => {
+    if (r.resourceType() === "fetch" && new URL(r.url()).pathname === "/members")
+      if (!r.headers()["rsc"]) hits.push(r.url());
+  });
+  await page.locator('a[href="/members"]:visible').first().click();
+  await page.waitForURL("**/members");
+  await page.waitForTimeout(3000); // past the idle timeout
+  expect(hits).toEqual([]);
+  expect(
+    await page.evaluate(async () => !!(await (await caches.open("pages")).match("/members"))),
+  ).toBe(false);
+});
