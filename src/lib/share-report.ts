@@ -17,9 +17,11 @@ import {
   type ShareResult,
 } from "./canvas-share";
 import type { ReportData } from "./data/types";
+import type { PayAccount } from "./report-pages";
 import { formatDay, monthName } from "./dates";
 import { formatNumber } from "./format";
 import { ASSOC_NAME, FUND_NAME } from "./share-receipt";
+import { waLink } from "./whatsapp";
 
 /** What the cover draws. Built from Lane A's ReportData with `reportSummary()`. */
 export interface ReportSummaryData {
@@ -511,7 +513,12 @@ export async function shareReportSummary(
 
 /* ─────────────── the whole report: PNG pages / PDF ─────────────── */
 
-type Prepared = { pages?: Promise<File[]>; pdf?: Promise<File> };
+type Prepared = {
+  pages?: Promise<File[]>;
+  pdf?: Promise<File>;
+  /** the fee reminder, for these wallets */
+  reminder?: { accounts: PayAccount[]; pages?: Promise<File[]>; pdf?: Promise<File> };
+};
 const prepared = new WeakMap<ReportInput, Prepared>();
 const slot = (d: ReportInput) => {
   let s = prepared.get(d);
@@ -536,41 +543,44 @@ function reportPageFiles(d: ReportInput, url = reportUrl(publicOrigin())): Promi
 /** The report as an A4 PDF (the same pages at A4 ratio, as JPEG), built on the phone. */
 function reportPdfFile(d: ReportInput, url = reportUrl(publicOrigin())): Promise<File> {
   const s = slot(d);
-  s.pdf ??= (async () => {
-    const [pages, { jpegsToPdf, A4_PT }] = await Promise.all([
-      import("./report-pages"),
-      import("./pdf"),
-    ]);
-    const { A4_PAGE } = pages;
-    const { fonts, logo } = await drawKit();
-    const scale = 1; // 1080 × 1575 px inside a 10 mm margin: about 140 dpi, under 1 MB
-    const blobs = await pages.renderReportPages(d, {
-      url,
-      fonts,
-      logo,
-      size: A4_PAGE,
-      scale,
-      type: "image/jpeg",
-      quality: 0.7,
-    });
-    const jpegs = await Promise.all(
-      blobs.map(async (b) => ({
-        jpeg: new Uint8Array(await b.arrayBuffer()),
-        w: Math.round(A4_PAGE.w * scale),
-        h: Math.round(A4_PAGE.h * scale),
-      })),
-    );
-    const pdf = jpegsToPdf(jpegs, {
-      title: `تقرير ${FUND_NAME} ${d.year}`,
-      margin: (10 / 25.4) * 72,
-      ...A4_PT,
-    });
-    return new File([pdf as BlobPart], `${reportFileBase(d.generatedAt)}.pdf`, {
-      type: "application/pdf",
-    });
-  })();
+  s.pdf ??= buildPdf(d, url, `تقرير ${FUND_NAME} ${d.year}`, reportFileBase(d.generatedAt));
   s.pdf.catch(() => (s.pdf = undefined));
   return s.pdf;
+}
+
+async function buildPdf(
+  d: ReportInput,
+  url: string,
+  title: string,
+  base: string,
+  reminder?: PayAccount[],
+): Promise<File> {
+  const [pages, { jpegsToPdf, A4_PT }] = await Promise.all([
+    import("./report-pages"),
+    import("./pdf"),
+  ]);
+  const { A4_PAGE } = pages;
+  const { fonts, logo } = await drawKit();
+  const scale = 1; // 1080 × 1575 px inside a 10 mm margin: about 140 dpi, under 1 MB
+  const blobs = await pages.renderReportPages(d, {
+    url,
+    fonts,
+    logo,
+    size: A4_PAGE,
+    scale,
+    type: "image/jpeg",
+    quality: 0.7,
+    reminder,
+  });
+  const jpegs = await Promise.all(
+    blobs.map(async (b) => ({
+      jpeg: new Uint8Array(await b.arrayBuffer()),
+      w: Math.round(A4_PAGE.w * scale),
+      h: Math.round(A4_PAGE.h * scale),
+    })),
+  );
+  const pdf = jpegsToPdf(jpegs, { title, margin: (10 / 25.4) * 72, ...A4_PT });
+  return new File([pdf as BlobPart], `${base}.pdf`, { type: "application/pdf" });
 }
 
 /** Start rendering in the background (call when the share sheet opens), so the tap shares at once. */
@@ -621,6 +631,110 @@ export async function shareReportPdf(
   const nav = opts.nav ?? (navigator as ShareNavigator);
   const file = await reportPdfFile(d, url);
   const res = await shareFiles([file], reportShareText(d, url), nav);
+  if (res) return res;
+  (opts.download ?? downloadPng)(file, file.name);
+  return "downloaded";
+}
+
+/* ─────────────── the fee reminder («من عليه رسوم فقط») ─────────────── */
+// The same members grid, only members who owe, no money at all (owner): «تذكير بالرسوم».
+
+export type { PayAccount };
+
+/** Owes fees: an active member with a month due and unpaid this year (away/exempt/left: never). */
+export const owesFees = (m: Pick<ReportData["members"][number], "status" | "monthsBehind">) =>
+  m.status === "active" && m.monthsBehind > 0;
+
+/** Anyone to remind? (else the sheet's «من عليه رسوم فقط» is off: «لا أحد عليه رسوم الآن») */
+export const hasReminder = (r: Pick<ReportData, "members">) => r.members.some(owesFees);
+
+/** «تذكير-بالرسوم-2026-09». */
+export function reminderFileBase(iso: string): string {
+  return `تذكير-بالرسوم-${iso.slice(0, 7)}`;
+}
+
+/** The app's home link (where each member finds their name and pays). */
+const appUrl = () => publicOrigin().replace(/\/$/, "");
+
+export function reminderShareText(url: string, pay: string | null): string {
+  return [
+    `*تذكير بالرسوم · ${FUND_NAME}*`,
+    "هذه الأسماء عليها رسوم لم تُدفع بعد.",
+    ...(pay ? [pay] : []),
+    `ابحث عن اسمك وادفع من التطبيق: ${url}`,
+  ].join("\n");
+}
+
+function reminderSlot(d: ReportInput, accounts: PayAccount[]) {
+  const s = slot(d);
+  if (s.reminder?.accounts !== accounts) s.reminder = { accounts };
+  return s.reminder;
+}
+
+function reminderPageFiles(d: ReportInput, accounts: PayAccount[], url: string): Promise<File[]> {
+  const s = reminderSlot(d, accounts);
+  s.pages ??= (async () => {
+    const pages = await import("./report-pages");
+    const { fonts, logo } = await drawKit();
+    const base = reminderFileBase(d.generatedAt);
+    const blobs = await pages.renderReportPages(d, { url, fonts, logo, reminder: accounts });
+    return blobs.map((b, i) => new File([b], `${base}-${i + 1}.png`, { type: "image/png" }));
+  })();
+  s.pages.catch(() => (s.pages = undefined));
+  return s.pages;
+}
+
+function reminderPdfFile(d: ReportInput, accounts: PayAccount[], url: string): Promise<File> {
+  const s = reminderSlot(d, accounts);
+  s.pdf ??= buildPdf(
+    d,
+    url,
+    `تذكير بالرسوم · ${FUND_NAME}`,
+    reminderFileBase(d.generatedAt),
+    accounts,
+  );
+  s.pdf.catch(() => (s.pdf = undefined));
+  return s.pdf;
+}
+
+/** Start rendering the reminder in the background (when it is chosen in the sheet). */
+export function prepareReminderShare(d: ReportInput, accounts: PayAccount[], url = appUrl()): void {
+  reminderPageFiles(d, accounts, url).catch(() => {});
+}
+
+async function reminderText(accounts: PayAccount[], url: string) {
+  const { payLine } = await import("./report-pages");
+  return reminderShareText(url, payLine(accounts));
+}
+
+/** The reminder's pages as PNG in one share; without file sharing, WhatsApp text with the link. */
+export async function shareReminderImages(
+  d: ReportInput,
+  accounts: PayAccount[],
+  url = appUrl(),
+  opts: ShareImageOptions = {},
+): Promise<ShareResult> {
+  const nav = opts.nav ?? (navigator as ShareNavigator);
+  const text = await reminderText(accounts, url);
+  if (typeof nav.share === "function" && nav.canShare) {
+    const files = await reminderPageFiles(d, accounts, url).catch(() => null);
+    const res = files && (await shareFiles(files, text, nav));
+    if (res) return res;
+  }
+  (opts.open ?? ((u: string) => window.open(u, "_blank", "noopener")))(waLink(opts.phone, text));
+  return "whatsapp";
+}
+
+/** The reminder as one A4 PDF through the share sheet; if files cannot be shared, download it. */
+export async function shareReminderPdf(
+  d: ReportInput,
+  accounts: PayAccount[],
+  url = appUrl(),
+  opts: { nav?: ShareNavigator; download?: (b: Blob, name: string) => void } = {},
+): Promise<ShareResult | "downloaded"> {
+  const nav = opts.nav ?? (navigator as ShareNavigator);
+  const file = await reminderPdfFile(d, accounts, url);
+  const res = await shareFiles([file], await reminderText(accounts, url), nav);
   if (res) return res;
   (opts.download ?? downloadPng)(file, file.name);
   return "downloaded";

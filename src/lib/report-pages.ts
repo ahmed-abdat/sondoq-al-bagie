@@ -3,6 +3,8 @@
  * cover (summary), one or more pages per member list (a green ✓ in each paid month),
  * then expenses and campaigns. 1080×1350 for images; 1080×1575 for the PDF (A4 inside a 10 mm
  * margin). Loaded on demand by share-report.ts. Pagination is pure and unit tested.
+ * The fee reminder («من عليه رسوم فقط») is the same members grid, filtered to members who owe,
+ * without money: no totals, a «ادفع عبر: …» line instead.
  */
 import { renderPng, type CanvasFonts } from "./canvas-share";
 import type { ReportCampaign, ReportData, ReportExpense, ReportMember } from "./data/types";
@@ -12,6 +14,8 @@ import { formatNumber } from "./format";
 import { FUND_NAME } from "./share-receipt";
 import {
   drawReportSummary,
+  hasReminder,
+  owesFees,
   makePen,
   reportSummary,
   T,
@@ -46,6 +50,8 @@ export const L = {
   rowPrint: 52,
   /** «المجموع: … أوقية» and the legend under the grid */
   total: 56,
+  /** the fee reminder's «ادفع عبر: …» line under the legend */
+  pay: 50,
   foot: 92,
 } as const;
 
@@ -74,7 +80,15 @@ export const BLOCK_H: Record<Block["t"], number> = {
 
 export type ReportPage =
   | { kind: "cover" }
-  | { kind: "members"; list: string; rows: ReportMember[]; part: number; parts: number }
+  | {
+      kind: "members";
+      list: string;
+      rows: ReportMember[];
+      part: number;
+      parts: number;
+      /** the fee reminder: only members who owe, «ادفع عبر: …» (null: no wallet set), no total */
+      reminder?: { pay: string | null };
+    }
   | { kind: "money"; title: string; blocks: Block[]; part: number; parts: number };
 
 /** «A-12» → «A». */
@@ -89,10 +103,10 @@ const isShown = (m: Pick<ReportMember, "status">) => m.status !== "left" && m.st
 /** Member row height: taller in the A4 PDF, which is printed or read zoomed out. */
 export const rowHeight = (size: PageSize) => (size.h === A4_PAGE.h ? L.rowPrint : L.row);
 
-/** Rows per members page; the total line under the grid always has its room. */
-export function membersPerPage(size: PageSize): number {
+/** Rows per members page; the total line under the grid (and `extra`) always has its room. */
+export function membersPerPage(size: PageSize, extra = 0): number {
   return Math.floor(
-    (size.h - L.band - L.gap - L.legend - L.head - L.total - L.foot) / rowHeight(size),
+    (size.h - L.band - L.gap - L.legend - L.head - L.total - extra - L.foot) / rowHeight(size),
   );
 }
 
@@ -200,6 +214,48 @@ export function paginateReport(r: ReportData, size: PageSize = PHONE_PAGE): Repo
   money.forEach((blocks, i) =>
     pages.push({ kind: "money", title, blocks, part: i + 1, parts: money.length }),
   );
+  return pages;
+}
+
+/* ─────────────── the fee reminder («من عليه رسوم فقط») ─────────────── */
+
+export { hasReminder, owesFees };
+
+/** A fund wallet for «ادفع عبر: …» (cash has no number: left out). */
+export type PayAccount = { method: string; accountNumber: string; label: string };
+
+/** «ادفع عبر: بنكيلي 22 12 34 56 · مصرفي 33 …»; null when the fund has no wallet set. */
+export function payLine(accounts: PayAccount[]): string | null {
+  const shown = accounts.filter((a) => a.method !== "cash" && a.accountNumber.trim()).slice(0, 3);
+  if (!shown.length) return null;
+  return `ادفع عبر: ${shown.map((a) => `${a.label} ${a.accountNumber.trim()}`).join(" · ")}`;
+}
+
+/** The reminder's pages: per group, only members who owe; groups where nobody owes are left out. */
+export function paginateReminder(
+  r: ReportData,
+  accounts: PayAccount[],
+  size: PageSize = PHONE_PAGE,
+): ReportPage[] {
+  const pay = payLine(accounts);
+  const owing = r.members.filter(owesFees);
+  const pages: ReportPage[] = [];
+  for (const list of [...new Set(owing.map(listOf))].sort()) {
+    const chunks = chunkEven(
+      owing.filter((m) => listOf(m) === list),
+      membersPerPage(size, L.pay),
+    );
+    chunks.forEach((rows, i) =>
+      pages.push({
+        kind: "members",
+        list,
+        rows,
+        part: i + 1,
+        parts: chunks.length,
+        reminder: { pay },
+      }),
+    );
+  }
   return pages;
 }
 
@@ -326,11 +382,16 @@ function drawMembers(
   const P = L.pad;
   const all = r.members.filter((m) => isShown(m) && listOf(m) === page.list);
   const fee = (r.groupPrices as Record<string, number | undefined>)[page.list];
-  // no current-month count here (owner decision r20): the group, its size and its fee
-  band(p, w, card, o.logo, `المجموعة ${listLabel(page.list)}`, [
-    membersWord(all.length),
-    ...(fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : []),
-  ]);
+  const feeLine = fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : [];
+  // no current-month count here (owner decision r20): the group, its size and its fee. The
+  // reminder: a gentle title, the fee only (never «متأخر N» nor how many owe)
+  if (page.reminder)
+    band(p, w, card, o.logo, `تذكير بالرسوم · المجموعة ${listLabel(page.list)}`, feeLine);
+  else
+    band(p, w, card, o.logo, `المجموعة ${listLabel(page.list)}`, [
+      membersWord(all.length),
+      ...feeLine,
+    ]);
 
   // the month key above the grid; no second title, the band already names the fund (r25)
   const ty = L.band + L.gap + 34;
@@ -381,9 +442,17 @@ function drawMembers(
   x.roundRect(P, hy, R - P, rowsEnd - hy, CORNER);
   x.stroke();
 
-  // under the grid: «المجموع» once (the group's last page) and the legend
+  // under the grid: «المجموع» once (the group's last page) and the legend; the reminder has no
+  // money at all (owner): «ادفع عبر: …» in its place
   const fy = rowsEnd + 38;
-  if (page.part === page.parts)
+  if (page.reminder?.pay)
+    p.text(page.reminder.pay, R, fy + L.pay, {
+      size: 24,
+      weight: 600,
+      color: T.forest,
+      max: R - P,
+    });
+  if (!page.reminder && page.part === page.parts)
     p.text(`المجموع: ${formatNumber(paidTotal(all, r.groupPrices))} أوقية`, R, fy, {
       size: 26,
       weight: 700,
@@ -564,10 +633,12 @@ export async function renderReportPages(
     scale?: number;
     type?: "image/png" | "image/jpeg";
     quality?: number;
+    /** the fee reminder («من عليه رسوم فقط») with these wallets, instead of the full report */
+    reminder?: PayAccount[];
   },
 ): Promise<Blob[]> {
   const size = o.size ?? PHONE_PAGE;
-  const pages = paginateReport(r, size);
+  const pages = o.reminder ? paginateReminder(r, o.reminder, size) : paginateReport(r, size);
   const out: Blob[] = [];
   for (const [i, page] of pages.entries()) {
     out.push(

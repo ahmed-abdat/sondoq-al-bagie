@@ -12,7 +12,11 @@ import {
   moneyBlocks,
   footerLabel,
   paginateBlocks,
+  paginateReminder,
   paginateReport,
+  payLine,
+  hasReminder,
+  owesFees,
   PHONE_PAGE,
   rowHeight,
   type Block,
@@ -223,4 +227,56 @@ it("group band: the group's size, no current-month count", () => {
     "11 عضوًا",
     "20 عضوًا",
   ]);
+});
+
+describe("fee reminder («من عليه رسوم فقط»)", () => {
+  const owing = (ref: string, status: ReportMember["status"] = "active"): ReportMember => ({
+    ...member(ref, status),
+    months: [...Array(8).fill("paid"), "late", "upcoming", "upcoming", "upcoming"],
+    monthsPaid: 8,
+    monthsBehind: 1,
+  });
+  const accounts = [
+    { method: "bankily", accountNumber: "22 12 34 56", label: "بنكيلي" },
+    { method: "cash", accountNumber: "", label: "نقدًا" },
+    { method: "masrvi", accountNumber: "33 00 11 22", label: "مصرفي" },
+  ];
+
+  it("only active members with an unpaid due month; away, exempt, left never", () => {
+    expect(owesFees(owing("A-1"))).toBe(true);
+    expect(owesFees(member("A-2"))).toBe(false);
+    for (const st of ["away", "exempt", "left", "deceased"] as const)
+      expect(owesFees(owing("A-3", st))).toBe(false);
+  });
+
+  it("per group, only members who owe; a group where nobody owes is left out", () => {
+    const r = report([
+      owing("A-1"),
+      member("A-2"),
+      owing("A-3"),
+      member("B-1"),
+      owing("B-2", "away"),
+    ]);
+    const pages = paginateReminder(r, accounts);
+    expect(pages).toHaveLength(1); // no cover, no money pages, no group B
+    const [p] = pages;
+    expect(p.kind === "members" && p.list).toBe("A");
+    expect(p.kind === "members" && p.rows.map((m) => m.memberRef)).toEqual(["A-1", "A-3"]);
+    expect(p.kind === "members" && p.reminder).toEqual({
+      pay: "ادفع عبر: بنكيلي 22 12 34 56 · مصرفي 33 00 11 22",
+    });
+    expect(hasReminder(r)).toBe(true);
+    expect(hasReminder(report([member("A-1"), owing("B-2", "exempt")]))).toBe(false);
+    expect(paginateReminder(report([member("A-1")]), accounts)).toEqual([]);
+  });
+
+  it("leaves room for «ادفع عبر» under the grid; no wallet set → no line", () => {
+    const many = Array.from({ length: 40 }, (_, i) => owing(`A-${i + 1}`));
+    const pages = paginateReminder(report(many), [], A4_PAGE);
+    const per = membersPerPage(A4_PAGE, L.pay);
+    expect(per).toBeLessThan(membersPerPage(A4_PAGE));
+    for (const p of pages) expect(p.kind === "members" && p.rows.length).toBeLessThanOrEqual(per);
+    expect(payLine([])).toBeNull();
+    expect(payLine([accounts[1]])).toBeNull(); // cash only: no number to send to
+  });
 });
