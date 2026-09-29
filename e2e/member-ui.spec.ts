@@ -107,6 +107,35 @@ test("late: one «ادفع الآن» → amount and wallets → «دفعت؟ أ
   await expect(card.getByRole("button", { name: "ادفع الآن" })).toHaveCount(0);
 });
 
+test("late member who sends proof for someone else keeps «ادفع الآن» (QA B09); /me claims no tab, no sideways scroll (B02, B03)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.goto("/m/demo2");
+  const card = page.locator("section.bq-you");
+  await card.getByRole("button", { name: "ادفع عن شخص آخر" }).click();
+  const sheet = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
+  // someone else, late this year (fixtures)
+  await sheet.getByRole("button", { name: /لم يدفع هذا العام$/ }).first().click();
+  const btn = sheet.locator(".bq-rec-foot").getByRole("button");
+  await sheet.locator('input[type="file"]').setInputFiles(SHOT);
+  await expect(btn).not.toHaveText("أرفق صورة التحويل");
+  if ((await btn.textContent())?.includes("كيف")) {
+    await btn.click();
+    await sheet.getByRole("radio", { name: "بنكيلي" }).click();
+  }
+  await expect(btn).toHaveText("أرسل إلى اللجنة");
+  await btn.click();
+  await expect(card.getByRole("link", { name: "دفعة بانتظار التأكيد" })).toBeVisible();
+  await expect(card).toContainText(/عليك 3 أشهر/);
+  await expect(card.getByRole("button", { name: "ادفع الآن" })).toHaveCount(1);
+
+  await page.goto("/me");
+  await expect(page.getByRole("heading", { name: "دفعاتي", level: 1 })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await expect(page.locator('.bq-bnav [aria-current="page"]')).toHaveCount(0);
+});
+
 test("«إزالة … من هذا الهاتف» forgets the link here", async ({ page }) => {
   await page.goto("/m/demo");
   await expect(page.locator("section.bq-you")).toBeVisible();
