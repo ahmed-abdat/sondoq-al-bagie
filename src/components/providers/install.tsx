@@ -27,6 +27,7 @@ import {
   DISMISS_KEY,
   ENGAGED_KEY,
   installMode,
+  offersInstallDialog,
   recordVisitDay,
   SESSIONS_KEY,
   shouldInvite,
@@ -387,8 +388,13 @@ export function InstallBanner() {
   };
   const { mode, start, sheetEl, waiting } = useInstallAction(later);
   const bar = useRef<HTMLDivElement>(null);
-  // where the browser may still offer its dialog, give it a moment so the tap opens the dialog
+  // Chrome/Edge: the invite comes with Chrome's own dialog, whenever Chrome offers it (after its
+  // engagement check, maybe 30 s in): never menu steps from the banner. Other browsers that may
+  // still offer it (Samsung): a moment's wait, then the steps.
   const [grace, setGrace] = useState(true);
+  const [chromium] = useState(
+    () => typeof navigator !== "undefined" && offersInstallDialog(navigator.userAgent),
+  );
   useEffect(() => {
     const t = window.setTimeout(() => setGrace(false), BANNER_WAIT_MS);
     return () => clearTimeout(t);
@@ -404,7 +410,7 @@ export function InstallBanner() {
     !seenBefore &&
     !closed &&
     ui[0] === "0" &&
-    !(grace && mayStillPrompt(mode)) &&
+    !(mayStillPrompt(mode) && (grace || chromium)) &&
     bannerAllowedOn(pathname);
 
   useEffect(() => {

@@ -24,6 +24,19 @@ export function isIosSafari(userAgent: string): boolean {
   );
 }
 
+/**
+ * Chromium browsers (Chrome, Edge, Opera) give their own install dialog once the site passes
+ * their checks (for Chrome: a tap and about 30 s on the site, maybe on an earlier visit). Until
+ * then the invite waits for it rather than showing menu steps.
+ */
+export function offersInstallDialog(userAgent: string): boolean {
+  return (
+    /Chrome\/|Chromium\//.test(userAgent) &&
+    !/SamsungBrowser|Firefox|FxiOS|CriOS|EdgiOS/.test(userAgent) &&
+    !isInAppBrowser(userAgent)
+  );
+}
+
 function isSamsungInternet(userAgent: string): boolean {
   return /SamsungBrowser/i.test(userAgent);
 }

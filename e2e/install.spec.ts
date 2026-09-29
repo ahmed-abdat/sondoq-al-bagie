@@ -125,10 +125,31 @@ test("a tap just before Chrome's event: it waits for it and opens the dialog, no
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
-test("no dialog from Chrome: the tap opens the steps, never a dead button", async ({ page }) => {
+test("Chrome's dialog at ~35 s (its engagement check): the banner appears then, the tap opens it", async ({
+  page,
+}) => {
+  await page.clock.install();
   await returning(page);
   await page.goto("/");
-  await card(page).getByRole("button", { name: "تثبيت" }).click(); // after the banner's wait
+  await page.waitForLoadState("networkidle");
+  await page.clock.fastForward(20_000);
+  await expect(card(page)).toHaveCount(0); // Chrome: no steps banner while its dialog may come
+  await page.clock.fastForward(15_000); // ~35 s on the site
+  await fireChromeEvent(page);
+  await expect(card(page)).toBeVisible();
+  await card(page).getByRole("button", { name: "تثبيت" }).click();
+  await expect.poll(() => log(page)).toContain("prompt");
+  await expect(page.getByRole("dialog")).toHaveCount(0); // never the steps
+});
+
+test("Chrome never offers its dialog: no banner; the permanent entry opens the steps", async ({
+  page,
+}) => {
+  await returning(page);
+  await page.goto("/accounts");
+  await page.waitForTimeout(5_000);
+  await expect(page.locator(".bq-ib")).toHaveCount(0); // the banner (the page's own section shares its name)
+  await page.getByRole("button", { name: /تثبيت التطبيق/ }).click();
   const sheet = page.getByRole("dialog", { name: "ثبّت التطبيق من Chrome" });
   await expect(sheet).toBeVisible({ timeout: 8_000 }); // after the tap's wait for Chrome
   await expect(
@@ -203,7 +224,18 @@ test.describe("the banner comes back with growing gaps", () => {
     await expect(card(await open(T0 + 25 * HOUR))).toBeVisible();
   });
 
-  test("«ليس الآن» in the steps sheet snoozes it too", async ({ page }) => {
+  test("«ليس الآن» in the steps sheet snoozes it too (Samsung Internet)", async ({
+    browser,
+    baseURL,
+  }) => {
+    const ctx = await browser.newContext({
+      ...devices["Pixel 7"],
+      baseURL,
+      locale: "ar",
+      userAgent:
+        "Mozilla/5.0 (Linux; Android 14; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/27.0 Chrome/125.0.0.0 Mobile Safari/537.36",
+    });
+    const page = await ctx.newPage();
     await returning(page);
     await page.goto("/");
     await card(page).getByRole("button", { name: "تثبيت" }).click();
@@ -213,6 +245,7 @@ test.describe("the banner comes back with growing gaps", () => {
     expect(await page.evaluate(() => localStorage.getItem("sondoq:install-backoff"))).toMatch(
       /^1,\d+$/,
     );
+    await ctx.close();
   });
 });
 
@@ -228,6 +261,7 @@ test("once per session: not again after a reload", async ({ page }) => {
 
 test("steps aside while the member types", async ({ page }) => {
   await returning(page);
+  await chromeOffersInstall(page, "dismissed");
   await page.goto("/");
   await expect(card(page)).toBeVisible();
   await page.getByPlaceholder("اكتب الاسم أو الرقم، مثل ب 12").focus();
@@ -238,6 +272,7 @@ test("steps aside while the member types", async ({ page }) => {
 
 test("sits above the bottom nav without covering it", async ({ page }) => {
   await returning(page);
+  await chromeOffersInstall(page, "dismissed");
   await page.goto("/");
   const nav = await page.locator(".bq-bnav").boundingBox();
   // once the slide-in has finished
@@ -277,6 +312,8 @@ test("installed app: never", async ({ page }) => {
 test("a member's first open: the install invite waits until the «أنت» card was seen", async ({
   page,
 }) => {
+  await page.addInitScript(() => ((window as unknown as Log).__log = []));
+  await chromeOffersInstall(page, "dismissed");
   await page.goto("/m/demo"); // → /?welcome=1, the demo member's personal link
   await expect(page).toHaveURL(/\/$/); // the marker is gone from the address
   await expect(page.locator(".bq-you")).toBeVisible();
@@ -290,8 +327,9 @@ test("desktop wording", async ({ browser, baseURL }) => {
   const ctx = await browser.newContext({ ...devices["Desktop Chrome"], baseURL, locale: "ar" });
   const page = await ctx.newPage();
   await returning(page);
+  await chromeOffersInstall(page, "dismissed");
   await page.goto("/");
-  await expect(card(page)).toContainText("أضف الصندوق إلى جهازك", { timeout: 8_000 });
+  await expect(card(page)).toContainText("أضف الصندوق إلى جهازك");
   await expect(card(page).getByRole("button", { name: "تثبيت" })).toHaveCSS("min-height", "48px");
   await ctx.close();
 });

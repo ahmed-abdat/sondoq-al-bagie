@@ -8,6 +8,7 @@ import {
   isDismissed,
   isIosSafari,
   isSnoozed,
+  offersInstallDialog,
   parseBackoff,
   recordVisitDay,
   shouldInvite,
@@ -151,5 +152,30 @@ describe("backoff after «✕»", () => {
     expect(bannerAllowedOn("/reports")).toBe(true);
     expect(bannerAllowedOn("/r/BQ-1")).toBe(false);
     expect(bannerAllowedOn("/login")).toBe(false);
+  });
+});
+
+describe("offersInstallDialog", () => {
+  const ua = {
+    chromeAndroid:
+      "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36",
+    edgeAndroid:
+      "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36 EdgA/140.0",
+    desktopChrome:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    samsung:
+      "Mozilla/5.0 (Linux; Android 14; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/27.0 Chrome/125.0.0.0 Mobile Safari/537.36",
+    firefoxAndroid: "Mozilla/5.0 (Android 14; Mobile; rv:131.0) Gecko/131.0 Firefox/131.0",
+    whatsapp:
+      "Mozilla/5.0 (Linux; Android 14; Pixel 7; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/140.0 Mobile Safari/537.36 WhatsApp/2.24",
+    iosChrome:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140.0 Mobile/15E148 Safari/604.1",
+  };
+  it("Chrome and Edge give their own dialog; Samsung, Firefox, in-app and iPhone do not wait for it", () => {
+    expect(offersInstallDialog(ua.chromeAndroid)).toBe(true);
+    expect(offersInstallDialog(ua.edgeAndroid)).toBe(true);
+    expect(offersInstallDialog(ua.desktopChrome)).toBe(true);
+    for (const u of [ua.samsung, ua.firefoxAndroid, ua.whatsapp, ua.iosChrome])
+      expect(offersInstallDialog(u)).toBe(false);
   });
 });
