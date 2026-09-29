@@ -23,7 +23,7 @@ export function Hero({ data, variant }: { data: HeroData; variant: "band" | "pan
           <Image src="/logo.jpg" alt="شعار الرابطة" width={96} height={96} priority />
         </span>
         <span className="bq-brand-t">
-          <strong>صندوق الشباب</strong>
+          <strong>صندوق الرابطة</strong>
           <span>{ASSOC}</span>
         </span>
       </div>

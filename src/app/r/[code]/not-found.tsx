@@ -22,7 +22,7 @@ export default function ReceiptNotFound() {
         <p className="bq-lead">تأكّد من الرمز المكتوب على الوصل، أو اسأل أمين الصندوق.</p>
       </section>
       <Link className="bq-btn bq-btn-soft bq-btn-lg bq-press" href="/">
-        افتح صندوق الشباب
+        افتح صندوق الرابطة
       </Link>
     </main>
   );

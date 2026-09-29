@@ -5,7 +5,7 @@ import { Tab } from "@/components/app/tab";
 import { LatePage } from "@/components/app/views/committee";
 
 export const metadata: Metadata = {
-  title: "تذكير المتأخرين · صندوق الشباب",
+  title: "تذكير المتأخرين · صندوق الرابطة",
 };
 
 export default async function Late() {
