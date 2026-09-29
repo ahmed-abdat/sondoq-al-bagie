@@ -43,7 +43,7 @@ import type { MemberCtx } from "./member";
 import { Num, prefersReduced } from "./num";
 
 const OTHER_METHODS: PaymentMethod[] = METHODS.filter(
-  (m) => !MAIN_METHODS.includes(m) && m !== "paper",
+  (m) => !MAIN_METHODS.includes(m) && m !== "paper" && m !== "credit",
 );
 
 type Row = { m: MemberRow; months: number[]; edit: boolean };

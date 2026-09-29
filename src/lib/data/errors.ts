@@ -45,6 +45,7 @@ export const MESSAGES = {
   proof_not_image: "الملف ليس صورة (JPG أو PNG أو WEBP).",
   allocations_required: "اختر الأشهر أو المساهمة التي تغطيها الدفعة.",
   allocations_mismatch: "مجموع التوزيع لا يساوي مبلغ الدفعة.",
+  credit_insufficient: "رصيد العضو لا يكفي لهذه الأشهر.",
   future_date: "التاريخ في المستقبل.",
   before_opening: "التاريخ قبل بداية سجلات الصندوق.",
   id_taken: "تعذّر حفظ الدفعة، أعد المحاولة.",

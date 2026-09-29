@@ -165,6 +165,29 @@ export async function confirmPayment(input: { id: string }) {
   );
 }
 
+export type ApplyCreditResult = {
+  id: string;
+  /** true when this id was already used (retry): nothing new was written */
+  replay: boolean;
+  receiptCode: string | null;
+};
+
+/** Months of one member paid from their credit: confirmed at once (not counted as new money). */
+export async function applyCredit(input: s.ApplyCreditInput) {
+  return run(
+    s.applyCreditSchema,
+    input,
+    (sb, p) => sb.rpc("apply_credit", { p_id: p.id, p_member_id: p.memberId, p_months: p.months }),
+    {
+      touchesPublic: true,
+      result: (d): ApplyCreditResult => {
+        const r = d as { id: string; replay: boolean; receipt_code?: string | null };
+        return { id: r.id, replay: r.replay, receiptCode: r.receipt_code ?? null };
+      },
+    },
+  );
+}
+
 export async function rejectPayment(input: { id: string; reason: string }) {
   return run(
     s.idReasonSchema,

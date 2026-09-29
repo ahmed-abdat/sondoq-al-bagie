@@ -41,7 +41,8 @@ export const recordPaymentSchema = z
   .object({
     id,
     payerName: text(120),
-    method: z.enum(E.payment_method),
+    // 'credit' payments are made by applyCredit only
+    method: z.enum(E.payment_method).refine((m) => m !== "credit"),
     amount: mro,
     paidOn: day,
     allocations: z.array(allocationSchema).min(1).max(60),
@@ -123,6 +124,21 @@ export const cancelLastPeriodSchema = z.object({ memberId: id, reason });
 /** Correct the month the member joined (admin; refused past paid or pending months). */
 export const setJoinMonthSchema = z.object({ memberId: id, fromMonth: firstOfMonth, reason });
 
+/** Pay months of one member from their credit (confirmers). */
+export const applyCreditSchema = z.object({
+  id,
+  memberId: id,
+  months: z
+    .array(
+      z.object({
+        year: z.number().int().min(2000).max(2100),
+        month: z.number().int().min(1).max(12),
+      }),
+    )
+    .min(1)
+    .max(60),
+});
+
 export const changeMemberGroupSchema = z.object({
   memberId: id,
   fromMonth: firstOfMonth,
@@ -155,7 +171,7 @@ export const updateSettingsSchema = z.object({
   whatsappContact: z.union([z.literal(""), phone]).optional(),
 });
 
-const NOT_WALLETS: readonly string[] = ["cash", "paper", "other"];
+const NOT_WALLETS: readonly string[] = ["cash", "paper", "other", "credit"];
 
 export const addFundAccountSchema = z.object({
   method: z.enum(E.payment_method).refine((m) => !NOT_WALLETS.includes(m), "not_a_wallet"),
@@ -246,6 +262,7 @@ export type LogReminderInput = z.input<typeof logReminderSchema>;
 export type AddMemberInput = z.input<typeof addMemberSchema>;
 export type UpdateMemberInput = z.input<typeof updateMemberSchema>;
 export type ChangeMemberStatusInput = z.input<typeof changeMemberStatusSchema>;
+export type ApplyCreditInput = z.input<typeof applyCreditSchema>;
 export type CancelLastPeriodInput = z.input<typeof cancelLastPeriodSchema>;
 export type SetJoinMonthInput = z.input<typeof setJoinMonthSchema>;
 export type SetGroupPriceInput = z.input<typeof setGroupPriceSchema>;

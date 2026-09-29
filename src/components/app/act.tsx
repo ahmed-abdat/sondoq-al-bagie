@@ -414,6 +414,7 @@ const demo = {
     }));
     return ok("demo");
   },
+  applyCredit: async (p) => ok({ id: p.id, replay: false, receiptCode: nextCode() }),
   cancelLastPeriod: async () => ok("demo"),
   setJoinMonth: async () => ok("demo"),
   setGroupPrice: async () => ok(undefined),

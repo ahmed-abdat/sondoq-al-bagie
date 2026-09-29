@@ -1,6 +1,10 @@
--- Undo every migration after M1 (m2 … m20, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m21, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- pay from credit (m21); the 'credit' enum value stays (like the m2 methods); views are restored below
+drop function if exists public.apply_credit(uuid, uuid, jsonb), app_private.apply_credit(uuid, uuid, jsonb);
+drop trigger if exists b_credit_payment_guard on public.payments;
+drop function if exists app_private.tg_credit_payment_guard();
 -- small guards (m20); change_member_status is restored by the m7/m1 undos
 drop index if exists public.audit_log_actor_idx;
 drop trigger if exists z_keep_an_admin on public.committee;

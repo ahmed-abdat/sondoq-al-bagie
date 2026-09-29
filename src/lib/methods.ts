@@ -13,6 +13,7 @@ export const METHODS = [
   "cash",
   "paper",
   "other",
+  "credit",
 ] as const;
 
 export type Method = (typeof METHODS)[number];
@@ -32,6 +33,8 @@ export const METHOD_LABELS: Record<Method, string> = {
   // Imported from the 2026 paper sheets (see docs/HANDOFF.md).
   paper: "سجل ورقي",
   other: "أخرى",
+  // Months paid from a member's credit (apply_credit); never picked by hand.
+  credit: "من الرصيد",
 };
 
 const LOGOS: Partial<Record<Method, string>> = {
@@ -52,7 +55,7 @@ export function methodLabel(method: Method): string {
   return METHOD_LABELS[method];
 }
 
-/** Logo path in /public, or null for cash, paper and other. */
+/** Logo path in /public, or null for cash, paper, other and credit. */
 export function methodLogo(method: Method): string | null {
   return LOGOS[method] ?? null;
 }

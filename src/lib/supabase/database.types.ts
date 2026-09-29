@@ -1256,6 +1256,10 @@ export type Database = {
         Args: { p_tables: string[] }
         Returns: Json
       }
+      apply_credit: {
+        Args: { p_id: string; p_member_id: string; p_months: Json }
+        Returns: Json
+      }
       cancel_expense: {
         Args: { p_expense_id: string; p_reason: string }
         Returns: undefined
@@ -1454,6 +1458,7 @@ export type Database = {
         | "cash"
         | "other"
         | "paper"
+        | "credit"
       payment_status: "pending" | "confirmed" | "rejected" | "cancelled"
       reminder_kind: "individual" | "group" | "receipt" | "campaign"
       surplus_action: "to_fund" | "keep"
@@ -1602,6 +1607,7 @@ export const Constants = {
         "cash",
         "other",
         "paper",
+        "credit",
       ],
       payment_status: ["pending", "confirmed", "rejected", "cancelled"],
       reminder_kind: ["individual", "group", "receipt", "campaign"],
