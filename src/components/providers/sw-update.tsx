@@ -3,10 +3,8 @@
 import { unstable_isUnrecognizedActionError, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { isPublicPage } from "@/lib/offline/cache-rules";
+import { isPublicPage, PAGES_CACHE } from "@/lib/offline/cache-rules";
 import { allowsBackgroundDownload, whenIdle, type NetworkInfo } from "@/lib/offline/data-saver";
-
-const PAGES_CACHE = "pages"; // same name as the NetworkFirst page cache in src/app/sw.ts
 
 /* ───────────── update requested by the member ───────────── */
 

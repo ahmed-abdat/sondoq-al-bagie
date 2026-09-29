@@ -23,6 +23,16 @@ sends amounts to a stranger. An eye icon alone was rejected (cosmetic).
 - No flash of real numbers, no amounts in HTML, RSC payloads, JSON, the service-worker cache or the persisted
   query cache for strangers.
 
+## Chosen design (owner, after prototype branch proto/money-hidden)
+- **Home hero (variant A):** figures replaced by «••• •••» (same width for every figure, never hints at size),
+  small lock next to «في الصندوق الآن», one line under the figures: lock icon + «الأرقام للأعضاء واللجنة. افتح
+  رابطك الخاص لتراها.» + underlined «لديك رابط؟».
+- **/accounts (variant C):** the «كيف حُسب الرصيد؟» breakdown is replaced by a soft green card: lock in a gold
+  circle, «الحساب كاملًا يظهر للأعضاء», «ما كان في الصندوق، وما جُمع، وما صُرف. افتح رابطك الخاص لتراه.»,
+  actions «لديك رابط؟ افتحه هنا ›» and WhatsApp «اطلب رابطك». The monthly section becomes «من دفع كل شهر»
+  with counts («دفع 18 من 21») instead of amounts.
+- Other money places (report totals, expenses, campaigns, activity) follow A: «••• •••» in place of the figure.
+
 ## Architecture
 - **DB (Lane A):** anon loses SELECT on money views/columns (fund_summary, monthly_collection, expense_totals,
   recent_expenses, campaign_progress / contributions amounts, activity_feed amount, terms_public figures, report

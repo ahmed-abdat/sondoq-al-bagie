@@ -21,7 +21,8 @@ export { MemberLinkPaste } from "./member-link-paste";
 // Member push pieces (server actions) live in "./member-push"; import them from there.
 
 // Bump when the shape of saved public data changes, so old copies are dropped.
-const CACHE_VERSION = "1";
+// "2": money privacy, older saved copies may hold amounts.
+const CACHE_VERSION = "2";
 
 export function makeClient() {
   return new QueryClient({
