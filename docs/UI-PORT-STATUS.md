@@ -540,6 +540,19 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - e2e touched (Lane B): record/edge-cases press «سجّل دفعة»; member-links and report reach hub
   links via «الأعمال» → «المزيد»; member-links spec for the selector/filter.
 
+## QA pass 3 leftovers (r32)
+- Proof that fails to load blocks «تأكيد الاستلام» (Proof `onFail`, slip `blocked`); demo draws a
+  fictional proof (act.tsx) so fixture slips open; cash slips «راجع المبلغ النقدي الذي استلمته.»
+- `summarize().bigCredit` (rest > one month's fee) → one check in the record footer, units spelled
+  out, «راجع المبلغ» first.
+- Lost link: `askLinkHref` (money.tsx); /me without a link and the hint dialog offer «اطلب رابطًا
+  جديدًا في واتساب»; HeroData carries the fund's WhatsApp.
+- Motion: segmented placed without transition on mount; `.bq-press` 140 ms ease-out; `Roll` no
+  longer animates; `reveal()` shows sections at once.
+- Large text: at 130%/200% no page scrolls sideways at 360px; 48px common targets.
+- Committee loading line «جارٍ فتح صفحة اللجنة…».
+- Word table applied (see commit); install banner wording is in providers/install.tsx (Lane B file).
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
