@@ -468,13 +468,8 @@ function ChangeRole({ a, onSaved }: { a: CommitteeAccount; onSaved: (r: Committe
   );
 }
 
-/*
- * Deleting an account: Lane A adds deleteCommitteeAccount({ userId }) and
- * CommitteeAccount.canDelete (no recorded operations). Until that lands, both read as absent and
- * the list keeps «إيقاف الحساب».
- */
-const canDelete = (a: CommitteeAccount) => !!(a as { canDelete?: boolean }).canDelete;
-type DeleteFn = (p: { userId: string }) => Promise<Result<unknown>>;
+/** Only accounts with no recorded operations can be deleted; the others are stopped instead. */
+const canDelete = (a: CommitteeAccount) => a.canDelete;
 
 function DeleteAccount({
   a,
@@ -486,7 +481,7 @@ function DeleteAccount({
   onDeleted: () => void;
 }) {
   const online = useOnline();
-  const del = (useAct() as unknown as { deleteCommitteeAccount?: DeleteFn }).deleteCommitteeAccount;
+  const { deleteCommitteeAccount } = useAct();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   return (
@@ -502,12 +497,11 @@ function DeleteAccount({
         <button
           type="button"
           className="bq-btn bq-btn-danger bq-btn-lg bq-press"
-          disabled={!del || busy || !online}
+          disabled={busy || !online}
           onClick={async () => {
-            if (!del) return;
             setBusy(true);
             setErr("");
-            const r = await del({ userId: a.userId });
+            const r = await deleteCommitteeAccount({ userId: a.userId });
             setBusy(false);
             if (!r.ok) return setErr(say(r));
             onDeleted();
