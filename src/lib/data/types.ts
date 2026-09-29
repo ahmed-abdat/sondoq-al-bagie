@@ -512,3 +512,63 @@ export type ReportData = {
 /** Every server action returns this. `message` is Arabic, ready to show. */
 export type ActionResult<T = undefined> =
   { ok: true; data: T } | { ok: false; code: string; message: string };
+
+/* ───────────── money privacy (docs/MONEY-PRIVACY.md) ───────────── */
+// Strangers get these amount-free shapes; money comes only through getMoney() (committee session
+// or a verified member link). Never add an amount to a *Public / FundStats / ReportShell type.
+
+type WithoutKeys<T, K extends PropertyKey> = T extends unknown ? Omit<T, K & keyof T> : never;
+
+/** fund_summary without money: counts, the open term, last activity. */
+export type FundStats = Pick<
+  FundSummary,
+  | "membersOk"
+  | "membersBehind"
+  | "membersActive"
+  | "lastActivityAt"
+  | "termNumber"
+  | "termStartedOn"
+>;
+/**
+ * The activity feed without amounts and without receipt codes (a code opens /r/<code>, which shows
+ * the amount). paymentId matches MoneyBundle.activity, which has both.
+ */
+export type PublicActivityItem = WithoutKeys<
+  ActivityItem,
+  "amount" | "targetAmount" | "receiptCode"
+>;
+export type CampaignPublic = Omit<
+  CampaignProgress,
+  "targetAmount" | "collected" | "spent" | "transferred" | "balance"
+>;
+export type ExpensePublic = Omit<Expense, "amount">;
+export type TermInfo = Pick<Term, "number" | "title" | "startedOn" | "endedOn">;
+export type ContributorPublic = Omit<CampaignContribution, "amount">;
+
+/** The report for strangers (and link previews): the member grid and structure, no money. */
+export type ReportShell = {
+  year: number;
+  stats: FundStats;
+  term: TermInfo | null;
+  members: Omit<ReportMember, "amountOwed">[];
+  expenses: Omit<ReportExpense, "amount">[];
+  expensesComplete: boolean;
+  campaigns: Pick<ReportCampaign, "campaignId" | "title" | "status">[];
+  groupPrices: Record<"A" | "B", number>;
+  generatedAt: string;
+};
+
+/** Every money figure a page may show, for the committee or a member with their link. */
+export type MoneyBundle = {
+  viewer: "committee" | "member";
+  year: number;
+  summary: FundSummary;
+  monthly: MonthlyCollection[];
+  expenseTotals: ExpenseTotal[];
+  expenses: Expense[];
+  campaigns: CampaignProgress[];
+  activity: ActivityItem[];
+  terms: Term[];
+  /** memberId → MRO owed; only when the admin turned on «show amounts owed» (as before) */
+  amountOwed: Record<string, number> | null;
+};

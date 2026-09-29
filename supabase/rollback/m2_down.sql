@@ -1,6 +1,10 @@
--- Undo every migration after M1 (m2 … m25, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m26, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- public views without money (m26)
+drop view if exists public.fund_stats, public.activity_public, public.campaigns_public, public.expenses_public,
+  public.terms_info, public.campaign_contributors_public, public.member_status_public;
+drop function if exists app_private.can_see_money();
 -- member profiles (m25): dropped with the m24 tables below
 drop function if exists public.member_sessions(text[]), app_private.member_sessions(text[]),
   public.member_save_push(text[], text, text, text), app_private.member_save_push(text[], text, text, text);
