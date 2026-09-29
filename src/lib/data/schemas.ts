@@ -139,6 +139,9 @@ export const applyCreditSchema = z.object({
     .max(60),
 });
 
+/** Admin marks a confirmer as genuinely not a member of the fund (clears «غير مربوط بعضو»). */
+export const setCommitteeNotMemberSchema = z.object({ userId: id, notMember: z.boolean() });
+
 export const changeMemberGroupSchema = z.object({
   memberId: id,
   fromMonth: firstOfMonth,
@@ -263,6 +266,7 @@ export type AddMemberInput = z.input<typeof addMemberSchema>;
 export type UpdateMemberInput = z.input<typeof updateMemberSchema>;
 export type ChangeMemberStatusInput = z.input<typeof changeMemberStatusSchema>;
 export type ApplyCreditInput = z.input<typeof applyCreditSchema>;
+export type SetCommitteeNotMemberInput = z.input<typeof setCommitteeNotMemberSchema>;
 export type CancelLastPeriodInput = z.input<typeof cancelLastPeriodSchema>;
 export type SetJoinMonthInput = z.input<typeof setJoinMonthSchema>;
 export type SetGroupPriceInput = z.input<typeof setGroupPriceSchema>;

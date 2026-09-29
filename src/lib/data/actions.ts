@@ -764,6 +764,17 @@ export async function resetCommitteePassword(input: {
 }
 
 /** Deactivate (no more committee access) or reactivate an account. Never deleted. */
+/** Admin: this confirmer is not a member of the fund (no member link expected). */
+export async function setCommitteeNotMember(input: s.SetCommitteeNotMemberInput) {
+  return run(
+    s.setCommitteeNotMemberSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("set_committee_not_member", { p_user_id: p.userId, p_not_member: p.notMember }),
+    { touchesPublic: false },
+  );
+}
+
 export async function setCommitteeActive(input: s.SetCommitteeActiveInput) {
   return run(
     s.setCommitteeActiveSchema,
@@ -854,6 +865,15 @@ export async function completeSetup(input: s.CompleteSetupInput): Promise<Action
   const admin = tryCreateAdminClient();
   if (!admin) return failure("not_configured");
   const p = parsed.data;
+  // confirmers must be linked to their member row (own-membership rule), unless the admin marked
+  // the account as not a member
+  if (me.canConfirm && !(me.memberId ?? p.memberId)) {
+    const sb = await createClient();
+    const { data } = sb
+      ? await sb.from("committee").select("not_member").eq("user_id", me.userId).maybeSingle()
+      : { data: null };
+    if (!data?.not_member) return failure("member_link_required");
+  }
   const profile = await updateMyProfile({
     displayName: p.displayName,
     memberId: me.memberId ?? p.memberId ?? null,

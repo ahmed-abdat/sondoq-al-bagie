@@ -340,6 +340,8 @@ export function toMemberAdmin(r: Row<"members_admin">): MemberAdmin {
     monthsBehind: num(r.months_behind),
     amountOwed: num(r.amount_owed),
     joinedMonth: r.joined_month,
+    formerDebtMonths: r.former_debt_months?.length ? r.former_debt_months : null,
+    formerDebtAmount: r.former_debt_months?.length ? num(r.former_debt_amount) : null,
   };
 }
 

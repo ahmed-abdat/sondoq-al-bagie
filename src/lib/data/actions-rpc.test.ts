@@ -148,6 +148,13 @@ const cases: Case[] = [
     true,
   ],
   [
+    "setCommitteeNotMember",
+    () => a.setCommitteeNotMember({ userId: id, notMember: true }),
+    "set_committee_not_member",
+    { p_user_id: id, p_not_member: true },
+    false,
+  ],
+  [
     "cancelLastPeriod",
     () => a.cancelLastPeriod({ memberId: member, reason: "خطأ" }),
     "cancel_last_period",

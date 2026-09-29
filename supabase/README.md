@@ -36,6 +36,7 @@ and every change lands in `audit_log`.
 | `*_m19_undo_member_period.sql` | admin `cancel_last_period` (cancels the open period and the one before it, re-inserts that one as open) and `set_join_month` (moves the first period's start); append-only, refused over paid/pending months (`period_has_payments`) |
 | `*_m20_small_guards.sql` | `before_opening` (payments except paper, expenses dated before `settings.opening_balance_on`); `months_pending_after` in `change_member_status`; `last_admin` trigger (always one active admin, serialised by an advisory lock); index `audit_log(actor)` |
 | `*_m21_apply_credit.sql` | «ادفع من الرصيد»: `apply_credit(id, member, months)` (confirmers) writes a confirmed payment with method `credit`; credit payments are not money in (fund summary, terms, public feed) and `member_credit` subtracts them; only `apply_credit` may create one (trigger) |
+| `*_m22_member_link_former_debt.sql` | `committee.not_member` (admin: `set_committee_not_member`), `committee_accounts.needs_member_link` (confirmer without a member, not marked); `members_admin.former_debt_months/amount` for exempt/left members (member sheet only) |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the

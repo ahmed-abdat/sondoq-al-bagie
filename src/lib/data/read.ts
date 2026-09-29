@@ -271,6 +271,8 @@ export async function committeeAccounts(c: Client): Promise<CommitteeAccount[]> 
     lastSignInAt: r.last_sign_in_at,
     createdAt: r.created_at ?? "",
     canDelete: r.can_delete ?? false,
+    notMember: r.not_member ?? false,
+    needsMemberLink: r.needs_member_link ?? false,
   }));
 }
 

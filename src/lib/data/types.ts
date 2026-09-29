@@ -351,6 +351,10 @@ export type MemberAdmin = {
   amountOwed: number;
   /** first month of membership, YYYY-MM-DD */
   joinedMonth: string | null;
+  /** exempt/left members only: unpaid "YYYY-MM" from before (member sheet, never reminders); null otherwise */
+  formerDebtMonths: string[] | null;
+  /** MRO of formerDebtMonths; null for active members */
+  formerDebtAmount: number | null;
 };
 
 /** Statuses the committee can set (the enum's "away" and "deceased" are not used, owner decision). */
@@ -370,6 +374,10 @@ export type CommitteeAccount = {
   createdAt: string;
   /** never did anything (and not you): «حذف الحساب» instead of only «إيقاف» */
   canDelete: boolean;
+  /** the admin marked this confirmer as not a member of the fund */
+  notMember: boolean;
+  /** active admin/treasurer/deputy with no member link and not marked: «غير مربوط بعضو» */
+  needsMemberLink: boolean;
 };
 
 /** «حسابي»: the signed-in committee member's own account. */

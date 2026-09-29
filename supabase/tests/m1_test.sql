@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m21; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m22; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -819,6 +819,30 @@ select tests.login('server');
 select tests.ok((select credit from app_private.member_credit() where member_id = tests.id('F')) = 2500
                 and not exists (select 1 from public.payment_months where member_id = tests.id('F') and released_at is null),
   'cancelling a credit payment gives the credit back and frees the months');
+
+/* ───────────── M22: confirmers linked to a member, former members' debt ───────────── */
+
+select tests.login('admin');
+select tests.ok((select needs_member_link from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a3')
+                and not (select needs_member_link from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a2')
+                and not (select needs_member_link from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a4'),
+  'a confirmer without a member is flagged; a linked treasurer and a plain member are not');
+select tests.login('treasurer');
+select tests.throws($$select public.set_committee_not_member('00000000-0000-0000-0000-0000000000a3', true)$$, 'not_admin',
+  'only the admin marks an account as not a member');
+select tests.login('admin');
+select public.set_committee_not_member('00000000-0000-0000-0000-0000000000a3', true);
+select tests.ok(not (select needs_member_link from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a3')
+                and (select not_member from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a3'),
+  'marked «not a member» clears the flag');
+select public.set_committee_not_member('00000000-0000-0000-0000-0000000000a3', false);
+
+select tests.ok((select cardinality(former_debt_months) >= 3 and former_debt_amount = cardinality(former_debt_months) * 1000
+                 from public.members_admin where member_id = tests.id('D2')),
+  'an exempt member keeps the unpaid months from before, in the member sheet');
+select tests.ok((select former_debt_months is null and former_debt_amount is null from public.members_admin where member_id = tests.id('K')),
+  'active members have no «former» debt (it is arrears)');
+select tests.ok(not exists (select 1 from public.arrears where member_id = tests.id('D2')), 'former debt stays out of reminders');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

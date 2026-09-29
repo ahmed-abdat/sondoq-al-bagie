@@ -18,12 +18,13 @@ let session: {
   userId?: string;
   setupPending?: boolean;
   memberId?: string | null;
+  canConfirm?: boolean;
 } | null = null;
 vi.mock("./committee", () => ({ getCommitteeSession: async () => session }));
 const createUser = vi.fn();
 const deleteUser = vi.fn(async () => ({}));
 const updateUserById = vi.fn();
-let accountRow: { login: string } | null = null;
+let accountRow: { login?: string; not_member?: boolean } | null = null;
 let secret = true;
 vi.mock("@/lib/supabase/admin", () => ({
   tryCreateAdminClient: () =>
@@ -470,6 +471,23 @@ describe("actions", () => {
       });
       expect(await completeSetup(input)).toMatchObject({ code: "same_password" });
       expect(updateUserById).not.toHaveBeenCalled();
+    });
+
+    it("a confirmer must pick their member unless the admin marked them «not a member»", async () => {
+      ready();
+      session = { ...session!, role: "treasurer", canConfirm: true };
+      accountRow = { not_member: false };
+      expect(await completeSetup({ ...input, memberId: null })).toMatchObject({
+        code: "member_link_required",
+      });
+      expect(rpc).not.toHaveBeenCalled();
+      accountRow = { not_member: true };
+      expect(await completeSetup({ ...input, memberId: null })).toEqual({
+        ok: true,
+        data: undefined,
+      });
+      accountRow = null;
+      expect(await completeSetup(input)).toEqual({ ok: true, data: undefined });
     });
   });
 
