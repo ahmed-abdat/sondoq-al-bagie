@@ -3323,6 +3323,13 @@
     object-fit: cover;
   }
   /* committee slip (P8): a large proof thumbnail, cropped to the top, the amount readable */
+  .bq-slip-proof:has(.rc-proof.is-wide) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .bq-slip-proof:has(.rc-proof.is-wide) .bq-hint {
+    text-align: start;
+  }
   .rc-proof.is-wide {
     display: grid;
     gap: 8px;

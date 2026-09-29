@@ -298,7 +298,7 @@ export function PendingSlip({
           ) : (
             "سُجّلت"
           )}
-          <br />
+          {" · "}
           {now ? relativeAgo(p.createdAt, now) : dayWords(p.createdAt)}
         </p>
       </div>
