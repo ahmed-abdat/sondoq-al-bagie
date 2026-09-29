@@ -23,11 +23,13 @@ function pdfText(s: string): string {
 
 export function jpegsToPdf(
   pages: PdfImage[],
-  opts: { title?: string; w?: number; h?: number } = {},
+  /** `margin` (pt) keeps a white border so printers do not clip the page. */
+  opts: { title?: string; w?: number; h?: number; margin?: number } = {},
 ): Uint8Array {
   if (!pages.length) throw new Error("no pages");
   const W = opts.w ?? A4_PT.w;
   const H = opts.h ?? A4_PT.h;
+  const m = opts.margin ?? 0;
   const enc = new TextEncoder();
   const parts: Uint8Array[] = [];
   const offsets: number[] = [];
@@ -60,7 +62,7 @@ export function jpegsToPdf(
       `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(W)} ${f(H)}] ` +
         `/Resources << /XObject << /Im0 ${n + 2} 0 R >> >> /Contents ${n + 1} 0 R >>`,
     );
-    const content = `q ${f(W)} 0 0 ${f(H)} 0 0 cm /Im0 Do Q`;
+    const content = `q ${f(W - 2 * m)} 0 0 ${f(H - 2 * m)} ${f(m)} ${f(m)} cm /Im0 Do Q`;
     obj(n + 1, `<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
     offsets[n + 2] = size;
     push(

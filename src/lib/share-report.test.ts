@@ -3,6 +3,7 @@ import type { ReportData, ReportMember, ReportMonthState } from "./data/types";
 import { monthName } from "./dates";
 import { THIN } from "./format";
 import {
+  compactAmount,
   drawReportSummary,
   monthBars,
   paidLine,
@@ -66,38 +67,66 @@ it("reportShareText has the numbers, the month line and the link", () => {
   expect(t).toContain("التفاصيل: https://x.app/report");
 });
 
-it("drawReportSummary draws the key texts and 12 month labels", () => {
-  const texts: string[] = [];
-  const ctx = {
-    fillStyle: "",
-    font: "",
-    textAlign: "right",
-    direction: "rtl",
-    fillRect() {},
-    fillText: (t: string) => void texts.push(t),
-    measureText: (t: string) => ({ width: t.length * 12 }),
-    beginPath() {},
-    arc() {},
-    fill() {},
-    clip() {},
-    save() {},
-    restore() {},
-    drawImage() {},
-    roundRect() {},
-  } as unknown as Parameters<typeof drawReportSummary>[0];
-  drawReportSummary(ctx, D, { url: "https://x.app/report", fonts: { display: "a", body: "b" } });
-  expect(texts).toEqual(
-    expect.arrayContaining([
-      "في الصندوق الآن",
-      `290${THIN}500`,
-      paidLine(D),
-      "x.app/report",
-      "صندوق الشباب · حتى 5 أكتوبر 2026",
-      "رصيد مرحّل",
-      `10${THIN}000`,
-    ]),
-  );
-  for (let m = 1; m <= 12; m++) expect(texts).toContain(String(m));
+describe("drawReportSummary", () => {
+  const draw = (variant?: "card" | "cover") => {
+    const texts: string[] = [];
+    const ctx = {
+      fillStyle: "",
+      font: "",
+      textAlign: "right",
+      direction: "rtl",
+      fillRect() {},
+      fillText: (t: string) => void texts.push(t),
+      measureText: (t: string) => ({ width: t.length * 12 }),
+      beginPath() {},
+      arc() {},
+      fill() {},
+      clip() {},
+      save() {},
+      restore() {},
+      drawImage() {},
+      roundRect() {},
+    } as unknown as Parameters<typeof drawReportSummary>[0];
+    const d = { ...D, groups: [{ label: "المجموعة أ", paid: 11, active: 20 }] };
+    drawReportSummary(ctx, d, {
+      url: "https://x.app/report",
+      fonts: { display: "a", body: "b" },
+      variant,
+    });
+    return texts;
+  };
+
+  it("card: balance, how it is made, paid per list, where to look yourself up", () => {
+    const texts = draw();
+    expect(texts).toEqual(
+      expect.arrayContaining([
+        "في الصندوق الآن",
+        `290${THIN}500`,
+        "رصيد مرحّل",
+        `10${THIN}000`,
+        paidLine(D),
+        "المجموعة أ: 11 من 20",
+        "ابحث عن اسمك:",
+        "x.app/report",
+        "صندوق الشباب · حتى 5 أكتوبر 2026",
+      ]),
+    );
+    expect(texts).not.toContain("12");
+  });
+
+  it("cover: 12 month bars with the current month's amount", () => {
+    const texts = draw("cover");
+    for (let m = 1; m <= 12; m++) expect(texts).toContain(String(m));
+    expect(texts).toContain("25 ألف"); // September, the current month
+    expect(texts).toContain("50 ألف"); // the tallest
+  });
+});
+
+it("compactAmount", () => {
+  expect(compactAmount(800)).toBe("800");
+  expect(compactAmount(7500)).toBe("7.5 ألف");
+  expect(compactAmount(30000)).toBe("30 ألف");
+  expect(compactAmount(373000)).toBe(`373 ألف`);
 });
 
 it("shareReportSummary falls back to WhatsApp text with the link", async () => {
