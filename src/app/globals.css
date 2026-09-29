@@ -5781,3 +5781,76 @@
     margin-block-start: 6px;
   }
 }
+
+/* ───── QA pass 3: large text and larger common targets ───── */
+@layer components {
+  /* common secondary targets: 48px (no new controls) */
+  .bq-link,
+  .bq-chip,
+  .bq-copy,
+  .bq-seg-b,
+  .bq-ml-new,
+  .bq-you-pill,
+  .bq-you-me {
+    min-height: 48px;
+  }
+  /* bottom nav at 200% text: a label shortens instead of pushing the bar off screen */
+  .bq-nav-i {
+    min-width: 0;
+  }
+  .bq-nav-l {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* compact balance bar: the label gives way, the figure stays whole */
+  .bq-compact-l {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bq-compact-n {
+    flex: none;
+    white-space: nowrap;
+  }
+  .rp-url {
+    overflow-wrap: anywhere;
+  }
+}
+@layer components {
+  /* 200% text: rows, slips and buttons wrap instead of widening the page */
+  .bq-row > * {
+    min-width: 0;
+  }
+  .bq-row .bq-tag,
+  .bq-row .bq-amt {
+    flex: 0 1 auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .bq-slip-meth,
+  .bq-slip-amt {
+    flex-wrap: wrap;
+  }
+  .bq-txn,
+  .bq-give-n {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .bq-give-num {
+    flex-wrap: wrap;
+  }
+  .bq-btn {
+    white-space: normal;
+    text-align: center;
+  }
+  .rp-foot .bq-num,
+  .rp-url {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+}

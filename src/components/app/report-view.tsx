@@ -349,7 +349,7 @@ function MembersTable({ rows }: { rows: GridRow[] }) {
 function ReportLink() {
   const site = SITE_URL;
   return (
-    <bdi dir="ltr" className="bq-num">
+    <bdi dir="ltr" className="bq-num rp-url">
       {site ? `${site.replace(/\/$/, "")}/report` : "/report"}
     </bdi>
   );
