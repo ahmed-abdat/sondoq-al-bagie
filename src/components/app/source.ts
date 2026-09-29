@@ -322,6 +322,21 @@ export async function ledgerPublic(): Promise<LedgerEntry[]> {
   const [acts, exps] = await Promise.all([activityPublic(), expensesPublic()]);
   return toLedger(acts, exps, today());
 }
+/** Home: the newest `n` ledger rows, amount-free; the server reads only `n` of each kind. */
+export async function ledgerRecent(n = 3): Promise<LedgerEntry[]> {
+  const { activity, expenses } = await pick(
+    () => ({
+      activity: fx
+        .fxActivity()
+        .map((a) =>
+          strip(a, ["amount", "targetAmount", "receiptCode"] as const),
+        ) as PublicActivityItem[],
+      expenses: fx.fxExpenses().map((e) => strip(e, ["amount"] as const)),
+    }),
+    () => data.getLedgerPublic(n),
+  );
+  return toLedger(activity, expenses, today()).slice(0, n);
+}
 /** /report for strangers and link previews: the grid and structure, no money. */
 export async function reportShell(): Promise<ReportShell> {
   if (!usingFixtures) {

@@ -10,7 +10,7 @@ export default async function Home() {
     heroData(),
     src.memberIndex(),
     src.members(),
-    src.ledgerPublic(),
+    src.ledgerRecent(3),
     src.campaignsPublic(),
   ]);
   // the same status word as /members (audit V2): computed from the months, not the view's label
@@ -37,7 +37,7 @@ export default async function Home() {
         activeCount={index.activeCount}
         paidCount={index.paidThisMonth}
         monthName={MONTHS[(index.month || src.today().getUTCMonth() + 1) - 1]}
-        ledger={ledger.slice(0, 3)}
+        ledger={ledger}
         campaign={open ? { campaignId: open.campaignId, title: open.title } : null}
       />
     </Tab>
