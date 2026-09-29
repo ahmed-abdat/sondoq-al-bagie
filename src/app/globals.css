@@ -184,6 +184,7 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
+    position: relative;
     background: var(--paper);
     color: var(--ink);
     font-size: 17px;
@@ -1903,23 +1904,34 @@
   }
 
   /* ───── sheet ───── */
-  .bq-sheet-wrap {
+  /* Base UI Drawer (phones) / Dialog (desktop), portalled to <body> */
+  .bq-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(10, 30, 18, 0.42);
+    opacity: calc(1 - var(--drawer-swipe-progress, 0));
+    transition: opacity var(--d-sheet-in) var(--ease-out);
+  }
+  .bq-scrim[data-starting-style],
+  .bq-scrim[data-ending-style] {
+    opacity: 0;
+  }
+  .bq-scrim[data-ending-style] {
+    transition-duration: var(--d-sheet-out);
+  }
+  .bq-sheet-vp {
     position: fixed;
     inset: 0;
     z-index: 60;
     display: flex;
     align-items: flex-end;
     justify-content: center;
-  }
-  .bq-scrim {
-    position: absolute;
-    inset: 0;
-    background: rgba(10, 30, 18, 0.42);
-    opacity: 0;
-    transition: opacity 240ms var(--ease-out);
+    pointer-events: none;
   }
   .bq-sheet {
     position: relative;
+    pointer-events: auto;
     width: 100%;
     max-width: 600px;
     max-height: 92dvh;
@@ -1929,19 +1941,41 @@
     border-start-start-radius: var(--r-sheet);
     border-start-end-radius: var(--r-sheet);
     outline: none;
-    transform: translateY(100%);
-    transition: transform var(--d-sheet-out) var(--ease-out);
+    transform: translate3d(0, var(--drawer-swipe-movement-y, 0px), 0);
+    transition: transform var(--d-sheet-in) var(--ease-drawer);
   }
-  .bq-sheet-wrap[data-open="true"] .bq-scrim {
-    opacity: 1;
+  .bq-sheet[data-starting-style],
+  .bq-sheet[data-ending-style] {
+    transform: translate3d(0, 100%, 0);
   }
-  .bq-sheet-wrap[data-open="true"] .bq-sheet {
-    transform: none;
-    transition-duration: var(--d-sheet-in);
-    transition-timing-function: var(--ease-drawer);
-  }
-  .bq-sheet-wrap[data-open="false"] .bq-scrim {
+  .bq-sheet[data-ending-style] {
     transition-duration: var(--d-sheet-out);
+    transition-timing-function: var(--ease-out);
+  }
+  .bq-sheet[data-swiping] {
+    transition-duration: 0ms;
+  }
+  /* opened by a view-transition morph: already in place, no slide */
+  .bq-sheet.is-vt[data-starting-style] {
+    transform: none;
+  }
+  /* a sheet opened on top of this one: the lower one dims a little */
+  .bq-sheet[data-nested-drawer-open] {
+    filter: brightness(0.96);
+  }
+  .bq-sheet-c {
+    min-height: 100%;
+  }
+  .bq-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
   .bq-drag {
     position: relative;
@@ -2246,12 +2280,26 @@
     .bq-app:has(.bq-fab) .bq-snack {
       bottom: 104px;
     }
-    .bq-sheet-wrap {
+    .bq-sheet-vp.is-dialog {
       align-items: center;
+      padding: 24px;
     }
-    .bq-sheet {
+    .bq-sheet.is-dialog {
       border-radius: var(--r-sheet);
       max-height: 88dvh;
+      transform: none;
+      opacity: 1;
+      transition:
+        opacity var(--d-sheet-in) var(--ease-out),
+        transform var(--d-sheet-in) var(--ease-drawer);
+    }
+    .bq-sheet.is-dialog[data-starting-style],
+    .bq-sheet.is-dialog[data-ending-style] {
+      opacity: 0;
+      transform: translate3d(0, 16px, 0) scale(0.98);
+    }
+    .bq-sheet.is-dialog .bq-handle {
+      visibility: hidden;
     }
   }
   @media (max-width: 1023.98px) {
@@ -2430,14 +2478,18 @@
     opacity: 1;
     transform: none;
   }
-  .bq-sheet {
-    transform: none;
-    opacity: 0;
+  .bq-sheet,
+  .bq-sheet.is-dialog {
+    transform: translate3d(0, var(--drawer-swipe-movement-y, 0px), 0);
+    opacity: 1;
     transition: opacity 200ms var(--ease-out);
   }
-  .bq-sheet-wrap[data-open="true"] .bq-sheet {
-    opacity: 1;
+  .bq-sheet[data-starting-style],
+  .bq-sheet[data-ending-style],
+  .bq-sheet.is-dialog[data-starting-style],
+  .bq-sheet.is-dialog[data-ending-style] {
     transform: none;
+    opacity: 0;
   }
   .bq-compact {
     transform: none;
@@ -4064,7 +4116,8 @@
   }
 }
 @media print {
-  .bq-sheet-wrap {
+  .bq-sheet-vp,
+  .bq-scrim {
     display: none;
   }
 }
