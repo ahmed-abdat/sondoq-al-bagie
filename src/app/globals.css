@@ -4883,6 +4883,18 @@
     color: var(--muted);
     font-variant-numeric: tabular-nums;
   }
+  .bq-you-hi {
+    margin-block-end: 12px;
+    padding: 12px 14px;
+    border-radius: var(--r-md);
+    background: var(--g1);
+    color: var(--g9);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .bq-you {
+    scroll-margin-block-start: calc(var(--safe-t) + 12px);
+  }
   .bq-you-key {
     display: flex;
     align-items: center;

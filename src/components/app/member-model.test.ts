@@ -70,9 +70,10 @@ describe("youCard", () => {
     expect(late.kind).toBe("late");
     expect(late.text).toMatch(/^عليك 3 أشهر · 3\s000 أوقية$/);
     // proof sent and waiting: the card says so, the late words give way (audit M1)
-    expect(
-      youCard({ ...on, monthsBehind: 3, amountOwed: 3000 }, "PPPPPPLLLUUU", 2026, 1),
-    ).toEqual({ kind: "pending", text: "أرسلت صورة التحويل. تنتظر تأكيد اللجنة." });
+    expect(youCard({ ...on, monthsBehind: 3, amountOwed: 3000 }, "PPPPPPLLLUUU", 2026, 1)).toEqual({
+      kind: "pending",
+      text: "أرسلت صورة التحويل. تنتظر تأكيد اللجنة.",
+    });
     expect(youCard({ ...on, status: "exempt" }, "NNNNNNNNNNNN", 2026).kind).toBe("exempt");
   });
 });

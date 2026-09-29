@@ -20,6 +20,8 @@ test("whole year paid: thanks, no pay button; «ادفع عن شخص آخر» �
   await expect(card).toBeVisible();
   await expect(card).toContainText("أنت");
   await expect(card).toContainText("دفعت رسوم 2026 كاملة");
+  // first open of the link: one greeting line (audit M5)
+  await expect(card.locator(".bq-you-hi")).toHaveText(/^أهلًا \S+\. هذا رابطك الخاص/);
   await expect(card).toContainText("شكرًا لك");
   await expect(card.getByRole("button", { name: "ادفع الآن" })).toHaveCount(0);
   // months like the report: 12 bordered cells, a ✓ in each paid month
@@ -56,6 +58,13 @@ test("whole year paid: thanks, no pay button; «ادفع عن شخص آخر» �
   await expect(page.getByRole("heading", { name: "دفعاتي", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "بانتظار التأكيد" })).toBeVisible();
   await expect(page.getByText("السبب: الصورة غير واضحة")).toBeVisible();
+  // «أرسلها من جديد» (audit M7): the same member and months, a new screenshot
+  await page.getByRole("button", { name: "أرسلها من جديد" }).click();
+  const again = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
+  await expect(again).toContainText("الحسن ولد عبد الله");
+  await expect(again.locator(".bq-rec-foot").getByRole("button")).toHaveText("أرفق صورة التحويل");
+  await page.keyboard.press("Escape");
+  await expect(again).toHaveCount(0);
 
   // the committee (demo) sees it in the queue, labelled
   await page.locator("nav").getByRole("link", { name: "اللجنة" }).first().click();

@@ -26,6 +26,7 @@ import type { ReceiptView } from "./receipt-model";
 import {
   fitRow,
   payableMonths,
+  ymKey,
   rowCount,
   rowMonths,
   summarize,
@@ -444,7 +445,11 @@ type MemberMode = {
   recent: string[];
   /** «self»: open with the member and their late (or next) months chosen; «others»: no «أنت» */
   start?: "self" | "others";
+  /** «أرسلها من جديد» (audit M7): the rejected payment's members and months, still payable ones */
+  again?: SendAgain;
 };
+/** A rejected submission to send again: who it covered and which months (by year). */
+export type SendAgain = { memberId: string; months: { year: number; month: number }[] }[];
 /** Member mode adds one step: the screenshot is required. */
 type AnyStep = Step | "shot";
 const STEP_CTA: Record<AnyStep, string> = {
@@ -486,6 +491,23 @@ export function RecordBody({
   const { memberUploadProof, memberSubmitPayment } = useMemberAct();
   const once = useOnceId();
   const [rows, setRows] = useState<Row[]>(() => {
+    if (member?.again?.length) {
+      const again = member.again.flatMap((a): Row[] => {
+        const m = members.find((x) => x.memberId === a.memberId);
+        if (!m) return [];
+        const { open } = payableMonths(m.months, ctx.dueMonth);
+        const want = a.months.filter((k) => k.year === ctx.year).map((k) => k.month);
+        const pastWant = new Set(
+          a.months.filter((k) => k.year < ctx.year).map((k) => ymKey(k.year, k.month)),
+        );
+        const months = open.filter((k) => want.includes(k));
+        const past = (m.pastLate ?? []).filter((k) => pastWant.has(k));
+        return months.length || past.length
+          ? [{ m, months, past, edit: false }]
+          : [{ m, months: defaultMonths(ctx, m), past: m.pastLate ?? [], edit: false }];
+      });
+      if (again.length) return again;
+    }
     const self = member?.start === "self" && members.find((m) => m.memberId === member.selfId);
     return self
       ? [{ m: self, months: defaultMonths(ctx, self), past: self.pastLate ?? [], edit: false }]
@@ -841,7 +863,8 @@ export function RecordBody({
   const methods = [
     ...MAIN_METHODS,
     ...(moreMeth || (meth && !MAIN_METHODS.includes(meth)) ? OTHER_METHODS : []),
-  ];
+    // a member sends a transfer screenshot: cash is handed to the committee instead (audit M9)
+  ].filter((k) => !member || k !== "cash");
 
   return (
     <div className="bq-rec">
@@ -850,7 +873,7 @@ export function RecordBody({
         <p className="bq-hint">اختر من دفعت عنه. تؤكد اللجنة الدفعة بعد مطابقة الصورة.</p>
       )}
 
-      <p className="bq-rec-k">{rows.length > 1 ? "الأعضاء في هذا التحويل" : "عن من هذه الدفعة؟"}</p>
+      <p className="bq-rec-k">{rows.length > 1 ? "الأعضاء في هذا التحويل" : "لمن هذه الدفعة؟"}</p>
       {rows.map((row, i) => (
         <RowCard
           key={row.m.memberId}

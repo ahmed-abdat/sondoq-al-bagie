@@ -91,9 +91,7 @@ export function HomeView({
                 ))}
               </ul>
               {res.length > 5 && (
-                <p className="bq-hint">
-                  وجدنا {namesCount(res.length)}. اكتب اسمك كاملًا أو رقمك.
-                </p>
+                <p className="bq-hint">وجدنا {namesCount(res.length)}. اكتب اسمك كاملًا أو رقمك.</p>
               )}
             </>
           ) : (
