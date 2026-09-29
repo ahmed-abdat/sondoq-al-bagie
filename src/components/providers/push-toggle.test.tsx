@@ -8,6 +8,7 @@ import {
   unsubscribePush,
   urlBase64ToUint8Array,
 } from "@/lib/push";
+import { safeStorage } from "@/lib/safe-storage";
 import { PushToggle } from "./push-toggle";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -127,6 +128,34 @@ describe("subscribe / unsubscribe", () => {
     expect(await unsubscribePush(remove)).toBe("off");
     expect(remove).toHaveBeenCalledWith("https://push.example/abc");
     expect(subscription.unsubscribe).toHaveBeenCalled();
+  });
+});
+
+describe("one browser subscription, two switches (committee and member)", () => {
+  // safeStorage keeps an in-memory copy too
+  beforeEach(() => safeStorage.removeItem("sondoq:push-kinds"));
+  it("turning one off keeps the other; the last one out unsubscribes", async () => {
+    const { subscription } = phone({});
+    const ok = async () => ({ ok: true });
+    expect(await subscribePush(ok, "committee")).toBe("on");
+    expect(await pushState("member")).toBe("off");
+    expect(await subscribePush(ok, "member")).toBe("on");
+    expect(await pushState("member")).toBe("on");
+
+    const remove = vi.fn(ok);
+    expect(await unsubscribePush(remove, "member")).toBe("off");
+    expect(remove).toHaveBeenCalledWith("https://push.example/abc");
+    expect(subscription.unsubscribe).not.toHaveBeenCalled();
+    expect(await pushState("committee")).toBe("on");
+    expect(await pushState("member")).toBe("off");
+
+    await unsubscribePush(remove, "committee");
+    expect(subscription.unsubscribe).toHaveBeenCalledOnce();
+  });
+  it("an older phone (committee only, before members had push) keeps its switch on", async () => {
+    phone({ permission: "granted", subscribed: true });
+    expect(await pushState("committee")).toBe("on");
+    expect(await pushState("member")).toBe("off");
   });
 });
 

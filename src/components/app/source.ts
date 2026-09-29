@@ -15,9 +15,9 @@ import { assembleReport } from "@/lib/data/report";
 import type { LedgerEntry, MyProfile } from "./types";
 import * as memberData from "@/lib/data/member";
 import * as profileData from "./lane-a-profiles";
-import { readDemoPhone, type DemoPhone } from "./demo-member";
+import { readJar } from "@/lib/member-cookies";
+import { demoPhoneOf, type DemoPhone } from "./demo-member";
 import {
-  MEMBER_COOKIE,
   type Beneficiary,
   type MemberHistoryItem,
   type MemberLinkInfo,
@@ -220,8 +220,7 @@ export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpens
 /** Demo: the profiles `/m/demo` and `/m/demo2` put on this phone (cookies). Null outside demo. */
 export async function demoPhone(): Promise<DemoPhone | null> {
   if (!demoMode) return null;
-  const jar = await cookies();
-  return readDemoPhone((n) => jar.get(n)?.value, MEMBER_COOKIE);
+  return demoPhoneOf(readJar(await cookies()));
 }
 async function demoActive() {
   return (await demoPhone())?.active ?? null;

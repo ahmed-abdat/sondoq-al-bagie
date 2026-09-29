@@ -11,7 +11,14 @@ const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
-export function MemberLinkPaste({ className = "" }: { className?: string }) {
+export function MemberLinkPaste({
+  hasMember = false,
+  className = "",
+}: {
+  /** the server already knows this device's member link: never show */
+  hasMember?: boolean;
+  className?: string;
+}) {
   // shown only in the installed app, and only while this device has no member link
   const show = useSyncExternalStore(
     noSubscribe,
@@ -20,7 +27,7 @@ export function MemberLinkPaste({ className = "" }: { className?: string }) {
   );
   const [value, setValue] = useState("");
   const [error, setError] = useState(false);
-  if (!show) return null;
+  if (!show || hasMember) return null;
 
   const open = (text: string) => {
     const token = memberTokenFrom(text);

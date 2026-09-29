@@ -5,15 +5,15 @@
 import { cookies } from "next/headers";
 import type { CampaignProgress, FundAccount, MemberRow } from "@/lib/data/types";
 import type { MemberCtx } from "./member";
-import { writeDemoPhone } from "./demo-link";
 import {
   acceptPending,
   declinePending,
-  MAX_PROFILES,
-  removeActive,
+  readJar,
+  removeProfile,
   switchTo,
-  type DemoPhone,
-} from "./demo-member";
+  writeJar,
+  type MemberJar,
+} from "@/lib/member-cookies";
 import type { MemberProfile, MemberSession } from "./member-types";
 import { memberCtx } from "./page-data";
 import * as src from "./source";
@@ -80,33 +80,25 @@ export async function memberSheetData(): Promise<MemberSheetData | null> {
   };
 }
 
-/* ───────────── demo only: this phone's member profiles live in cookies ───────────── */
-type Done = { ok: true; data: undefined } | { ok: false; code: string; message: string };
-const done: Done = { ok: true, data: undefined };
-async function withDemoPhone(f: (p: DemoPhone) => DemoPhone | null): Promise<Done> {
-  const p = await src.demoPhone();
-  if (!p) return done;
-  const next = f(p);
-  if (!next)
-    return {
-      ok: false,
-      code: "member_profiles_full",
-      message: `هذا الهاتف فيه ${MAX_PROFILES} أشخاص. أزِل أحدهم أولًا.`,
-    };
-  writeDemoPhone(await cookies(), next);
-  return done;
+/* ───────────── demo only: this phone's member profiles (the real cookie rules) ───────────── */
+type Done<T = undefined> = { ok: true; data: T };
+async function withJar<T>(f: (jar: MemberJar) => { jar: MemberJar; data: T }): Promise<Done<T>> {
+  const store = await cookies();
+  const r = f(readJar(store));
+  if (src.demoMode) writeJar(store, r.jar);
+  return { ok: true, data: r.data };
 }
-/** «إزالة … من هذا الهاتف»: only the active profile goes. */
-export async function demoMemberSignOut(): Promise<Done> {
-  return withDemoPhone(removeActive);
+/** «إزالة … من هذا الهاتف»: only the active profile goes; the next one becomes active. */
+export async function demoMemberSignOut() {
+  return withJar((j) => ({ jar: removeProfile(j).jar, data: undefined }));
 }
-export async function demoMemberSwitch({ linkId }: { linkId: string }): Promise<Done> {
+export async function demoMemberSwitch({ linkId }: { linkId: string }) {
   const t = src.demoTokenOf(linkId);
-  return withDemoPhone((p) => (t ? switchTo(p, t) : p));
+  return withJar((j) => ({ jar: t ? switchTo(j, t) : j, data: undefined }));
 }
-export async function demoMemberAccept(): Promise<Done> {
-  return withDemoPhone(acceptPending);
+export async function demoMemberAccept() {
+  return withJar((j) => ({ jar: acceptPending(j).jar, data: undefined }));
 }
-export async function demoMemberDecline(): Promise<Done> {
-  return withDemoPhone(declinePending);
+export async function demoMemberDecline() {
+  return withJar((j) => ({ jar: declinePending(j), data: undefined }));
 }

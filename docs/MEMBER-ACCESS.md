@@ -23,6 +23,14 @@ and lets them send a payment with proof for the committee to confirm. Nothing pu
   «أضف التطبيق إلى الشاشة الرئيسية» *after* the cookie is set in that context; the installed app shows a
   «لديك رابط؟ الصقه هنا» field when no member cookie exists (paste → same verification).
 
+## Several people on one phone (owner decision 2026-09-29)
+- A phone remembers up to 5 member profiles (family phones). All data lives on the server, so nothing is lost by switching.
+- Opening a different person's link while signed in asks: «هذا الهاتف مفتوح باسم أحمد. هذا رابط محمد.» → «أضف محمد وانتقل إليه» / «ابقَ باسم أحمد».
+- Opening a link already saved on the phone just switches to it. The «أنت» card has a switcher when more than one is saved.
+- «إزالة X من هذا الهاتف» removes only that person; the others stay.
+- Notifications on that phone cover every saved person and say whose payment it is.
+- Cookies: `bq_member` (active token), `bq_member_saved` (≤5 tokens), `bq_member_pending` (10 min), `bq_member_on` (readable marker).
+
 ## What the member sees (all public pages unchanged, plus)
 - **Home «أنت» card:** name + number («ب 12»), status «أنت منتظم» / «عليك 3 أشهر · X أوقية», months as dots,
   credit if any, button «أرسلت دفعة».

@@ -10,7 +10,7 @@ import { MethodBadge } from "../bits";
 import { dayWords, fmt } from "../derive";
 import { I } from "../icons";
 import { MemberLinkPaste } from "@/components/providers";
-import { forgetMemberOnThisDevice, MemberPushToggle } from "../lane-b-member";
+import { forgetMemberOnThisDevice, MemberPushToggle } from "@/components/providers/member-push";
 import { useMemberAct, useMemberDemo } from "../member-act";
 import { forgetMemberCard, MemberCard } from "../member-card";
 import { coverLines, historySections } from "../member-model";
@@ -211,7 +211,9 @@ function SignOut({ name, others }: { name: string; others: number }) {
           onClick={async () => {
             setBusy(true);
             setErr("");
-            const endpoint = await forgetMemberOnThisDevice().catch(() => undefined);
+            // the last person on this phone: member notifications stop here too
+            const endpoint =
+              others === 0 ? await forgetMemberOnThisDevice().catch(() => undefined) : undefined;
             const r = await memberSignOut({ endpoint });
             setBusy(false);
             if (!r.ok) return setErr(r.message);

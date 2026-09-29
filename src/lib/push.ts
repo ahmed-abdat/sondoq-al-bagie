@@ -1,6 +1,24 @@
 // Web Push on this phone (committee notifications). Browser-only helpers; the subscription is
 // stored by the caller (Lane A's savePushSubscription), so this file never talks to the server.
 import { detectPlatform } from "./offline/install";
+import { safeStorage } from "./safe-storage";
+
+/**
+ * Who this phone's one browser subscription serves: the committee (new payments) and/or the
+ * member behind a personal link (confirmed / rejected). Turning one off keeps the other.
+ */
+export type PushKind = "committee" | "member";
+const KINDS_KEY = "sondoq:push-kinds";
+
+function kinds(): Set<PushKind> {
+  const v = safeStorage.getItem(KINDS_KEY);
+  // before members had push, a subscription was always the committee's
+  if (v === null) return new Set(["committee"]);
+  return new Set(v.split(",").filter((k): k is PushKind => k === "committee" || k === "member"));
+}
+function setKinds(k: Set<PushKind>) {
+  safeStorage.setItem(KINDS_KEY, [...k].join(","));
+}
 
 export type PushState =
   | "unsupported" // no service worker / PushManager / Notification (old browser, dev mode)
@@ -51,7 +69,7 @@ async function registration(): Promise<ServiceWorkerRegistration | null> {
   return Promise.race([navigator.serviceWorker.ready, timeout]);
 }
 
-export async function pushState(): Promise<PushState> {
+export async function pushState(kind: PushKind = "committee"): Promise<PushState> {
   if (typeof window === "undefined") return "unsupported";
   const ios = detectPlatform(navigator.userAgent, navigator.maxTouchPoints) === "ios";
   if (ios && !isStandalone()) return "install-first";
@@ -60,7 +78,7 @@ export async function pushState(): Promise<PushState> {
   const reg = await registration();
   if (!reg) return "unsupported";
   const sub = await reg.pushManager.getSubscription();
-  return sub && Notification.permission === "granted" ? "on" : "off";
+  return sub && Notification.permission === "granted" && kinds().has(kind) ? "on" : "off";
 }
 
 function toData(sub: PushSubscription): PushSubscriptionData {
@@ -77,6 +95,7 @@ function toData(sub: PushSubscription): PushSubscriptionData {
  */
 export async function subscribePush(
   save: (s: PushSubscriptionData) => Promise<{ ok: boolean }>,
+  kind: PushKind = "committee",
 ): Promise<PushState | "error"> {
   if (!isPushSupported()) return "unsupported";
   const permission = await Notification.requestPermission();
@@ -85,33 +104,45 @@ export async function subscribePush(
   try {
     const reg = await registration();
     if (!reg) return "unsupported";
+    const existing = await reg.pushManager.getSubscription();
     const sub =
-      (await reg.pushManager.getSubscription()) ??
+      existing ??
       (await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey()),
       }));
     const res = await save(toData(sub));
     if (!res.ok) {
-      await sub.unsubscribe().catch(() => {});
+      if (!existing) await sub.unsubscribe().catch(() => {}); // undo only what this tap made
       return "error";
     }
+    // a new subscription serves nobody else yet
+    const k = existing ? kinds() : new Set<PushKind>();
+    k.add(kind);
+    setKinds(k);
     return "on";
   } catch {
     return "error";
   }
 }
 
-/** Turn notifications off on this phone; `remove` drops it on the server. */
+/**
+ * Turn this switch's notifications off on this phone: `remove` drops it on the server; the
+ * browser subscription goes only when no other switch still uses it.
+ */
 export async function unsubscribePush(
   remove: (endpoint: string) => Promise<{ ok: boolean }>,
+  kind: PushKind = "committee",
 ): Promise<PushState | "error"> {
   try {
     const reg = await registration();
     const sub = await reg?.pushManager.getSubscription();
+    const k = kinds();
+    k.delete(kind);
+    setKinds(k);
     if (sub) {
       await remove(sub.endpoint).catch(() => ({ ok: false }));
-      await sub.unsubscribe();
+      if (!k.size) await sub.unsubscribe();
     }
     return "off";
   } catch {
@@ -125,9 +156,10 @@ export async function unsubscribePush(
  */
 export async function forgetPushOnThisPhone(
   remove: (endpoint: string) => Promise<{ ok: boolean }>,
+  kind: PushKind = "committee",
 ): Promise<void> {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-  await unsubscribePush(remove).catch(() => {});
+  await unsubscribePush(remove, kind).catch(() => {});
 }
 
 /**
