@@ -8,6 +8,7 @@ import { failure } from "@/lib/data/errors";
 import type { MemberAdmin } from "@/lib/data/types";
 import { waLink } from "@/lib/whatsapp";
 import { dayWords, relativeAgo } from "./derive";
+import { copyText, ManualCopy } from "./copy";
 import { I } from "./icons";
 import { useAct } from "./act";
 import type { MemberLinkInfo } from "@/lib/data/member-types";
@@ -47,7 +48,7 @@ export function MemberLinkSection({
   const [mode, setMode] = useState<Mode>("view");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"copied" | "manual" | null>(null);
 
   const run = async (f: () => ReturnType<typeof revokeMemberLink>, then: () => void) => {
     setBusy(true);
@@ -92,24 +93,23 @@ export function MemberLinkSection({
             target="_blank"
             rel="noopener noreferrer"
           >
-            {I.wa(22)} إرسال عبر واتساب
+            {I.wa(22)} افتح الرسالة في واتساب
           </a>
           <button
             type="button"
             className="bq-btn bq-btn-soft bq-press"
-            onClick={() => {
-              navigator.clipboard?.writeText(text).catch(() => {});
-              setCopied(true);
-            }}
+            onClick={async () => setCopied(await copyText(text))}
           >
-            {copied ? I.check(20) : I.copy(20)} {copied ? "نُسخت الرسالة" : "نسخ الرسالة"}
+            {copied === "copied" ? I.check(20) : I.copy(20)}{" "}
+            {copied === "copied" ? "نُسخت الرسالة" : "نسخ الرسالة"}
           </button>
+          {copied === "manual" && <ManualCopy text={text} label="انسخ الرسالة يدويًا" />}
           <button
             type="button"
             className="bq-btn bq-btn-ghost bq-press"
             onClick={() => {
               setMode("view");
-              setCopied(false);
+              setCopied(null);
             }}
           >
             تم

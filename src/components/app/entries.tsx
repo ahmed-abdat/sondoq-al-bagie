@@ -12,7 +12,7 @@ import type { LedgerEntry } from "./types";
 
 export { EntryRow } from "./entry-row";
 
-/** «أرسل الوصل عبر واتساب» + «حفظ صورة الوصل». */
+/** «شارك الوصل» + «حفظ صورة الوصل»; sharing opens a sheet or a draft, it does not send. */
 export function ShareBtns({ r, phone }: { r: ReceiptView; phone?: string | null }) {
   const sh = toShareable(r);
   const [busy, setBusy] = useState(false);
@@ -32,7 +32,7 @@ export function ShareBtns({ r, phone }: { r: ReceiptView; phone?: string | null 
           }
         }}
       >
-        {I.wa(20)} أرسل الوصل عبر واتساب
+        {I.wa(20)} شارك الوصل
       </button>
       <button
         type="button"
@@ -41,6 +41,7 @@ export function ShareBtns({ r, phone }: { r: ReceiptView; phone?: string | null 
       >
         {I.save(18)} حفظ صورة الوصل
       </button>
+      <p className="bq-hint">اختر واتساب ثم اضغط إرسال.</p>
     </div>
   );
 }

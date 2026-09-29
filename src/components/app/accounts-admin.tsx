@@ -13,6 +13,7 @@ import { waLink } from "@/lib/whatsapp";
 import { useAct } from "./act";
 import { MemberNo } from "./bits";
 import { memberLabel, relativeAgo, ROLE_LABEL } from "./derive";
+import { copyText, ManualCopy } from "./copy";
 import { I } from "./icons";
 import { MemberPick, PickedMember, type Pickable } from "./member-pick";
 import { useNow } from "./num";
@@ -73,7 +74,7 @@ function RolePicker({
 const isPhone = (v: string) => parseLogin(v)?.kind === "phone";
 
 function CredentialsCard({ c, onClose }: { c: Creds; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"copied" | "manual" | null>(null);
   const url = typeof window === "undefined" ? "/login" : `${window.location.origin}/login`;
   const text = [
     `السلام عليكم ${c.name}،`,
@@ -128,18 +129,17 @@ function CredentialsCard({ c, onClose }: { c: Creds; onClose: () => void }) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          {I.wa(22)} إرسال عبر واتساب
+          {I.wa(22)} افتح الرسالة في واتساب
         </a>
         <button
           type="button"
           className="bq-btn bq-btn-soft bq-press"
-          onClick={() => {
-            navigator.clipboard?.writeText(text).catch(() => {});
-            setCopied(true);
-          }}
+          onClick={async () => setCopied(await copyText(text))}
         >
-          {copied ? I.check(20) : I.copy(20)} {copied ? "نُسخت" : "نسخ البيانات"}
+          {copied === "copied" ? I.check(20) : I.copy(20)}{" "}
+          {copied === "copied" ? "نُسخت" : "نسخ البيانات"}
         </button>
+        {copied === "manual" && <ManualCopy text={text} label="انسخ البيانات يدويًا" />}
         <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={onClose}>
           تم
         </button>

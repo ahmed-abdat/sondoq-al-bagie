@@ -20,6 +20,7 @@ import { waLink } from "@/lib/whatsapp";
 import { rememberHandoverBalance, useAct, useDemoState, useIsDemo } from "./act";
 import { sendOnce, useOnceId } from "./once-id";
 import { dayDate, fmt, paymentCount, ROLE_LABEL } from "./derive";
+import { copyText, ManualCopy } from "./copy";
 import { I } from "./icons";
 import { Num } from "./num";
 import { Stamp } from "./receipt";
@@ -209,6 +210,16 @@ export function HandoverView({
           اليوم.
         </p>
       )}
+      <MinutesShare text={text} />
+    </section>
+  );
+}
+
+/** The minutes: open them in WhatsApp, or copy (truthfully) for another place. */
+function MinutesShare({ text }: { text: string }) {
+  const [copy, setCopy] = useState<"copied" | "manual" | null>(null);
+  return (
+    <>
       <div className="bq-share">
         <a
           className="bq-btn bq-btn-primary bq-press"
@@ -216,17 +227,19 @@ export function HandoverView({
           target="_blank"
           rel="noopener noreferrer"
         >
-          {I.wa(20)} أرسل محضر التسليم عبر واتساب
+          {I.wa(20)} افتح المحضر في واتساب
         </a>
         <button
           type="button"
           className="bq-btn bq-btn-ghost bq-press"
-          onClick={() => navigator.clipboard?.writeText(text).catch(() => {})}
+          onClick={async () => setCopy(await copyText(text))}
         >
-          {I.copy(18)} نسخ المحضر
+          {copy === "copied" ? I.check(18) : I.copy(18)}{" "}
+          {copy === "copied" ? "نُسخ المحضر" : "نسخ المحضر"}
         </button>
       </div>
-    </section>
+      {copy === "manual" && <ManualCopy text={text} label="انسخ المحضر يدويًا" />}
+    </>
   );
 }
 

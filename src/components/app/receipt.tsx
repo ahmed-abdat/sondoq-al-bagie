@@ -22,6 +22,7 @@ import {
 } from "./derive";
 import { MemberNo } from "./bits";
 import { RIM_BOTTOM, RIM_TOP } from "./stamp-rim";
+import { copyText } from "./copy";
 import { I } from "./icons";
 import { verifyPath, type ReceiptView } from "./receipt-model";
 
@@ -211,8 +212,9 @@ function CopyBtn({ value }: { value: string }) {
       type="button"
       className="rc-copy bq-press"
       aria-label={copied ? "نُسخ رقم العملية" : "نسخ رقم العملية"}
-      onClick={() => {
-        navigator.clipboard?.writeText(value).catch(() => {});
+      onClick={async () => {
+        // «نُسخ» only when it really was (QA pass 5); the number stays visible to copy by hand
+        if ((await copyText(value)) !== "copied") return;
         setCopied(true);
         clearTimeout(t.current);
         t.current = setTimeout(() => setCopied(false), 1600);

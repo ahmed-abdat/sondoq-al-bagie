@@ -2,6 +2,7 @@
 import type { FundAccount } from "@/lib/data/types";
 import { METHOD_LABELS } from "@/lib/methods";
 import { MethodBadge } from "./bits";
+import { copyText } from "./copy";
 import { I } from "./icons";
 import { useSnack } from "./shell";
 
@@ -26,10 +27,13 @@ export function PayTo({ accounts }: { accounts: FundAccount[] }) {
           <button
             type="button"
             className="bq-copy bq-press"
-            onClick={() => {
-              navigator.clipboard?.writeText(a.accountNumber).catch(() => {});
-              say(`نُسخ رقم ${METHOD_LABELS[a.method]}`);
-            }}
+            onClick={async () =>
+              say(
+                (await copyText(a.accountNumber)) === "copied"
+                  ? `نُسخ رقم ${METHOD_LABELS[a.method]}`
+                  : "لم يُنسخ. اضغط على الرقم مطولًا لتنسخه.",
+              )
+            }
             aria-label={`نسخ رقم ${METHOD_LABELS[a.method]}`}
           >
             {I.copy(18)} نسخ

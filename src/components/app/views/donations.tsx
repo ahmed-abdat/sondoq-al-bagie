@@ -5,6 +5,7 @@ import { METHOD_LABELS } from "@/lib/methods";
 import { MethodBadge, Track } from "../bits";
 import { DonateProof } from "../donate-proof";
 import { contributorCount, dayWords, fmt } from "../derive";
+import { copyText } from "../copy";
 import { I } from "../icons";
 import { Num } from "../num";
 import { radioKeys, radioTab } from "../radio-keys";
@@ -125,8 +126,9 @@ export function DonationsView({
                         type="button"
                         className="bq-copy bq-press"
                         aria-label={`نسخ رقم ${METHOD_LABELS[acc.method]}`}
-                        onClick={() => {
-                          navigator.clipboard?.writeText(acc.accountNumber).catch(() => {});
+                        onClick={async () => {
+                          if ((await copyText(acc.accountNumber)) !== "copied")
+                            return say("لم يُنسخ. اضغط على الرقم مطولًا لتنسخه.");
                           setCopied(acc.id);
                           say(`نُسخ رقم ${METHOD_LABELS[acc.method]}`);
                         }}

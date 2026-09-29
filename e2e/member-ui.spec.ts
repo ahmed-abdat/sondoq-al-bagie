@@ -198,7 +198,7 @@ test("committee creates a member link, shown once with the WhatsApp text", async
   await section.getByRole("button", { name: "إنشاء رابط" }).click();
   await expect(section.getByText("لن يظهر الرابط مرة أخرى.", { exact: false })).toBeVisible();
   await expect(section.locator(".bq-mlink-url")).toContainText("/m/");
-  const wa = section.getByRole("link", { name: /إرسال عبر واتساب/ });
+  const wa = section.getByRole("link", { name: /افتح الرسالة في واتساب/ });
   expect(decodeURIComponent((await wa.getAttribute("href")) ?? "")).toContain(
     "هذا رابطك الخاص في صندوق الرابطة:",
   );

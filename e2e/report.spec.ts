@@ -116,7 +116,8 @@ test("report images: every page as a 1080×1350 PNG in one share", async ({ page
     expect(f.name).toMatch(new RegExp(`^تقرير-صندوق-الرابطة-\\d{4}-\\d{2}-\\d{2}-${i + 1}\\.png$`));
   });
   expect(await win(page, "__text")).toMatch(/التفاصيل: https:\/\/\S+\/report/);
-  await expect(page.getByRole("status")).toHaveText(/أُرسل التقرير/);
+  // the share sheet opened; nothing is claimed about delivery (QA pass 5)
+  await expect(page.getByText(/أُرسل التقرير/)).toHaveCount(0);
 });
 
 test("PDF: one A4 file to the share sheet", async ({ page }) => {
@@ -240,4 +241,40 @@ test("committee (demo): the hub opens the share sheet on the report", async ({ p
   await expect(page.getByRole("dialog")).not.toContainText("✓ يعني");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "مشاركة التقرير" })).toBeVisible();
+});
+
+test("copy link: «نُسخ» only after the clipboard said yes, else the link to copy by hand (QA pass 5)", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: () => Promise.reject(new Error("denied")) },
+    });
+  });
+  await openSheet(page);
+  await page.getByRole("button", { name: /نسخ الرابط/ }).click();
+  const field = page.getByRole("textbox", { name: "انسخ الرابط يدويًا" });
+  await expect(field).toHaveValue(/\/report$/);
+  await expect(page.getByText(/نُسخ الرابط/)).toHaveCount(0);
+});
+
+test("copy link: a real clipboard write says «نُسخ الرابط»", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: (t: string) => {
+          (window as unknown as { __copied: string }).__copied = t;
+          return Promise.resolve();
+        },
+      },
+    });
+  });
+  await openSheet(page);
+  await page.getByRole("button", { name: /نسخ الرابط/ }).click();
+  await expect(page.getByRole("status")).toHaveText(/نُسخ الرابط/);
+  expect(await page.evaluate(() => (window as unknown as { __copied: string }).__copied)).toMatch(
+    /\/report$/,
+  );
 });
