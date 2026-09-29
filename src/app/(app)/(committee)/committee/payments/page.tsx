@@ -9,10 +9,13 @@ export const metadata: Metadata = {
 
 export default async function Payments() {
   await src.requireCommittee("/committee/payments");
-  const payments = await src.recentPayments();
+  const [payments, campaigns] = await Promise.all([src.recentPayments(), src.moneyCampaigns()]);
   return (
     <Tab>
-      <RecentPaymentsPage payments={payments} />
+      <RecentPaymentsPage
+        payments={payments}
+        campaignTitles={Object.fromEntries(campaigns.map((c) => [c.campaignId, c.title]))}
+      />
     </Tab>
   );
 }

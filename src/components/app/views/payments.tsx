@@ -12,7 +12,14 @@ import { fromPending } from "../receipt-model";
 import { Sheet } from "../sheet";
 import { SubHead } from "./committee";
 
-export function RecentPaymentsPage({ payments }: { payments: PendingPayment[] }) {
+export function RecentPaymentsPage({
+  payments,
+  campaignTitles,
+}: {
+  payments: PendingPayment[];
+  /** campaign id → title for contributions */
+  campaignTitles?: Record<string, string>;
+}) {
   const [gone, setGone] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<PendingPayment | null>(null);
   const list = payments
@@ -40,7 +47,7 @@ export function RecentPaymentsPage({ payments }: { payments: PendingPayment[] })
       {open && (
         <Sheet key={open.id} label="وصل استلام" onDone={() => setOpen(null)}>
           <ReceiptSheetBody
-            r={fromPending(open)}
+            r={fromPending(open, { campaignTitles })}
             paymentId={open.id}
             audience="committee"
             onCancelled={(reason) => setGone((g) => ({ ...g, [open.id]: reason }))}

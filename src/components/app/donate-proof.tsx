@@ -60,7 +60,7 @@ export function DonateProof({
   return (
     <div className="bq-give-proof">
       <label className="bq-btn bq-btn-primary bq-btn-lg bq-press">
-        {I.image(22)} {picked ? "غيّر الصورة" : member ? "أرسل صورة التحويل" : "اختر صورة التحويل"}
+        {I.image(22)} {picked ? "غيّر الصورة" : "اختر صورة التحويل"}
         <input
           type="file"
           accept="image/*"

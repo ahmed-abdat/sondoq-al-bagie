@@ -210,7 +210,13 @@ describe("restLines: whose debt, whose rest (QA pass 5)", () => {
     expect(r.rest).toMatch(/^يبقى لك 500 أوقية لدفعات قادمة\.$/);
   });
   it("several members: the total, and the rest by name", () => {
-    const r = restLines({ selfId: null, rows: [me, rel], creditTo: "rel", total: 2000, credit: 500 });
+    const r = restLines({
+      selfId: null,
+      rows: [me, rel],
+      creditTo: "rel",
+      total: 2000,
+      credit: 500,
+    });
     expect(r.owe).toMatch(/^المطلوب 2\s000 أوقية\.$/);
     expect(r.rest).toContain("باسم الشيخ ولد محمد");
   });

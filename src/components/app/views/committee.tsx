@@ -160,6 +160,7 @@ export function CommitteeView({
     null,
   );
   const openCamps = campaigns.filter((c) => c.status === "open").length;
+  const campaignTitles = Object.fromEntries(campaigns.map((c) => [c.campaignId, c.title]));
   // owner pick (r31): two tabs; «للمراجعة» is a chat-like list, one slip open in place (the first
   // by default); after a decision's 5 s «تراجع» window the next one opens by itself
   const [tab, setTab] = useState<"rev" | "work">("rev");
@@ -238,6 +239,7 @@ export function CommitteeView({
                         })
                       }
                       onSettled={() => setOpenId(undefined)}
+                      campaignTitles={campaignTitles}
                     />
                   </li>
                 ) : shownIds.has(p.id) ? (

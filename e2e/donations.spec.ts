@@ -7,6 +7,8 @@ const SHOT = path.join(process.cwd(), "public/logo.jpg");
 test("member with a link: the photo and the amount join the committee queue", async ({ page }) => {
   await page.goto("/m/demo");
   await page.goto("/donations");
+  const title = (await page.locator("#bq-camp-h").textContent())!.trim();
+  await expect(page.getByText("اختر صورة التحويل")).toBeVisible();
   await page.getByRole("radio", { name: "1 000" }).click();
   await page.locator(".bq-give-proof input[type=file]").setInputFiles(SHOT);
   const send = page.getByRole("button", { name: /^أرسل 1\s000 أوقية إلى اللجنة$/ });
@@ -17,7 +19,8 @@ test("member with a link: the photo and the amount join the committee queue", as
   // the demo committee sees it in its queue: newest first, open, as a contribution
   // (demo writes live in this tab: move there in the app, not by reloading)
   await page.locator("nav").getByRole("link", { name: "اللجنة" }).first().click();
-  await expect(page.locator("article.bq-slip").first()).toContainText("مساهمة في:");
+  // the exact campaign, not a generic «حملة تبرعات» (QA pass 5)
+  await expect(page.locator("article.bq-slip").first()).toContainText(`مساهمة في: ${title}`);
 });
 
 test("stranger: the image itself goes to the share sheet when the phone can share files", async ({

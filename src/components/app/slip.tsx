@@ -41,6 +41,7 @@ export function PendingSlip({
   onFull,
   onDecided,
   onSettled,
+  campaignTitles,
 }: {
   p: PendingPayment;
   /** who is deciding: name + role label; may they confirm, and their own member id */
@@ -50,6 +51,8 @@ export function PendingSlip({
   onDecided?: (decided: boolean) => void;
   /** the 5 s «تراجع» window closed and the decision is on its way (the hub moves to the next) */
   onSettled?: () => void;
+  /** campaign id → title, so a contribution names its campaign (not «حملة تبرعات») */
+  campaignTitles?: Record<string, string>;
 }) {
   const router = useRouter();
   const online = useOnline();
@@ -66,7 +69,7 @@ export function PendingSlip({
   const timer = useRef<number | null>(null);
   const send = useRef<(() => Promise<void>) | null>(null);
 
-  const base = fromPending(p);
+  const base = fromPending(p, { campaignTitles });
   const multi = base.covers.length > 1;
   const reason = pick === "أخرى" ? other.trim() : pick;
 
