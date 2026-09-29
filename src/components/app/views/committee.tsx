@@ -166,7 +166,9 @@ export function CommitteeView({
   const [openId, setOpenId] = useState<string | null | undefined>(undefined);
   const [all, setAll] = useState(false);
   const now = useNow();
-  const undecided = seen.filter((p) => !decided.has(p.id));
+  // newest first, like a chat list
+  const ordered = [...seen].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const undecided = ordered.filter((p) => !decided.has(p.id));
   const openNow =
     openId !== undefined && undecided.some((p) => p.id === openId)
       ? openId
@@ -220,7 +222,7 @@ export function CommitteeView({
           </h2>
           {seen.length > 0 && (
             <ul className="bq-rev">
-              {seen.map((p) =>
+              {ordered.map((p) =>
                 p.id === openNow || decided.has(p.id) ? (
                   <li key={p.id} id={`bq-slip-${p.id}`} className="bq-rev-open">
                     <PendingSlip
@@ -275,6 +277,15 @@ export function CommitteeView({
                 </>
               )}{" "}
               {I.chev(18)}
+            </button>
+          )}
+          {waiting > 0 && (
+            <button
+              type="button"
+              className="bq-btn bq-btn-soft bq-btn-lg bq-press bq-rev-rec"
+              onClick={() => setSheet({ t: "record" })}
+            >
+              {I.plus(22)} سجّل دفعة
             </button>
           )}
           {waiting === 0 && (
@@ -389,8 +400,7 @@ export function CommitteeView({
         </section>
       )}
 
-      {/* stays mounted under the sheet's scrim: closing the sheet gives focus back to it (B05) */}
-      {tab === "rev" && <Fab onClick={() => setSheet({ t: "record" })} />}
+
 
       {sheet?.t === "record" && (
         <Sheet key="record" label="سجّل دفعة" onDone={() => setSheet(null)}>
@@ -582,58 +592,3 @@ export function CampaignsPage({
   );
 }
 
-/**
- * «سجّل دفعة». Steps aside while a slip's buttons are under it (audit C3), so a thumb aiming at
- * «تأكيد الاستلام» never lands on the FAB; back as soon as they scroll away.
- */
-function Fab({ onClick }: { onClick: () => void }) {
-  const [away, setAway] = useState(false);
-  useEffect(() => {
-    let raf = 0;
-    const check = () => {
-      raf = 0;
-      const fab = document.querySelector<HTMLElement>(".bq-fab");
-      if (!fab) return;
-      const f = fab.getBoundingClientRect();
-      const hit = [
-        ...document.querySelectorAll<HTMLElement>(".bq-slip button, .bq-slip-one button"),
-      ].some((b) => {
-        const r = b.getBoundingClientRect();
-        return (
-          r.width > 0 &&
-          r.bottom > f.top - 8 &&
-          r.top < f.bottom + 8 &&
-          r.left < f.right &&
-          r.right > f.left
-        );
-      });
-      setAway(hit);
-    };
-    const ask = () => {
-      if (!raf) raf = requestAnimationFrame(check);
-    };
-    ask();
-    window.addEventListener("scroll", ask, { passive: true });
-    window.addEventListener("resize", ask);
-    const mo = new MutationObserver(ask);
-    mo.observe(document.body, { childList: true, subtree: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", ask);
-      window.removeEventListener("resize", ask);
-      mo.disconnect();
-    };
-  }, []);
-  return (
-    <button
-      type="button"
-      className={`bq-fab bq-press ${away ? "is-away" : ""}`}
-      onClick={onClick}
-      tabIndex={away ? -1 : undefined}
-      aria-hidden={away || undefined}
-    >
-      <span className="bq-fab-l">سجّل دفعة</span>
-      {I.plus(26)}
-    </button>
-  );
-}

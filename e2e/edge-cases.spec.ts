@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 
 test("a transfer typed in new ouguiya is caught and fixed ×10 (M16)", async ({ page }) => {
   await page.goto("/committee");
-  await page.locator(".bq-fab").click();
+  await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
   const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
   await sheet.locator(".bq-pick button.bq-row").first().click();
   await sheet.getByRole("button", { name: /تفاصيل أخرى/ }).click();
@@ -37,7 +37,7 @@ test("handover: pending payments before submit, balance change on accept (H1/H2)
 
 test("a mid-year joiner is never offered the months before joining (M9)", async ({ page }) => {
   await page.goto("/committee");
-  await page.locator(".bq-fab").click();
+  await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
   const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
   await sheet.getByLabel("ابحث عن العضو", { exact: true }).fill("ب 12");
   await sheet.locator(".bq-pick button.bq-row").first().click();
@@ -51,7 +51,7 @@ test("last year's late months are on the record screen, each at its own price (M
   page,
 }) => {
   await page.goto("/committee");
-  await page.locator(".bq-fab").click();
+  await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
   const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
   await sheet.getByLabel("ابحث عن العضو", { exact: true }).fill("أ 4");
   await sheet.locator(".bq-pick button.bq-row").first().click();
@@ -87,7 +87,7 @@ test("pay late months from a member's credit (M7)", async ({ page }) => {
 test("a second payment for months already waiting says so (M5)", async ({ page }) => {
   await page.goto("/committee");
   for (let i = 0; i < 2; i++) {
-    await page.locator(".bq-fab").click();
+    await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
     const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
     await sheet.getByLabel("ابحث عن العضو", { exact: true }).fill("أ 4");
     await sheet.locator(".bq-pick button.bq-row").first().click();

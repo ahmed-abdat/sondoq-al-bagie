@@ -5751,3 +5751,9 @@
     color: var(--muted);
   }
 }
+@layer components {
+  .bq-rev-rec {
+    width: 100%;
+    margin-block-start: 12px;
+  }
+}
