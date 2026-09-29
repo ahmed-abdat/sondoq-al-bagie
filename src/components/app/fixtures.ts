@@ -584,8 +584,9 @@ export const fxCommitteeAccounts = (): CommitteeAccount[] => [
     lastSignInAt: "2026-09-28T09:00:00Z",
     createdAt: "2026-09-01T09:00:00Z",
     canDelete: false,
-    notMember: false,
-    needsMemberLink: true,
+    // the demo user says it is not a member, so its own row has nothing to fix
+    notMember: true,
+    needsMemberLink: false,
   },
   {
     userId: uuid("9", 2),
@@ -612,6 +613,20 @@ export const fxCommitteeAccounts = (): CommitteeAccount[] => [
     canDelete: true,
     notMember: false,
     needsMemberLink: false,
+  },
+  {
+    // a deputy with no member link yet: «غير مربوط بعضو», with «ربطه بعضوية» / «ليس عضوًا»
+    userId: uuid("9", 4),
+    displayName: "المختار",
+    role: "deputy",
+    active: true,
+    memberId: null,
+    login: "+22226123458",
+    lastSignInAt: "2026-09-26T08:10:00Z",
+    createdAt: "2026-09-10T09:00:00Z",
+    canDelete: false,
+    notMember: false,
+    needsMemberLink: true,
   },
 ];
 
