@@ -3,6 +3,8 @@
 // with a WhatsApp button per row and «أرسل للجميع بالترتيب» (a card pinned on top walks through
 // the members without a link). Sending creates the link (an old one stops; the URL is shown only
 // once) and then opens WhatsApp in this tab: after an await a new window would be blocked on iOS.
+// The app cannot know whether the message was sent (audit B10): rows say «أُنشئ الرابط», and a
+// link made on this page can be sent again as is («أرسل مرة أخرى») without stopping it.
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
@@ -27,8 +29,8 @@ import { useSnack } from "./shell";
 import { SubHead } from "./views/committee";
 
 const STATE_WORD: Record<LinkState, string> = {
-  none: "لم يُرسل",
-  sent: "أُرسل",
+  none: "بلا رابط",
+  made: "أُنشئ الرابط",
   using: "فتحه",
 };
 
@@ -52,6 +54,8 @@ export function MemberLinksPage({
   const { createMemberLink } = useAct();
   // links made on this page, before the server refresh arrives
   const [made, setMade] = useState<Record<string, MemberLinkInfo>>({});
+  // their URLs (in memory only), so a WhatsApp left without sending can be reopened as is
+  const [urls, setUrls] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [walk, setWalk] = useState<string | null>(null);
@@ -83,10 +87,14 @@ export function MemberLinksPage({
       ...x,
       [r.memberId]: { memberId: r.memberId, createdAt: new Date().toISOString(), lastUsedAt: null },
     }));
+    setUrls((x) => ({ ...x, [r.memberId]: res.data.url }));
     if (inWalk) advance(r.memberId, skipped);
     router.refresh();
     openWhatsApp(waLink(r.phone, linkMessage(r.fullName, res.data.url)));
   };
+  /** The same link again (nothing new is created, the link keeps working). */
+  const resend = (r: LinkRow, url: string) =>
+    openWhatsApp(waLink(r.phone, linkMessage(r.fullName, url)));
 
   const start = () => {
     const fresh = new Set<string>();
@@ -141,7 +149,7 @@ export function MemberLinksPage({
         ) : (
           <>
             <p className="bq-row-s bq-ml-count">
-              <Num>{counts.sent}</Num> من <Num>{counts.total}</Num> أُرسل · بقي{" "}
+              <Num>{counts.made}</Num> من <Num>{counts.total}</Num> لهم رابط · بقي{" "}
               <Num>{counts.left}</Num>
             </p>
             <button
@@ -161,7 +169,7 @@ export function MemberLinksPage({
             <h2 className="bq-group-h">
               <span className="bq-group-t">المجموعة {groupLabel(g.code)}</span>
               <span className="bq-group-n bq-num">
-                {g.sent}/{g.items.length}
+                {g.made}/{g.items.length}
               </span>
             </h2>
             <ul className="bq-list">
@@ -194,6 +202,16 @@ export function MemberLinksPage({
                         onClick={() => void send(r)}
                       >
                         {busy === r.memberId ? I.dots(20) : I.wa(22)}
+                      </button>
+                    ) : urls[r.memberId] && r.state === "made" ? (
+                      <button
+                        type="button"
+                        className="bq-ml-new bq-press"
+                        aria-label={`أرسل الرابط نفسه مرة أخرى: ${r.fullName}`}
+                        disabled={!!busy}
+                        onClick={() => resend(r, urls[r.memberId])}
+                      >
+                        {I.wa(18)} أرسل مرة أخرى
                       </button>
                     ) : (
                       <button

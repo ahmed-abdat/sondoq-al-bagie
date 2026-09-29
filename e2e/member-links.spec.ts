@@ -22,16 +22,18 @@ test("hub and «الأعضاء» link to «روابط الأعضاء»", async (
   await expect(page).toHaveURL(/\/committee\/member-links$/);
 });
 
-test("send in order: WhatsApp opens with the link, the walk advances, the row shows «أُرسل»", async ({
+test("send in order: WhatsApp opens with the link, the walk advances, the row shows «أُنشئ الرابط»", async ({
   page,
 }) => {
   const urls = await catchWhatsApp(page);
   await page.goto("/committee/member-links");
   await expect(page.getByRole("heading", { name: "روابط الأعضاء", level: 1 })).toBeVisible();
-  await expect(page.getByText(/\d+ من \d+ أُرسل · بقي \d+/)).toBeVisible();
+  await expect(page.getByText(/\d+ من \d+ لهم رابط · بقي \d+/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "المجموعة أ" })).toBeVisible();
-  // fixtures: some links sent, one used, some members without a phone; words, not ✓ (audit C6)
-  await expect(page.locator(".bq-ml-tick", { hasText: "أُرسل" }).first()).toBeVisible();
+  // fixtures: some links made, one used, some members without a phone; words, not ✓ (audit C6);
+  // never «أُرسل»: WhatsApp delivery is unknown (audit B10)
+  await expect(page.locator(".bq-ml-tick", { hasText: "أُنشئ الرابط" }).first()).toBeVisible();
+  await expect(page.locator(".bq-ml-tick", { hasText: "أُرسل" })).toHaveCount(0);
   await expect(page.locator(".bq-ml-tick", { hasText: "فتحه" }).first()).toBeVisible();
   await expect(page.locator(".bq-ml-legend")).toHaveCount(0);
   await expect(page.getByText("بلا رقم هاتف").first()).toBeVisible();
@@ -47,12 +49,13 @@ test("send in order: WhatsApp opens with the link, the walk advances, the row sh
   expect(text).toContain("هذا رابطك الخاص في صندوق الرابطة:");
   expect(text).toMatch(/\/m\/demo/);
 
-  // the walk moved on; the sent row now says «أُرسل» and offers «رابط جديد»
+  // the walk moved on; the row says «أُنشئ الرابط» and can send the SAME link again (audit B10)
   await expect(walk.locator(".bq-ml-walk-t")).not.toContainText(first);
   const row = page.locator("li", { hasText: first }).first();
-  await expect(row.locator(".bq-ml-tick", { hasText: "أُرسل" })).toBeVisible();
-  const again = row.getByRole("button", { name: `رابط جديد: ${first}` });
-  await expect(again).toBeVisible();
+  await expect(row.locator(".bq-ml-tick", { hasText: "أُنشئ الرابط" })).toBeVisible();
+  await row.getByRole("button", { name: `أرسل الرابط نفسه مرة أخرى: ${first}` }).click();
+  await expect.poll(() => urls.length).toBe(2);
+  expect(urls[1]).toBe(urls[0]);
 
   // skip, then stop
   const second = await walk.locator(".bq-ml-walk-t").textContent();
@@ -61,10 +64,12 @@ test("send in order: WhatsApp opens with the link, the walk advances, the row sh
   await walk.getByRole("button", { name: "إيقاف" }).click();
   await expect(walk).toHaveCount(0);
 
-  // a new link for a sent row asks first (the old one stops)
+  // a link made earlier (its URL is not kept): a new one asks first (the old one stops)
+  const again = page.getByRole("button", { name: /^رابط جديد: / }).first();
+  const other = (await again.getAttribute("aria-label"))!.replace("رابط جديد: ", "");
   await again.click();
   await expect(page.getByText("سيتوقف الرابط القديم. أرسل رابطًا جديدًا؟")).toBeVisible();
   await page.getByRole("button", { name: /أرسل رابطًا جديدًا/ }).click();
-  await expect.poll(() => urls.length).toBe(2);
-  expect(textOf(urls[1])).toContain(first);
+  await expect.poll(() => urls.length).toBe(3);
+  expect(textOf(urls[2])).toContain(other);
 });
