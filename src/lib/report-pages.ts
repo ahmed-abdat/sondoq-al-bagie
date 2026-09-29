@@ -249,7 +249,7 @@ export function footerLabel(no: number, of: number, asOf: string): string {
 
 /* ─────────────── drawing ─────────────── */
 
-interface PageDrawOptions {
+export interface PageDrawOptions {
   url: string;
   fonts: CanvasFonts;
   logo?: CanvasImageSource | null;
@@ -366,10 +366,9 @@ function drawMembers(
   const all = r.members.filter((m) => isShown(m) && listOf(m) === page.list);
   const fee = (r.groupPrices as Record<string, number | undefined>)[page.list];
   const feeLine = fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : [];
-  // no current-month count here (owner decision r20): the group, its size and its fee. The
-  // «المتأخرات»: the fee only (never «متأخر N» nor how many owe)
-  if (page.reminder)
-    band(p, w, card, o.logo, `المتأخرات · المجموعة ${listLabel(page.list)}`, feeLine);
+  // no current-month count here (owner decision r20): the group, its size and its fee.
+  // «المتأخرات»: the title only, no amount at all, not even the fee (owner), never «متأخر N»
+  if (page.reminder) band(p, w, card, o.logo, `المتأخرات · المجموعة ${listLabel(page.list)}`);
   else
     band(p, w, card, o.logo, `المجموعة ${listLabel(page.list)}`, [
       membersWord(all.length),
@@ -568,7 +567,8 @@ function drawMoney(
   }
 }
 
-function drawReportPage(
+/** Draws one page (exported for the tests that read what is drawn). */
+export function drawReportPage(
   x: CanvasRenderingContext2D,
   page: ReportPage,
   r: ReportInput,

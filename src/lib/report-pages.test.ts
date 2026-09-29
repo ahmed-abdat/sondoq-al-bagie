@@ -12,6 +12,7 @@ import {
   moneyBlocks,
   footerLabel,
   paginateBlocks,
+  drawReportPage,
   paginateReminder,
   paginateReport,
   hasReminder,
@@ -266,5 +267,50 @@ describe("«المتأخرات» («من عليه متأخرات فقط»)", () 
     const many = Array.from({ length: 40 }, (_, i) => owing(`A-${i + 1}`));
     for (const p of paginateReminder(report(many), A4_PAGE))
       expect(p.kind === "members" && p.rows.length).toBeLessThanOrEqual(membersPerPage(A4_PAGE));
+  });
+});
+
+describe("what the «المتأخرات» pages draw", () => {
+  /** A canvas that records every text drawn. */
+  const drawn = (page: ReturnType<typeof paginateReminder>[number], r: ReportData) => {
+    const texts: string[] = [];
+    const noop = () => {};
+    const ctx = new Proxy(
+      {
+        fillText: (t: string) => void texts.push(t),
+        measureText: (t: string) => ({ width: t.length * 12 }),
+        createLinearGradient: () => ({ addColorStop: noop }),
+      } as Record<string, unknown>,
+      { get: (o, k) => (k in o ? o[k as string] : noop), set: () => true },
+    ) as unknown as CanvasRenderingContext2D;
+    drawReportPage(ctx, page, r, {
+      url: "https://baqie.vercel.app",
+      fonts: { display: "a", body: "b" },
+      size: A4_PAGE,
+      no: 1,
+      of: 1,
+    });
+    return texts;
+  };
+  const owing = (ref: string): ReportMember => ({
+    ...member(ref),
+    months: [...Array(8).fill("paid"), "late", "upcoming", "upcoming", "upcoming"],
+    monthsPaid: 8,
+    monthsBehind: 1,
+  });
+
+  it("names and months only: no amount, no fee, no total", () => {
+    const r = report([owing("A-1"), member("A-2"), owing("A-3")]);
+    const [page] = paginateReminder(r, A4_PAGE);
+    const texts = drawn(page, r);
+    expect(texts).toEqual(expect.arrayContaining(["المتأخرات · المجموعة أ", "عضو A-1", "عضو A-3"]));
+    expect(texts).not.toContain("عضو A-2");
+    for (const t of texts) expect(t).not.toMatch(/أوقية|الرسوم|المجموع:|متأخر \d/);
+  });
+
+  it("while the full report's group page does show the fee", () => {
+    const r = report([owing("A-1")]);
+    const page = paginateReport(r, A4_PAGE).find((p) => p.kind === "members")!;
+    expect(drawn(page, r).some((t) => /الرسوم الشهرية: 1.000 أوقية/.test(t))).toBe(true);
   });
 });
