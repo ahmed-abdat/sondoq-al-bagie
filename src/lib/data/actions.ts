@@ -829,10 +829,11 @@ export async function createMemberLink(input: {
     { touchesPublic: false },
   );
   if (!res.ok) return res;
-  const origin = (process.env.NEXT_PUBLIC_SITE_ORIGIN || "https://baqie.vercel.app").replace(
-    /\/+$/,
-    "",
-  );
+  // same address rule as components/app/site.ts (lib must not import components)
+  const origin = (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === "production" ? "https://baqie.vercel.app" : "http://localhost:3000")
+  ).replace(/\/+$/, "");
   return { ok: true, data: { memberId: input.memberId, url: `${origin}/m/${token}` } };
 }
 
