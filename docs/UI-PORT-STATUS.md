@@ -151,8 +151,83 @@ Home reads `getMemberIndex` (search index only: ref, name, status label; a resul
 Home prefetch RSC 134.8 KB → 24.7 KB, /members 132.9 KB → 40.0 KB, home HTML 170 KB → 46 KB.
 Nav probe (`nav.mjs`, CPU 4×, Fast 3G): 0 blank frames, nav never remounts, pill slides on every tab.
 
+## Rounds 9–14 (search, accounts, «حسابي», sheet rebuild)
+- Member search everywhere (`search-field.tsx`, `search-text.ts`, `use-speech.ts`,
+  `recent-members.ts`): 🎤 Web Speech (ar-SA → ar, hidden when unsupported), «رقم» keypad sheet
+  (أ/ب + digits, live «أ 12 · name»), «آخر من بحثت عنهم» (5, per device), forgiving names
+  (ولد/بنت, order, ال, hamza, ة/ه, ى/ي), spoken numbers 1–99. Record list: «المتأخرون» first +
+  group chips. Tests in `search-text.test.ts`.
+- Committee accounts (`accounts-admin.tsx`): required role picker (4 roles, no default), «تغيير
+  الدور» (setCommitteeMember), credentials text with no bidi marks, «المزيد…» → stop (confirm
+  sheet) / delete (canDelete, deleteCommitteeAccount), «موقوف» chip, reactivation toast.
+- Push: `<CommitteePushToggle/>` in «حسابي» (confirmers only; hidden in demo),
+  `forgetCommitteePush()` before logout (`logout.tsx`), `<CloseStalePushNotifications>` +
+  one-time `PushSuggest` card on the hub, `<AppBadgeSync>` in `pending-badge.tsx`.
+- «حسابي» `/committee/account` (`views/account.tsx`): name (updateMyProfile, sends memberId
+  unchanged), role/login/last sign-in read-only, password (setPassword), link own membership once
+  (canLinkMember, active members, read-only after), notifications, «الخروج من كل الأجهزة»
+  (signOutEverywhere with this browser's push endpoint, clears the query persister), «خروج».
+  Settings are fund-only now (link row to «حسابي»). Hub name line links to «حسابي».
+- Receipts: cancel a confirmed payment (`cancel-payment.tsx`, viewer role via `viewer.ts` +
+  `whoCanCancel`), /committee/payments list. Fund renamed «صندوق الرابطة» in this lane.
+
+## Sheet rebuild on Base UI (1c1c883) — status
+Done: `src/components/app/sheet.tsx` keeps its API (`Sheet`, `useSheet`, `canVT`, `startVT`); no
+call site changed. Phones: `@base-ui/react/drawer` (Root/Portal/Backdrop/Viewport/Popup/Content,
+swipeDirection down, Title/Description as `bq-sr-only` wired to aria-labelledby, our handle +
+«إغلاق»). Desktop ≥1024px: `@base-ui/react/dialog`, centred. CSS in globals.css («Base UI Drawer»
+block): slide/fade via data-starting/ending-style, `--drawer-swipe-movement-y`,
+`--drawer-swipe-progress` on the scrim, `.is-vt` skips the slide for view-transition morphs,
+nested sheet dims the lower one, reduced-motion = opacity only, print hides it,
+`body { position: relative }` for iOS. vaul removed; `src/components/ui/drawer.tsx` is now the
+shadcn base-maia Base UI drawer (unused, kept per the request).
+
+Re-tested at 390px in demo (script `/private/tmp/claude-502/sondoq-shots/r14.mjs 390`, shots in
+`r14/`): member sheet, home receipt (✕), keypad, install steps, full receipt from a slip, record
+payment + nested keypad + nested date picker (stack 2 → Escape closes only the top), record
+footer, cancel payment, add member, admin member, add account, «المزيد…» → stop confirm, expense,
+campaign form, «حسابي» pick + nested keypad, report share. All: aria-labelledby = label, scroll
+locked, Escape closes, focus returns to the opener.
+
+Left:
+1. Run the same script at 1280 (`node r14.mjs 1280`) and look at the shots; not done yet.
+2. Swipe-down to dismiss on a real phone / CDP touch drag: not verified (Base UI handles it;
+   scrollable sheets need a check that swiping inside scrolled content does not dismiss).
+3. Lane B's e2e suite (`pnpm build && pnpm test:e2e`): not run after the rebuild.
+4. Handover sheets, reject flow, date pickers in expenses/campaigns, receipt cancel after confirm
+   on home: not individually re-tested.
+5. View-transition morph (member avatar, receipt) — check it still morphs (`.is-vt`).
+Known issues / differences:
+- Sheets now render in a portal on <body> (not inside `.bq-app`); the snackbar under `.bq-app`
+  is inert while a sheet is open.
+- Base UI sets no `aria-modal` on the popup (uses inert on the background); pull-to-refresh and
+  install banner still detect `[role="dialog"]`. `src/lib/offline/pull.ts` still lists
+  `[data-vaul-drawer]` (Lane B's file; harmless).
+- Install steps sheet (providers/install.tsx) did not return focus to the opener in the test.
+- Initial focus is Base UI's default (first tabbable, usually «إغلاق»), was the sheet itself.
+
+## Standing brief for Lane C (UI)
+- Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
+  plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
+- Owned: `src/components/app/**`, `src/app/**` pages/layouts (not `manifest.ts`, `sw.ts`),
+  `src/app/globals.css`, `src/components/brand.tsx`, `src/components/ui/**`, DESIGN.md,
+  PRODUCT.md, this doc. Not ours: `src/lib/supabase/**`, `src/lib/data/**`,
+  `src/components/providers/**`, `src/lib/push*`, `src/lib/offline/**`, `src/lib/share-*`,
+  `src/lib/report-pages.ts`, sw, manifest, `public/**`, `next.config.ts`.
+- Data seam: `components/app/source.ts` (fixtures when `SONDOQ_FIXTURES=1`; demo mode =
+  fixtures and not production). Client writes via `useAct()` (`act.tsx`); every new real action
+  needs a demo stub there so demo never writes to the real DB.
+- Screenshots: fixtures only (`SONDOQ_FIXTURES=1 pnpm build && pnpm start -p 3400`, demo opens
+  /committee without login), saved under `/private/tmp/claude-502/sondoq-shots/rN/`.
+- Copy rules: Arabic RTL, no dashes in UI text, numbers «أ 12» / «12» in a group
+  (`memberLabel`/`MemberNo`/`Avatar`), fund name «صندوق الرابطة», subtitle «رابطة شباب قرية
+  البقيع», report title «تقرير صندوق رابطة شباب البقيع», empty sections are hidden.
+- Contracts in use: getMemberIndex/getMemberRows, getRecentPayments, cancelPayment,
+  setCommitteeMember, deleteCommitteeAccount (+canDelete), getMyProfile/updateMyProfile/
+  signOutEverywhere, push actions via providers/committee-push, AppBadgeSync.
+
 ## How to verify
-`pnpm check && pnpm build`. Screenshots: `SONDOQ_FIXTURES=1 pnpm dev -p 3400`; /committee needs a
+`pnpm check && pnpm build`; sheets: `node /private/tmp/claude-502/sondoq-shots/r14.mjs 390|1280` against the fixtures server. Screenshots: `SONDOQ_FIXTURES=1 pnpm dev -p 3400`; /committee needs a
 signed-in committee user, or a temporary UNCOMMITTED bypass in `src/proxy.ts`
 (`process.env.SONDOQ_FIXTURES !== "1" &&` in the redirect condition) — revert before committing.
 Compare with http://localhost:3100/prototype/direction?variant=M.
