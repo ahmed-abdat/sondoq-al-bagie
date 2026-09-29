@@ -2,10 +2,16 @@
 // «مشاركة التقرير»: one button, one sheet, four big one-tap options. The images and the PDF are
 // rendered in the background as soon as the sheet opens (prepareReportShare), so the tap shares
 // at once and stays within the browser's "user activation" window.
-import { useEffect, useState } from "react";
-import type { ReportData } from "@/lib/data/types";
+import { useEffect, useMemo, useState } from "react";
+import type { FundAccount, ReportData } from "@/lib/data/types";
+import { METHOD_LABELS } from "@/lib/methods";
 import {
+  hasReminder,
+  type PayAccount,
+  prepareReminderShare,
   prepareReportShare,
+  shareReminderImages,
+  shareReminderPdf,
   shareReportImages,
   shareReportPdf,
   shareReportSummary,
@@ -32,10 +38,13 @@ const DONE: Record<Exclude<Result, "retry" | "manual">, string> = {
  */
 export function ReportShare({
   data,
+  accounts = [],
   autoOpen = false,
 }: {
   /** the full report (with money): null until it arrives, and always null for strangers */
   data: ReportData | null;
+  /** the fund's public wallets, for «ادفع عبر: …» in the fee reminder */
+  accounts?: FundAccount[];
   autoOpen?: boolean;
 }) {
   const committee = useCommitteeViewer();
@@ -45,7 +54,7 @@ export function ReportShare({
         <PrintBtn />
       </div>
     );
-  return <ShareTools data={data} autoOpen={autoOpen} />;
+  return <ShareTools data={data} accounts={accounts} autoOpen={autoOpen} />;
 }
 
 function PrintBtn() {
@@ -60,8 +69,28 @@ function PrintBtn() {
   );
 }
 
-function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean }) {
+function ShareTools({
+  data,
+  accounts,
+  autoOpen,
+}: {
+  data: ReportData;
+  accounts: FundAccount[];
+  autoOpen: boolean;
+}) {
   const committee = true;
+  // «التقرير كاملًا» or the fee reminder «من عليه رسوم فقط» (same grid, only who owes, no money)
+  const [kind, setKind] = useState<"full" | "reminder">("full");
+  const canRemind = hasReminder(data);
+  const pay = useMemo<PayAccount[]>(
+    () =>
+      accounts.map((a) => ({
+        method: a.method,
+        accountNumber: a.accountNumber,
+        label: METHOD_LABELS[a.method],
+      })),
+    [accounts],
+  );
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [retry, setRetry] = useState<string | null>(null);
@@ -73,8 +102,10 @@ function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean })
     return () => clearTimeout(t);
   }, [autoOpen, committee]);
   useEffect(() => {
-    if (open) prepareReportShare(data);
-  }, [open, data]);
+    if (!open) return;
+    if (kind === "reminder") prepareReminderShare(data, pay);
+    else prepareReportShare(data);
+  }, [open, data, kind, pay]);
 
   const run = async (key: string, f: () => Promise<Result>) => {
     setBusy(key);
@@ -90,7 +121,11 @@ function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean })
       } else {
         setRetry(null);
         setManual(false);
-        setMsg(DONE[r]);
+        setMsg(
+          r === "whatsapp" && kind === "reminder"
+            ? "فُتح واتساب بنص التذكير ورابط التطبيق. اضغط إرسال هناك."
+            : DONE[r],
+        );
       }
     } catch {
       setMsg("تعذّر تجهيز التقرير الآن. جرّب «نسخ الرابط».");
@@ -99,13 +134,30 @@ function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean })
     }
   };
 
-  const options: {
+  type Option = {
     key: string;
     icon: React.ReactNode;
     title: string;
     sub: string;
     run: () => Promise<Result>;
-  }[] = [
+  };
+  const reminderOptions: Option[] = [
+    {
+      key: "r-images",
+      icon: I.image(24),
+      title: "صور لواتساب",
+      sub: "أسماء من عليه رسوم، مع طريقة الدفع",
+      run: () => shareReminderImages(data, pay),
+    },
+    {
+      key: "r-pdf",
+      icon: I.save(24),
+      title: "ملف PDF",
+      sub: "تذكير بالرسوم في ملف واحد",
+      run: () => shareReminderPdf(data, pay),
+    },
+  ];
+  const fullOptions: Option[] = [
     {
       key: "images",
       icon: I.image(24),
@@ -161,8 +213,28 @@ function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean })
         <Sheet label="مشاركة التقرير" onDone={() => setOpen(false)}>
           <div className="bq-rec">
             <h2>مشاركة التقرير</h2>
+            <div className="bq-chips" role="group" aria-label="ماذا تشارك؟">
+              <button
+                type="button"
+                className="bq-chip bq-press"
+                aria-pressed={kind === "full"}
+                onClick={() => setKind("full")}
+              >
+                التقرير كاملًا
+              </button>
+              <button
+                type="button"
+                className="bq-chip bq-press"
+                aria-pressed={kind === "reminder"}
+                disabled={!canRemind}
+                onClick={() => setKind("reminder")}
+              >
+                من عليه رسوم فقط
+              </button>
+            </div>
+            {!canRemind && <p className="bq-hint">لا أحد عليه رسوم الآن.</p>}
             <ul className="bq-list bq-menu rp-share">
-              {options.map((o) => (
+              {(kind === "reminder" ? reminderOptions : fullOptions).map((o) => (
                 <li key={o.key}>
                   <button
                     type="button"

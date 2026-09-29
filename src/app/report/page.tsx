@@ -17,5 +17,7 @@ export const metadata: Metadata = {
 
 /** Static for everyone: the amount-free shell. Money arrives in the browser (ReportView). */
 export default async function ReportPage() {
-  return <ReportView shell={await src.reportShell()} />;
+  const [shell, accounts] = await Promise.all([src.reportShell(), src.fundAccounts()]);
+  // the fund's wallets (public, as on /accounts): «ادفع عبر: …» in the fee reminder
+  return <ReportView shell={shell} accounts={accounts} />;
 }
