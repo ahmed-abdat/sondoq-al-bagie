@@ -30,9 +30,13 @@ import {
   type MemberSession,
 } from "@/lib/data/member-types";
 
-export const usingFixtures = process.env.SONDOQ_FIXTURES === "1";
 /** Fixtures + committee writes simulated in the browser; never on production (see demo.ts). */
 export const demoMode = isDemo();
+/**
+ * Fictional reads follow the same fail-closed decision as simulated writes (audit B01 / arch 1):
+ * SONDOQ_FIXTURES=1 on a production deployment serves real reads, never fixtures.
+ */
+export const usingFixtures = demoMode;
 const pick = <T>(fixture: () => T, real: () => Promise<T>): Promise<T> =>
   usingFixtures ? Promise.resolve(fixture()) : real();
 

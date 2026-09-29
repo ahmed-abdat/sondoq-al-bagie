@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { PendingBadge } from "@/components/app/pending-badge";
+import { isDemo } from "@/components/app/demo";
 import { CommitteeLive } from "@/components/app/views/committee";
 
 // Committee area. The proxy sends signed-out visitors to /login; each page checks the session.
@@ -8,7 +9,8 @@ import { CommitteeLive } from "@/components/app/views/committee";
 export default function CommitteeLayout({ children }: LayoutProps<"/">) {
   return (
     <>
-      <CommitteeLive />
+      {/* demo: fictional data stays local, no socket to the real Supabase host (audit B01) */}
+      {!isDemo() && <CommitteeLive />}
       <Suspense fallback={null}>
         <PendingBadge />
       </Suspense>
