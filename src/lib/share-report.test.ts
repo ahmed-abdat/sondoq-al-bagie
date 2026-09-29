@@ -6,6 +6,7 @@ import {
   drawReportSummary,
   monthBars,
   paidLine,
+  reportFileBase,
   reportFileName,
   reportSummary,
   reportShareText,
@@ -18,6 +19,10 @@ const D: ReportSummaryData = {
   termLabel: "الدورة 2026",
   year: 2026,
   balance: 290500,
+  carried: 10000,
+  moneyIn: 282000,
+  moneyOut: 1500,
+  adjustments: 0,
   collectedThisYear: 294000,
   spentThisYear: 1500,
   paidCount: 38,
@@ -28,13 +33,14 @@ const D: ReportSummaryData = {
     { month: 9, expected: 50000, collected: 25000 },
     { month: 10, expected: 50000, collected: 0 },
   ],
-  asOfLabel: "الأحد 5 أكتوبر 2026",
+  asOfLabel: "5 أكتوبر 2026",
 };
 
 it("paidLine / url / file name", () => {
   expect(paidLine(D)).toBe(`38 من 70 دفعوا رسوم ${monthName(9)}`);
   expect(reportUrl("https://x.app/")).toBe("https://x.app/report");
   expect(reportFileName(2026, 9)).toBe("ملخص-صندوق-الشباب-2026-09.png");
+  expect(reportFileBase("2026-09-28T10:25:00Z")).toBe("تقرير-صندوق-الشباب-2026-09-28");
 });
 
 describe("monthBars", () => {
@@ -69,7 +75,7 @@ it("drawReportSummary draws the key texts and 12 month labels", () => {
     direction: "rtl",
     fillRect() {},
     fillText: (t: string) => void texts.push(t),
-    measureText: (t: string) => ({ width: t.length * 30 }),
+    measureText: (t: string) => ({ width: t.length * 12 }),
     beginPath() {},
     arc() {},
     fill() {},
@@ -86,7 +92,9 @@ it("drawReportSummary draws the key texts and 12 month labels", () => {
       `290${THIN}500`,
       paidLine(D),
       "x.app/report",
-      "حتى الأحد 5 أكتوبر 2026",
+      "صندوق الشباب · حتى 5 أكتوبر 2026",
+      "رصيد مرحّل",
+      `10${THIN}000`,
     ]),
   );
   for (let m = 1; m <= 12; m++) expect(texts).toContain(String(m));
@@ -169,7 +177,8 @@ describe("reportSummary (ReportData → card)", () => {
     });
     expect(d.months).toHaveLength(12);
     expect(d.months[0]).toEqual({ month: 1, expected: 1000, collected: 1000 });
-    expect(d.asOfLabel).toBe(`الاثنين 28 ${monthName(9)} 2026`);
+    expect(d.asOfLabel).toBe(`28 ${monthName(9)} 2026`);
+    expect(d).toMatchObject({ carried: 0, moneyIn: 0, moneyOut: 0, adjustments: 0 });
   });
 
   it("the share text takes ReportData as is", () => {

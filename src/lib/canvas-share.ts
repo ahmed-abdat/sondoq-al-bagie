@@ -28,8 +28,8 @@ export async function appFonts(): Promise<CanvasFonts> {
   const display = cs.getPropertyValue("--font-display-face").trim() || body;
   try {
     await Promise.all([
-      document.fonts.load(`700 30px ${display}`, FONT_SAMPLE),
-      document.fonts.load(`400 20px ${body}`, FONT_SAMPLE),
+      ...["600", "700", "800"].map((w) => document.fonts.load(`${w} 30px ${display}`, FONT_SAMPLE)),
+      ...["400", "600", "700"].map((w) => document.fonts.load(`${w} 20px ${body}`, FONT_SAMPLE)),
     ]);
   } catch {
     /* fall back to whatever is available */
@@ -37,12 +37,14 @@ export async function appFonts(): Promise<CanvasFonts> {
   return { display, body };
 }
 
-/** Creates a canvas of `w × h` CSS px at `scale`, lets `draw` paint it, returns a PNG blob. */
+/** Creates a canvas of `w × h` CSS px at `scale`, lets `draw` paint it, returns a PNG (or JPEG) blob. */
 export async function renderPng(
   w: number,
   h: number,
   scale: number,
   draw: (ctx: CanvasRenderingContext2D) => void,
+  type: "image/png" | "image/jpeg" = "image/png",
+  quality?: number,
 ): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = w * scale;
@@ -52,11 +54,15 @@ export async function renderPng(
   ctx.scale(scale, scale);
   draw(ctx);
   return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"),
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), type, quality),
   );
 }
 
-export type ShareResult = "shared" | "whatsapp" | "cancelled";
+/**
+ * "retry": the share sheet refused because the tap was too long ago (slow render on an old phone);
+ * the files are ready now, so a second tap shares at once.
+ */
+export type ShareResult = "shared" | "whatsapp" | "cancelled" | "retry";
 
 export type ShareNavigator = Pick<Navigator, "share"> & {
   canShare?: (data: ShareData) => boolean;
@@ -97,7 +103,7 @@ export async function shareImage(
   return "whatsapp";
 }
 
-/** Save a PNG to the phone (download). */
+/** Save a file to the phone (download). */
 export function downloadPng(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
