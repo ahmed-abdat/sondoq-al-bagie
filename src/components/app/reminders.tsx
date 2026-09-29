@@ -29,6 +29,8 @@ export function LateList({
   const [groupAt, setGroupAt] = useState<string | null>(null);
   const [walk, setWalk] = useState<string | null>(null);
   const [skipped, setSkipped] = useState<ReadonlySet<string>>(new Set());
+  // the next action first (QA pass 5): three names, the whole roster on demand
+  const [showAll, setShowAll] = useState(false);
   // P9: the walk moves on when the page is back from WhatsApp; «تراجع» returns to that person
   const later = useAfterReturn();
   const [last, setLast] = useState<{ id: string; name: string } | null>(null);
@@ -163,7 +165,7 @@ export function LateList({
             الأكثر تأخرًا أولًا. افتح رسالة كل عضو في واتساب وأرسلها له.
           </p>
           <ul className="bq-list">
-            {arrears.map((a) => {
+            {(showAll ? arrears : arrears.slice(0, 3)).map((a) => {
               const last = sent[a.memberId] ?? a.lastRemindedAt;
               return (
                 <li key={a.memberId}>
@@ -200,6 +202,16 @@ export function LateList({
               );
             })}
           </ul>
+          {arrears.length > 3 && (
+            <button
+              type="button"
+              className="bq-link bq-press"
+              aria-expanded={showAll}
+              onClick={() => setShowAll(!showAll)}
+            >
+              {showAll ? "عرض أقل" : `عرض كل المتأخرين (${arrears.length})`} {I.chev(18)}
+            </button>
+          )}
         </>
       )}
     </>

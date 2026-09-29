@@ -185,6 +185,11 @@ function MemberPicker({
   const onTime = rest.filter((m) => m.status === "active" && m.monthsBehind === 0);
   const lists = [...new Set(onTime.map(listOf))].sort();
   const exempt = rest.filter((m) => m.status === "exempt");
+  // fewer words first (QA pass 5): search, a few likely names; the whole roster on demand
+  const [full, setFull] = useState(false);
+  const compact = !q.trim() && !full;
+  const recentShown = compact ? recent.slice(0, 3) : recent;
+  const lateShown = compact ? late.slice(0, 5) : late;
   return (
     <div className="bq-pick">
       <SearchField
@@ -198,7 +203,7 @@ function MemberPicker({
         autoFocus={autoFocus}
         className="bq-pick-search"
       />
-      {allLists.length > 1 && (
+      {allLists.length > 1 && !compact && (
         <div className="bq-pick-groups">
           <Segmented<"all" | "A" | "B">
             label="المجموعة"
@@ -224,39 +229,45 @@ function MemberPicker({
           </ul>
         </section>
       )}
-      {recent.length > 0 && (
+      {recentShown.length > 0 && (
         <section aria-label={member ? "دفعت لهم سابقًا" : "آخر من سجّلت لهم"}>
           <h3 className="bq-pick-h">{member ? "دفعت لهم سابقًا" : "آخر من سجّلت لهم"}</h3>
           <ul className="bq-list">
-            {recent.map((m) => (
+            {recentShown.map((m) => (
               <PickRow key={`r-${m.memberId}`} m={m} onPick={onPick} />
             ))}
           </ul>
         </section>
       )}
-      {late.length > 0 && (
+      {lateShown.length > 0 && (
         <section aria-label="المتأخرون">
           <h3 className="bq-pick-h">المتأخرون</h3>
           <ul className="bq-list">
-            {late.map((m) => (
+            {lateShown.map((m) => (
               <PickRow key={`l-${m.memberId}`} m={m} onPick={onPick} />
             ))}
           </ul>
         </section>
       )}
-      {lists.map((l) => (
-        <section key={l} aria-label={`المجموعة ${groupLabel(l)}`}>
-          <h3 className="bq-pick-h">المجموعة {groupLabel(l)}</h3>
-          <ul className="bq-list">
-            {onTime
-              .filter((m) => listOf(m) === l)
-              .map((m) => (
-                <PickRow key={m.memberId} m={m} onPick={onPick} scoped />
-              ))}
-          </ul>
-        </section>
-      ))}
-      {exempt.length > 0 && (
+      {compact && (
+        <button type="button" className="bq-link bq-press" onClick={() => setFull(true)}>
+          عرض كل الأعضاء {I.chev(18)}
+        </button>
+      )}
+      {!compact &&
+        lists.map((l) => (
+          <section key={l} aria-label={`المجموعة ${groupLabel(l)}`}>
+            <h3 className="bq-pick-h">المجموعة {groupLabel(l)}</h3>
+            <ul className="bq-list">
+              {onTime
+                .filter((m) => listOf(m) === l)
+                .map((m) => (
+                  <PickRow key={m.memberId} m={m} onPick={onPick} scoped />
+                ))}
+            </ul>
+          </section>
+        ))}
+      {!compact && exempt.length > 0 && (
         <section aria-label="المعفون">
           <h3 className="bq-pick-h">المعفون من الرسوم</h3>
           <ul className="bq-list">
