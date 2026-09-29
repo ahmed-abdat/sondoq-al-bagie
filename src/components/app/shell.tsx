@@ -30,12 +30,12 @@ const TABS = [
   { href: "/committee", l: "اللجنة", i: I.lock },
 ] as const;
 
+/** The tab a path belongs to, or -1 (e.g. «دفعاتي» /me): then no tab claims to be current. */
 export function tabIndex(path: string) {
   if (path === "/") return 0;
-  const i = TABS.findIndex(
+  return TABS.findIndex(
     (t) => t.href !== "/" && (path === t.href || path.startsWith(`${t.href}/`)),
   );
-  return i < 0 ? 0 : i;
 }
 
 /* ───────────── snackbar ───────────── */
@@ -193,7 +193,12 @@ export function AppShell({
           <CompactBalance />
         </div>
 
-        <nav className="bq-rail" aria-label="التنقل" style={{ ["--idx" as string]: idx }}>
+        <nav
+          className="bq-rail"
+          aria-label="التنقل"
+          style={{ ["--idx" as string]: Math.max(idx, 0) }}
+          data-none={idx < 0 || undefined}
+        >
           <Image
             src="/logo.jpg"
             alt="شعار رابطة شباب قرية البقيع"
@@ -221,7 +226,12 @@ export function AppShell({
           </aside>
         </div>
 
-        <nav className="bq-bnav" aria-label="التنقل" style={{ ["--idx" as string]: idx }}>
+        <nav
+          className="bq-bnav"
+          aria-label="التنقل"
+          style={{ ["--idx" as string]: Math.max(idx, 0) }}
+          data-none={idx < 0 || undefined}
+        >
           <span className="bq-pill" aria-hidden="true" />
           <NavItems idx={idx} badge={liveBadge} onGo={onGo} />
         </nav>
