@@ -9,7 +9,7 @@ import { mroToMru } from "@/lib/money";
 import { waLink } from "@/lib/whatsapp";
 import type { Arrear, FundAccount } from "./types";
 
-const FUND = "صندوق الشباب";
+const FUND = "صندوق الرابطة";
 
 /** "يوليو، أغسطس 2026" — the year once when every month is in the same year. */
 export function monthsList(yms: string[]): string {
