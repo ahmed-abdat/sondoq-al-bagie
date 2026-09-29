@@ -513,6 +513,17 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   «تراجع»; back on a link made here the walk offers «أرسل مرة أخرى» (same link).
 - Roving arrow keys now on every chip radio group.
 
+## Home owner picks (r30, from proto/qa-layouts df18509)
+- Hero band (mobile home) = variant «a»: small logo, balance, «آخر تحديث … · كيف حُسب
+  الرصيد؟» (→ /accounts#bq-sum), stranger hint. The desktop panel keeps the two stats and term.
+- «أنت» card = variant «c»: no box/shadow; header row (avatar 40, h2 name with sr-only «أنت، »,
+  «رقم … · المجموعة …», trailing «دفعاتي» link, hidden on /me); body indented 56px: profile
+  switcher, P1 status (+ «· شكرًا لك» when full), hairline grid, credit, waiting line; pills
+  (`.bq-you-pill`, 44px; `.bq-pill` is the nav's) in one full-width row; one divider under. The
+  «✓ مدفوع» key is gone (grid aria-label names the paid months).
+- e2e touched (Lane B): member.spec `you()` locates the region by its «أنت، …» heading;
+  member-ui.spec: P1 wording, grid label instead of `.bq-you-key`.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
