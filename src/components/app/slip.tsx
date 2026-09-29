@@ -269,7 +269,14 @@ export function PendingSlip({
       </div>
       {st.s !== "pending" && (
         <span className="bq-slip-stamp">
-          <Stamp variant={st.s} date={st.at} size={104} press seed={p.id.charCodeAt(0) % 7} />
+          <Stamp
+            variant={st.s}
+            date={st.at}
+            size={104}
+            press
+            seed={p.id.charCodeAt(0) % 7}
+            role={st.by ? "" : me.role}
+          />
         </span>
       )}
 

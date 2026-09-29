@@ -1,7 +1,7 @@
 "use client";
 // Committee expenses: record one (with the invoice photo) and cancel with a reason.
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import { useAct } from "./act";
@@ -43,6 +43,24 @@ export function RecordExpenseBody({
   const amount = Math.round(parseAmount(amountTxt) ?? 0);
   const open = campaigns.filter((c) => c.status === "open");
   const ok = cat && amount > 0 && note.trim().length > 1;
+  // the button names the next missing step and jumps to it, like «سجّل دفعة» (audit C8)
+  const catRef = useRef<HTMLDivElement>(null);
+  const noteRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const missing: "cat" | "note" | "amount" | null = !cat
+    ? "cat"
+    : note.trim().length < 2
+      ? "note"
+      : amount <= 0
+        ? "amount"
+        : null;
+  const MISSING_CTA = { cat: "اختر النشاط", note: "اكتب ماذا اشتُري", amount: "اكتب المبلغ" };
+  const goTo = (k: "cat" | "note" | "amount") => {
+    if (k === "cat") {
+      catRef.current?.scrollIntoView({ block: "center" });
+      catRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    } else (k === "note" ? noteRef : amountRef).current?.focus();
+  };
   // allowed (the treasurer may have advanced money), but worth a second look
   const fromCamp = from ? open.find((c) => c.campaignId === from) : undefined;
   const available = from ? fromCamp?.balance : balance;
@@ -90,7 +108,7 @@ export function RecordExpenseBody({
     <div className="bq-rec">
       <h2>سجّل مصروفًا</h2>
       <p className="bq-rec-k">على أي نشاط؟</p>
-      <div className="bq-chips" role="radiogroup" aria-label="النشاط">
+      <div className="bq-chips" role="radiogroup" aria-label="النشاط" ref={catRef}>
         {CATS.map((c) => (
           <button
             key={c}
@@ -108,6 +126,7 @@ export function RecordExpenseBody({
       <input
         className="bq-input"
         value={note}
+        ref={noteRef}
         onChange={(e) => setNote(e.target.value)}
         placeholder="مثل: كرات وأقمصة للفريق"
         aria-label="وصف المصروف"
@@ -116,6 +135,7 @@ export function RecordExpenseBody({
       <input
         className="bq-input"
         value={amountTxt}
+        ref={amountRef}
         onChange={(e) => setAmountTxt(e.target.value)}
         inputMode="numeric"
         dir="ltr"
@@ -174,7 +194,7 @@ export function RecordExpenseBody({
       {shot && <p className="bq-hint">أُرفقت: {shot.name}</p>}
       <div className="bq-rec-foot">
         <p className="bq-rec-sum" aria-live="polite">
-          <span className="bq-hint">المجموع</span>
+          <span className="bq-hint">المبلغ</span>
           <span>
             <Num className="bq-rec-amt">{fmt(amount)}</Num> أوقية
           </span>
@@ -187,10 +207,10 @@ export function RecordExpenseBody({
         <button
           type="button"
           className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-          disabled={!ok || busy || !online}
-          onClick={() => void submit()}
+          disabled={busy || (!missing && !online)}
+          onClick={() => (missing ? goTo(missing) : void submit())}
         >
-          {busy ? "جارٍ الحفظ…" : "سجّل المصروف"}
+          {busy ? "جارٍ الحفظ…" : missing ? MISSING_CTA[missing] : "سجّل المصروف"}
         </button>
         <OfflineWriteHint />
       </div>

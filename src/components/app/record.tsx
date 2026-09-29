@@ -816,6 +816,7 @@ export function RecordBody({
           date={confirmed.r.status.kind === "confirmed" ? confirmed.r.status.at : paidOn}
           size={112}
           press
+          role={me?.role ?? ""}
         />
         <h2>سُجّلت وأُكّدت</h2>
         <p className="bq-lead">{confirmed.text}</p>

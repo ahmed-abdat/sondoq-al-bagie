@@ -135,7 +135,23 @@ export function CommitteeView({
   // keep decided slips on screen (collapsed) after the server list drops them
   const [seen, setSeen] = useState(pending);
   const fresh = pending.filter((p) => !seen.some((s) => s.id === p.id));
-  if (fresh.length) setSeen([...seen, ...fresh]);
+  // a new slip goes first (audit C4); after «سجّل دفعة» it is brought into view
+  if (fresh.length) setSeen([...fresh, ...seen]);
+  const newest = seen[0]?.id ?? null;
+  /** the first slip when «سجّل دفعة» closed; a different first slip = the one just recorded */
+  const [firstBefore, setFirstBefore] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (firstBefore === undefined) return;
+    const t = setTimeout(() => setFirstBefore(undefined), 15_000);
+    const el = newest !== firstBefore && document.getElementById(`bq-slip-${newest}`);
+    if (el) {
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+      clearTimeout(t);
+      setTimeout(() => setFirstBefore(undefined), 0);
+    }
+    return () => clearTimeout(t);
+  }, [firstBefore, newest]);
   const [decided, setDecided] = useState<Set<string>>(new Set());
   const waiting = pending.filter((p) => !decided.has(p.id)).length;
   useEffect(() => setPendingCount(waiting), [waiting]);
@@ -168,7 +184,7 @@ export function CommitteeView({
         {seen.length > 0 && (
           <ul className="bq-queue">
             {seen.map((p) => (
-              <li key={p.id}>
+              <li key={p.id} id={`bq-slip-${p.id}`}>
                 <PendingSlip
                   p={p}
                   me={me}
@@ -268,12 +284,7 @@ export function CommitteeView({
         </ul>
       </section>
 
-      {!sheet && (
-        <button type="button" className="bq-fab bq-press" onClick={() => setSheet({ t: "record" })}>
-          <span className="bq-fab-l">سجّل دفعة</span>
-          {I.plus(26)}
-        </button>
-      )}
+      {!sheet && <Fab onClick={() => setSheet({ t: "record" })} />}
 
       {sheet?.t === "record" && (
         <Sheet key="record" label="سجّل دفعة" onDone={() => setSheet(null)}>
@@ -285,6 +296,7 @@ export function CommitteeView({
             me={me}
             onDone={(t) => {
               setSheet(null);
+              setFirstBefore(newest);
               say(t);
             }}
           />
@@ -314,10 +326,7 @@ export function LatePage({
 }) {
   return (
     <>
-      <SubHead
-        title="تذكير المتأخرين"
-        lead="اضغط زر واتساب بجانب الاسم لترسل له تذكيرًا بأشهره ومبلغه."
-      />
+      <SubHead title="تذكير المتأخرين" />
       <section className="bq-sec bq-sec-first">
         <LateList arrears={arrears} ctx={{ accounts, whatsappContact: whatsapp }} />
       </section>
@@ -377,10 +386,14 @@ export function MembersPage({
   admin = false,
   credit = {},
   links = {},
+  months,
+  monthsCtx,
 }: {
   members: MemberAdmin[];
   prices: Record<string, number>;
   links?: Record<string, MemberLinkInfo>;
+  months?: Record<string, string>;
+  monthsCtx?: { year: number; dueMonth: number };
   /** admin: may undo the last change and correct the join month */
   admin?: boolean;
   credit?: Record<string, MemberCredit>;
@@ -404,6 +417,8 @@ export function MembersPage({
           admin={admin}
           credit={credit}
           links={links}
+          months={months}
+          monthsCtx={monthsCtx}
         />
       </section>
     </>
@@ -458,5 +473,61 @@ export function CampaignsPage({
         </Sheet>
       )}
     </>
+  );
+}
+
+/**
+ * «سجّل دفعة». Steps aside while a slip's buttons are under it (audit C3), so a thumb aiming at
+ * «تأكيد الاستلام» never lands on the FAB; back as soon as they scroll away.
+ */
+function Fab({ onClick }: { onClick: () => void }) {
+  const [away, setAway] = useState(false);
+  useEffect(() => {
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const fab = document.querySelector<HTMLElement>(".bq-fab");
+      if (!fab) return;
+      const f = fab.getBoundingClientRect();
+      const hit = [
+        ...document.querySelectorAll<HTMLElement>(".bq-slip button, .bq-slip-one button"),
+      ].some((b) => {
+        const r = b.getBoundingClientRect();
+        return (
+          r.width > 0 &&
+          r.bottom > f.top - 8 &&
+          r.top < f.bottom + 8 &&
+          r.left < f.right &&
+          r.right > f.left
+        );
+      });
+      setAway(hit);
+    };
+    const ask = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
+    ask();
+    window.addEventListener("scroll", ask, { passive: true });
+    window.addEventListener("resize", ask);
+    const mo = new MutationObserver(ask);
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", ask);
+      window.removeEventListener("resize", ask);
+      mo.disconnect();
+    };
+  }, []);
+  return (
+    <button
+      type="button"
+      className={`bq-fab bq-press ${away ? "is-away" : ""}`}
+      onClick={onClick}
+      tabIndex={away ? -1 : undefined}
+      aria-hidden={away || undefined}
+    >
+      <span className="bq-fab-l">سجّل دفعة</span>
+      {I.plus(26)}
+    </button>
   );
 }

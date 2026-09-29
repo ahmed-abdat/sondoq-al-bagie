@@ -2,7 +2,7 @@
 // Member row (list) and the member sheet body (twelve months in words).
 import { decodeMonths } from "@/lib/data/month-code";
 import type { MemberRow, MemberStatus } from "@/lib/data/types";
-import { Avatar, MemberNo, PaidCheck, StatusTag } from "./bits";
+import { Avatar, PaidCheck, StatusTag } from "./bits";
 import {
   fmt,
   groupLabel,
@@ -54,10 +54,18 @@ export type MemberCtx = {
   showOwed: boolean;
 };
 
-export function MemberSheetBody({ m, ctx, vt }: { m: MemberRow; ctx: MemberCtx; vt: boolean }) {
+/**
+ * A member's months this year: the count line, the late line and the twelve cells in the
+ * report's language. Public member sheet and the committee's member sheet (audit C7).
+ */
+export function MemberMonths({
+  m,
+  ctx,
+}: {
+  m: Pick<MemberRow, "months" | "memberId" | "status" | "monthsBehind" | "monthsPaidThisYear">;
+  ctx: Pick<MemberCtx, "year" | "dueMonth">;
+}) {
   const { year } = ctx;
-  const price = ctx.prices[m.groupCode] ?? null;
-  const showOwed = ctx.showOwed;
   const cells = monthCells(decodeMonths(m.months, m.memberId, ctx.year), ctx.dueMonth);
   const owed = cells.filter((c) => c.state === "owed").map((c) => c.month);
   const paidDue = cells.filter((c) => c.state === "paid").length;
@@ -68,21 +76,6 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberRow; ctx: MemberCtx; 
   const st = memberState(m);
   return (
     <>
-      <div className="bq-mhead">
-        <Avatar m={m} size={56} vt={vt} />
-        <div>
-          <h2>{m.fullName}</h2>
-          <p className="bq-hint">
-            رقم <MemberNo m={m} /> · المجموعة {groupLabel(m.groupCode)}
-            {price ? (
-              <>
-                {" "}
-                · الرسوم الشهرية: <Num>{fmt(price)}</Num> أوقية
-              </>
-            ) : null}
-          </p>
-        </div>
-      </div>
       {st !== "off" &&
         (paidAll ? (
           <p className="bq-mline">
@@ -135,6 +128,35 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberRow; ctx: MemberCtx; 
           </li>
         ))}
       </ol>
+    </>
+  );
+}
+
+export function MemberSheetBody({ m, ctx, vt }: { m: MemberRow; ctx: MemberCtx; vt: boolean }) {
+  const price = ctx.prices[m.groupCode] ?? null;
+  const showOwed = ctx.showOwed;
+  return (
+    <>
+      <div className="bq-mhead">
+        <Avatar m={m} size={56} vt={vt} />
+        <div>
+          <h2>{m.fullName}</h2>
+          {/* the avatar already shows the number (audit V6) */}
+          <p className="bq-hint">
+            المجموعة {groupLabel(m.groupCode)}
+            {price ? (
+              <>
+                {" "}
+                ·{" "}
+                <span className="bq-nowrap">
+                  الرسوم الشهرية <Num>{fmt(price)}</Num> أوقية
+                </span>
+              </>
+            ) : null}
+          </p>
+        </div>
+      </div>
+      <MemberMonths m={m} ctx={ctx} />
       {showOwed && m.amountOwed ? (
         <p className="bq-owed">
           المتأخر عليه حتى الآن: <Num className="bq-strong">{fmt(m.amountOwed)}</Num> أوقية

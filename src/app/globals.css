@@ -1812,6 +1812,16 @@
       transform 420ms var(--spring);
     animation: bq-fab-in 260ms var(--ease-out) both;
   }
+  /* a slip's buttons are under it (audit C3): slide out of the thumb's way */
+  .bq-fab.is-away {
+    animation: none;
+    transform: translateY(calc(100% + 24px));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 220ms var(--ease-out),
+      opacity 160ms var(--ease-out);
+  }
   .bq-fab.is-mini {
     clip-path: inset(0 calc(100% - 56px) 0 0 round 20px);
   }
@@ -4883,6 +4893,15 @@
     color: var(--muted);
     font-variant-numeric: tabular-nums;
   }
+  .bq-madm-more {
+    margin-block-start: 20px;
+  }
+  .bq-madm-more .bq-row {
+    min-height: 52px;
+  }
+  .bq-madm-more .bq-row-t {
+    flex: 1;
+  }
   .bq-you-hi {
     margin-block-end: 12px;
     padding: 12px 14px;
@@ -5052,10 +5071,9 @@
     overflow-wrap: anywhere;
   }
   .bq-ml-tick {
-    margin-inline-start: 6px;
-    color: var(--g7);
-    font-weight: 700;
+    margin-inline-start: 8px;
     white-space: nowrap;
+    vertical-align: 1px;
   }
   .bq-ml-wa {
     flex: none;
@@ -5093,9 +5111,6 @@
     padding: 14px;
     border-radius: var(--r-md);
     background: var(--n1);
-  }
-  .bq-ml-legend {
-    margin-block-start: 16px;
   }
 }
 /* ───── end Lane C «روابط الأعضاء» ───── */

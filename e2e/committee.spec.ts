@@ -36,3 +36,29 @@ test("the notifications switch is replaced by a plain note in the demo", async (
   await expect(page.getByText("لا تعمل الإشعارات في النسخة التجريبية.")).toBeVisible();
   await expect(page.getByRole("switch", { name: /إشعارات الدفعات الجديدة/ })).toHaveCount(0);
 });
+
+test("late reminders: «ذكّر الجميع بالترتيب» walks the list one WhatsApp at a time", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __opened: string[] }).__opened = [];
+    window.open = ((url: string) => {
+      (window as unknown as { __opened: string[] }).__opened.push(String(url));
+      return null;
+    }) as typeof window.open;
+  });
+  await page.goto("/committee/late");
+  await expect(
+    page.getByText("الأكثر تأخرًا أولًا. التذكير يصل للعضو وحده مع أشهره ومبلغه."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "ذكّر الجميع بالترتيب" }).click();
+  const walk = page.locator(".bq-ml-walk");
+  const first = await walk.locator(".bq-ml-walk-t").textContent();
+  await walk.getByRole("button", { name: /أرسل في واتساب/ }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __opened: string[] }).__opened.length))
+    .toBe(1);
+  await expect(walk.locator(".bq-ml-walk-t")).not.toHaveText(first!);
+  await walk.getByRole("button", { name: "إيقاف" }).click();
+  await expect(walk).toHaveCount(0);
+});

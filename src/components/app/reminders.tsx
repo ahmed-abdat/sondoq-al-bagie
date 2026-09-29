@@ -1,6 +1,7 @@
 "use client";
 // Committee late list: one WhatsApp reminder per member (private, with the amount) and one
 // message for the members' group (no names, no amounts). Each opened link is logged.
+// «ذكّر الجميع بالترتيب» walks the list one card at a time, like «روابط الأعضاء» (audit C5).
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAct } from "./act";
@@ -25,14 +26,25 @@ export function LateList({
   // reminded just now (before the server list catches up)
   const [sent, setSent] = useState<Record<string, string>>({});
   const [groupAt, setGroupAt] = useState<string | null>(null);
+  const [walk, setWalk] = useState<string | null>(null);
+  const [skipped, setSkipped] = useState<ReadonlySet<string>>(new Set());
+  // the walk: members with a phone not reminded on this visit, most late first
+  const queue = (skip: ReadonlySet<string>, done: Record<string, string>) =>
+    arrears.filter((a) => a.phone && !done[a.memberId] && !skip.has(a.memberId));
+  const left = queue(new Set(), sent).length;
+  const cur = walk ? (arrears.find((a) => a.memberId === walk) ?? null) : null;
+  const next = (skip: ReadonlySet<string>, done: Record<string, string>) =>
+    setWalk(queue(skip, done)[0]?.memberId ?? null);
   const withUrl = (): ReminderContext => ({
     ...ctx,
     publicUrl: `${window.location.origin}/members`,
   });
 
-  const remind = (a: Arrear) => {
+  const remind = (a: Arrear, inWalk = false) => {
     window.open(reminderLink(a, withUrl()), "_blank", "noopener");
-    setSent((s) => ({ ...s, [a.memberId]: new Date().toISOString() }));
+    const done = { ...sent, [a.memberId]: new Date().toISOString() };
+    setSent(done);
+    if (inWalk) next(skipped, done);
     void logReminder({ kind: "individual", memberId: a.memberId }).then(
       (r) => r.ok && router.refresh(),
     );
@@ -64,8 +76,61 @@ export function LateList({
         <p className="bq-hint">لا يوجد متأخرون الآن.</p>
       ) : (
         <>
+          {cur ? (
+            <div className="bq-slip bq-ml-walk" aria-live="polite">
+              <p className="bq-row-s">
+                بالترتيب · بقي <Num>{left}</Num>
+              </p>
+              <p className="bq-ml-walk-t">{cur.fullName}</p>
+              <p className="bq-row-s">
+                متأخر {monthsWord(cur.monthsCount)} · عليه حتى الآن <Num>{fmt(cur.amountOwed)}</Num>{" "}
+                أوقية
+              </p>
+              <div className="bq-ml-walk-btns">
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-primary bq-press"
+                  onClick={() => remind(cur, true)}
+                >
+                  {I.wa(20)} أرسل في واتساب
+                </button>
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-soft bq-press"
+                  onClick={() => {
+                    const s = new Set(skipped).add(cur.memberId);
+                    setSkipped(s);
+                    next(s, sent);
+                  }}
+                >
+                  تخطَّ
+                </button>
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-ghost bq-press"
+                  onClick={() => setWalk(null)}
+                >
+                  إيقاف
+                </button>
+              </div>
+            </div>
+          ) : (
+            left > 0 && (
+              <button
+                type="button"
+                className="bq-btn bq-btn-primary bq-btn-lg bq-press bq-small-top"
+                onClick={() => {
+                  const s = new Set<string>();
+                  setSkipped(s);
+                  next(s, sent);
+                }}
+              >
+                {I.wa(22)} ذكّر الجميع بالترتيب
+              </button>
+            )
+          )}
           <p className="bq-hint bq-list-count">
-            الأكثر تأخرًا أولًا. التذكير يصل للعضو وحده مع المبلغ.
+            الأكثر تأخرًا أولًا. التذكير يصل للعضو وحده مع أشهره ومبلغه.
           </p>
           <ul className="bq-list">
             {arrears.map((a) => {

@@ -57,10 +57,13 @@ export function Stamp({
   size = 120,
   press = false,
   seed = 3,
+  role = "",
   className = "",
 }: {
   variant?: "confirmed" | "rejected" | "cancelled";
   date: string;
+  /** the dater band: who stamped it (أمين الصندوق / نائب أمين الصندوق / المسؤول); empty = none */
+  role?: string;
   size?: number;
   press?: boolean;
   seed?: number;
@@ -177,7 +180,7 @@ export function Stamp({
             fontWeight="600"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            أمين الصندوق
+            {role}
           </text>
         </g>
       </svg>
@@ -462,6 +465,7 @@ function StatusBlock({ r, press }: { r: ReceiptView; press: boolean }) {
           date={st.at}
           press={press}
           seed={Number((r.no ?? "").slice(-2)) || 3}
+          role={"role" in st ? st.role : ""}
           className="rc-st-stamp"
         />
       )}
