@@ -23,13 +23,25 @@ export function safeReceiptSrc(
     return null;
   }
   if (url.protocol === "blob:") return value;
-  if (url.protocol !== "https:" || !supabaseUrl) return null;
+  if (!supabaseUrl) return null;
+  let allowed: URL;
   try {
-    const allowed = new URL(supabaseUrl);
-    return url.origin === allowed.origin && url.pathname.startsWith("/storage/v1/")
-      ? url.toString()
-      : null;
+    allowed = new URL(supabaseUrl);
   } catch {
     return null;
   }
+  if (url.origin !== allowed.origin) return null;
+  if (url.protocol === "https:")
+    return url.pathname.startsWith("/storage/v1/") ? url.toString() : null;
+  // a local Supabase (the two-person e2e, `supabase start`) serves plain http on loopback: only
+  // when the configured project itself is that loopback URL, and only signed Storage URLs
+  return url.protocol === "http:" &&
+    isLoopback(url) &&
+    isLoopback(allowed) &&
+    url.pathname.startsWith("/storage/v1/object/sign/")
+    ? url.toString()
+    : null;
 }
+
+const isLoopback = (u: URL) =>
+  u.hostname === "127.0.0.1" || u.hostname === "localhost" || u.hostname === "[::1]";
