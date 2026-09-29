@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { markInstallEngaged } from "@/components/providers";
 import type { MemberIndex, MemberStatus } from "@/lib/data/types";
 import { Track } from "../bits";
-import { memberLabel, namesCount, searchMembers } from "../derive";
+import { memberLabel, memberNoun, namesCount, searchMembers } from "../derive";
 import dynamic from "next/dynamic";
 import { EntryRow } from "../entry-row";
 
@@ -139,7 +139,7 @@ export function HomeView({
       {total > 0 && (
         <section className="bq-sec bq-rv" data-rv="home-count" aria-labelledby="bq-count-h">
           <h2 id="bq-count-h" className="bq-count">
-            <Num className="bq-count-n">{paidCount}</Num> من <Num>{total}</Num> عضوًا دفعوا رسوم{" "}
+            <Num className="bq-count-n">{paidCount}</Num> من <Num>{total}</Num> {memberNoun(total)} دفعوا رسوم{" "}
             {monthName}
           </h2>
           <Track f={paidCount / total} label={`${paidCount} دفعوا من ${total}`} />

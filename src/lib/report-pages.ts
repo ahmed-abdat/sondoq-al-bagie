@@ -302,7 +302,9 @@ export function memberCols(w: number) {
 export function membersWord(n: number) {
   if (n === 1) return "عضو واحد";
   if (n === 2) return "عضوان";
-  return n >= 3 && n <= 10 ? `${n} أعضاء` : `${n} عضوًا`;
+  const r = n % 100;
+  if (r >= 3 && r <= 10) return `${n} أعضاء`;
+  return r >= 11 ? `${n} عضوًا` : `${n} عضو`;
 }
 
 /** Table lines: a soft brand grey green (r25), the outer border a step darker; the lines between

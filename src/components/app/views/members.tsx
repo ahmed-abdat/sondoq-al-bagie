@@ -4,7 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import type { MemberRow as MemberRowData } from "@/lib/data/types";
 import { rememberMember, useRecentMembers } from "../recent-members";
 import { SearchField } from "../search-field";
-import { byMostLate, groupLabel, memberState, searchMembers, type MState } from "../derive";
+import {
+  byMostLate,
+  groupLabel,
+  memberCount,
+  memberState,
+  searchMembers,
+  type MState,
+} from "../derive";
 import { I } from "../icons";
 import { MemberRow, MemberSheetBody, type MemberCtx } from "../member";
 import { Num } from "../num";
@@ -203,8 +210,7 @@ export function MembersView({
         ) : (
           <>
             <p className="bq-hint bq-list-count" aria-live="polite">
-              يظهر <Num>{list.length}</Num>{" "}
-              {list.length > 2 && list.length <= 10 ? "أعضاء" : "عضوًا"}
+              {list.length ? `يظهر ${memberCount(list.length)}` : "لا أحد هنا"}
             </p>
             <ul className="bq-list">
               {list.map((m) => (

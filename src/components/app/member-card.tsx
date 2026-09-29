@@ -351,7 +351,7 @@ export function MemberCard({
               {s.amountOwed > 0 && (
                 <p className="bq-lead">
                   عليك <Num className="bq-strong">{fmt(s.amountOwed)}</Num> أوقية عن{" "}
-                  {monthCount(s.monthsBehind)}.
+                  {monthCount(s.monthsBehind, "obl")}.
                 </p>
               )}
               <p className="bq-rec-k">حوّل إلى أحد أرقام الصندوق</p>

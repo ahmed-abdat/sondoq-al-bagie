@@ -1,7 +1,7 @@
 "use client";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { MonthlyCollection } from "@/lib/data/types";
-import { fmt, MONTHS } from "./derive";
+import { fmt, memberCount, MONTHS } from "./derive";
 import { Num } from "./num";
 
 /** «ما جُمع كل شهر»: twelve snapping bars; selecting one updates the figure above. */
@@ -45,17 +45,14 @@ export function MonthRail({
         </p>
         <p className="bq-lead">
           {fut ? (
-            v ? (
-              <>
-                دفعها مقدّمًا <Num>{n}</Num> {n <= 10 ? "أعضاء" : "عضوًا"}.
-              </>
+            v && n > 0 ? (
+              <>دفعها مقدّمًا {memberCount(n)}.</>
             ) : (
               "لم يحن هذا الشهر بعد."
             )
           ) : (
             <>
-              من <Num>{fmt(expected)}</Num> متوقّعة · دفع <Num>{n}</Num>{" "}
-              {n > 2 && n <= 10 ? "أعضاء" : "عضوًا"}
+              من <Num>{fmt(expected)}</Num> متوقّعة · {n ? `دفع ${memberCount(n)}` : "لم يدفع أحد"}
             </>
           )}
         </p>
