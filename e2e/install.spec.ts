@@ -341,3 +341,28 @@ test("never over the report", async ({ page }) => {
   await page.waitForLoadState("networkidle");
   await expect(card(page)).toHaveCount(0);
 });
+
+test("after a member sends a proof, the invite comes (and never over the sheet)", async ({
+  page,
+}) => {
+  await chromeOffersInstall(page, "accepted");
+  await page.goto("/m/demo2");
+  const you = page.locator("section.bq-you");
+  await you.getByRole("button", { name: "ادفع الآن" }).click();
+  await page
+    .getByRole("dialog", { name: "ادفع الآن" })
+    .getByRole("button", { name: /دفعت؟/ })
+    .click();
+  const sheet = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
+  await sheet.locator('input[type="file"]').setInputFiles("public/logo.jpg");
+  const btn = sheet.locator(".bq-rec-foot").getByRole("button");
+  await expect(btn).not.toHaveText("أرفق صورة التحويل");
+  if ((await btn.textContent())?.includes("كيف")) {
+    await btn.click();
+    await sheet.getByRole("radio", { name: "بنكيلي" }).click();
+  }
+  await expect(card(page)).toHaveCount(0);
+  await btn.click();
+  await expect(sheet).toHaveCount(0);
+  await expect(card(page)).toBeVisible({ timeout: 8_000 });
+});

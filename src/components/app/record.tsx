@@ -7,7 +7,7 @@
 // as credit (for the only member, or the one chosen); a smaller one says by how much.
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { OfflineWriteHint, useOnline } from "@/components/providers";
+import { markInstallEngaged, OfflineWriteHint, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import type { CampaignProgress, FundAccount, MemberRow, PaymentMethod } from "@/lib/data/types";
 import { todayIso } from "@/lib/dates";
@@ -862,6 +862,8 @@ export function RecordBody({
     router.refresh();
     // promise only what this phone will really get (QA pass 5): a notification only when on
     const push = await pushState("member").catch(() => "off" as const);
+    // a good moment for the install invite (after the task, not over the sheet)
+    markInstallEngaged();
     onDone(
       `أُرسلت إلى اللجنة. تجدها في «دفعاتي» عندما تؤكدها اللجنة.${push === "on" ? " وسيصلك إشعار." : ""}${r.data.pendingOverlap ? " يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر." : ""}`,
     );

@@ -7,7 +7,7 @@
 //   WhatsApp opens with the text only and the page says plainly to attach the photo there.
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { useOnline } from "@/components/providers";
+import { markInstallEngaged, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import { failure } from "@/lib/data/errors";
 import type { FundAccount, PaymentMethod } from "@/lib/data/types";
@@ -195,6 +195,7 @@ function MemberSend({
     if (!r.ok) return setErr(r.message);
     router.refresh();
     say("وصلتنا الصورة. اللجنة تراجعها.");
+    markInstallEngaged();
     onSent();
   };
 
