@@ -610,6 +610,19 @@ select tests.login('server');
 delete from auth.users where id = '00000000-0000-0000-0000-0000000000a6';
 select tests.ok(true, 'the login can then be removed');
 
+/* ───────────── M13: API exposes no SECURITY DEFINER function ───────────── */
+
+select tests.login('server');
+select tests.ok(not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace and prosecdef),
+  'every SECURITY DEFINER function lives in app_private; public has invoker wrappers only');
+select tests.login('public');
+select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 1000, current_date, '[]'::jsonb)$$, '42501',
+  'anon still cannot call a write RPC');
+select tests.throws($$select app_private.record_payment(gen_random_uuid(), 'x', 'cash', 1000, current_date, '[]'::jsonb)$$, '42501',
+  'nor the moved definer function directly');
+select public.verify_receipt('BQ-XXXX-0000');
+select tests.ok(true, 'anon still verifies receipts through the wrapper');
+
 /* ───────────── M8: terms and handover (keep last: it deactivates committee accounts) ───────────── */
 
 select tests.login('public');

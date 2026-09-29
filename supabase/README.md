@@ -27,6 +27,7 @@ and every change lands in `audit_log`.
 | `*_m10_push.sql` | committee Web Push: `push_subscriptions` (own rows only, no anon), `save_push_subscription` / `delete_push_subscription`; the server sends with the secret key |
 | `*_m11_delete_account.sql` | admin deletes a committee account that never did anything (`delete_committee_member`, audited; `committee_accounts.can_delete`); accounts with history are only deactivated |
 | `*_m12_my_profile.sql` | «حسابي»: `update_my_profile` (own display name; link own member row once; changing/removing a link stays admin-only because of the own-membership rule) |
+| `*_m13_rpc_wrappers.sql` | advisor clean-up: every SECURITY DEFINER RPC moved to `app_private`; `public` keeps SECURITY INVOKER wrappers with the same names/params/defaults (API unchanged) |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the
@@ -113,9 +114,9 @@ Applied to project `vhcdgxgwdlflmxmqnxzf` on 2026-09-28 through the Supabase MCP
 match the remote migration versions, so `supabase db push` sees them as already applied.
 No seed data was applied remotely: only the groups and 2026 prices (`*_m1_groups.sql`).
 
-## Advisor warnings that are intentional
+## Security advisor
 
-- `0029 authenticated_security_definer_function_executable` on every write RPC: signed-in users
-  must call them; each one re-checks the caller's committee role inside.
-- `0028 anon_security_definer_function_executable` on `verify_receipt`: anyone holding a receipt
-  code may check it. It returns only what the printed receipt shows.
+Since m13 no SECURITY DEFINER function is in the exposed `public` schema (lints 0028/0029 are gone):
+each RPC's body lives in `app_private` and `public` holds a SECURITY INVOKER wrapper. A new write RPC
+follows the same pattern (definer in `app_private`, invoker wrapper in `public`); a SQL test fails
+otherwise. The remaining auth warning (leaked password protection) is a dashboard setting.
