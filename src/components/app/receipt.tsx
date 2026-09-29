@@ -21,6 +21,7 @@ import {
   monthsInWords,
 } from "./derive";
 import { MemberNo } from "./bits";
+import { RIM_BOTTOM, RIM_TOP } from "./stamp-rim";
 import { I } from "./icons";
 import { verifyPath, type ReceiptView } from "./receipt-model";
 
@@ -33,10 +34,10 @@ function Num({ children, className = "" }: { children: ReactNode; className?: st
 }
 
 /* ═══════════════════════════ THE STAMP ═══════════════════════════
-   viewBox 200: outer ring r95, thin ring r89.5, inner ring r63; rim text on arcs r73.45 / r79.15;
+   viewBox 200: outer ring r95, thin ring r89.5, inner ring r63; rim text on arcs r73.45 / r79.15
+   (outline paths from scripts/stamp-rim.mjs, «رابطة شباب قرية البقيع» / «صندوق الرابطة»);
    separators (stars) at the gaps' midpoints; a dater band across the middle. */
 const C = 100;
-const arc = (r: number, sweep: 0 | 1) => `M ${C - r} ${C} A ${r} ${r} 0 0 ${sweep} ${C + r} ${C}`;
 function star(cx: number, cy: number, R: number) {
   const pts: string[] = [];
   for (let i = 0; i < 10; i++) {
@@ -66,8 +67,6 @@ export function Stamp({
   className?: string;
 }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const top = `rct${uid}`;
-  const bot = `rcb${uid}`;
   const ink = `rci${uid}`;
   const word = variant === "rejected" ? "مرفوض" : variant === "cancelled" ? "ملغى" : "مؤكَّد";
   return (
@@ -79,8 +78,6 @@ export function Stamp({
     >
       <svg viewBox="0 0 200 200" width={size} height={size} aria-hidden="true">
         <defs>
-          <path id={top} d={arc(73.45, 1)} />
-          <path id={bot} d={arc(79.15, 0)} />
           {/* ink: a hair of edge roughness + uneven density + rare voids — rubber on paper */}
           <filter
             id={ink}
@@ -145,18 +142,9 @@ export function Stamp({
               strokeWidth="1.4"
             />
           </g>
-          <g style={{ fontFamily: "var(--font-display)" }} fontWeight="700" fontSize="13">
-            <text>
-              <textPath href={`#${top}`} startOffset="50%" textAnchor="middle">
-                {ASSOC}
-              </textPath>
-            </text>
-            <text>
-              <textPath href={`#${bot}`} startOffset="50%" textAnchor="middle">
-                {FUND}
-              </textPath>
-            </text>
-          </g>
+          {/* rim texts as pre-shaped outlines: <textPath> breaks Arabic in WebKit (stamp-rim.ts) */}
+          <path d={RIM_TOP} />
+          <path d={RIM_BOTTOM} />
           {SEP.map(([x, y], i) => (
             <polygon key={i} points={star(x, y, 3.6)} />
           ))}
