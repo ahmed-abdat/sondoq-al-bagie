@@ -4399,3 +4399,16 @@
     margin-block-start: 4px;
   }
 }
+@layer components {
+  /* hub header: the name line opens «حسابي» */
+  .bq-me-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 44px;
+    color: var(--muted);
+  }
+  .bq-mine {
+    margin-block-start: 8px;
+  }
+}

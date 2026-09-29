@@ -139,10 +139,15 @@ export function CommitteeView({
     <>
       <header className="bq-page-h">
         <h1>اللجنة</h1>
-        <p className="bq-lead">
+        <Link
+          href="/committee/account"
+          className="bq-lead bq-me-link bq-press"
+          transitionTypes={["tab-fwd"]}
+          aria-label={`حسابي: ${me.by}`}
+        >
           {me.by}
-          {me.role ? ` · ${me.role}` : ""}
-        </p>
+          {me.role ? ` · ${me.role}` : ""} {I.go(16)}
+        </Link>
       </header>
 
       <CloseStalePushNotifications pendingIds={serverPending.map((p) => p.id)} />
@@ -233,6 +238,12 @@ export function CommitteeView({
           <li>
             <InstallEntry />
           </li>
+          <MenuRow
+            href="/committee/account"
+            icon={I.people(22)}
+            title="حسابي"
+            sub="اسمك، كلمة السر، عضويتك، الإشعارات"
+          />
           <MenuRow
             href="/committee/settings"
             icon={I.lock(22)}

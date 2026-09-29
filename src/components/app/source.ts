@@ -9,7 +9,7 @@ import { DEMO_USER, isDemo } from "./demo";
 import { toMemberIndex, toMemberRows } from "@/lib/data/member-lists";
 import * as fx from "./fixtures";
 import { fromVerified } from "./receipt-model";
-import type { LedgerEntry } from "./types";
+import type { LedgerEntry, MyProfile } from "./types";
 
 export const usingFixtures = process.env.SONDOQ_FIXTURES === "1";
 /** Fixtures + committee writes simulated in the browser; never on production (see demo.ts). */
@@ -124,6 +124,27 @@ export const committeeSession = () =>
     ? Promise.resolve({ ...fx.fxSession(), displayName: DEMO_USER, role: "admin" as const })
     : data.getCommitteeSession();
 export const pendingPayments = () => pick(fx.fxPending, () => data.getPendingPayments());
+/** «حسابي»: the signed-in committee user (demo: the fake admin, not linked yet). */
+export async function myProfile(): Promise<MyProfile | null> {
+  if (demoMode) {
+    const s = await committeeSession();
+    if (!s) return null;
+    return {
+      userId: s.userId,
+      displayName: s.displayName,
+      role: s.role,
+      login: s.email ?? "",
+      memberId: null,
+      memberRef: null,
+      lastSignInAt: fx.FX_TODAY.toISOString(),
+      createdAt: "2026-01-01T09:00:00Z",
+      canLinkMember: true,
+      canConfirm: s.canConfirm,
+    };
+  }
+  const [p, s] = await Promise.all([data.getMyProfile(), data.getCommitteeSession()]);
+  return p && s ? { ...p, canConfirm: s.canConfirm } : null;
+}
 /** Latest payments (any status), newest first: the committee finds one to fix here. */
 export const recentPayments = () => pick(fx.fxRecent, () => data.getRecentPayments());
 export const arrears = () => pick(fx.fxArrears, () => data.getArrears());

@@ -31,7 +31,6 @@ export default async function SettingsPage() {
         committee={people}
         members={members.map((m) => ({ memberId: m.memberId, memberRef: m.memberRef }))}
         selfId={session.userId}
-        canConfirm={session.canConfirm}
         accounts={accounts}
       />
     </Tab>
