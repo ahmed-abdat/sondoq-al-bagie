@@ -85,3 +85,38 @@ describe("push send", () => {
     expect(send).not.toHaveBeenCalled();
   });
 });
+
+describe("notifyConfirmers", () => {
+  it("adds the current pending count as badgeCount and skips the recorder", async () => {
+    vi.resetModules();
+    const sent: unknown[] = [];
+    const committee = {
+      select: () => ({
+        eq: () => ({
+          in: async () => ({ data: [{ user_id: "rec" }, { user_id: "t" }], error: null }),
+        }),
+      }),
+    };
+    const payments = { select: () => ({ eq: async () => ({ count: 3, error: null }) }) };
+    const subs = {
+      select: () => ({
+        in: async (_: string, ids: string[]) => ({ data: ids.map((id) => row(id)), error: null }),
+      }),
+      update: () => ({ eq: async () => undefined }),
+      delete: () => ({ eq: async () => undefined }),
+    };
+    const admin = {
+      from: (t: string) => (t === "committee" ? committee : t === "payments" ? payments : subs),
+    };
+    vi.doMock("@/lib/supabase/admin", () => ({ tryCreateAdminClient: () => admin }));
+    vi.doMock("web-push", () => ({
+      default: {
+        sendNotification: async (s: { endpoint: string }, body: string) =>
+          void sent.push([s.endpoint, JSON.parse(body)]),
+      },
+    }));
+    const m = await import("./send");
+    await m.notifyConfirmers("rec", payload);
+    expect(sent).toEqual([["https://push.test/t", { ...payload, badgeCount: 3 }]]);
+  });
+});

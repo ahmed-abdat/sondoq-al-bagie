@@ -3,7 +3,14 @@
 import { formatNumber } from "@/lib/format";
 import { monthsList } from "@/lib/data/reminders";
 
-export type PushPayload = { title: string; body: string; url: string; tag: string };
+export type PushPayload = {
+  title: string;
+  body: string;
+  url: string;
+  tag: string;
+  /** payments waiting for confirmation right now (for navigator.setAppBadge); absent if unknown */
+  badgeCount?: number;
+};
 
 type Alloc =
   { kind: "months"; year: number; month: number } | { kind: "campaign" } | { kind: "credit" };
