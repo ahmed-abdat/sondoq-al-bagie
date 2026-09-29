@@ -32,12 +32,13 @@ async function shareSheet(page: Page) {
     Object.defineProperty(navigator, "share", {
       configurable: true,
       value: async (d: ShareData) => {
-        w.__text = d.text ?? "";
+        // publish the files in one go: a poll must never see a half-read share
+        const out: SharedFile[] = [];
         for (const f of d.files ?? []) {
           const head = new TextDecoder().decode(await f.slice(0, 5).arrayBuffer());
           let size = { width: 0, height: 0 };
           if (f.type.startsWith("image/")) size = await createImageBitmap(f);
-          w.__shared.push({
+          out.push({
             name: f.name,
             type: f.type,
             size: f.size,
@@ -46,6 +47,8 @@ async function shareSheet(page: Page) {
             head,
           });
         }
+        w.__text = d.text ?? "";
+        w.__shared = out;
       },
     });
   });
