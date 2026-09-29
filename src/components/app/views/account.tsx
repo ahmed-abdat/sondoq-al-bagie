@@ -9,19 +9,17 @@ import { CommitteePushToggle } from "@/components/providers/committee-push";
 import type { MemberRow as MemberRowData } from "@/lib/data/types";
 import { createIdbPersister } from "@/lib/offline/persister";
 import { useAct, useIsDemo } from "../act";
-import { Avatar, MemberNo, StatusTag } from "../bits";
-import { relativeAgo, ROLE_LABEL, searchMembers } from "../derive";
+import { ROLE_LABEL } from "../derive";
 import { I } from "../icons";
 import { LogoutButton } from "../logout";
-import { Num, useNow } from "../num";
-import { SearchField } from "../search-field";
+import { MemberPick, PasswordField, PickedMember } from "../member-pick";
 import { Sheet } from "../sheet";
 import { useSnack } from "../shell";
 import type { MyProfile } from "../types";
 import { SubHead } from "./committee";
 import { IDLE, runSave, SaveNote, type SaveState } from "./settings";
 
-const ADMIN_ONLY = "ربط حسابك بعضو آخر أو إلغاء الربط يتم عند المسؤول.";
+const ADMIN_ONLY = "يغيّرها المسؤول فقط.";
 
 /** This browser's push endpoint, so signing out everywhere also stops its notifications. */
 async function pushEndpoint(): Promise<string | undefined> {
@@ -36,7 +34,6 @@ async function pushEndpoint(): Promise<string | undefined> {
 export function AccountView({ me, members }: { me: MyProfile; members: MemberRowData[] }) {
   const router = useRouter();
   const online = useOnline();
-  const now = useNow();
   const demo = useIsDemo();
   const say = useSnack();
   const acts = useAct();
@@ -105,7 +102,7 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
             <dt>الدور</dt>
             <dd>{ROLE_LABEL[me.role]}</dd>
           </div>
-          <div className="is-wide">
+          <div>
             <dt>رقم الدخول</dt>
             <dd>
               <bdi dir="ltr" className="bq-num">
@@ -113,14 +110,8 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
               </bdi>
             </dd>
           </div>
-          {me.lastSignInAt && now && (
-            <div>
-              <dt>آخر دخول</dt>
-              <dd>{relativeAgo(me.lastSignInAt, now)}</dd>
-            </div>
-          )}
         </dl>
-        <p className="bq-hint">الدور ورقم الدخول يغيّرهما المسؤول من «حسابات اللجنة».</p>
+        <p className="bq-hint">يغيّرهما المسؤول.</p>
       </section>
 
       <section className="bq-sec" aria-labelledby="bq-pw-h">
@@ -132,19 +123,7 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
             if (await runSave(setPwSave, () => acts.setPassword({ password: pw }))) setPw("");
           }}
         >
-          <label>
-            كلمة سر جديدة (8 أحرف أو أكثر)
-            <input
-              className="bq-input"
-              type="password"
-              dir="ltr"
-              autoComplete="new-password"
-              minLength={8}
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              required
-            />
-          </label>
+          <PasswordField value={pw} onChange={setPw} />
           <button
             type="submit"
             className="bq-btn bq-btn-soft bq-press"
@@ -157,23 +136,12 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
       </section>
 
       <section className="bq-sec" aria-labelledby="bq-mine-h">
-        <h2 id="bq-mine-h">ربط بعضويتي</h2>
-        <p className="bq-lead">لن تستطيع تأكيد دفعة تخصك، وستظهر أشهرك هنا.</p>
+        <h2 id="bq-mine-h">عضويتي في الصندوق</h2>
         {mine ? (
           <>
-            <div className="bq-row bq-mine">
-              <Avatar m={mine} />
-              <span className="bq-row-m">
-                <span className="bq-row-t">{mine.fullName}</span>
-                <span className="bq-row-s">
-                  رقم <MemberNo m={mine} /> · دفع <Num>{mine.monthsPaidThisYear}</Num> من{" "}
-                  <Num>12</Num> شهرًا
-                </span>
-              </span>
-              <StatusTag m={mine} />
-            </div>
+            <PickedMember m={mine} />
             <a
-              className="bq-link bq-link-s bq-press bq-small-top"
+              className="bq-link bq-link-s bq-press"
               href={`/members?m=${encodeURIComponent(mine.memberRef)}`}
             >
               أشهري {I.go(16)}
@@ -181,16 +149,19 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
             <p className="bq-hint">{ADMIN_ONLY}</p>
           </>
         ) : canLink ? (
-          <button
-            type="button"
-            className="bq-btn bq-btn-soft bq-press"
-            disabled={!online}
-            onClick={() => setSheet("pick")}
-          >
-            {I.people(20)} اختر عضويتك
-          </button>
+          <>
+            <p className="bq-lead">اربط حسابك بعضويتك مرة واحدة، فلا تؤكد دفعة تخصك.</p>
+            <button
+              type="button"
+              className="bq-btn bq-btn-soft bq-press bq-small-top"
+              disabled={!online}
+              onClick={() => setSheet("pick")}
+            >
+              {I.people(20)} اختر عضويتك
+            </button>
+          </>
         ) : (
-          <p className="bq-hint">{ADMIN_ONLY}</p>
+          <p className="bq-hint">لست مربوطًا بعضوية. {ADMIN_ONLY}</p>
         )}
       </section>
 
@@ -224,7 +195,7 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
 
       {sheet === "pick" && (
         <Sheet key="pick" label="اختر عضويتك" onDone={() => setSheet(null)}>
-          <PickMine
+          <MemberPick
             members={members.filter((m) => m.status === "active")}
             onPick={(m) => void linkMember(m.memberId)}
           />
@@ -274,44 +245,5 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
         </Sheet>
       )}
     </>
-  );
-}
-
-function PickMine({
-  members,
-  onPick,
-}: {
-  members: MemberRowData[];
-  onPick: (m: MemberRowData) => void;
-}) {
-  const [q, setQ] = useState("");
-  const res = q.trim() ? searchMembers(members, q).slice(0, 8) : [];
-  return (
-    <div className="bq-rec">
-      <h2>من أنت في قائمة الأعضاء؟</h2>
-      <SearchField
-        value={q}
-        onChange={setQ}
-        placeholder="اسمك أو رقمك، مثل أ 12"
-        label="ابحث عن عضويتك"
-        members={members}
-        onOpen={onPick}
-        small
-      />
-      <ul className="bq-list bq-small-top">
-        {res.map((m) => (
-          <li key={m.memberId}>
-            <button type="button" className="bq-row bq-press" onClick={() => onPick(m)}>
-              <Avatar m={m} />
-              <span className="bq-row-m">
-                <span className="bq-row-t">{m.fullName}</span>
-              </span>
-              <span className="bq-chev">{I.go(18)}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      {q.trim() && !res.length && <p className="bq-hint">لم نجد عضوًا بهذا الاسم أو الرقم.</p>}
-    </div>
   );
 }

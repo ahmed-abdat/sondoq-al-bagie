@@ -214,6 +214,26 @@ Notes:
 - A phone tap does not focus a button on iOS Safari, so focus return there lands on <body>.
 - Swipe was checked with CDP touch in Chromium only; a pass on a real iPhone/Android is still worth doing.
 
+## User management pass + first sign-in setup (27ba717..fc57dbd)
+- Audit (impeccable): accounts rows carried 3 inline links + «المزيد…» and 3 sublines; stop/delete
+  needed 2 sheets; «موقوف» used reject red (red is only «مرفوض»); member link typed as «أ 12» text;
+  «حسابي» repeated admin-only notes, no password reveal; add member put the name 4th and showed
+  «B-71»; «B-12» in an empty-state hint. Detector: clean.
+- Accounts (`accounts-admin.tsx`): one tappable row (role · number · last sign-in) → one sheet with
+  facts and actions (كلمة سر جديدة, تغيير الدور, ربط/تغيير العضوية, إيقاف or أعد تفعيل, quiet «حذف
+  الحساب نهائيًا» when canDelete); confirmations replace the sheet content. Own row → «حسابي».
+  «إضافة حساب» picks the member with the shared search/keypad (active, not linked yet).
+  Unlinking is not offered (setCommitteeMember maps null to "keep").
+- Shared `member-pick.tsx`: MemberPick, PickedMember, PasswordField («إظهار»).
+- «حسابي»: role + login facts, «يغيّرهما المسؤول»; linked membership read-only («يغيّرها المسؤول
+  فقط»); link-once kept when not linked.
+- Setup: `src/app/committee/setup` (outside the app shell, «خروج» kept). `source.committeeSession()`
+  redirects a setupPending session there; the setup page, nav badge and viewer check use
+  `anyCommitteeSession()`. completeSetup via `useAct()` (demo stub). Demo: `/committee?setup=1`.
+  An admin-set link is shown, not asked. Real pending path not exercised (needs a real account).
+- Login: «نسيت كلمة السر؟ اطلب من المسؤول كلمة سر جديدة.» (no email reset).
+- Verified: shots `r16/` (390, 1280), check + both builds green, e2e 41/41 on fixtures.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.

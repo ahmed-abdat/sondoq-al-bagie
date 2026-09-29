@@ -217,7 +217,6 @@ const demo: Partial<Actions> = {
     return ok(a.id);
   },
   updateFundAccount: async () => ok(undefined),
-  inviteCommitteeMember: async () => ok({ userId: "demo" }),
   async createCommitteeAccount(p) {
     const login = parseLogin(p.login);
     if (!login) {
@@ -328,7 +327,7 @@ const demo: Partial<Actions> = {
     return ok(undefined);
   },
   setPassword: async () => ok(undefined),
-  requestPasswordReset: async () => ok(undefined),
+  completeSetup: async () => ok(undefined),
   async addMember(p) {
     const m: MemberAdmin = {
       memberId: crypto.randomUUID(),

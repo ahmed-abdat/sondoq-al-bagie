@@ -166,7 +166,7 @@ export function SettingsView({
   /** "YYYY-MM-DD"; null when unknown */
   openingBalanceOn: string | null;
   committee: CommitteeAccount[];
-  members: { memberId: string; memberRef: string }[];
+  members: { memberId: string; memberRef: string; fullName: string; status: string }[];
   selfId: string | null;
   accounts: FundAccountAdmin[];
 }) {
