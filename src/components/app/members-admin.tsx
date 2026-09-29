@@ -24,6 +24,7 @@ import { I } from "./icons";
 import { Num } from "./num";
 import { Segmented } from "./segmented";
 import { Sheet } from "./sheet";
+import { SearchField } from "./search-field";
 import { useSnack } from "./shell";
 
 type State = SettableStatus;
@@ -527,16 +528,14 @@ export function MembersAdmin({
         {I.plus(20)} إضافة عضو
       </button>
       <div className="bq-gap-12" />
-      <label className="bq-search">
-        {I.search(24)}
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="الاسم أو الرقم، مثل B-12"
-          aria-label="ابحث عن عضو"
-          type="search"
-        />
-      </label>
+      <SearchField
+        value={q}
+        onChange={setQ}
+        placeholder="الاسم أو الرقم، مثل ب 12"
+        label="ابحث عن عضو"
+        members={members}
+        onOpen={(m) => setSheet({ t: "member", id: m.memberId })}
+      />
       <div className="bq-gap-12" />
       {!q.trim() && (
         <Segmented<SF>

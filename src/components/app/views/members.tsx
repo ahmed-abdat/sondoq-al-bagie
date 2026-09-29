@@ -2,6 +2,8 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { MemberRow as MemberRowData } from "@/lib/data/types";
+import { rememberMember, useRecentMembers } from "../recent-members";
+import { SearchField } from "../search-field";
 import { byMostLate, groupLabel, memberState, searchMembers, type MState } from "../derive";
 import { I } from "../icons";
 import { MemberRow, MemberSheetBody, type MemberCtx } from "../member";
@@ -60,7 +62,11 @@ export function MembersView({
   }, [members, q, f]);
   const count = (k: Filter) => members.filter((m) => match(m, k)).length;
   const grouped = !q.trim() && (f === "all" || f.startsWith("g:"));
-  const pick = (m: MemberRowData, from: HTMLElement | null) => sheet.open(m, from, "bq-av");
+  const recent = useRecentMembers(members);
+  const pick = (m: MemberRowData, from: HTMLElement | null) => {
+    rememberMember(m.memberRef);
+    sheet.open(m, from, "bq-av");
+  };
   const s = sheet.state;
   const { open } = sheet;
   useEffect(() => {
@@ -77,26 +83,14 @@ export function MembersView({
         <h1>الأعضاء</h1>
       </header>
       <div className="bq-sec bq-sec-first">
-        <label className="bq-search">
-          {I.search(24)}
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="اكتب رقمًا أو اسمًا"
-            aria-label="ابحث عن عضو بالرقم أو الاسم"
-            type="search"
-          />
-          {q && (
-            <button
-              type="button"
-              className="bq-press"
-              onClick={() => setQ("")}
-              aria-label="امسح البحث"
-            >
-              {I.x(20)}
-            </button>
-          )}
-        </label>
+        <SearchField
+          value={q}
+          onChange={setQ}
+          placeholder="اكتب رقمًا أو اسمًا"
+          label="ابحث عن عضو بالرقم أو الاسم"
+          members={members}
+          onOpen={(m) => pick(m, null)}
+        />
         <div className="bq-gap-12" />
         <Segmented<Filter>
           label="تصفية الأعضاء"
@@ -142,6 +136,16 @@ export function MembersView({
           <p className="bq-hint bq-list-count">أعضاء لم يدفعوا أي شهر هذا العام، للمتابعة معهم.</p>
         )}
         {f === "late" && <p className="bq-hint bq-list-count">الأكثر تأخرًا أولًا.</p>}
+        {!q.trim() && f === "all" && recent.length > 0 && (
+          <section className="bq-group" aria-label="آخر من بحثت عنهم">
+            <h3 className="bq-pick-h">آخر من بحثت عنهم</h3>
+            <ul className="bq-list">
+              {recent.map((m) => (
+                <MemberRow key={`r-${m.memberId}`} m={m} onPick={pick} />
+              ))}
+            </ul>
+          </section>
+        )}
         {list.length === 0 ? (
           <div className="bq-empty">
             <p className="bq-empty-t">

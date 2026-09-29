@@ -91,6 +91,26 @@ export const I = {
       <path d="m16 16 4.5 4.5" />
     </Ico>
   ),
+  mic: (s?: number) => (
+    <Ico size={s}>
+      <rect x="9" y="3.5" width="6" height="11" rx="3" />
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5" />
+    </Ico>
+  ),
+  keypad: (s?: number) => (
+    <Ico size={s}>
+      <circle cx="7" cy="6" r="1.2" />
+      <circle cx="12" cy="6" r="1.2" />
+      <circle cx="17" cy="6" r="1.2" />
+      <circle cx="7" cy="11" r="1.2" />
+      <circle cx="12" cy="11" r="1.2" />
+      <circle cx="17" cy="11" r="1.2" />
+      <circle cx="7" cy="16" r="1.2" />
+      <circle cx="12" cy="16" r="1.2" />
+      <circle cx="17" cy="16" r="1.2" />
+      <circle cx="12" cy="21" r="1.2" />
+    </Ico>
+  ),
   x: (s?: number) => (
     <Ico size={s}>
       <path d="M6 6l12 12M18 6 6 18" />

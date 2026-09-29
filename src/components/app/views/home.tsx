@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { markInstallEngaged } from "@/components/providers";
 import type { MemberIndex } from "@/lib/data/types";
@@ -16,6 +17,8 @@ import { Hero, type HeroData } from "../hero";
 import { I } from "../icons";
 import { Avatar } from "../bits";
 import { Num } from "../num";
+import { rememberMember, useRecentMembers } from "../recent-members";
+import { SearchField } from "../search-field";
 import { Sheet, useSheet } from "../sheet";
 import type { LedgerEntry } from "../types";
 
@@ -46,6 +49,8 @@ export function HomeView({
   campaign: { title: string; pct: number } | null;
 }) {
   const [q, setQ] = useState("");
+  const router = useRouter();
+  const recent = useRecentMembers(members);
   const res = useMemo(() => searchMembers(members, q), [members, q]);
   const sheet = useSheet<S>();
   const total = activeCount;
@@ -61,27 +66,20 @@ export function HomeView({
 
       <section className="bq-sec bq-rv bq-find" data-rv="home-find" aria-labelledby="bq-find-h">
         <h2 id="bq-find-h">هل أنت منتظم في الدفع؟</h2>
-        <label className="bq-search">
-          {I.search(24)}
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="اكتب اسمك أو رقمك"
-            aria-label="ابحث باسمك أو رقم عضويتك"
-            type="search"
-            enterKeyHint="search"
-          />
-          {q && (
-            <button
-              type="button"
-              className="bq-press"
-              onClick={() => setQ("")}
-              aria-label="امسح البحث"
-            >
-              {I.x(20)}
-            </button>
-          )}
-        </label>
+        <SearchField
+          value={q}
+          onChange={setQ}
+          placeholder="اكتب اسمك أو رقمك"
+          label="ابحث باسمك أو رقم عضويتك"
+          members={members}
+          onOpen={(m) => {
+            rememberMember(m.memberRef);
+            markInstallEngaged();
+            router.push(`/members?m=${encodeURIComponent(m.memberRef)}`, {
+              transitionTypes: ["tab-fwd"],
+            });
+          }}
+        />
         {q.trim() ? (
           res.length ? (
             <>
@@ -103,12 +101,27 @@ export function HomeView({
             </div>
           )
         ) : (
-          <Link className="bq-link bq-press" href="/accounts#bq-pay" transitionTypes={["tab-fwd"]}>
-            كيف أدفع الرسوم؟ {I.go(18)}
-          </Link>
+          <>
+            {recent.length > 0 && (
+              <>
+                <h3 className="bq-pick-h">آخر من بحثت عنهم</h3>
+                <ul className="bq-list">
+                  {recent.map((m) => (
+                    <IndexRow key={m.memberRef} m={m} />
+                  ))}
+                </ul>
+              </>
+            )}
+            <Link
+              className="bq-link bq-press"
+              href="/accounts#bq-pay"
+              transitionTypes={["tab-fwd"]}
+            >
+              كيف أدفع الرسوم؟ {I.go(18)}
+            </Link>
+          </>
         )}
       </section>
-
 
       {total > 0 && (
         <section className="bq-sec bq-rv" data-rv="home-count" aria-labelledby="bq-count-h">
@@ -193,7 +206,10 @@ function IndexRow({ m }: { m: IndexMember }) {
     <li>
       <Link
         href={`/members?m=${encodeURIComponent(m.memberRef)}`}
-        onClick={() => markInstallEngaged()}
+        onClick={() => {
+          rememberMember(m.memberRef);
+          markInstallEngaged();
+        }}
         className="bq-row bq-press"
         transitionTypes={["tab-fwd"]}
         aria-label={`${memberLabel(m)}، ${m.fullName}`}

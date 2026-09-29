@@ -19,7 +19,17 @@ import { ShareBtns } from "./entries";
 import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
-import { fmt, groupLabel, MONTHS, monthsLabel, monthCount, searchMembers } from "./derive";
+import {
+  byMostLate,
+  fmt,
+  groupLabel,
+  MONTHS,
+  monthsLabel,
+  monthCount,
+  searchMembers,
+} from "./derive";
+import { SearchField } from "./search-field";
+import { Segmented } from "./segmented";
 import { DateField } from "./date-field";
 import { I } from "./icons";
 import type { MemberCtx } from "./member";
@@ -113,26 +123,55 @@ function MemberPicker({
       ),
     [members, exclude],
   );
-  const res = useMemo(() => (q.trim() ? searchMembers(pool, q) : pool), [pool, q]);
+  const [g, setG] = useState<"all" | "A" | "B">("all");
+  const listOf = (m: MemberRow) => m.memberRef.split("-")[0];
+  const allLists = [...new Set(pool.map(listOf))].sort();
+  const res = useMemo(
+    () =>
+      (q.trim() ? searchMembers(pool, q) : pool).filter(
+        (m) => g === "all" || m.memberRef.startsWith(`${g}-`),
+      ),
+    [pool, q, g],
+  );
+  const late = res
+    .filter((m) => m.status === "active" && m.monthsBehind > 0)
+    .sort(byMostLate);
   const recent = q.trim()
     ? []
     : recentIds.map((id) => pool.find((m) => m.memberId === id)).filter((m): m is MemberRow => !!m);
-  const listOf = (m: MemberRow) => m.memberRef.split("-")[0];
-  const lists = [...new Set(res.filter((m) => m.status === "active").map(listOf))].sort();
+  const onTime = res.filter((m) => m.status === "active" && m.monthsBehind === 0);
+  const lists = [...new Set(onTime.map(listOf))].sort();
   const exempt = res.filter((m) => m.status === "exempt");
   return (
     <div className="bq-pick">
-      <label className="bq-search bq-search-s bq-pick-search">
-        {I.search(22)}
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="ابحث بالاسم أو الرقم، مثل ب 12"
-          aria-label="ابحث عن العضو"
-          type="search"
-          autoFocus={autoFocus}
-        />
-      </label>
+      <SearchField
+        value={q}
+        onChange={setQ}
+        placeholder="الاسم أو الرقم، مثل ب 12"
+        label="ابحث عن العضو"
+        members={pool}
+        onOpen={onPick}
+        small
+        autoFocus={autoFocus}
+        className="bq-pick-search"
+      />
+      {allLists.length > 1 && (
+        <div className="bq-pick-groups">
+          <Segmented<"all" | "A" | "B">
+            label="المجموعة"
+            fit
+            value={g}
+            onChange={setG}
+            items={[
+              { k: "all", l: "الكل" },
+              ...allLists.map((l) => ({
+                k: l as "A" | "B",
+                l: `المجموعة ${groupLabel(l)}`,
+              })),
+            ]}
+          />
+        </div>
+      )}
       {q.trim() && !res.length && <p className="bq-hint">لم نجد عضوًا بهذا الاسم أو الرقم.</p>}
       {recent.length > 0 && (
         <section aria-label="آخر من سجّلت لهم">
@@ -144,12 +183,22 @@ function MemberPicker({
           </ul>
         </section>
       )}
+      {late.length > 0 && (
+        <section aria-label="المتأخرون">
+          <h3 className="bq-pick-h">المتأخرون</h3>
+          <ul className="bq-list">
+            {late.map((m) => (
+              <PickRow key={`l-${m.memberId}`} m={m} onPick={onPick} />
+            ))}
+          </ul>
+        </section>
+      )}
       {lists.map((l) => (
         <section key={l} aria-label={`المجموعة ${groupLabel(l)}`}>
           <h3 className="bq-pick-h">المجموعة {groupLabel(l)}</h3>
           <ul className="bq-list">
-            {res
-              .filter((m) => m.status === "active" && listOf(m) === l)
+            {onTime
+              .filter((m) => listOf(m) === l)
               .map((m) => (
                 <PickRow key={m.memberId} m={m} onPick={onPick} scoped />
               ))}
