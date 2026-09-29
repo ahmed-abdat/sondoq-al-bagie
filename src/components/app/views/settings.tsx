@@ -230,11 +230,11 @@ export function SettingsView({
         {confirmOwed ? (
           <div className="bq-rej" role="group" aria-labelledby="bq-owed-q">
             <p className="bq-rej-l" id="bq-owed-q">
-              إظهار المبالغ المتأخرة للجميع؟
+              إظهار المتأخرات للأعضاء واللجنة؟
             </p>
             <p className="bq-lead">
-              سيرى كل من يفتح صفحة الأعضاء المبلغ المتأخر على كل عضو. يمكن إخفاؤه مرة أخرى في أي
-              وقت.
+              من فتح رابطه الخاص يرى المبلغ المتأخر على كل عضو. الزائر لا يرى المبالغ أبدًا. يمكنك
+              إخفاؤها في أي وقت.
             </p>
             <div className="bq-slip-btns bq-small-top">
               <button
@@ -268,11 +268,11 @@ export function SettingsView({
             onClick={() => (owed ? void saveOwed(false) : setConfirmOwed(true))}
           >
             <span className="bq-switch-t">
-              <strong>إظهار المبالغ المتأخرة</strong>
+              <strong>إظهار المتأخرات للأعضاء</strong>
               <span>
                 {owed
-                  ? "يرى كل عضو المبلغ المتأخر عليه في صفحته."
-                  : "المبالغ مخفية عن الأعضاء. يظهر فقط: منتظم أو متأخر."}
+                  ? "الأعضاء واللجنة يرون المبلغ المتأخر على كل عضو."
+                  : "المبالغ المتأخرة مخفية. يظهر للأعضاء «دفع حتى …» فقط."}
               </span>
             </span>
             <span className="bq-switch-k" aria-hidden="true">
@@ -292,7 +292,7 @@ export function SettingsView({
                   {a.accountNumber}
                 </bdi>
                 <span className="bq-row-s">
-                  باسم {a.holderName} · {a.active ? "ظاهر للأعضاء" : "مخفي"}
+                  باسم {a.holderName} · {a.active ? "رقم التحويل ظاهر للأعضاء" : "رقم التحويل مخفي"}
                 </span>
                 <SaveNote s={accSave[a.id] ?? IDLE} />
               </span>
@@ -301,7 +301,7 @@ export function SettingsView({
                 role="switch"
                 aria-checked={a.active}
                 aria-busy={accSave[a.id]?.status === "saving"}
-                aria-label={`${METHOD_LABELS[a.method]} ${a.accountNumber}: ${a.active ? "ظاهر للأعضاء" : "مخفي"}`}
+                aria-label={`${METHOD_LABELS[a.method]} ${a.accountNumber}: ${a.active ? "رقم التحويل ظاهر للأعضاء" : "رقم التحويل مخفي"}`}
                 className="bq-mini-switch bq-press"
                 disabled={!admin || !online || accSave[a.id]?.status === "saving"}
                 onClick={async () => {
