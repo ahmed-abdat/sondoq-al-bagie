@@ -15,6 +15,7 @@ import { CommitteeAccounts } from "../accounts-admin";
 import { METHOD_LABELS, METHODS, methodLogo } from "@/lib/methods";
 import { MethodBadge } from "../bits";
 import { ROLE_LABEL } from "../derive";
+import { DateField } from "../date-field";
 import { I } from "../icons";
 import { Sheet } from "../sheet";
 import { LogoutButton } from "../logout";
@@ -365,15 +366,14 @@ export function SettingsView({
         <p className="bq-hint">
           رصيد مُرحَّل من السنوات السابقة: ما كان في الصندوق قبل هذا التاريخ، بالأوقية القديمة.
         </p>
-        <input
-          className="bq-input bq-gap-bottom"
-          type="date"
-          dir="ltr"
-          value={openingOn}
-          onChange={(e) => setOpeningOn(e.target.value)}
-          aria-label="تاريخ الرصيد"
-          disabled={!admin}
-        />
+        <div className="bq-gap-bottom">
+          <DateField
+            value={openingOn}
+            onChange={setOpeningOn}
+            label="تاريخ الرصيد"
+            disabled={!admin}
+          />
+        </div>
         <div className="bq-field">
           <input
             className="bq-input bq-grow-1"

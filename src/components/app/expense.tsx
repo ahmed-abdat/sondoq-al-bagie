@@ -9,6 +9,7 @@ import type { CampaignProgress, ExpenseAdmin, ExpenseCategory } from "@/lib/data
 import { todayIso } from "@/lib/dates";
 import { parseAmount } from "@/lib/money";
 import { CATEGORY_LABEL, dayWords, fmt } from "./derive";
+import { DateField } from "./date-field";
 import { I } from "./icons";
 import { Num } from "./num";
 
@@ -106,15 +107,7 @@ export function RecordExpenseBody({
         aria-label="المبلغ بالأوقية"
       />
       <p className="bq-rec-k">التاريخ</p>
-      <input
-        className="bq-input"
-        type="date"
-        dir="ltr"
-        value={day}
-        max={todayIso()}
-        onChange={(e) => setDay(e.target.value)}
-        aria-label="تاريخ الصرف"
-      />
+      <DateField value={day} onChange={setDay} label="تاريخ الصرف" noFuture />
       {open.length > 0 && (
         <>
           <p className="bq-rec-k">من أين صُرف؟</p>

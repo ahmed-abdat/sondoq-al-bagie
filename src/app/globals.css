@@ -4054,3 +4054,89 @@
     break-after: avoid;
   }
 }
+
+@layer components {
+  /* date field (button showing the date in words) + the calendar sheet */
+  .bq-date-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: start;
+    font-weight: 600;
+  }
+  .bq-date-btn svg {
+    color: var(--g8);
+    flex: none;
+  }
+  .bq-cal .bq-chips {
+    margin-block-end: 12px;
+  }
+  .bq-year {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-block: 4px 12px;
+    font-size: 22px;
+  }
+  .bq-month-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@layer components {
+  .bq-link-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+  }
+}
+
+/* calendar overrides sit outside the layers: shadcn utility classes would win otherwise */
+.bq-cal-rdp {
+  background: transparent;
+  padding: 0;
+}
+.bq-cal-rdp .rdp-month_caption {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+}
+.bq-cal-rdp .rdp-weekday {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.bq-cal-rdp .rdp-day_button {
+  font-family: var(--font-display);
+  font-size: 17px;
+  border: 0;
+  border-radius: 999px;
+  min-height: 44px;
+  min-width: 44px;
+}
+.bq-cal-rdp .rdp-today:not(.rdp-selected) .rdp-day_button {
+  background: var(--g1);
+  color: var(--g8);
+  font-weight: 700;
+}
+.bq-cal-rdp .rdp-selected .rdp-day_button,
+.bq-cal-rdp .rdp-day_button[data-selected-single="true"] {
+  background: var(--g8);
+  color: #fff;
+}
+.bq-cal-rdp .rdp-disabled .rdp-day_button {
+  color: var(--n3);
+}
+.bq-cal-rdp .rdp-day,
+.bq-cal-rdp .rdp-selected {
+  background: transparent;
+}
+@media (hover: hover) and (pointer: fine) {
+  .bq-cal-rdp .rdp-day:not(.rdp-selected):not(.rdp-disabled) .rdp-day_button:hover {
+    background: var(--g1);
+    color: var(--g9);
+  }
+}
+.bq-cal-rdp .rdp-day:not(.rdp-selected):not(.rdp-today) .rdp-day_button:hover {
+  background: transparent;
+}

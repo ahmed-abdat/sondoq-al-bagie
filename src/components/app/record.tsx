@@ -19,7 +19,6 @@ import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
 import {
-  dayWords,
   fmt,
   groupLabel,
   memberCode,
@@ -28,6 +27,7 @@ import {
   monthCount,
   searchMembers,
 } from "./derive";
+import { DateField } from "./date-field";
 import { I } from "./icons";
 import type { MemberCtx } from "./member";
 import { Num } from "./num";
@@ -328,7 +328,6 @@ export function RecordBody({
   const [creditFor, setCreditFor] = useState<string | null>(null);
   const [shot, setShot] = useState<{ url: string; name: string } | null>(null);
   const [paidOn, setPaidOn] = useState(todayIso());
-  const [editDate, setEditDate] = useState(false);
   const [camp, setCamp] = useState<string | null>(null);
   const [campOpen, setCampOpen] = useState(false);
   const [campTxt, setCampTxt] = useState("");
@@ -741,28 +740,7 @@ export function RecordBody({
           <p className="bq-rec-k">
             تاريخ الدفع <Check bad={checks ? !checks.date : false} />
           </p>
-          {editDate ? (
-            <input
-              className="bq-input"
-              type="date"
-              dir="ltr"
-              value={paidOn}
-              max={todayIso()}
-              onChange={(e) => setPaidOn(e.target.value)}
-              aria-label="تاريخ الدفع"
-            />
-          ) : (
-            <p className="bq-rec-line">
-              <span>{paidOn === todayIso() ? "اليوم" : dayWords(paidOn)}</span>
-              <button
-                type="button"
-                className="bq-link bq-link-s bq-press"
-                onClick={() => setEditDate(true)}
-              >
-                تغيير التاريخ
-              </button>
-            </p>
-          )}
+          <DateField value={paidOn} onChange={setPaidOn} label="تاريخ الدفع" noFuture />
         </>
       )}
 

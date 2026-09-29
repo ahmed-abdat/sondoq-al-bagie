@@ -19,6 +19,7 @@ import {
   STATE_CHOICES,
   STATE_LABEL,
 } from "./derive";
+import { MonthPicker } from "./date-field";
 import { I } from "./icons";
 import { Num } from "./num";
 import { Segmented } from "./segmented";
@@ -35,38 +36,6 @@ const ymLabel = (ym: string) => {
   const [y, m] = ym.split("-").map(Number);
   return `${MONTHS[m - 1]} ${y}`;
 };
-
-/** Month picker in Arabic words (the native month input shows the phone's locale, often English). */
-function MonthField({
-  value,
-  onChange,
-  label,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  label: string;
-}) {
-  const [y0, m0] = value.split("-").map(Number);
-  // from a year back to a year ahead of the chosen month
-  const opts = Array.from({ length: 25 }, (_, i) => {
-    const d = new Date(Date.UTC(y0, m0 - 1 - 12 + i, 1));
-    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-  });
-  return (
-    <select
-      className="bq-input"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      aria-label={label}
-    >
-      {opts.map((o) => (
-        <option key={o} value={o}>
-          {ymLabel(o)}
-        </option>
-      ))}
-    </select>
-  );
-}
 
 function Err({ text }: { text: string }) {
   return text ? (
@@ -166,7 +135,7 @@ export function AddMemberBody({
       />
       <p className="bq-hint">للتذكير عبر واتساب فقط. لا يظهر للأعضاء.</p>
       <p className="bq-rec-k">تُحسب عليه الرسوم من شهر</p>
-      <MonthField value={from} onChange={setFrom} label="أول شهر" />
+      <MonthPicker value={from} onChange={setFrom} label="أول شهر" />
       <div className="bq-rec-foot">
         <Err text={err} />
         <button
@@ -371,7 +340,7 @@ export function MemberAdminBody({
             ))}
           </div>
           <p className="bq-rec-k">ابتداءً من شهر</p>
-          <MonthField value={from} onChange={setFrom} label="من شهر" />
+          <MonthPicker value={from} onChange={setFrom} label="من شهر" />
           <p className="bq-rec-k">السبب</p>
           <input
             className="bq-input"
@@ -468,7 +437,7 @@ export function MemberAdminBody({
             {groupLabel(other)} ابتداءً من الشهر الذي تختاره.
           </p>
           <p className="bq-rec-k">ابتداءً من شهر</p>
-          <MonthField value={from} onChange={setFrom} label="من شهر" />
+          <MonthPicker value={from} onChange={setFrom} label="من شهر" />
           <p className="bq-rec-k">السبب (اختياري)</p>
           <input
             className="bq-input"
