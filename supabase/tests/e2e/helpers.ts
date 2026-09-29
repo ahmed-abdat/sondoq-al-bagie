@@ -173,7 +173,7 @@ export const E2E_MEMBERS = {
   cash: { ref: "B-904", name: "اختبار النقد" },
 } as const;
 /** The open campaign from seed.sql («ترميم المسجد», target 300 000, 70 000 collected by the seed). */
-export const E2E_CAMPAIGN_ID = "00000000-0000-0000-0000-00000000ca01";
+export const E2E_CAMPAIGN_ID = "00000000-0000-4000-8000-00000000ca01";
 
 function parseRef(ref: string) {
   const m = /^([AB])-(\d+)$/.exec(ref);
@@ -244,7 +244,7 @@ export async function paymentsFor(ref: string): Promise<PaymentRow[]> {
     method: p.method,
     receiptCode: p.receipt_code,
     rejectReason: p.reject_reason,
-    submittedViaLink: String(p.submitted_via_link) === "true",
+    submittedViaLink: p.submitted_via_link !== null,
     createdAt: p.created_at,
   }));
 }

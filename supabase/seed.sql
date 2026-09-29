@@ -83,11 +83,11 @@ end $$;
 select public.record_expense(gen_random_uuid(), current_date - 40, 'teaching', 20000, 'رواتب المعلم');
 select public.record_expense(gen_random_uuid(), current_date - 12, 'sports', 7500, 'كرات وأقمصة');
 insert into public.campaigns (id, title, purpose, target_amount, amount_mode)
-values ('00000000-0000-0000-0000-00000000ca01', 'ترميم المسجد', 'إصلاح السقف قبل موسم الأمطار', 300000, 'open');
+values ('00000000-0000-4000-8000-00000000ca01', 'ترميم المسجد', 'إصلاح السقف قبل موسم الأمطار', 300000, 'open');
 select public.record_payment(gen_random_uuid(), 'متبرع من الخارج', 'bankily', 50000, current_date - 5,
-  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', '00000000-0000-0000-0000-00000000ca01',
+  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', '00000000-0000-4000-8000-00000000ca01',
                                        'member_id', null, 'amount', 50000)));
 select public.record_payment(gen_random_uuid(), m.full_name, 'masrvi', 10000, current_date - 2,
-  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', '00000000-0000-0000-0000-00000000ca01',
+  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', '00000000-0000-4000-8000-00000000ca01',
                                        'member_id', m.id, 'amount', 10000)))
 from public.members m where m.list_code = 'B' and m.number in (3, 5);
