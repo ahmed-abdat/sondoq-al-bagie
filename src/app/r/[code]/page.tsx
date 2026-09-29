@@ -11,7 +11,6 @@ import * as src from "@/components/app/source";
 
 export const metadata: Metadata = {
   title: "التحقق من وصل · صندوق الشباب",
-  robots: { index: false },
 };
 
 const Num = ({ children }: { children: React.ReactNode }) => (

@@ -5,7 +5,7 @@ import { ASSOC } from "@/components/app/derive";
 import { I } from "@/components/app/icons";
 import { LoginForm } from "./login-form";
 
-export const metadata: Metadata = { title: "دخول اللجنة · صندوق الشباب", robots: { index: false } };
+export const metadata: Metadata = { title: "دخول اللجنة · صندوق الشباب" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { next } = await searchParams;
