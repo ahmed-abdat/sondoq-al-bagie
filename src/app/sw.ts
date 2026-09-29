@@ -15,6 +15,7 @@ import {
   isPublicPage,
   isPublicViewRead,
 } from "@/lib/offline/cache-rules";
+import { notificationOptions, parsePushPayload, safePath } from "@/lib/offline/push-payload";
 
 declare const self: ServiceWorkerGlobalScope &
   SerwistGlobalConfig & { __SW_MANIFEST: (PrecacheEntry | string)[] | undefined };
@@ -91,6 +92,36 @@ const serwist = new Serwist({
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") void self.skipWaiting();
+});
+
+// Web Push (committee): show the notification; a tap opens its page in the app.
+self.addEventListener("push", (event) => {
+  let raw: string | null = null;
+  try {
+    raw = event.data?.text() ?? null;
+  } catch {
+    /* unreadable payload: show the default notification */
+  }
+  const p = parsePushPayload(raw);
+  event.waitUntil(self.registration.showNotification(p.title, notificationOptions(p)));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL(safePath(event.notification.data?.url), self.location.origin).href;
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const mine = windows.find((c) => new URL(c.url).origin === self.location.origin);
+      if (mine) {
+        await mine.focus();
+        // navigate() needs a page this worker controls; otherwise open a new one
+        const moved = await mine.navigate(url).catch(() => null);
+        if (moved) return;
+      }
+      await self.clients.openWindow(url);
+    })(),
+  );
 });
 
 serwist.addEventListeners();
