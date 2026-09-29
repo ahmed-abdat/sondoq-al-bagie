@@ -17,7 +17,6 @@ import {
   type ShareResult,
 } from "./canvas-share";
 import type { ReportData } from "./data/types";
-import type { CheckMeaning } from "./report-check";
 import { formatDay, monthName } from "./dates";
 import { formatNumber } from "./format";
 import { ASSOC_NAME, FUND_NAME } from "./share-receipt";
@@ -513,26 +512,21 @@ export async function shareReportSummary(
 /* ─────────────── the whole report: PNG pages / PDF ─────────────── */
 
 type Prepared = { pages?: Promise<File[]>; pdf?: Promise<File> };
-/** Rendered once per ReportInput and ✓ meaning (the sheet's «✓ يعني» choice). */
-const prepared = new WeakMap<ReportInput, Partial<Record<CheckMeaning, Prepared>>>();
-const slot = (d: ReportInput, check: CheckMeaning) => {
-  let byCheck = prepared.get(d);
-  if (!byCheck) prepared.set(d, (byCheck = {}));
-  return (byCheck[check] ??= {});
+const prepared = new WeakMap<ReportInput, Prepared>();
+const slot = (d: ReportInput) => {
+  let s = prepared.get(d);
+  if (!s) prepared.set(d, (s = {}));
+  return s;
 };
 
 /** The report as 1080×1350 PNG files, one per page (rendered once per ReportInput). */
-function reportPageFiles(
-  d: ReportInput,
-  url = reportUrl(publicOrigin()),
-  check: CheckMeaning = "now",
-): Promise<File[]> {
-  const s = slot(d, check);
+function reportPageFiles(d: ReportInput, url = reportUrl(publicOrigin())): Promise<File[]> {
+  const s = slot(d);
   s.pages ??= (async () => {
     const pages = await import("./report-pages");
     const { fonts, logo } = await drawKit();
     const base = reportFileBase(d.generatedAt);
-    const blobs = await pages.renderReportPages(d, { url, fonts, logo, check });
+    const blobs = await pages.renderReportPages(d, { url, fonts, logo });
     return blobs.map((b, i) => new File([b], `${base}-${i + 1}.png`, { type: "image/png" }));
   })();
   s.pages.catch(() => (s.pages = undefined));
@@ -540,12 +534,8 @@ function reportPageFiles(
 }
 
 /** The report as an A4 PDF (the same pages at A4 ratio, as JPEG), built on the phone. */
-function reportPdfFile(
-  d: ReportInput,
-  url = reportUrl(publicOrigin()),
-  check: CheckMeaning = "now",
-): Promise<File> {
-  const s = slot(d, check);
+function reportPdfFile(d: ReportInput, url = reportUrl(publicOrigin())): Promise<File> {
+  const s = slot(d);
   s.pdf ??= (async () => {
     const [pages, { jpegsToPdf, A4_PT }] = await Promise.all([
       import("./report-pages"),
@@ -562,7 +552,6 @@ function reportPdfFile(
       scale,
       type: "image/jpeg",
       quality: 0.7,
-      check,
     });
     const jpegs = await Promise.all(
       blobs.map(async (b) => ({
@@ -585,8 +574,8 @@ function reportPdfFile(
 }
 
 /** Start rendering in the background (call when the share sheet opens), so the tap shares at once. */
-export function prepareReportShare(d: ReportInput, url?: string, check?: CheckMeaning): void {
-  reportPageFiles(d, url, check).catch(() => {});
+export function prepareReportShare(d: ReportInput, url?: string): void {
+  reportPageFiles(d, url).catch(() => {});
 }
 
 async function shareFiles(
@@ -612,11 +601,11 @@ async function shareFiles(
 export async function shareReportImages(
   d: ReportInput,
   url = reportUrl(publicOrigin()),
-  opts: ShareImageOptions & { check?: CheckMeaning } = {},
+  opts: ShareImageOptions = {},
 ): Promise<ShareResult> {
   const nav = opts.nav ?? (navigator as ShareNavigator);
   if (typeof nav.share === "function" && nav.canShare) {
-    const files = await reportPageFiles(d, url, opts.check).catch(() => null);
+    const files = await reportPageFiles(d, url).catch(() => null);
     const res = files && (await shareFiles(files, reportShareText(d, url), nav));
     if (res) return res;
   }
@@ -627,14 +616,10 @@ export async function shareReportImages(
 export async function shareReportPdf(
   d: ReportInput,
   url = reportUrl(publicOrigin()),
-  opts: {
-    nav?: ShareNavigator;
-    download?: (b: Blob, name: string) => void;
-    check?: CheckMeaning;
-  } = {},
+  opts: { nav?: ShareNavigator; download?: (b: Blob, name: string) => void } = {},
 ): Promise<ShareResult | "downloaded"> {
   const nav = opts.nav ?? (navigator as ShareNavigator);
-  const file = await reportPdfFile(d, url, opts.check);
+  const file = await reportPdfFile(d, url);
   const res = await shareFiles([file], reportShareText(d, url), nav);
   if (res) return res;
   (opts.download ?? downloadPng)(file, file.name);
