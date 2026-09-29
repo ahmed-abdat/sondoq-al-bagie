@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { isPublicPage } from "@/lib/offline/cache-rules";
+import { allowsBackgroundDownload, whenIdle, type NetworkInfo } from "@/lib/offline/data-saver";
 
 const PAGES_CACHE = "pages"; // same name as the NetworkFirst page cache in src/app/sw.ts
 
@@ -60,9 +61,9 @@ export function ServiceWorkerUpdates() {
 
 /**
  * In-app navigation only downloads RSC data, so the full page would be missing offline.
- * After each public page visit, save its HTML once (skipped for committee pages and when
- * already saved, to spare small data plans). Replaces Serwist's cacheOnNavigation,
- * which would also save logged-in pages.
+ * After each public page visit, save its HTML once, when the phone is idle. Skipped for
+ * committee pages, when already saved, and in data-saver mode or on 2G (the page is 170 to
+ * 230 KB). Replaces Serwist's cacheOnNavigation, which would also save logged-in pages.
  */
 export function SaveVisitedPages() {
   const pathname = usePathname();
@@ -72,8 +73,10 @@ export function SaveVisitedPages() {
     const url = new URL(pathname, location.origin);
     if (!isPublicPage(url, true)) return;
     let cancelled = false;
+    let cancelIdle = () => {};
     const save = async () => {
-      if (cancelled || !navigator.onLine) return;
+      const conn = (navigator as Navigator & { connection?: NetworkInfo }).connection;
+      if (cancelled || !navigator.onLine || !allowsBackgroundDownload(conn)) return;
       try {
         const cache = await caches.open(PAGES_CACHE);
         if (await cache.match(url.href, { ignoreVary: true })) return;
@@ -83,12 +86,14 @@ export function SaveVisitedPages() {
         /* offline or storage full: nothing to do */
       }
     };
+    const later = () => (cancelIdle = whenIdle(() => void save()));
     // First visit: the worker takes control a moment after load (clientsClaim); save then.
-    if (sw.controller) void save();
-    else sw.addEventListener("controllerchange", save, { once: true });
+    if (sw.controller) later();
+    else sw.addEventListener("controllerchange", later, { once: true });
     return () => {
       cancelled = true;
-      sw.removeEventListener("controllerchange", save);
+      cancelIdle();
+      sw.removeEventListener("controllerchange", later);
     };
   }, [pathname]);
   return null;
