@@ -1009,7 +1009,7 @@ export function RecordBody({
                     touched("method");
                   }}
                 >
-                  <MethodBadge method={m} size={36} label={false} />
+                  <MethodBadge method={m} size={36} label={false} decorative />
                   <span>{METHOD_LABELS[m]}</span>
                 </button>
               ))}

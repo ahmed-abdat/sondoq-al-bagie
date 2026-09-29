@@ -14,7 +14,7 @@ export function PayTo({ accounts }: { accounts: FundAccount[] }) {
     <ul className="bq-pay">
       {live.map((a) => (
         <li key={a.id}>
-          <MethodBadge method={a.method} size={32} label={false} />
+          <MethodBadge method={a.method} size={32} label={false} decorative />
           <span className="bq-row-m">
             <bdi dir="ltr" className="bq-num bq-pay-n">
               {a.accountNumber}

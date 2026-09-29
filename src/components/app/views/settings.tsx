@@ -45,7 +45,7 @@ function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
             className="bq-meth-opt bq-press"
             onClick={() => setM(x)}
           >
-            <MethodBadge method={x} size={36} label={false} />
+            <MethodBadge method={x} size={36} label={false} decorative />
             <span>{METHOD_LABELS[x]}</span>
           </button>
         ))}
