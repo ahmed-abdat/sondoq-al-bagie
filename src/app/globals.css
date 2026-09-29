@@ -4939,3 +4939,107 @@
     width: 100%;
   }
 }
+/* ───── Lane C «روابط الأعضاء» (/committee/member-links) ───── */
+@layer components {
+  .bq-ml-count {
+    margin-block-end: 12px;
+  }
+  .bq-ml-walk {
+    position: sticky;
+    top: calc(8px + var(--safe-t));
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    margin-block-end: 8px;
+  }
+  .bq-ml-walk-t {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  .bq-ml-walk-btns {
+    display: flex;
+    gap: 8px;
+    margin-block-start: 6px;
+  }
+  .bq-ml-walk-btns .bq-btn {
+    padding-inline: 12px;
+  }
+  .bq-ml-walk-btns .bq-btn-primary {
+    flex: 1;
+  }
+  .bq-ml-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 56px;
+    padding: 6px 8px;
+    border-radius: var(--r-sm);
+    transition: background-color var(--d-fast) var(--ease-out);
+  }
+  .bq-ml-row[data-current] {
+    background: var(--g1);
+  }
+  .bq-ml-n {
+    min-width: 32px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .bq-ml-name {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+  .bq-ml-tick {
+    margin-inline-start: 6px;
+    color: var(--g7);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .bq-ml-wa {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--g8);
+    color: #fff;
+  }
+  .bq-ml-new {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding-inline: 14px;
+    border-radius: 999px;
+    background: var(--n1);
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .bq-ml-wa:disabled,
+  .bq-ml-new:disabled {
+    opacity: 0.5;
+  }
+  .bq-ml-confirm {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 4px 8px 12px;
+    padding: 14px;
+    border-radius: var(--r-md);
+    background: var(--n1);
+  }
+  .bq-ml-legend {
+    margin-block-start: 16px;
+  }
+}
+/* ───── end Lane C «روابط الأعضاء» ───── */
