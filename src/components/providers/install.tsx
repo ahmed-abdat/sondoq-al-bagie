@@ -102,7 +102,7 @@ function modeNow(): InstallMode {
  * Opens the browser's install dialog. Call it directly in a click handler, before any await.
  * Each event can prompt once; it is dropped here so a second tap never reuses it.
  */
-export function promptInstall(): Promise<"accepted" | "dismissed" | "unavailable"> {
+function promptInstall(): Promise<"accepted" | "dismissed" | "unavailable"> {
   const w = win();
   const event = w.__bip ?? null;
   w.__bip = null;
@@ -165,7 +165,7 @@ const SESSION_SEEN = "sondoq:session";
 const BANNER_SHOWN = "sondoq:install-banner-shown";
 
 /** Current install mode ("installed" on the server and while hydrating). */
-export function useInstallMode(): InstallMode {
+function useInstallMode(): InstallMode {
   return useSyncExternalStore(subscribe, modeNow, () => "installed");
 }
 
@@ -228,12 +228,6 @@ function useInstallAction(onLater?: () => void) {
       <InstallSheet mode={sheet} onDone={() => setSheet(null)} onLater={onLater} />
     ) : null;
   return { mode, start, sheetEl };
-}
-
-/** @deprecated The invite is now the app-wide InstallBanner (Providers); this renders nothing. */
-export function InstallCard(props: { className?: string }) {
-  void props;
-  return null;
 }
 
 /* the banner stays away while a sheet/dialog is open or the member is typing */
@@ -454,7 +448,7 @@ const SHEET: Record<
   },
 };
 
-export function InstallSheet({
+function InstallSheet({
   mode,
   onDone,
   onLater,

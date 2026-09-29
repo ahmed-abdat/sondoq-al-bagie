@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { pendingPaymentPayload } from "@/lib/push/payload";
 import { notificationOptions, parsePushPayload, safePath } from "./push-payload";
 
 describe("parsePushPayload", () => {
@@ -55,4 +56,17 @@ it("notification options: Arabic, RTL, icon + monochrome badge, tap target", () 
     renotify: true,
     data: { url: "/committee" },
   });
+});
+
+it("reads exactly what the server builds (round trip over the wire)", () => {
+  const sent = {
+    ...pendingPaymentPayload({
+      id: "p-42",
+      payerName: "محمد ولد أحمد",
+      amount: 1500,
+      allocations: [{ kind: "months", year: 2026, month: 9 }],
+    }),
+    badgeCount: 3,
+  };
+  expect(parsePushPayload(JSON.stringify(sent))).toEqual(sent);
 });

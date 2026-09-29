@@ -28,7 +28,7 @@ export function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-export function isPushSupported(): boolean {
+function isPushSupported(): boolean {
   return (
     typeof window !== "undefined" &&
     "serviceWorker" in navigator &&
@@ -63,7 +63,7 @@ export async function pushState(): Promise<PushState> {
   return sub && Notification.permission === "granted" ? "on" : "off";
 }
 
-export function toData(sub: PushSubscription): PushSubscriptionData {
+function toData(sub: PushSubscription): PushSubscriptionData {
   const j = sub.toJSON();
   return {
     endpoint: sub.endpoint,

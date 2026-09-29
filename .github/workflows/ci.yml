@@ -29,6 +29,9 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # unused files/exports/deps; report-only until the findings are cleaned up
+      - run: pnpm knip
+        continue-on-error: true
 
   # The SQL harness: migrations in order, SQL tests (RLS, RPC rules), no unbounded writes, seed
   # shape, the double-confirm race, rollback + re-apply, idempotent paper import. A throwaway

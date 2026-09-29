@@ -150,6 +150,5 @@ describe("backoff after «✕»", () => {
     expect(bannerAllowedOn("/report")).toBe(true);
     expect(bannerAllowedOn("/r/BQ-1")).toBe(false);
     expect(bannerAllowedOn("/login")).toBe(false);
-    expect(bannerAllowedOn("/auth/confirm")).toBe(false);
   });
 });

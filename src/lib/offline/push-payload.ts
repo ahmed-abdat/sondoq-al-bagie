@@ -1,20 +1,13 @@
 // Web Push message → notification. Shared by the service worker (src/app/sw.ts) and tests.
-// Server sends JSON: { title?, body?, url?, tag?, badgeCount? }. Everything is optional and checked here.
+// The wire shape is Lane A's PushPayload (src/lib/push/payload.ts: what the server sends); this
+// side trusts nothing and checks every field.
+import type { PushPayload } from "@/lib/push/payload";
 
-export interface PushPayload {
-  title: string;
-  body: string;
-  /** Same-origin path opened on tap. */
-  url: string;
-  /** Same tag = replaces the earlier notification (with a new buzz: renotify). */
-  tag: string;
-  /** Payments now waiting, for the number on the app icon (optional). */
-  badgeCount?: number;
-}
+export type { PushPayload };
 
-export const PUSH_ICON = "/icons/icon-192.png";
+const PUSH_ICON = "/icons/icon-192.png";
 /** Monochrome (white on transparent): Android draws it in the status bar. */
-export const PUSH_BADGE = "/icons/badge-96.png";
+const PUSH_BADGE = "/icons/badge-96.png";
 
 const DEFAULT: PushPayload = {
   title: "صندوق الشباب",
