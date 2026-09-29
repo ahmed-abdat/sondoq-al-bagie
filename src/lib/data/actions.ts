@@ -753,6 +753,34 @@ export async function setCommitteeActive(input: s.SetCommitteeActiveInput) {
   );
 }
 
+/**
+ * Delete an account that never did anything (admin only, not himself). One with history is refused
+ * with `has_history`: deactivate it instead. The database removes the committee row (audited),
+ * then the login is deleted with the secret key.
+ */
+export async function deleteCommitteeAccount(input: { userId: string }): Promise<ActionResult> {
+  const parsed = s.committeeUserSchema.safeParse(input);
+  if (!parsed.success) return failure("invalid_input");
+  const admin = tryCreateAdminClient();
+  if (!admin) return failure("not_configured");
+  const res = await run(
+    s.committeeUserSchema,
+    parsed.data,
+    (sb, p) => sb.rpc("delete_committee_member", { p_user_id: p.userId }),
+    { touchesPublic: false },
+  );
+  if (!res.ok) return res;
+  try {
+    const { error } = await admin.auth.admin.deleteUser(parsed.data.userId);
+    if (error) throw error;
+  } catch (err) {
+    // The committee row is gone, so the login opens nothing; it is only an orphan in auth.users.
+    console.error("[deleteCommitteeAccount]", err);
+    return failure("delete_failed");
+  }
+  return res;
+}
+
 /* ───────────── push notifications ───────────── */
 
 /** Save this browser's push subscription for the signed-in committee member. */

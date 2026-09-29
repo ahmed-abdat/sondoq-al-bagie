@@ -339,6 +339,8 @@ export type CommitteeAccount = {
   login: string;
   lastSignInAt: string | null;
   createdAt: string;
+  /** never did anything (and not you): «حذف الحساب» instead of only «إيقاف» */
+  canDelete: boolean;
 };
 
 /** Shown ONCE after creating an account or resetting its password. */

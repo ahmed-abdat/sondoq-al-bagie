@@ -998,6 +998,7 @@ export type Database = {
       committee_accounts: {
         Row: {
           active: boolean | null
+          can_delete: boolean | null
           created_at: string | null
           display_name: string | null
           last_sign_in_at: string | null
@@ -1262,6 +1263,7 @@ export type Database = {
         Returns: number
       }
       confirm_payment: { Args: { p_payment_id: string }; Returns: Json }
+      delete_committee_member: { Args: { p_user_id: string }; Returns: undefined }
       delete_push_subscription: { Args: { p_endpoint: string }; Returns: undefined }
       create_campaign: {
         Args: {

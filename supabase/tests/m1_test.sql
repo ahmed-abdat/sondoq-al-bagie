@@ -551,6 +551,41 @@ select tests.throws($$select public.save_push_subscription('https://push.example
   'anon cannot save a subscription');
 select tests.throws('select * from public.push_subscriptions', '42501', 'anon cannot read subscriptions');
 
+/* ───────────── M11: deleting an account without history ───────────── */
+
+select tests.login('server');
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000a6', 'mistake@test.invalid');
+select tests.ok((select count(*) from pg_constraint where contype = 'f' and confrelid = 'auth.users'::regclass
+                   and connamespace = 'public'::regnamespace) = 23,
+  'every column pointing at auth.users is checked by account_has_history (update it when this count changes)');
+select tests.login('admin');
+select public.set_committee_member('00000000-0000-0000-0000-0000000000a6', 'خطأ', 'committee');
+select tests.ok((select can_delete from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a6'),
+  'a new account without history can be deleted');
+select tests.ok(not (select can_delete from public.committee_accounts where display_name = 'الأمين'),
+  'an account with history cannot');
+select tests.ok(not (select can_delete from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a1'),
+  'nor the admin himself');
+select tests.throws($$select public.delete_committee_member('00000000-0000-0000-0000-0000000000a2')$$, 'has_history',
+  'deleting an account with history is refused');
+select tests.throws($$select public.delete_committee_member('00000000-0000-0000-0000-0000000000a1')$$, 'cannot_delete_self',
+  'the admin cannot delete himself');
+select tests.login('treasurer');
+select tests.throws($$select public.delete_committee_member('00000000-0000-0000-0000-0000000000a6')$$, 'not_admin',
+  'only the admin deletes accounts');
+select tests.login('server');
+select tests.throws($$delete from public.committee where user_id = '00000000-0000-0000-0000-0000000000a6'$$, 'append_only',
+  'committee rows are never deleted directly');
+select tests.login('admin');
+select public.delete_committee_member('00000000-0000-0000-0000-0000000000a6');
+select tests.ok(not exists (select 1 from public.committee where user_id = '00000000-0000-0000-0000-0000000000a6'),
+  'the admin deletes the account');
+select tests.ok(exists (select 1 from public.audit_log where action = 'delete_committee_member'
+                          and row_id = '00000000-0000-0000-0000-0000000000a6'), 'and the deletion is audited');
+select tests.login('server');
+delete from auth.users where id = '00000000-0000-0000-0000-0000000000a6';
+select tests.ok(true, 'the login can then be removed');
+
 /* ───────────── M8: terms and handover (keep last: it deactivates committee accounts) ───────────── */
 
 select tests.login('public');
