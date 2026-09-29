@@ -5355,8 +5355,8 @@
   }
   .bq-money-hint-a {
     display: inline;
-    padding: 10px 0;
-    margin: -10px 0;
+    padding: 14px 0;
+    margin: -14px 0;
     color: var(--g8);
     font-weight: 600;
     text-decoration: underline;
@@ -5821,5 +5821,21 @@
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-all;
+  }
+}
+
+@layer components {
+  /* QA pass 4: the remaining small controls reach 48px (hit area, layout unchanged where possible) */
+  .bq-search button {
+    width: 48px;
+    height: 48px;
+  }
+  .bq-ml-wa {
+    width: 48px;
+    height: 48px;
+  }
+  .bq-icon-btn {
+    min-width: 48px;
+    min-height: 48px;
   }
 }
