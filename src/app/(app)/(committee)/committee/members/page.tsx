@@ -7,10 +7,11 @@ export const metadata: Metadata = { title: "الأعضاء · اللجنة" };
 
 export default async function Members() {
   const session = await src.requireCommittee("/committee/members", { roles: src.MANAGERS });
-  const [members, prices, arrears] = await Promise.all([
+  const [members, prices, arrears, links] = await Promise.all([
     src.membersAdmin(),
     src.groupPrices(),
     src.arrears(),
+    src.memberLinks(),
   ]);
   // credit and the late months it can pay, per member (only members who have some)
   const credit = Object.fromEntries(
@@ -28,6 +29,7 @@ export default async function Members() {
         thisMonth={thisMonth}
         admin={session.role === "admin"}
         credit={credit}
+        links={links}
       />
     </Tab>
   );

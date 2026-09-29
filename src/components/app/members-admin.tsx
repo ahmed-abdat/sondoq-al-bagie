@@ -8,6 +8,9 @@ import { useMemo, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { type MemberAdmin, type SettableStatus } from "@/lib/data/types";
 import { useAct, useDemoState } from "./act";
+import { MemberLinkSection } from "./member-link-admin";
+import { useMemberDemo } from "./member-act";
+import type { MemberLinkInfo } from "./member-types";
 import { sendOnce, useOnceId } from "./once-id";
 import { Avatar, MemberNo, StatusTag } from "./bits";
 import {
@@ -188,9 +191,12 @@ export function MemberAdminBody({
   admin = false,
   credit,
   price = 0,
+  link = null,
   onDone,
 }: {
   m: MemberAdmin;
+  /** «رابط العضو»: the member's active personal link, or null */
+  link?: MemberLinkInfo | null;
   /** admin only: «تراجع عن آخر تغيير», «تصحيح شهر الانضمام» */
   admin?: boolean;
   /** the member's credit, when they have some */
@@ -314,6 +320,7 @@ export function MemberAdminBody({
           </button>
         </div>
       )}
+      {mode === "view" && <MemberLinkSection m={m} link={link} />}
       {mode === "view" && payable.length > 0 && (
         <button type="button" className="bq-btn bq-btn-tonal bq-press" onClick={() => go("credit")}>
           ادفع من الرصيد
@@ -735,15 +742,21 @@ export function MembersAdmin({
   thisMonth,
   admin = false,
   credit = {},
+  links = {},
 }: {
   members: MemberAdmin[];
   prices: Record<string, number>;
   thisMonth: string;
   admin?: boolean;
   credit?: Record<string, MemberCredit>;
+  /** active personal links by member id */
+  links?: Record<string, MemberLinkInfo>;
 }) {
   const say = useSnack();
   const demo = useDemoState();
+  const linkDemo = useMemberDemo();
+  const linkOf = (id: string) =>
+    id in linkDemo.links ? linkDemo.links[id] : (links[id] ?? null);
   const members = useMemo(
     () =>
       [...server, ...demo.members]
@@ -911,6 +924,7 @@ export function MembersAdmin({
             admin={admin}
             credit={creditOf(open.memberId, open.groupCode)}
             price={prices[open.groupCode] ?? 0}
+            link={linkOf(open.memberId)}
             onDone={done}
           />
         </Sheet>

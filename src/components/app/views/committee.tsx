@@ -35,6 +35,7 @@ import { Sheet } from "../sheet";
 import { useSnack } from "../shell";
 import { setPendingCount } from "../pending-count";
 import { PendingSlip } from "../slip";
+import type { MemberLinkInfo } from "../member-types";
 
 /** Live updates: another committee member recorded or confirmed a payment → refetch the page. */
 export function CommitteeLive() {
@@ -369,9 +370,11 @@ export function MembersPage({
   thisMonth,
   admin = false,
   credit = {},
+  links = {},
 }: {
   members: MemberAdmin[];
   prices: Record<string, number>;
+  links?: Record<string, MemberLinkInfo>;
   /** admin: may undo the last change and correct the join month */
   admin?: boolean;
   credit?: Record<string, MemberCredit>;
@@ -387,6 +390,7 @@ export function MembersPage({
           thisMonth={thisMonth}
           admin={admin}
           credit={credit}
+          links={links}
         />
       </section>
     </>
