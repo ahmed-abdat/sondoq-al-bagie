@@ -3,23 +3,28 @@
 // cookie, hashes it and calls a server-only RPC with the secret key; without a valid link it
 // returns `member_link_invalid`. Members never confirm anything: submissions are pending until a
 // confirmer decides. Same result shape as the committee actions: { ok, data } | { ok: false, code, message }.
-import { cookies } from "next/headers";
 import { after } from "next/server";
 import { pendingPaymentPayload } from "@/lib/push/payload";
 import { notifyConfirmers } from "@/lib/push/send";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { codeOf, failure } from "./errors";
-import { hashMemberToken, memberToken } from "./member";
+import { hashMemberToken, liveProfiles, memberToken, verifyMemberToken } from "./member";
+import {
+  activate,
+  clearAll,
+  clearPending,
+  readPending,
+  readProfiles,
+  withoutProfile,
+} from "./member-cookies";
 import type { MemberSubmitInput, MemberSubmitResult } from "./member-types";
-import { MEMBER_COOKIE, MEMBER_MARKER_COOKIE } from "./member-types";
 import { PROOF_MAX_BYTES, proofPath, sha256Hex, sniffImage } from "./proof";
 import * as s from "./schemas";
 import type { ActionResult } from "./types";
 
 type Admin = NonNullable<ReturnType<typeof tryCreateAdminClient>>;
 type LinkContext =
-  | { ok: true; hash: string; admin: Admin }
-  | { ok: false; error: ReturnType<typeof failure> };
+  { ok: true; hash: string; admin: Admin } | { ok: false; error: ReturnType<typeof failure> };
 
 /** Token hash + admin client, or the failure to return. */
 async function linkContext(): Promise<LinkContext> {
@@ -137,14 +142,19 @@ export async function memberSubmitPayment(
   };
 }
 
-/** «أبلغني عند التأكيد»: this device gets the member's confirm/reject pushes. */
+/**
+ * «أبلغني عند التأكيد»: this device gets the confirm/reject pushes of EVERY profile saved on it
+ * (a family phone follows everyone it holds).
+ */
 export async function memberSavePush(input: s.PushSubscriptionInput): Promise<ActionResult> {
   const parsed = s.pushSubscriptionSchema.safeParse(input);
   if (!parsed.success) return failure("invalid_input");
-  const ctx = await linkContext();
-  if (!ctx.ok) return ctx.error;
-  const { error } = await ctx.admin.rpc("member_save_push", {
-    p_token_hash: ctx.hash,
+  const admin = tryCreateAdminClient();
+  if (!admin) return failure("not_configured");
+  const { saved } = await readProfiles();
+  if (!saved.length) return failure("member_link_invalid");
+  const { error } = await admin.rpc("member_save_push", {
+    p_token_hashes: saved.map(hashMemberToken),
     p_endpoint: parsed.data.endpoint,
     p_p256dh: parsed.data.keys.p256dh,
     p_auth: parsed.data.keys.auth,
@@ -152,6 +162,7 @@ export async function memberSavePush(input: s.PushSubscriptionInput): Promise<Ac
   return error ? failure(codeOf(error)) : { ok: true, data: undefined };
 }
 
+/** Stop the active profile's pushes on this device (the other profiles keep theirs). */
 export async function memberDeletePush(input: { endpoint: string }): Promise<ActionResult> {
   const ctx = await linkContext();
   if (!ctx.ok) return { ok: true, data: undefined }; // nothing to remove without a link
@@ -162,11 +173,50 @@ export async function memberDeletePush(input: { endpoint: string }): Promise<Act
   return error ? failure(codeOf(error)) : { ok: true, data: undefined };
 }
 
-/** «خروج من هذا الجهاز»: forget the link here (and this device's member push, if given). */
+/** «أنت» switcher: act as another profile saved on this device. */
+export async function memberSwitch(input: { linkId: string }): Promise<ActionResult> {
+  const { saved } = await readProfiles();
+  const live = await liveProfiles(saved);
+  const token = saved.find((t) => live.get(t)?.linkId === input?.linkId);
+  if (!token) return failure("member_link_invalid");
+  await activate(token, saved);
+  return { ok: true, data: undefined };
+}
+
+/** «أضف X وانتقل إليه»: save the pending link (cap 5, least recently used drops) and use it. */
+export async function memberAcceptPending(): Promise<ActionResult> {
+  const pending = await readPending();
+  if (!pending || !(await verifyMemberToken(pending))) {
+    await clearPending();
+    return failure("member_link_invalid");
+  }
+  const { saved } = await readProfiles();
+  await activate(pending, saved);
+  await clearPending();
+  return { ok: true, data: undefined };
+}
+
+/** «ابقَ بالاسم الحالي»: forget the pending link. */
+export async function memberDeclinePending(): Promise<ActionResult> {
+  await clearPending();
+  return { ok: true, data: undefined };
+}
+
+/**
+ * «خروج من هذا الجهاز» for the ACTIVE profile only (and its push on this device, if given). The
+ * next saved profile becomes active; with none left, every member cookie (and the flag) goes.
+ */
 export async function memberSignOut(input: { endpoint?: string } = {}): Promise<ActionResult> {
   if (input?.endpoint) await memberDeletePush({ endpoint: input.endpoint });
-  const jar = await cookies();
-  jar.delete(MEMBER_COOKIE);
-  jar.delete(MEMBER_MARKER_COOKIE);
+  const { active, saved } = await readProfiles();
+  const rest = active ? withoutProfile(saved, active) : saved;
+  const live = await liveProfiles(rest);
+  const next = rest.find((t) => live.has(t));
+  if (next)
+    await activate(
+      next,
+      rest.filter((t) => live.has(t)),
+    );
+  else await clearAll();
   return { ok: true, data: undefined };
 }

@@ -12,9 +12,10 @@ import type {
   MemberHistoryAllocation,
   MemberHistoryItem,
   MemberLinkInfo,
+  MemberProfile,
   MemberSession,
 } from "./member-types";
-import { MEMBER_COOKIE } from "./member-types";
+import { MEMBER_COOKIE, MEMBER_PENDING_COOKIE } from "./member-types";
 import type { MembershipStatus, PaymentMethod, PaymentStatus } from "./types";
 
 /** base64url, 32 random bytes → 43 characters. Anything else is not one of our tokens. */
@@ -160,4 +161,36 @@ export async function getMemberLinks(): Promise<Record<string, MemberLinkInfo>> 
         },
       ]),
   );
+}
+
+/** Which of `tokens` are live links, and whose (one RPC for all of them). */
+export async function liveProfiles(
+  tokens: string[],
+): Promise<Map<string, Omit<MemberProfile, "active">>> {
+  const out = new Map<string, Omit<MemberProfile, "active">>();
+  const admin = tryCreateAdminClient();
+  if (!admin || !tokens.length) return out;
+  const byHash = new Map(tokens.map((t) => [hashMemberToken(t), t]));
+  const { data, error } = await admin.rpc("member_sessions", {
+    p_token_hashes: [...byHash.keys()],
+  });
+  if (error || !Array.isArray(data)) return out;
+  for (const r of data as Raw[]) {
+    const token = byHash.get(str(r.token_hash));
+    if (token && typeof r.link_id === "string") {
+      out.set(token, {
+        linkId: r.link_id,
+        memberId: str(r.member_id),
+        memberRef: str(r.member_ref),
+        fullName: str(r.full_name),
+      });
+    }
+  }
+  return out;
+}
+
+/** Another member's link opened on this device and waiting for the choice, or null. */
+export async function memberPending(): Promise<MemberSession | null> {
+  const t = (await cookies()).get(MEMBER_PENDING_COOKIE)?.value ?? "";
+  return isMemberToken(t) ? verifyMemberToken(t) : null;
 }

@@ -39,6 +39,7 @@ and every change lands in `audit_log`.
 | `*_m22_member_link_former_debt.sql` | `committee.not_member` (admin: `set_committee_not_member`), `committee_accounts.needs_member_link` (confirmer without a member, not marked); `members_admin.former_debt_months/amount` for exempt/left members (member sheet only) |
 | `*_m23_p2_guards.sql` | `record_payment` returns `pending_overlap`; txn refs compared normalised (`app_private.norm_txn`, unique index too); `set_committee_member` refuses a non-active member; term «collected» by confirmation day; a confirmed contribution to a closed campaign cannot be cancelled |
 | `*_m24_member_links.sql` | member access by personal link: `member_links` (SHA-256 of the token only, one active per member), `payments.submitted_via_link`, `member_push_subscriptions`; committee `create_member_link` / `revoke_member_link` / `member_links_admin` / `payment_queue.submitted_by_member`; service-role-only `member_session`, `member_history`, `member_recent_beneficiaries`, `member_submit_payment` (always pending, 5 pending / 10 a day per link, proof required), `member_save_push` / `member_delete_push` |
+| `*_m25_member_profiles.sql` | family phones (up to 5 profiles): `member_sessions(hashes[])` (one call for the switcher); member push unique per (link, endpoint) and `member_save_push(hashes[], …)` saves for every profile on the device |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the
