@@ -491,6 +491,28 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - e2e touched (Lane B): `member-links.spec.ts` (B10 wording, same-link resend), new B09/B02/B03
   test in `member-ui.spec.ts`.
 
+## UX-PATTERNS batch (r29)
+- P1: `statusLabel(m, year?)` in derive.ts (tested) is the one status phrase: «دفع حتى <شهر>»
+  (last month of the unbroken paid run from the first owed month, from the month code), «دفع
+  السنة كاملة», «لم يدفع هذا العام», a gap «لم يدفع رسوم <شهر>», older-year arrears «لم يدفع
+  رسوم <شهر سنة>», nothing due «منتظم». Used by StatusTag (lists, home search, record picker,
+  committee members), the member sheet (with the year), the committee member sheet; «أنت» card
+  late: «دفعت حتى يونيو · عليك 1 500 أوقية» (`youPhrase`); late list «لم يدفع منذ <شهر سنة>»
+  (`unpaidSince`). Home search now reads `src.memberRows()` for the codes. No month counts left
+  in status lines (payment descriptions «رسوم 3 أشهر» stay).
+- P3: «ادفع الآن» sheet, back from another app (visibilitychange): one big «أرفق صورة التحويل»
+  (gallery) → send sheet with the file attached and read (`MemberMode.file`); «عرض أرقام الصندوق»
+  returns to the wallets.
+- P4: personal reminder text ends «ادفع وأرسل صورة التحويل من هنا: <origin>/?pay=1»
+  (`ReminderContext.payUrl`, src/lib/data/reminders.ts, tested; Lane A file touched). Home with
+  a member link and `?pay=1` opens «ادفع الآن» once when late, then drops the param.
+- P8: slip proof full width (160px, top crop); tap → full-screen dark viewer with «تأكيد
+  الاستلام» / «رفض»; Back closes (one pushState entry). ShotMock has no fake wallet/amount text.
+- P9: `useAfterReturn` (walk-return.ts): link and reminder walks move on when the page is back
+  (1.5 s fallback if it never hid); «أُنشئ رابط X · التالي: Y» / «ذُكّر X · التالي: Y» with
+  «تراجع»; back on a link made here the walk offers «أرسل مرة أخرى» (same link).
+- Roving arrow keys now on every chip radio group.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
