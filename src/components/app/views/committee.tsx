@@ -180,6 +180,12 @@ export function CommitteeView({
         <h2 id="bq-more-h">أعمال أخرى</h2>
         <ul className="bq-list bq-menu">
           <MenuRow
+            href="/committee/payments"
+            icon={I.coins(22)}
+            title="الدفعات الأخيرة"
+            sub="وصل كل دفعة، وإلغاء دفعة سُجّلت خطأً"
+          />
+          <MenuRow
             href="/committee/late"
             icon={I.wa(22)}
             title="تذكير المتأخرين"

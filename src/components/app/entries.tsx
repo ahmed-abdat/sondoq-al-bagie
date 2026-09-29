@@ -5,7 +5,7 @@ import { saveReceiptPng, shareReceipt } from "@/lib/share-receipt";
 import { categoryLabel, dayWords, fmt } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
-import { Receipt } from "./receipt";
+import { ReceiptSheetBody } from "./cancel-payment";
 import { toShareable, type ReceiptView } from "./receipt-model";
 import type { LedgerEntry } from "./types";
 
@@ -47,10 +47,11 @@ export function ShareBtns({ r, phone }: { r: ReceiptView; phone?: string | null 
 export function EntrySheetBody({ e, vt }: { e: LedgerEntry; vt: boolean }) {
   if (e.receipt)
     return (
-      <div className="bq-rc-sheet" style={{ viewTransitionName: vt ? "bq-rc" : undefined }}>
-        <Receipt r={e.receipt} audience="public" />
-        {e.receipt.status.kind === "confirmed" && <ShareBtns r={e.receipt} />}
-      </div>
+      <ReceiptSheetBody
+        r={e.receipt}
+        paymentId={e.paymentId}
+        style={{ viewTransitionName: vt ? "bq-rc" : undefined }}
+      />
     );
   if (e.kind === "expense")
     return (

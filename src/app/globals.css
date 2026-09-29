@@ -4153,3 +4153,27 @@
 .bq-cal-rdp .rdp-day:not(.rdp-selected):not(.rdp-today) .rdp-day_button:hover {
   background: transparent;
 }
+@layer components {
+  /* the one red action: cancelling a confirmed payment */
+  .bq-btn-danger {
+    background: var(--rej-ink);
+    color: #fff;
+  }
+  /* a cancelled payment stays in the list, dimmed */
+  .bq-row.is-off .bq-row-m,
+  .bq-row.is-off .bq-disc,
+  .bq-row.is-off .bq-amt {
+    opacity: 0.55;
+  }
+  .bq-row.is-off .bq-amt {
+    text-decoration: line-through;
+  }
+  .bq-cancel-pay {
+    margin-block-start: 18px;
+  }
+  .bq-cancel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}

@@ -324,6 +324,40 @@ const RECEIPTS: Rc[] = [
     campaignTitles: [],
   },
 ];
+/** Committee «الدفعات الأخيرة»: the fixture receipts as payments (confirmed and cancelled). */
+export const fxRecent = (): PendingPayment[] =>
+  RECEIPTS.map((r) => ({
+    id: r.code,
+    status: r.status === "valid" ? "confirmed" : "cancelled",
+    payerName: r.payerName,
+    method: r.method,
+    amount: r.amount,
+    paidOn: r.paidOn,
+    txnRef: `TR${r.txnRefLast4}`,
+    proofPath: null,
+    note: null,
+    createdAt: r.confirmedAt,
+    createdByName: r.confirmedByName,
+    decidedAt: r.confirmedAt,
+    decidedByName: r.confirmedByName,
+    rejectReason: null,
+    cancelReason: r.status === "cancelled" ? "دفعة مكررة" : null,
+    allocations: r.members.flatMap((m) =>
+      m.months.map((x) => ({
+        kind: "months" as const,
+        memberId: RAW.find((w) => w.group === m.listCode && w.no === m.number)?.id ?? r.code,
+        listCode: m.listCode,
+        number: m.number,
+        fullName: m.fullName,
+        year: x.year,
+        month: x.month,
+        amount: Math.round(r.amount / m.months.length),
+      })),
+    ),
+    receiptCode: r.code,
+    receiptNo: r.receiptNo,
+  }));
+
 export function fxReceipt(code: string): VerifiedReceipt {
   const r = RECEIPTS.find((x) => x.code.toUpperCase() === code.trim().toUpperCase());
   return r ?? { status: "not_found" };

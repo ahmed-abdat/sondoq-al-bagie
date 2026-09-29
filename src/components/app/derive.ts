@@ -12,7 +12,7 @@ import type {
 
 export const MONTHS = MONTHS_AR;
 export const ASSOC = "رابطة شباب قرية البقيع";
-export const FUND = "صندوق الرابطة";
+export const FUND = "صندوق الشباب";
 
 /** Western digits, narrow no-break space between thousands: 249 000. */
 export const fmt = (n: number) => formatNumber(n);

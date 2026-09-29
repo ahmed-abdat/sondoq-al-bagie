@@ -15,6 +15,8 @@ export type LedgerEntry = {
   method: PaymentMethod | null;
   /** verification code → opens the public receipt */
   code: string | null;
+  /** payments only: lets the committee cancel it from the receipt */
+  paymentId?: string;
   /** the public receipt, preloaded for the first rows so it opens offline too */
   receipt?: ReceiptView | null;
   category?: ExpenseCategory;
