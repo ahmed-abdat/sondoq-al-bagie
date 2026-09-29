@@ -26,13 +26,8 @@ export async function heroData(note?: HeroData["note"]): Promise<HeroData> {
 
 export async function memberCtx(): Promise<MemberCtx> {
   const year = src.thisYear();
-  const [months, info, prices] = await Promise.all([
-    src.memberMonths(year),
-    src.fundInfo(),
-    src.groupPrices(year),
-  ]);
+  const [info, prices] = await Promise.all([src.fundInfo(), src.groupPrices(year)]);
   return {
-    months,
     year,
     dueMonth: currentDueMonth(src.today(), info.graceDays),
     prices,

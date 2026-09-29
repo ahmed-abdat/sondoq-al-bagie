@@ -209,7 +209,7 @@ export function normalizeAr(s: string) {
  * words search the name.
  */
 export function searchMembers<
-  T extends Pick<MemberStatus, "number" | "fullName"> & { memberRef?: string },
+  T extends { fullName: string; number?: number; memberRef?: string },
 >(list: T[], q: string): T[] {
   const t = q.trim().replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   if (!t) return [];
@@ -221,10 +221,10 @@ export function searchMembers<
   }
   if (/^\d+$/.test(t))
     return list
-      .filter((m) => String(m.number).startsWith(t))
+      .filter((m) => String(m.number ?? Number(m.memberRef?.split("-")[1] ?? 0)).startsWith(t))
       .sort(
         (a, b) =>
-          Number(String(b.number) === t) - Number(String(a.number) === t) || a.number - b.number,
+          Number(String(b.number) === t) - Number(String(a.number) === t) || (a.number ?? 0) - (b.number ?? 0),
       );
   const n = normalizeAr(t);
   return list.filter((m) => normalizeAr(m.fullName).includes(n));

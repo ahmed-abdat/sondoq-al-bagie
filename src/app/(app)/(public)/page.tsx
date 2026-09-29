@@ -1,33 +1,29 @@
-import { memberCtx, heroData } from "@/components/app/page-data";
-import { isGone } from "@/components/app/derive";
+import { heroData } from "@/components/app/page-data";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { HomeView } from "@/components/app/views/home";
 import { MONTHS } from "@/components/app/derive";
 
 export default async function Home() {
-  const [hero, members, ctx, ledger, campaigns, summary] = await Promise.all([
+  const [hero, index, ledger, campaigns] = await Promise.all([
     heroData(),
-    src.members(),
-    memberCtx(),
+    src.memberIndex(),
     src.ledger(),
     src.campaigns(),
-    src.fundSummary(),
   ]);
-  const month = src.today().getUTCMonth() + 1;
-  const paid = new Set(
-    ctx.months.filter((m) => m.month === month && m.state === "paid").map((m) => m.memberId),
-  );
   const open = campaigns.find((c) => c.status === "open");
   return (
     <Tab>
       <HomeView
         hero={hero}
-        members={members.filter((m) => !isGone(m.status))}
-        ctx={ctx}
-        activeCount={summary.membersActive}
-        paidCount={members.filter((m) => m.status === "active" && paid.has(m.memberId)).length}
-        monthName={MONTHS[month - 1]}
+        members={index.members.map(({ memberRef, fullName, statusLabel }) => ({
+          memberRef,
+          fullName,
+          statusLabel,
+        }))}
+        activeCount={index.activeCount}
+        paidCount={index.paidThisMonth}
+        monthName={MONTHS[(index.month || src.today().getUTCMonth() + 1) - 1]}
         ledger={ledger.slice(0, 3)}
         campaign={
           open

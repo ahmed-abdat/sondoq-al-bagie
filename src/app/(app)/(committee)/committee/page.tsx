@@ -12,7 +12,7 @@ export default async function CommitteePage() {
   const [session, pending, members, ctx, accounts, arrears, campaigns] = await Promise.all([
     src.committeeSession(),
     src.pendingPayments(),
-    src.members(),
+    src.memberRows(),
     memberCtx(),
     src.fundAccounts(),
     src.arrears(),

@@ -1,7 +1,7 @@
 "use client";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
-import type { MemberStatus } from "@/lib/data/types";
+import { useEffect, useMemo, useState } from "react";
+import type { MemberRow as MemberRowData } from "@/lib/data/types";
 import { byMostLate, groupLabel, memberState, searchMembers, type MState } from "../derive";
 import { I } from "../icons";
 import { MemberRow, MemberSheetBody, type MemberCtx } from "../member";
@@ -16,7 +16,7 @@ const GROUPS: { k: MState; l: string }[] = [
   { k: "late", l: "متأخرون" },
   { k: "off", l: "لا تُستحق عليهم رسوم الآن" },
 ];
-const match = (m: MemberStatus, f: Filter) =>
+const match = (m: MemberRowData, f: Filter) =>
   f === "all" ||
   (f === "late"
     ? memberState(m) === "late"
@@ -30,25 +30,28 @@ function parseFilter(v: string | null): Filter {
   return "all";
 }
 
-/** Reads ?filter= (late · none · A · B). Wrap in <Suspense> with <MembersView/> as the fallback. */
-export function MembersFromUrl(props: { members: MemberStatus[]; ctx: MemberCtx }) {
-  const f = parseFilter(useSearchParams().get("filter"));
-  return <MembersView key={f} {...props} initial={f} />;
+/** Reads ?filter= (late · none · A · B) and ?m=REF (opens that member). Wrap in <Suspense> with <MembersView/> as the fallback. */
+export function MembersFromUrl(props: { members: MemberRowData[]; ctx: MemberCtx }) {
+  const sp = useSearchParams();
+  const f = parseFilter(sp.get("filter"));
+  return <MembersView key={f} {...props} initial={f} openRef={sp.get("m")} />;
 }
 
 export function MembersView({
   members,
   ctx,
   initial = "all",
+  openRef,
 }: {
-  members: MemberStatus[];
+  members: MemberRowData[];
   ctx: MemberCtx;
   initial?: Filter;
+  openRef?: string | null;
 }) {
   const [q, setQ] = useState("");
   const [f, setF] = useState<Filter>(initial);
   const [shut, setShut] = useState<Partial<Record<MState, boolean>>>({});
-  const sheet = useSheet<MemberStatus>();
+  const sheet = useSheet<MemberRowData>();
   const groups = useMemo(() => [...new Set(members.map((m) => m.groupCode))].sort(), [members]);
   const list = useMemo(() => {
     const byQ = q.trim() ? searchMembers(members, q) : members;
@@ -57,8 +60,17 @@ export function MembersView({
   }, [members, q, f]);
   const count = (k: Filter) => members.filter((m) => match(m, k)).length;
   const grouped = !q.trim() && (f === "all" || f.startsWith("g:"));
-  const pick = (m: MemberStatus, from: HTMLElement | null) => sheet.open(m, from, "bq-av");
+  const pick = (m: MemberRowData, from: HTMLElement | null) => sheet.open(m, from, "bq-av");
   const s = sheet.state;
+  const { open } = sheet;
+  useEffect(() => {
+    const m = openRef && members.find((x) => x.memberRef === openRef);
+    if (!m) return;
+    open(m);
+    const u = new URL(location.href);
+    u.searchParams.delete("m");
+    history.replaceState(history.state, "", u);
+  }, [openRef, members, open]);
   return (
     <>
       <header className="bq-page-h">
