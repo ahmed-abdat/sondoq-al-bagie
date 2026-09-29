@@ -342,9 +342,10 @@ test("never over the report", async ({ page }) => {
   await expect(card(page)).toHaveCount(0);
 });
 
-test("after a member sends a proof, the invite comes (and never over the sheet)", async ({
+test("after a member sends a proof (360 px): the new status first, the invite with the next scroll", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
   await chromeOffersInstall(page, "accepted");
   await page.goto("/m/demo2");
   const you = page.locator("section.bq-you");
@@ -364,5 +365,11 @@ test("after a member sends a proof, the invite comes (and never over the sheet)"
   await expect(card(page)).toHaveCount(0);
   await btn.click();
   await expect(sheet).toHaveCount(0);
+  // what the member just did stays in view, uncovered (QA pass 6)
+  await expect(you).toContainText("وصلتنا الصورة");
+  await page.waitForTimeout(3_000);
+  await expect(card(page)).toHaveCount(0);
+  // their next move brings the invite
+  await page.mouse.wheel(0, 200);
   await expect(card(page)).toBeVisible({ timeout: 8_000 });
 });
