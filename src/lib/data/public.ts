@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 import { toFundInfo, toFundSummary } from "./map";
 import * as read from "./read";
+import { toMemberIndex, toMemberRows } from "./member-lists";
 import { assembleReport, loadReport, type ReportOptions } from "./report";
 import { PUBLIC_TAG } from "./tags";
 
@@ -84,3 +85,33 @@ export async function getReport(opts: ReportOptions = {}) {
     })
   );
 }
+
+/**
+ * /members list: every listed member (not the ones who left) with this year's months as a
+ * 12-letter code. Replaces getMembers() + getMemberMonths() on public pages (~12 bytes of months
+ * per member instead of 12 objects).
+ */
+export const getMemberRows = cached(
+  "member_rows",
+  async (c: read.Client, year: number = new Date().getUTCFullYear()) => {
+    const [members, months] = await Promise.all([read.members(c), read.memberMonths(c, year)]);
+    return toMemberRows(members, months, year);
+  },
+  [],
+);
+
+/**
+ * Home: search index (id, ref, name, status) and the counts «دفع X من N» for a month
+ * (default: this month, UTC).
+ */
+export const getMemberIndex = cached(
+  "member_index",
+  async (c: read.Client, year?: number, month?: number) => {
+    const now = new Date();
+    const y = year ?? now.getUTCFullYear();
+    const m = month ?? now.getUTCMonth() + 1;
+    const [members, months] = await Promise.all([read.members(c), read.memberMonths(c, y)]);
+    return toMemberIndex(members, months, y, m);
+  },
+  { members: [], activeCount: 0, paidThisMonth: 0, year: 0, month: 0 },
+);
