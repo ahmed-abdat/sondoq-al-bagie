@@ -370,6 +370,8 @@ const demo = {
       phone: p.phone ?? null,
       note: p.note ?? null,
       joinedMonth: p.fromMonth,
+      formerDebtMonths: null,
+      formerDebtAmount: null,
     };
     update((s) => ({ ...s, members: [...s.members, m] }));
     return ok(m.memberId);
@@ -414,6 +416,7 @@ const demo = {
     }));
     return ok("demo");
   },
+  applyCredit: async (p) => ok({ id: p.id, replay: false, receiptCode: nextCode() }),
   cancelLastPeriod: async () => ok("demo"),
   async setJoinMonth(p) {
     update((s) => ({
@@ -425,6 +428,7 @@ const demo = {
     }));
     return ok("demo");
   },
+  setCommitteeNotMember: async () => ok(undefined),
   setGroupPrice: async () => ok(undefined),
   savePushSubscription: async () => ok(undefined),
   deletePushSubscription: async () => ok(undefined),

@@ -141,6 +141,20 @@ const cases: Case[] = [
     true,
   ],
   [
+    "applyCredit",
+    () => a.applyCredit({ id, memberId: member, months: [{ year: 2026, month: 10 }] }),
+    "apply_credit",
+    { p_id: id, p_member_id: member, p_months: [{ year: 2026, month: 10 }] },
+    true,
+  ],
+  [
+    "setCommitteeNotMember",
+    () => a.setCommitteeNotMember({ userId: id, notMember: true }),
+    "set_committee_not_member",
+    { p_user_id: id, p_not_member: true },
+    false,
+  ],
+  [
     "cancelLastPeriod",
     () => a.cancelLastPeriod({ memberId: member, reason: "خطأ" }),
     "cancel_last_period",

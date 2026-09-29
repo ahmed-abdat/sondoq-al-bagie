@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m20; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m22; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -771,6 +771,78 @@ select tests.throws($$select public.set_committee_member('00000000-0000-0000-000
   'last_admin', 'the only admin cannot be demoted');
 select tests.throws($$select public.set_committee_active('00000000-0000-0000-0000-0000000000a1', false)$$,
   'last_admin', 'the only admin cannot be deactivated');
+
+/* ───────────── M21: pay months from credit ───────────── */
+
+select tests.login('admin');
+select tests.set('F', public.add_member(9004, 'عضو و', 'A', tests.m(-3)));
+select tests.login('treasurer');
+select public.record_payment(gen_random_uuid(), 'و', 'cash', 2500, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('F'), 'amount', 2500)));
+select tests.login('server');
+select tests.ok((select credit from app_private.member_credit() where member_id = tests.id('F')) = 2500, 'overpayment is credit');
+select tests.set('bal21', (select balance from public.fund_summary));
+select tests.set('in21', (select money_in from public.fund_summary));
+select tests.login('committee');
+select tests.throws($$select public.apply_credit(gen_random_uuid(), tests.id('F'),
+  jsonb_build_array(jsonb_build_object('year', extract(year from tests.m(-3)), 'month', extract(month from tests.m(-3)))))$$,
+  'not_confirmer', 'only confirmers pay from credit');
+select tests.login('deputy');
+select tests.throws($$select public.apply_credit(gen_random_uuid(), tests.id('F'), jsonb_build_array(
+  jsonb_build_object('year', extract(year from tests.m(-3)), 'month', extract(month from tests.m(-3))),
+  jsonb_build_object('year', extract(year from tests.m(-2)), 'month', extract(month from tests.m(-2))),
+  jsonb_build_object('year', extract(year from tests.m(-1)), 'month', extract(month from tests.m(-1)))))$$,
+  'credit_insufficient', 'credit must cover every month');
+select tests.throws($$select public.apply_credit(gen_random_uuid(), tests.id('F'),
+  jsonb_build_array(jsonb_build_object('year', extract(year from tests.m(-6)), 'month', extract(month from tests.m(-6)))))$$,
+  'month_not_owed', 'a month before joining is not owed');
+select tests.set('cr1', '00000000-0000-0000-0000-00000000cc01'::uuid);
+select tests.ok((public.apply_credit(tests.id('cr1'), tests.id('F'), jsonb_build_array(
+  jsonb_build_object('year', extract(year from tests.m(-3)), 'month', extract(month from tests.m(-3))),
+  jsonb_build_object('year', extract(year from tests.m(-2)), 'month', extract(month from tests.m(-2))))) ->> 'status') = 'confirmed',
+  'two months paid from credit');
+select tests.ok((public.apply_credit(tests.id('cr1'), tests.id('F'), '[]'::jsonb) ->> 'replay')::boolean, 'a retry is a replay');
+select tests.login('public');
+select tests.ok((select count(*) from public.member_months where member_id = tests.id('F') and state = 'paid'
+                 and make_date(year, month, 1) in (tests.m(-3), tests.m(-2))) = 2, 'the months show paid');
+select tests.ok((select balance from public.fund_summary) = tests.get('bal21')::bigint
+                and (select money_in from public.fund_summary) = tests.get('in21')::bigint,
+  'the fund does not count credit money twice');
+select tests.ok(not exists (select 1 from public.activity_feed where payment_id = tests.id('cr1')), 'credit use is not in the public feed');
+select tests.login('server');
+select tests.ok((select credit from app_private.member_credit() where member_id = tests.id('F')) = 500, 'credit left after use');
+select tests.login('treasurer');
+select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'credit', 1000, current_date,
+  jsonb_build_array(tests.month('F', -1, 1000)))$$, 'invalid_input', 'credit payments only through apply_credit');
+select public.cancel_payment(tests.id('cr1'), 'خطأ');
+select tests.login('server');
+select tests.ok((select credit from app_private.member_credit() where member_id = tests.id('F')) = 2500
+                and not exists (select 1 from public.payment_months where member_id = tests.id('F') and released_at is null),
+  'cancelling a credit payment gives the credit back and frees the months');
+
+/* ───────────── M22: confirmers linked to a member, former members' debt ───────────── */
+
+select tests.login('admin');
+select tests.ok((select needs_member_link from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a3')
+                and not (select needs_member_link from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a2')
+                and not (select needs_member_link from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a4'),
+  'a confirmer without a member is flagged; a linked treasurer and a plain member are not');
+select tests.login('treasurer');
+select tests.throws($$select public.set_committee_not_member('00000000-0000-0000-0000-0000000000a3', true)$$, 'not_admin',
+  'only the admin marks an account as not a member');
+select tests.login('admin');
+select public.set_committee_not_member('00000000-0000-0000-0000-0000000000a3', true);
+select tests.ok(not (select needs_member_link from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a3')
+                and (select not_member from public.committee_accounts where user_id = '00000000-0000-0000-0000-0000000000a3'),
+  'marked «not a member» clears the flag');
+select public.set_committee_not_member('00000000-0000-0000-0000-0000000000a3', false);
+
+select tests.ok((select cardinality(former_debt_months) >= 3 and former_debt_amount = cardinality(former_debt_months) * 1000
+                 from public.members_admin where member_id = tests.id('D2')),
+  'an exempt member keeps the unpaid months from before, in the member sheet');
+select tests.ok((select former_debt_months is null and former_debt_amount is null from public.members_admin where member_id = tests.id('K')),
+  'active members have no «former» debt (it is arrears)');
+select tests.ok(not exists (select 1 from public.arrears where member_id = tests.id('D2')), 'former debt stays out of reminders');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

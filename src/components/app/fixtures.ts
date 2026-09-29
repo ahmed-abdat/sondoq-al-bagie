@@ -565,6 +565,8 @@ export const fxMembersAdmin = (): MemberAdmin[] =>
     note: null,
     amountOwed: amountOwed ?? 0,
     joinedMonth: "2020-01-01",
+    formerDebtMonths: null,
+    formerDebtAmount: null,
   }));
 
 export const fxCommitteeAccounts = (): CommitteeAccount[] => [
@@ -578,6 +580,8 @@ export const fxCommitteeAccounts = (): CommitteeAccount[] => [
     lastSignInAt: "2026-09-28T09:00:00Z",
     createdAt: "2026-09-01T09:00:00Z",
     canDelete: false,
+    notMember: false,
+    needsMemberLink: true,
   },
   {
     userId: uuid("9", 2),
@@ -589,6 +593,8 @@ export const fxCommitteeAccounts = (): CommitteeAccount[] => [
     lastSignInAt: "2026-09-27T18:30:00Z",
     createdAt: "2026-09-01T09:00:00Z",
     canDelete: false,
+    notMember: false,
+    needsMemberLink: false,
   },
   {
     userId: uuid("9", 3),
@@ -600,6 +606,8 @@ export const fxCommitteeAccounts = (): CommitteeAccount[] => [
     lastSignInAt: null,
     createdAt: "2026-09-20T09:00:00Z",
     canDelete: true,
+    notMember: false,
+    needsMemberLink: false,
   },
 ];
 

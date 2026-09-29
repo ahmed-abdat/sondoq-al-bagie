@@ -171,6 +171,7 @@ export type Database = {
           created_at: string
           display_name: string
           member_id: string | null
+          not_member: boolean
           role: Database["public"]["Enums"]["committee_role"]
           user_id: string
         }
@@ -179,6 +180,7 @@ export type Database = {
           created_at?: string
           display_name: string
           member_id?: string | null
+          not_member?: boolean
           role: Database["public"]["Enums"]["committee_role"]
           user_id: string
         }
@@ -187,6 +189,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           member_id?: string | null
+          not_member?: boolean
           role?: Database["public"]["Enums"]["committee_role"]
           user_id?: string
         }
@@ -1028,6 +1031,8 @@ export type Database = {
           last_sign_in_at: string | null
           login: string | null
           member_id: string | null
+          needs_member_link: boolean | null
+          not_member: boolean | null
           role: Database["public"]["Enums"]["committee_role"] | null
           user_id: string | null
         }
@@ -1122,6 +1127,8 @@ export type Database = {
         Row: {
           amount_owed: number | null
           created_at: string | null
+          former_debt_amount: number | null
+          former_debt_months: string[] | null
           full_name: string | null
           group_code: string | null
           joined_month: string | null
@@ -1256,6 +1263,10 @@ export type Database = {
         Args: { p_tables: string[] }
         Returns: Json
       }
+      apply_credit: {
+        Args: { p_id: string; p_member_id: string; p_months: Json }
+        Returns: Json
+      }
       cancel_expense: {
         Args: { p_expense_id: string; p_reason: string }
         Returns: undefined
@@ -1377,6 +1388,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_committee_not_member: {
+        Args: { p_not_member: boolean; p_user_id: string }
+        Returns: undefined
+      }
       set_group_price: {
         Args: { p_group_code: string; p_monthly_amount: number; p_year: number }
         Returns: undefined
@@ -1454,6 +1469,7 @@ export type Database = {
         | "cash"
         | "other"
         | "paper"
+        | "credit"
       payment_status: "pending" | "confirmed" | "rejected" | "cancelled"
       reminder_kind: "individual" | "group" | "receipt" | "campaign"
       surplus_action: "to_fund" | "keep"
@@ -1602,6 +1618,7 @@ export const Constants = {
         "cash",
         "other",
         "paper",
+        "credit",
       ],
       payment_status: ["pending", "confirmed", "rejected", "cancelled"],
       reminder_kind: ["individual", "group", "receipt", "campaign"],
