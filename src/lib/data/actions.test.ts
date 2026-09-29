@@ -154,6 +154,20 @@ describe("actions", () => {
     expect(updateTag).not.toHaveBeenCalled();
   });
 
+  it("passes the database detail on, so the message names the member and month", async () => {
+    rpc.mockResolvedValue({
+      data: null,
+      error: {
+        code: "P0001",
+        hint: "month_already_paid",
+        message: "x",
+        details: JSON.stringify({ name: "محمد", ref: "A-12", ym: "2026-07" }),
+      },
+    });
+    const r = await recordPayment(payment);
+    expect(!r.ok && r.message).toMatch(/^شهر يوليو 2026 لـ محمد .*مدفوع من قبل\.$/);
+  });
+
   it("validates before calling the database", async () => {
     const r = await recordPayment({ ...payment, amount: 500 });
     expect(r).toMatchObject({ ok: false, code: "allocations_mismatch" });

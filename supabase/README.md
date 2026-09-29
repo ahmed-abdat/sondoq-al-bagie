@@ -31,6 +31,7 @@ and every change lands in `audit_log`.
 | `*_m14_handover_submit_balance.sql` | handover difference = counted − balance **at submit** (activity between submit and accept is normal fund activity, not a «فرق عند التسليم»); the new term opens with the balance at acceptance, which is also the closed term's closing balance |
 | `*_m15_closed_campaign_guards.sql` | a closed campaign takes no more money: `close_campaign` refuses while contributions are pending (`campaign_has_pending`); `confirm_payment` refuses a contribution to a closed campaign and `record_expense` an expense on one (`campaign_closed`) |
 | `*_m16_backup_snapshot.sql` | `backup_snapshot(tables)` (service role): every backup table in one statement = one snapshot, no paging; `job_runs` (last run / ok / last good file of the weekly backup), committee read-only |
+| `*_m17_month_error_detail.sql` | `month_already_paid` / `month_not_owed` / `wrong_month_amount` carry a JSON DETAIL (member name, ref, month, price) via `app_private.month_error`; the app names the member and month in the message |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the

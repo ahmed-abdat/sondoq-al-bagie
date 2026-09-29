@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m16; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m17; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -48,6 +48,18 @@ begin
   raise exception 'FAIL: % did not raise (expected %)', what, expected;
 end $$;
 
+-- DETAIL (as jsonb) of the error `sql` raises; fails the suite when it does not raise.
+create function tests.detail(sql text) returns jsonb language plpgsql as $$
+declare d text;
+begin
+  begin
+    execute sql;
+  exception when others then
+    get stacked diagnostics d = pg_exception_detail;
+    return nullif(d, '')::jsonb;
+  end;
+  raise exception 'FAIL: % did not raise', sql;
+end $$;
 create function tests.set(k text, v anyelement) returns void language sql as $$
   insert into tests.vars values (k, v::text) on conflict (k) do update set v = excluded.v $$;
 create function tests.get(k text) returns text language sql stable as $$ select v from tests.vars where vars.k = get.k $$;
@@ -188,6 +200,8 @@ select tests.pay('k2', 1000, jsonb_build_array(tests.month('K', -3, 1000)));
 select tests.login('treasurer');
 select public.confirm_payment(tests.id('k1'));
 select tests.throws($$select public.confirm_payment(tests.id('k2'))$$, 'month_already_paid', 'second payment for the same month cannot be confirmed');
+select tests.ok((select d ? 'name' and d ? 'ref' and d ? 'ym' from (select tests.detail($$select public.confirm_payment(tests.id('k2'))$$) d) x),
+  'the confirm-time month_already_paid names the member and month');
 select tests.ok((select status from public.payments where id = tests.id('k2')) = 'pending', 'refused payment stays pending');
 select public.reject_payment(tests.id('k2'), 'duplicate of another transfer');
 select tests.ok((select status from public.payments where id = tests.id('k2')) = 'rejected', 'duplicate rejected with a reason');
@@ -640,6 +654,31 @@ select tests.throws($$select app_private.record_payment(gen_random_uuid(), 'x', 
   'nor the moved definer function directly');
 select public.verify_receipt('BQ-XXXX-0000');
 select tests.ok(true, 'anon still verifies receipts through the wrapper');
+
+/* ───────────── M17: month errors name the member and month ───────────── */
+
+select tests.login('server');
+select tests.set('paid_m', (select pm.member_id from public.payment_months pm join public.members m on m.id = pm.member_id
+                            where pm.released_at is null and m.id = tests.id('K') order by pm.year, pm.month limit 1));
+select tests.set('paid_y', (select pm.year from public.payment_months pm where pm.member_id = tests.id('K') and pm.released_at is null
+                            order by pm.year, pm.month limit 1));
+select tests.set('paid_mo', (select pm.month from public.payment_months pm where pm.member_id = tests.id('K') and pm.released_at is null
+                             order by pm.year, pm.month limit 1));
+select tests.login('committee');
+select tests.ok((select d ->> 'name' = 'عضو ك' and d ->> 'ref' = 'A-1005'
+                        and d ->> 'ym' = tests.get('paid_y') || '-' || lpad(tests.get('paid_mo'), 2, '0')
+                 from (select tests.detail(format($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 1000, current_date,
+                   jsonb_build_array(jsonb_build_object('kind', 'months', 'member_id', %L::uuid, 'year', %s, 'month', %s, 'amount', 1000)))$$,
+                   tests.get('paid_m'), tests.get('paid_y'), tests.get('paid_mo'))) d) x),
+  'month_already_paid names the member and the month');
+select tests.ok((select d ->> 'ym' = to_char(tests.m(-6), 'YYYY-MM') and d ->> 'ref' = 'A-1005' and not d ? 'price'
+                 from (select tests.detail($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 1000, current_date,
+                   jsonb_build_array(tests.month('K', -6, 1000)))$$) d) x),
+  'month_not_owed names the month before joining');
+select tests.ok((select (d ->> 'price')::int = 1000 and d ->> 'ym' = to_char(tests.m(1), 'YYYY-MM')
+                 from (select tests.detail($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 999, current_date,
+                   jsonb_build_array(tests.month('K', 1, 999)))$$) d) x),
+  'wrong_month_amount gives the month and its price');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

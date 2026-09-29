@@ -20,7 +20,7 @@ import type { ActionResult, IssuedCredentials } from "./types";
 
 type RpcResult = {
   data: unknown;
-  error: { code?: string; hint?: string | null; message?: string } | null;
+  error: { code?: string; hint?: string | null; message?: string; details?: string | null } | null;
 };
 
 async function run<S extends z.ZodType, T = undefined>(
@@ -42,7 +42,7 @@ async function run<S extends z.ZodType, T = undefined>(
   } catch {
     return failure("network");
   }
-  if (res.error) return failure(codeOf(res.error));
+  if (res.error) return failure(codeOf(res.error), res.error.details);
   if (opts.touchesPublic) updateTag(PUBLIC_TAG);
   return { ok: true, data: (opts.result ? opts.result(res.data) : undefined) as T };
 }

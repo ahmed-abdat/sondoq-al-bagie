@@ -1,5 +1,8 @@
 // Database errors → stable codes → Arabic messages. RPCs raise SQLSTATE P0001 with the code in
-// HINT (see supabase/migrations/*_rpc.sql); anything else becomes a generic code.
+// HINT (see supabase/migrations/*_rpc.sql); anything else becomes a generic code. Month errors
+// also carry a JSON DETAIL (member, month, price: m17) that fills a more precise message.
+import { formatMonth } from "@/lib/dates";
+import { formatNumber, ltr } from "@/lib/format";
 
 export const MESSAGES = {
   // input / session
@@ -45,7 +48,7 @@ export const MESSAGES = {
   undo_expired: "انتهت مهلة التراجع. ألغِ الدفعة مع ذكر السبب.",
   bad_transition: "لا يمكن تغيير حالة هذه الدفعة بهذه الطريقة.",
   append_only: "لا يمكن تعديل هذا السجل. ألغِه وسجّله من جديد.",
-  wrong_month_amount: "مبلغ الشهر لا يساوي الرسوم الحالية. افتح الصفحة من جديد وحاول مرة أخرى.",
+  wrong_month_amount: "مبلغ الشهر لا يساوي الرسوم الشهرية لذلك الشهر. راجع المسؤول.",
   no_price: "لم تُحدَّد رسوم هذه السنة لمجموعة العضو. راجع المسؤول.",
   month_not_owed: "هذا الشهر غير مستحق على العضو: قبل انضمامه، أو وهو معفى أو غادر.",
   // members / admin
@@ -73,8 +76,47 @@ export const MESSAGES = {
 
 export type ErrorCode = keyof typeof MESSAGES;
 
-export function messageFor(code: string): string {
-  return code in MESSAGES ? MESSAGES[code as ErrorCode] : MESSAGES.unknown;
+/** DETAIL of a month error: {"name", "ref": "A-12", "ym": "2026-07", "price"?} (app_private.month_error). */
+type MonthDetail = { name: string; ref?: string; ym: string; price?: number };
+
+function monthDetail(detail: string | null | undefined): MonthDetail | null {
+  if (!detail) return null;
+  try {
+    const d = JSON.parse(detail) as Partial<MonthDetail> | null;
+    if (!d || typeof d.name !== "string" || !d.name.trim()) return null;
+    if (typeof d.ym !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(d.ym)) return null;
+    return {
+      name: d.name.trim(),
+      ym: d.ym,
+      ref: typeof d.ref === "string" && d.ref ? d.ref : undefined,
+      price: typeof d.price === "number" && d.price > 0 ? d.price : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Messages that name the member and month when the database says which one failed. */
+const MONTH_TEMPLATES: Partial<
+  Record<ErrorCode, (d: MonthDetail, who: string, month: string) => string | null>
+> = {
+  month_already_paid: (_d, who, month) => `شهر ${month} لـ ${who} مدفوع من قبل.`,
+  month_not_owed: (_d, who, month) =>
+    `شهر ${month} غير مستحق على ${who}: قبل انضمامه، أو وهو معفى أو غادر.`,
+  wrong_month_amount: (d, who, month) =>
+    d.price ? `رسوم شهر ${month} لـ ${who} هي ${formatNumber(d.price)} أوقية.` : null,
+};
+
+export function messageFor(code: string, detail?: string | null): string {
+  if (!(code in MESSAGES)) return MESSAGES.unknown;
+  const template = MONTH_TEMPLATES[code as ErrorCode];
+  const d = template ? monthDetail(detail) : null;
+  if (template && d) {
+    const who = d.ref ? `${d.name} (${ltr(d.ref)})` : d.name;
+    const text = template(d, who, formatMonth(d.ym));
+    if (text) return text;
+  }
+  return MESSAGES[code as ErrorCode];
 }
 
 type DbError = { code?: string; hint?: string | null; message?: string; details?: string | null };
@@ -100,6 +142,7 @@ export function codeOf(err: DbError): string {
   return "unknown";
 }
 
-export function failure(code: string) {
-  return { ok: false as const, code, message: messageFor(code) };
+/** `detail`: the database error's DETAIL, when it may name a member/month (see messageFor). */
+export function failure(code: string, detail?: string | null) {
+  return { ok: false as const, code, message: messageFor(code, detail) };
 }

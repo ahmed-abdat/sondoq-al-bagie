@@ -14,9 +14,10 @@ const sql = readdirSync(dir)
   .join("\n");
 
 const codes = new Set(
-  [...sql.matchAll(/fail\('([a-z_]+)'/g), ...sql.matchAll(/hint\s*=\s*'([a-z_]+)'/g)].map(
-    (m) => m[1],
-  ),
+  [
+    ...sql.matchAll(/(?:fail|month_error)\('([a-z_]+)'/g),
+    ...sql.matchAll(/hint\s*=\s*'([a-z_]+)'/g),
+  ].map((m) => m[1]),
 );
 
 describe("error codes", () => {
