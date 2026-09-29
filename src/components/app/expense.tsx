@@ -267,6 +267,7 @@ export function ExpenseAdminList({
                       setOther("");
                     }}
                     aria-expanded={open === e.id}
+                    aria-label={`إلغاء مصروف ${e.note ?? CATEGORY_LABEL[e.category]} ${fmt(e.amount)} أوقية`}
                   >
                     إلغاء
                   </button>
