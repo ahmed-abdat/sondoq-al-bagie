@@ -2122,8 +2122,13 @@
     animation: bq-snack-in 220ms var(--ease-out) both;
     transition: opacity 150ms var(--ease-out);
   }
-  .bq-app:has(.bq-fab) .bq-snack {
+  body:has(.bq-fab) .bq-snack {
     bottom: calc(var(--nav) + var(--safe-b) + 88px);
+  }
+  /* a sheet is open: the snack sits in the scrim above it, clear of the sheet's buttons */
+  body:has(.bq-sheet) .bq-snack {
+    top: calc(var(--safe-t) + 12px);
+    bottom: auto;
   }
   .bq-snack > span {
     flex: 1;
@@ -2277,8 +2282,12 @@
     .bq-snack {
       bottom: 32px;
     }
-    .bq-app:has(.bq-fab) .bq-snack {
+    body:has(.bq-fab) .bq-snack {
       bottom: 104px;
+    }
+    body:has(.bq-sheet) .bq-snack {
+      top: auto;
+      bottom: 32px;
     }
     .bq-sheet-vp.is-dialog {
       align-items: center;

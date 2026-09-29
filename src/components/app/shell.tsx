@@ -4,6 +4,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { createPortal } from "react-dom";
 import {
   createContext,
   useCallback,
@@ -225,16 +226,20 @@ export function AppShell({
           <NavItems idx={idx} badge={liveBadge} onGo={onGo} />
         </nav>
 
-        {snack && (
-          <div className={`bq-snack ${snack.out ? "is-out" : ""}`} role="status" key={snack.id}>
-            <span>{snack.text}</span>
-            {snack.action && (
-              <button type="button" className="bq-press" onClick={snack.action.run}>
-                {snack.action.label}
-              </button>
-            )}
-          </div>
-        )}
+        {/* on <body>, next to the sheet portals: a new snack is never inside the inert
+            background of an open sheet, so its action stays tappable */}
+        {snack &&
+          createPortal(
+            <div className={`bq-snack ${snack.out ? "is-out" : ""}`} role="status" key={snack.id}>
+              <span>{snack.text}</span>
+              {snack.action && (
+                <button type="button" className="bq-press" onClick={snack.action.run}>
+                  {snack.action.label}
+                </button>
+              )}
+            </div>,
+            document.body,
+          )}
       </div>
     </SnackCtx>
   );
