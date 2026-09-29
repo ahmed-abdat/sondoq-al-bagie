@@ -1,0 +1,94 @@
+import { describe, expect, it } from "vitest";
+import { coverLines, historySections, waitingLine, youDots, youStatus } from "./member-model";
+import type { MemberHistoryItem } from "./member-types";
+
+const alloc = (memberId: string, fullName: string, month: number, year = 2026) => ({
+  kind: "months" as const,
+  memberId,
+  memberRef: "A-3",
+  fullName,
+  year,
+  month,
+  amount: 1000,
+  campaignTitle: null,
+});
+const item = (p: Partial<MemberHistoryItem>): MemberHistoryItem => ({
+  id: "x",
+  status: "confirmed",
+  amount: 1000,
+  method: "bankily",
+  paidOn: "2026-09-01",
+  createdAt: "2026-09-01T10:00:00Z",
+  decidedAt: null,
+  receiptCode: null,
+  rejectReason: null,
+  payerName: "سيدي",
+  sentByMe: true,
+  forMe: true,
+  allocations: [],
+  ...p,
+});
+
+describe("youStatus", () => {
+  it("says regular, late with count and amount, or exempt", () => {
+    expect(youStatus({ status: "active", monthsBehind: 0, amountOwed: 0 })).toEqual({
+      late: false,
+      text: "أنت منتظم",
+    });
+    expect(youStatus({ status: "active", monthsBehind: 3, amountOwed: 3000 }).text).toMatch(
+      /^عليك 3 أشهر · 3\s000 أوقية$/,
+    );
+    expect(youStatus({ status: "active", monthsBehind: 1, amountOwed: 0 }).text).toBe(
+      "عليك شهر واحد",
+    );
+    expect(youStatus({ status: "exempt", monthsBehind: 0, amountOwed: 0 }).late).toBe(false);
+  });
+});
+
+describe("youDots and waitingLine", () => {
+  it("maps the month code to twelve dots", () => {
+    const d = youDots("PPPPPPLLLUUN");
+    expect(d).toHaveLength(12);
+    expect(d[0]).toMatchObject({ month: 1, name: "يناير", state: "paid" });
+    expect(d[6].state).toBe("late");
+    expect(d[9].state).toBe("upcoming");
+    expect(d[11].state).toBe("off");
+  });
+  it("counts waiting submissions in words", () => {
+    expect(waitingLine(0)).toBe("");
+    expect(waitingLine(1)).toBe("دفعة واحدة بانتظار التأكيد");
+    expect(waitingLine(2)).toBe("دفعتان بانتظار التأكيد");
+    expect(waitingLine(4)).toBe("4 دفعات بانتظار التأكيد");
+  });
+});
+
+describe("coverLines", () => {
+  it("says the months only when the payment is just for me", () => {
+    const x = item({ allocations: [7, 8, 9].map((m) => alloc("me", "سيدي", m)) });
+    expect(coverLines(x, "me")).toEqual(["رسوم من يوليو إلى سبتمبر 2026"]);
+  });
+  it("names each member when it covers several, me as «عنك»", () => {
+    const x = item({
+      allocations: [alloc("me", "سيدي", 9), alloc("b", "الحسن", 8), alloc("b", "الحسن", 9)],
+    });
+    const lines = coverLines(x, "me");
+    expect(lines[0]).toMatch(/^عنك: رسوم/);
+    expect(lines[1]).toMatch(/^عن الحسن: رسوم/);
+  });
+});
+
+describe("historySections", () => {
+  it("splits waiting, rejected, mine and for others; drops cancelled", () => {
+    const s = historySections([
+      item({ id: "1", status: "pending" }),
+      item({ id: "2", status: "rejected", rejectReason: "الصورة غير واضحة" }),
+      item({ id: "3", status: "confirmed" }),
+      item({ id: "4", status: "confirmed", forMe: false }),
+      item({ id: "5", status: "cancelled" }),
+    ]);
+    expect(s.waiting.map((x) => x.id)).toEqual(["1"]);
+    expect(s.rejected.map((x) => x.id)).toEqual(["2"]);
+    expect(s.mine.map((x) => x.id)).toEqual(["3"]);
+    expect(s.forOthers.map((x) => x.id)).toEqual(["4"]);
+  });
+});

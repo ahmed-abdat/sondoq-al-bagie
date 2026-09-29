@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct } from "./act";
-import type { PendingPayment } from "@/lib/data/types";
+import type { QueuedPayment } from "./member-types";
 import { shareReceipt } from "@/lib/share-receipt";
 import { MemberNo, MethodBadge } from "./bits";
 import { dayWords, fmt, monthsInWords, relativeAgo } from "./derive";
@@ -40,7 +40,7 @@ export function PendingSlip({
   onFull,
   onDecided,
 }: {
-  p: PendingPayment;
+  p: QueuedPayment;
   /** who is deciding: name + role label; may they confirm, and their own member id */
   me: { by: string; role: string; canConfirm?: boolean; memberId?: string | null };
   onFull: (r: ReceiptView) => void;
@@ -256,7 +256,13 @@ export function PendingSlip({
       <div className="bq-slip-proof">
         <Proof path={p.proofPath} amount={p.amount} method={p.method} />
         <p className="bq-hint">
-          {p.createdByName ? <>سجّلها {p.createdByName}</> : "سُجّلت"}
+          {p.submittedByMember ? (
+            <>أرسلها العضو {p.submittedByMember.fullName} عبر رابطه</>
+          ) : p.createdByName ? (
+            <>سجّلها {p.createdByName}</>
+          ) : (
+            "سُجّلت"
+          )}
           <br />
           {now ? relativeAgo(p.createdAt, now) : dayWords(p.createdAt)}
         </p>
@@ -323,6 +329,7 @@ export function PendingSlip({
           <p className="bq-rej-l" id={`rj-${p.id}`}>
             لماذا ترفض هذه الدفعة؟
           </p>
+          {p.submittedByMember && <p className="bq-hint">يصل السبب إلى العضو.</p>}
           <div className="bq-chips" role="radiogroup" aria-labelledby={`rj-${p.id}`}>
             {REASONS.map((x) => (
               <button

@@ -4761,3 +4761,167 @@
   }
 }
 /* ───── end Lane C2 ───── */
+
+/* ───── Lane C: member link («أنت», دفعاتي, رابط العضو) ───── */
+@layer components {
+  /* «أنت»: one quiet Green Wash panel, the only contained surface of home besides the hero */
+  .bq-you {
+    background: var(--g0);
+    border-radius: var(--r-card);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .bq-you-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .bq-you-head .bq-av {
+    background: var(--paper);
+  }
+  .bq-you-k {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--g8);
+  }
+  .bq-you-t {
+    font-size: 22px;
+    line-height: 1.35;
+    margin: 0;
+  }
+  .bq-you-st {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+  .bq-you-st.is-ok {
+    color: var(--g8);
+  }
+  .bq-you-st.is-late {
+    color: var(--ink);
+  }
+  .bq-you-st.is-late svg {
+    color: var(--muted);
+  }
+  .bq-you-dots {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .bq-you-dots li {
+    aspect-ratio: 1;
+    max-width: 22px;
+    border-radius: 999px;
+    background: var(--n3);
+  }
+  .bq-you-dots li.is-paid {
+    background: var(--g7);
+  }
+  .bq-you-dots li.is-late {
+    background: repeating-linear-gradient(135deg, var(--n3) 0 3px, var(--paper) 3px 6px);
+  }
+  .bq-you-dots li.is-upcoming {
+    background: var(--paper);
+    box-shadow: inset 0 0 0 2px var(--n3);
+  }
+  .bq-you-dots li.is-off {
+    background: var(--n2);
+    opacity: 0.5;
+  }
+  .bq-you-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .bq-you-key span::before {
+    content: "";
+    display: inline-block;
+    inline-size: 10px;
+    block-size: 10px;
+    border-radius: 999px;
+    margin-inline-end: 6px;
+    vertical-align: middle;
+  }
+  .bq-you-key .is-paid::before {
+    background: var(--g7);
+  }
+  .bq-you-key .is-late::before {
+    background: repeating-linear-gradient(135deg, var(--n3) 0 2px, var(--paper) 2px 4px);
+  }
+  .bq-you-key .is-upcoming::before {
+    box-shadow: inset 0 0 0 2px var(--n3);
+  }
+  .bq-you-wait {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .bq-you .bq-btn-col {
+    margin-top: 4px;
+  }
+  .bq-you > .bq-link {
+    align-self: flex-start;
+  }
+
+  /* «دفعاتي» rows: open, like list rows, but not tappable as a whole */
+  .bq-me-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding-block: 12px;
+  }
+  .bq-me-row .bq-row-m {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .bq-me-rej {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    margin-top: 4px;
+  }
+  .bq-me-acts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+  }
+
+  /* «رابط العضو» in the committee member sheet */
+  .bq-mlink {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .bq-mlink .bq-mline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+  }
+  .bq-mlink .bq-mline svg {
+    color: var(--g8);
+  }
+  .bq-mlink-url {
+    background: var(--g0);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    overflow-wrap: anywhere;
+    font-size: 14px;
+  }
+}
+/* ───── end Lane C member link ───── */

@@ -76,6 +76,13 @@ let handoverBalance = 0;
 export function rememberHandoverBalance(b: number) {
   handoverBalance = b;
 }
+/** Demo only: a member remembered by a screen (name and number), for simulated writes. */
+export const knownMember = (id: string) => known.get(id) ?? null;
+/** Demo only: a payment sent through a member link lands in the committee queue here. */
+export function pushDemoPending(p: PendingPayment) {
+  if (state.pending.some((x) => x.id === p.id)) return;
+  update((s) => ({ ...s, pending: [...s.pending, p] }));
+}
 const nameOf = (id: string | null | undefined, fallback: string) =>
   (id && known.get(id)) || { fullName: fallback, listCode: "", number: 0 };
 const wait = () => new Promise((r) => setTimeout(r, 400));
