@@ -1,5 +1,6 @@
 // Pure UI helpers: Arabic wording, member state, search, dates. No React, no data fetching.
 import { MONTHS_AR, WEEKDAYS_AR } from "@/lib/dates";
+import { CATEGORY_LABELS } from "@/lib/data/labels";
 import { formatNumber } from "@/lib/format";
 import { memberNumber } from "@/lib/share-receipt";
 import { nameRank, toLatinDigits } from "./search-text";
@@ -133,6 +134,7 @@ export function amountInWords(n: number) {
 
 export type MState = "ahead" | "ok" | "late" | "off";
 
+// differs from STATUS_LABELS in @/lib/data/labels on purpose: a deceased member reads «غادر» here
 const OFF_LABEL: Record<Exclude<MembershipStatus, "active">, string> = {
   exempt: "معفى",
   away: "مسافر",
@@ -327,13 +329,9 @@ export function updatedLabel(iso: string, now: Date = new Date()) {
 
 /* ───────────── money & misc ───────────── */
 
-export const CATEGORY_LABEL: Record<ExpenseCategory, string> = {
-  teaching: "التدريس",
-  honoring: "التكريم",
-  sports: "الرياضة",
-  other: "أخرى",
-};
-export const categoryLabel = (c: ExpenseCategory) => CATEGORY_LABEL[c];
+// one source for the expense categories (the report and the server use the same labels)
+export { CATEGORY_LABELS as CATEGORY_LABEL } from "@/lib/data/labels";
+export const categoryLabel = (c: ExpenseCategory) => CATEGORY_LABELS[c];
 
 /** Public receipts show only the last four characters: «•••• 2917». */
 export function maskTxn(ref: string | null | undefined) {
