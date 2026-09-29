@@ -529,8 +529,14 @@ export type FundStats = Pick<
   | "termNumber"
   | "termStartedOn"
 >;
-/** The activity feed without amounts (paymentId matches MoneyBundle.activity). */
-export type PublicActivityItem = WithoutKeys<ActivityItem, "amount" | "targetAmount">;
+/**
+ * The activity feed without amounts and without receipt codes (a code opens /r/<code>, which shows
+ * the amount). paymentId matches MoneyBundle.activity, which has both.
+ */
+export type PublicActivityItem = WithoutKeys<
+  ActivityItem,
+  "amount" | "targetAmount" | "receiptCode"
+>;
 export type CampaignPublic = Omit<
   CampaignProgress,
   "targetAmount" | "collected" | "spent" | "transferred" | "balance"

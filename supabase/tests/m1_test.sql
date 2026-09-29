@@ -980,6 +980,9 @@ grant execute on function tests.money_columns(text[]) to anon, authenticated, se
 select tests.ok(tests.money_columns(array['fund_stats', 'activity_public', 'campaigns_public', 'expenses_public',
                                           'terms_info', 'campaign_contributors_public', 'member_status_public']) = '{}',
   'the public variants carry no money columns');
+select tests.ok(not exists (select 1 from information_schema.columns where table_schema = 'public'
+                             and table_name = 'activity_public' and column_name = 'receipt_code'),
+  'no receipt codes for strangers (a code opens /r/<code>, which shows the amount)');
 select tests.login('public');
 select tests.ok((select members_active > 0 from public.fund_stats)
                 and (select count(*) from public.member_status_public) = (select count(*) from public.member_status)

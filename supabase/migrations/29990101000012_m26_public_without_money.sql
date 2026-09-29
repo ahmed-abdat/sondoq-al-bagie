@@ -21,8 +21,9 @@ create view public.fund_stats with (security_invoker = true) as
   select members_ok, members_behind, members_active, last_activity_at, term_number, term_started_on
   from app_private.public_fund_summary();
 
+-- no receipt_code: /r/<code> is public and shows that receipt's amount
 create view public.activity_public with (security_invoker = true) as
-  select at, kind, member_names, months, category, payment_id, method, receipt_code
+  select at, kind, member_names, months, category, payment_id, method
   from app_private.public_activity_feed();
 
 create view public.campaigns_public with (security_invoker = true) as

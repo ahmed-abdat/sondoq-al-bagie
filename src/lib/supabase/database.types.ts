@@ -1037,7 +1037,6 @@ export type Database = {
           method: Database["public"]["Enums"]["payment_method"] | null
           months: number | null
           payment_id: string | null
-          receipt_code: string | null
         }
         Relationships: []
       }

@@ -435,7 +435,6 @@ export function toPublicActivityItem(r: Row<"activity_public">): PublicActivityI
         memberNames: str(r.member_names),
         months: num(r.months),
         method: r.method ?? "other",
-        receiptCode: r.receipt_code,
       };
     case "expense":
       return { kind: r.kind, at, category: r.category ?? "other" };
