@@ -27,6 +27,13 @@ type Case = [string, () => Promise<unknown>, string, Record<string, unknown>, bo
 
 const cases: Case[] = [
   [
+    "updateMyProfile",
+    () => a.updateMyProfile({ displayName: "  أحمد ", memberId: member }),
+    "update_my_profile",
+    { p_display_name: "أحمد", p_member_id: member },
+    false,
+  ],
+  [
     "savePushSubscription",
     () =>
       a.savePushSubscription({

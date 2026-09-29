@@ -30,6 +30,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 const updateUser = vi.fn();
 const getUser = vi.fn();
 const resetPasswordForEmail = vi.fn();
+const signOut = vi.fn();
 const upload = vi.fn();
 const createSignedUrl = vi.fn();
 let dupRows: { id: string }[] = [];
@@ -48,7 +49,7 @@ vi.mock("@/lib/supabase/server", () => ({
           rpc,
           from: () => query,
           storage: { from: () => ({ upload, createSignedUrl }) },
-          auth: { updateUser, getUser, resetPasswordForEmail },
+          auth: { updateUser, getUser, resetPasswordForEmail, signOut },
         }
       : null,
 }));
@@ -67,6 +68,7 @@ const {
   createCommitteeAccount,
   resetCommitteePassword,
   deleteCommitteeAccount,
+  signOutEverywhere,
 } = await import("./actions");
 
 const id = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -420,5 +422,21 @@ describe("actions", () => {
         code: "delete_failed",
       });
     });
+  });
+
+  it("signs out everywhere after dropping this browser's push subscription", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    signOut.mockResolvedValue({ error: null });
+    expect(await signOutEverywhere({ endpoint: "https://push.test/1" })).toEqual({
+      ok: true,
+      data: undefined,
+    });
+    expect(rpc).toHaveBeenCalledWith("delete_push_subscription", {
+      p_endpoint: "https://push.test/1",
+    });
+    expect(signOut).toHaveBeenCalledWith({ scope: "global" });
+    rpc.mockClear();
+    await signOutEverywhere();
+    expect(rpc).not.toHaveBeenCalled();
   });
 });

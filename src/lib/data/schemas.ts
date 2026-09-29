@@ -266,3 +266,10 @@ export const pushSubscriptionSchema = z.object({
 });
 export const pushEndpointSchema = z.object({ endpoint: z.string().min(1).max(1000) });
 export type PushSubscriptionInput = z.input<typeof pushSubscriptionSchema>;
+
+export const updateMyProfileSchema = z.object({
+  displayName: z.string().trim().min(1).max(60),
+  memberId: id.nullable().optional(),
+});
+export type UpdateMyProfileInput = z.input<typeof updateMyProfileSchema>;
+export const signOutEverywhereSchema = z.object({ endpoint: z.string().max(1000).optional() });

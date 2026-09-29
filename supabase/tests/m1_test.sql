@@ -551,6 +551,30 @@ select tests.throws($$select public.save_push_subscription('https://push.example
   'anon cannot save a subscription');
 select tests.throws('select * from public.push_subscriptions', '42501', 'anon cannot read subscriptions');
 
+/* ───────────── M12: «حسابي» ───────────── */
+
+select tests.login('deputy');
+select public.update_my_profile('  النائب محمد ', null);
+select tests.ok((select display_name from public.committee where user_id = '00000000-0000-0000-0000-0000000000a3') = 'النائب محمد',
+  'a member renames themselves');
+select tests.throws($$select public.update_my_profile('', null)$$, 'invalid_input', 'the name cannot be empty');
+select tests.throws($$select public.update_my_profile('النائب', tests.id('T'))$$, 'member_taken',
+  'a member row linked to someone else cannot be claimed');
+select tests.throws($$select public.update_my_profile('النائب', tests.id('G'))$$, 'member_not_active',
+  'only an active member row can be linked');
+select public.update_my_profile('النائب', tests.id('K'));
+select tests.ok((select member_id from public.committee where user_id = '00000000-0000-0000-0000-0000000000a3') = tests.id('K'),
+  'a member without a link links their own member row once');
+select tests.throws($$select public.update_my_profile('النائب', null)$$, 'member_link_admin_only',
+  'a confirmer cannot unlink themselves (own-membership rule)');
+select tests.login('treasurer');
+select tests.throws($$select public.update_my_profile('الأمين', tests.id('E'))$$, 'member_link_admin_only',
+  'nor move the link to another member');
+select tests.login('public');
+select tests.throws($$select public.update_my_profile('x', null)$$, '42501', 'anon cannot edit a profile');
+select tests.login('admin');
+select public.set_committee_member('00000000-0000-0000-0000-0000000000a3', 'النائب', 'deputy');
+
 /* ───────────── M11: deleting an account without history ───────────── */
 
 select tests.login('server');
