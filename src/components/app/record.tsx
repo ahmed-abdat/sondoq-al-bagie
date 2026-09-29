@@ -17,6 +17,7 @@ import { monthStates } from "@/lib/data/month-code";
 import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
 import { safeStorage } from "@/lib/safe-storage";
 import { rememberMembers, useAct } from "./act";
+import { useMemberAct } from "./member-act";
 import { sendOnce, useOnceId } from "./once-id";
 import { failure } from "@/lib/data/errors";
 import { ShareBtns } from "./entries";
@@ -135,14 +136,17 @@ function MemberPicker({
   exclude,
   onPick,
   autoFocus,
+  member,
 }: {
   members: MemberRow[];
   exclude: Set<string>;
   onPick: (m: MemberRow) => void;
   autoFocus?: boolean;
+  /** member mode: «أنت» first, then «دفعت لهم سابقًا», then everyone */
+  member?: MemberMode;
 }) {
   const [q, setQ] = useState("");
-  const [recentIds] = useState(readRecent);
+  const [recentIds] = useState(() => (member ? member.recent : readRecent()));
   const pool = useMemo(
     () =>
       members.filter(
@@ -160,13 +164,19 @@ function MemberPicker({
       ),
     [pool, q, g],
   );
-  const late = res.filter((m) => m.status === "active" && m.monthsBehind > 0).sort(byMostLate);
+  const self = member && !q.trim() ? pool.find((m) => m.memberId === member.selfId) : undefined;
   const recent = q.trim()
     ? []
-    : recentIds.map((id) => pool.find((m) => m.memberId === id)).filter((m): m is MemberRow => !!m);
-  const onTime = res.filter((m) => m.status === "active" && m.monthsBehind === 0);
+    : recentIds
+        .map((id) => pool.find((m) => m.memberId === id))
+        .filter((m): m is MemberRow => !!m && m.memberId !== member?.selfId);
+  // a member's own shortcuts are not repeated below
+  const shown = new Set(member ? [self?.memberId, ...recent.map((m) => m.memberId)] : []);
+  const rest = res.filter((m) => !shown.has(m.memberId));
+  const late = rest.filter((m) => m.status === "active" && m.monthsBehind > 0).sort(byMostLate);
+  const onTime = rest.filter((m) => m.status === "active" && m.monthsBehind === 0);
   const lists = [...new Set(onTime.map(listOf))].sort();
-  const exempt = res.filter((m) => m.status === "exempt");
+  const exempt = rest.filter((m) => m.status === "exempt");
   return (
     <div className="bq-pick">
       <SearchField
@@ -198,9 +208,17 @@ function MemberPicker({
         </div>
       )}
       {q.trim() && !res.length && <p className="bq-hint">لم نجد عضوًا بهذا الاسم أو الرقم.</p>}
+      {self && (
+        <section aria-label="أنت">
+          <h3 className="bq-pick-h">أنت</h3>
+          <ul className="bq-list">
+            <PickRow m={self} onPick={onPick} />
+          </ul>
+        </section>
+      )}
       {recent.length > 0 && (
-        <section aria-label="آخر من سجّلت لهم">
-          <h3 className="bq-pick-h">آخر من سجّلت لهم</h3>
+        <section aria-label={member ? "دفعت لهم سابقًا" : "آخر من سجّلت لهم"}>
+          <h3 className="bq-pick-h">{member ? "دفعت لهم سابقًا" : "آخر من سجّلت لهم"}</h3>
           <ul className="bq-list">
             {recent.map((m) => (
               <PickRow key={`r-${m.memberId}`} m={m} onPick={onPick} />
@@ -415,7 +433,17 @@ function Mark({ from, ok }: { from: boolean; ok: boolean }) {
 }
 
 /** What still stops the save, in plain words, and the one step that fixes it. */
-const STEP_CTA: Record<Step, string> = {
+type MemberMode = {
+  /** the member whose link this is */
+  selfId: string;
+  selfName: string;
+  /** «دفعت لهم سابقًا»: member ids, newest first */
+  recent: string[];
+};
+/** Member mode adds one step: the screenshot is required. */
+type AnyStep = Step | "shot";
+const STEP_CTA: Record<AnyStep, string> = {
+  shot: "أرفق صورة التحويل",
   months: "اختر الأشهر",
   method: "اختر كيف دفع",
   payer: "اكتب اسم الدافع",
@@ -429,6 +457,7 @@ export function RecordBody({
   accounts,
   campaigns = [],
   me,
+  member,
   onDone,
 }: {
   members: MemberRow[];
@@ -439,11 +468,17 @@ export function RecordBody({
   campaigns?: CampaignProgress[];
   /** who records: printed on the receipt when the payment is confirmed at once */
   me?: { by: string; role: string };
+  /**
+   * «أرسلت دفعة» from a member's personal link: the same flow, sent to the committee to confirm
+   * (screenshot required, optional note, always pending).
+   */
+  member?: MemberMode;
   onDone: (text: string) => void;
 }) {
   const router = useRouter();
   const online = useOnline();
   const { recordPayment, uploadProof } = useAct();
+  const { memberUploadProof, memberSubmitPayment } = useMemberAct();
   const once = useOnceId();
   const [rows, setRows] = useState<Row[]>([]);
   const [adding, setAdding] = useState(true);
@@ -455,6 +490,7 @@ export function RecordBody({
   const [creditFor, setCreditFor] = useState<string | null>(null);
   const [shot, setShot] = useState<{ url: string; name: string } | null>(null);
   const [paidOn, setPaidOn] = useState(todayIso());
+  const [note, setNote] = useState("");
   const [camp, setCamp] = useState<string | null>(null);
   const [campTxt, setCampTxt] = useState("");
   const [more, setMore] = useState(false);
@@ -473,6 +509,7 @@ export function RecordBody({
   const amountRef = useRef<HTMLInputElement>(null);
   const payerRef = useRef<HTMLInputElement>(null);
   const creditRef = useRef<HTMLDivElement>(null);
+  const shotRef = useRef<HTMLLabelElement>(null);
   useEffect(() => {
     void warmOcr();
     return () => void terminateOcr();
@@ -488,7 +525,9 @@ export function RecordBody({
   }, [rows]);
 
   const openCamps = campaigns.filter((c) => c.status === "open");
-  const payerName = (payer ?? rows[0]?.m.fullName ?? "").trim();
+  // a member usually sends from their own wallet; the committee records someone else's transfer
+  const defaultPayer = member ? member.selfName : (rows[0]?.m.fullName ?? "");
+  const payerName = (payer ?? defaultPayer).trim();
   const exclude = useMemo(() => new Set(rows.map((r) => r.m.memberId)), [rows]);
   const draft: Draft = {
     rows,
@@ -501,7 +540,12 @@ export function RecordBody({
     campaignText: campTxt,
     year: ctx.year,
   };
-  const { campAmt, total, sent, diff, creditTo, credit, block, fitMonths } = summarize(draft);
+  const { campAmt, total, sent, diff, creditTo, credit, block: rule, fitMonths } = summarize(draft);
+  const block: { msg: string; step?: AnyStep } | null =
+    // member mode: the screenshot comes right after who and which months (screen order)
+    member && !shot && !(rule && (!rule.step || rule.step === "months"))
+      ? { msg: "أرفق صورة التحويل.", step: "shot" }
+      : rule;
   // anything that needs a look inside «تفاصيل أخرى» opens it (and it stays open)
   if (!more && (diff !== 0 || (rows.length > 0 && !payerName))) setMore(true);
 
@@ -526,8 +570,9 @@ export function RecordBody({
   };
 
   /** The footer button when something is missing: take the user to it. */
-  const goTo = (step: Step) => {
-    if (step === "months") {
+  const goTo = (step: AnyStep) => {
+    if (step === "shot") show(shotRef.current, shotRef.current?.querySelector("input"));
+    else if (step === "months") {
       const i = Math.max(
         0,
         rows.findIndex((r) => !rowCount(r)),
@@ -602,6 +647,7 @@ export function RecordBody({
     if (block || !meth) return;
     setBusy(true);
     setErr("");
+    if (member) return submitMember();
     let proof: { path: string; hash: string } | undefined;
     let r: Awaited<ReturnType<typeof recordPayment>>;
     try {
@@ -688,6 +734,45 @@ export function RecordBody({
     onDone(`سُجّلت دفعة ${who}. تنتظر التأكيد.${overlap}`);
   };
 
+  /** Member mode: upload the screenshot, then send; always pending, the committee decides. */
+  const submitMember = async () => {
+    if (!meth || !shot) return;
+    setBusy(true);
+    setErr("");
+    let r: Awaited<ReturnType<typeof memberSubmitPayment>>;
+    try {
+      r = await sendOnce(once, async (id) => {
+        const fd = new FormData();
+        fd.set("file", dataUrlToBlob(shot.url), "proof.jpg");
+        fd.set("id", id);
+        const up = await memberUploadProof(fd);
+        if (!up.ok) return up;
+        rememberMembers(rows.map((x) => x.m));
+        return memberSubmitPayment({
+          ...toRecordInput(
+            { ...draft, method: meth },
+            { id, paidOn, txnRef: txn.trim() || undefined },
+          ),
+          proofPath: up.data.path,
+          proofHash: up.data.hash,
+          note: note.trim() || undefined,
+        });
+      });
+    } catch {
+      r = failure("network");
+    } finally {
+      setBusy(false);
+    }
+    if (!r.ok) {
+      setErr(r.message);
+      return;
+    }
+    router.refresh();
+    onDone(
+      `أُرسلت إلى اللجنة. ستصلك رسالة عند التأكيد.${r.data.pendingOverlap ? " يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر." : ""}`,
+    );
+  };
+
   if (confirmed)
     return (
       <div className="bq-rec bq-rec-done">
@@ -732,10 +817,11 @@ export function RecordBody({
     paidOn === todayIso() ? "اليوم" : dayWords(paidOn),
   ].filter(Boolean);
   const moreSub = [
-    payer !== null && payerName !== rows[0]?.m.fullName ? `الدافع: ${payerName}` : "الدافع",
+    payer !== null && payerName !== defaultPayer ? `الدافع: ${payerName}` : "الدافع",
     txn.trim() ? "رقم العملية" : null,
     "المبلغ المحوّل",
     openCamps.length ? "حملة" : null,
+    member ? "ملاحظة" : null,
   ]
     .filter(Boolean)
     .join("، ");
@@ -746,7 +832,12 @@ export function RecordBody({
 
   return (
     <div className="bq-rec">
-      <h2>سجّل دفعة</h2>
+      <h2>{member ? "أرسلت دفعة" : "سجّل دفعة"}</h2>
+      {member && !rows.length && (
+        <p className="bq-hint">
+          اختر عن من دفعت. يمكنك الدفع عن نفسك أو عن غيرك، وتؤكدها اللجنة بعد مطابقة الصورة.
+        </p>
+      )}
 
       <p className="bq-rec-k">{rows.length > 1 ? "الأعضاء في هذا التحويل" : "عن من هذه الدفعة؟"}</p>
       {rows.map((row, i) => (
@@ -779,6 +870,7 @@ export function RecordBody({
             exclude={exclude}
             onPick={addRow}
             autoFocus={rows.length > 0}
+            member={member}
           />
           {rows.length > 0 && (
             <button
@@ -802,7 +894,7 @@ export function RecordBody({
 
       {rows.length > 0 && !adding && (
         <div className="bq-rec-in">
-          <label className={`bq-rec-shot bq-press ${shot ? "has-shot" : ""}`}>
+          <label ref={shotRef} className={`bq-rec-shot bq-press ${shot ? "has-shot" : ""}`}>
             {shot ? (
               // eslint-disable-next-line @next/next/no-img-element -- local data URL preview
               <img src={shot.url} alt="" className="bq-rec-thumb" />
@@ -826,6 +918,8 @@ export function RecordBody({
                   )
                 ) : shot ? (
                   "اضغط لتغييرها."
+                ) : member ? (
+                  "مطلوبة. نقرأ منها الوسيلة والمبلغ والتاريخ."
                 ) : (
                   "اختياري. نقرأ منها الوسيلة والمبلغ والتاريخ."
                 )}
@@ -850,7 +944,7 @@ export function RecordBody({
 
           <div className="bq-rec-sec" ref={methodRef}>
             <p className="bq-rec-k" id="bq-rec-meth">
-              كيف دفع؟ <Mark from={fromShot.has("method")} ok={!!checks?.method} />
+              {member ? "كيف دفعت؟" : "كيف دفع؟"} <Mark from={fromShot.has("method")} ok={!!checks?.method} />
             </p>
             <div className="bq-meth-grid" role="radiogroup" aria-labelledby="bq-rec-meth">
               {methods.map((m) => (
@@ -1022,7 +1116,7 @@ export function RecordBody({
                   <input
                     ref={payerRef}
                     className="bq-input"
-                    value={payer ?? rows[0].m.fullName}
+                    value={payer ?? defaultPayer}
                     onChange={(e) => setPayer(e.target.value)}
                   />
                 </label>
@@ -1059,6 +1153,19 @@ export function RecordBody({
                     )}
                   </>
                 )}
+
+                {member && (
+                  <label className="bq-rec-field">
+                    <span className="bq-rec-k">ملاحظة للجنة (اختياري)</span>
+                    <input
+                      className="bq-input"
+                      value={note}
+                      maxLength={500}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="مثل: دفعت عن أخي أيضًا"
+                    />
+                  </label>
+                )}
               </div>
             )}
           </div>
@@ -1069,7 +1176,7 @@ export function RecordBody({
         <div className="bq-rec-foot">
           <div className="bq-rec-sum" aria-live="polite">
             <p className="bq-rec-sum-l">
-              <span className="bq-hint">سيُسجَّل</span>
+              <span className="bq-hint">{member ? "سيُرسل" : "سيُسجَّل"}</span>
               <span>
                 <Num className="bq-rec-amt">{fmt(total + credit)}</Num> أوقية
               </span>
@@ -1099,7 +1206,17 @@ export function RecordBody({
             disabled={busy || !online || (!!block && !block.step)}
             onClick={() => (block?.step ? goTo(block.step) : void submit())}
           >
-            {busy ? "جارٍ الحفظ…" : block?.step ? STEP_CTA[block.step] : "سجّل الدفعة"}
+            {busy
+              ? member
+                ? "جارٍ الإرسال…"
+                : "جارٍ الحفظ…"
+              : block?.step
+                ? member && block.step === "method"
+                  ? "اختر كيف دفعت"
+                  : STEP_CTA[block.step]
+                : member
+                  ? "أرسل إلى اللجنة"
+                  : "سجّل الدفعة"}
           </button>
           <OfflineWriteHint />
         </div>

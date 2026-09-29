@@ -18,6 +18,7 @@ import { I } from "../icons";
 import { Avatar } from "../bits";
 import { Num } from "../num";
 import { rememberMember, useRecentMembers } from "../recent-members";
+import { MemberSlot } from "../member-slot";
 import { SearchField } from "../search-field";
 import { Sheet, useSheet } from "../sheet";
 import type { LedgerEntry } from "../types";
@@ -63,6 +64,8 @@ export function HomeView({
       <div className="bq-mob-only">
         <Hero data={hero} variant="band" />
       </div>
+
+      <MemberSlot />
 
       <section className="bq-sec bq-rv bq-find" data-rv="home-find" aria-labelledby="bq-find-h">
         <h2 id="bq-find-h">هل أنت منتظم في الدفع؟</h2>

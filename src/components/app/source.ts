@@ -1,4 +1,5 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 // The UI's one door to data (Server Components only). Reads the real Lane A layer; with
 // SONDOQ_FIXTURES=1 it serves the fictional fixtures instead (screenshots, dev without a seeded
@@ -12,6 +13,15 @@ import { fromVerified } from "./receipt-model";
 import { toLedger } from "./ledger";
 import { assembleReport } from "@/lib/data/report";
 import type { LedgerEntry, MyProfile } from "./types";
+import * as memberData from "./lane-a-member";
+import {
+  DEMO_MEMBER_TOKEN,
+  MEMBER_COOKIE,
+  type Beneficiary,
+  type MemberHistoryItem,
+  type MemberLinkInfo,
+  type MemberSession,
+} from "./member-types";
 
 export const usingFixtures = process.env.SONDOQ_FIXTURES === "1";
 /** Fixtures + committee writes simulated in the browser; never on production (see demo.ts). */
@@ -202,3 +212,27 @@ export const memberIndex = () => {
 export const terms = () => pick(fx.fxTerms, () => data.getTerms());
 export const handovers = () => pick(fx.fxHandovers, () => data.getHandovers());
 export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());
+
+/* ───────────── member link (docs/MEMBER-ACCESS.md; dynamic pages and actions only) ───────────── */
+/** Demo: the cookie `/m/demo` sets. Never true outside demo mode. */
+async function demoMember() {
+  return demoMode && (await cookies()).get(MEMBER_COOKIE)?.value === DEMO_MEMBER_TOKEN;
+}
+/** The member whose personal link opened this browser, or null. Reads the cookie (dynamic). */
+export async function memberSession(): Promise<MemberSession | null> {
+  if (usingFixtures) return (await demoMember()) ? fx.fxMemberSession() : null;
+  return memberData.memberSession();
+}
+/** Their payments, the ones they sent for others and their submissions (newest first). */
+export async function memberHistory(): Promise<MemberHistoryItem[]> {
+  if (usingFixtures) return (await demoMember()) ? fx.fxMemberHistory() : [];
+  return memberData.memberHistory();
+}
+/** «دفعت لهم سابقًا»: members covered by earlier payments sent through this link (not me). */
+export async function memberBeneficiaries(): Promise<Beneficiary[]> {
+  if (usingFixtures) return (await demoMember()) ? fx.fxMemberBeneficiaries() : [];
+  return memberData.memberRecentBeneficiaries();
+}
+/** Committee: the active link of each member who has one. */
+export const memberLinks = (): Promise<Record<string, MemberLinkInfo>> =>
+  pick(fx.fxMemberLinks, () => memberData.getMemberLinks());
