@@ -4517,3 +4517,208 @@
     font-weight: 600;
   }
 }
+
+/* ───── Lane C2: «سجّل دفعة» simplified (record.tsx). Keep this block together. ───── */
+@layer components {
+  .bq-rec-row .bq-row-t:focus-visible {
+    outline: 2px solid var(--g7);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  .bq-rec-row-f {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+  }
+  .bq-rec-row-amt {
+    margin-inline-start: auto;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .bq-rec-row-amt .bq-num {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--g8);
+  }
+  /* inputs and steps scrolled to stay clear of the sticky footer */
+  .bq-sheet:has(.bq-rec-foot) {
+    scroll-padding-block-end: 210px;
+  }
+  .bq-rec-shot + .bq-hint {
+    margin-block-start: 8px;
+  }
+  .bq-rec-add {
+    width: auto;
+    margin-block: 0 4px;
+  }
+  /* screenshot card: the first thing after the member, since it fills the rest */
+  .bq-rec-shot {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 76px;
+    margin-block-start: 16px;
+    padding: 14px 16px;
+    border-radius: var(--r-lg);
+    background: var(--g0);
+    cursor: pointer;
+  }
+  .bq-rec-shot:focus-within {
+    outline: 2px solid var(--g7);
+    outline-offset: 2px;
+  }
+  .bq-rec-shot-i {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    background: var(--g1);
+    color: var(--g8);
+  }
+  .bq-rec-thumb {
+    flex: none;
+    width: 48px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 10px;
+    box-shadow: var(--sh-tile);
+  }
+  .bq-rec-shot-t {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .bq-rec-shot-h {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--g8);
+  }
+  .bq-rec-shot-s {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .bq-rec-shot-s .bq-spin {
+    vertical-align: -3px;
+    margin-inline-end: 4px;
+  }
+  .bq-rec-shot-a {
+    flex: none;
+    font-weight: 600;
+    color: var(--g8);
+  }
+  /* «من الصورة» (read and plausible) / «تحقق» (read, please check) */
+  .bq-rec-mark:not(.is-late) {
+    background: var(--g1);
+    color: var(--g8);
+  }
+  .bq-rec-k .bq-rec-mark {
+    margin-inline-start: 8px;
+    vertical-align: 2px;
+  }
+  /* «تفاصيل أخرى»: amount sent, ref, payer, campaign */
+  .bq-rec-more {
+    margin-block-start: 24px;
+  }
+  .bq-rec-more-h {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 64px;
+    padding: 10px 16px;
+    border-radius: var(--r-lg);
+    background: var(--n1);
+    text-align: start;
+  }
+  .bq-rec-more-i {
+    flex: none;
+    display: grid;
+    color: var(--muted);
+    transition: transform 200ms var(--ease-out);
+  }
+  .bq-rec-more-h[aria-expanded="true"] .bq-rec-more-i {
+    transform: rotate(180deg);
+  }
+  .bq-rec-field {
+    display: flex;
+    flex-direction: column;
+  }
+  .bq-rec-field .bq-rec-k {
+    margin-block: 20px 8px;
+  }
+  .bq-rec-field > .bq-hint {
+    margin-block-start: 6px;
+  }
+  .bq-rec-fit {
+    margin-block-start: 10px;
+  }
+  .bq-rec-camp-amt {
+    margin-block-start: 10px;
+  }
+  /* footer: «سيُسجَّل» + figure, then what it covers, then one button */
+  .bq-rec-foot .bq-rec-sum {
+    display: block;
+  }
+  .bq-rec-sum-l {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .bq-rec-what {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .bq-rec-what > span + span::before {
+    content: " · ";
+  }
+  /* sections that appear (after the member, the disclosure, the credit line) */
+  .bq-rec-in {
+    animation: bq-rec-in 220ms var(--ease-out) both;
+  }
+  /* the step the footer button points to: one short ring */
+  .bq-rec .is-flash {
+    border-radius: var(--r-sm);
+    animation: bq-rec-flash 1100ms var(--ease-out);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bq-rec-in {
+      animation-name: bq-rec-fade;
+      animation-duration: 160ms;
+    }
+    .bq-rec-more-i {
+      transition: none;
+    }
+  }
+}
+@keyframes bq-rec-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes bq-rec-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes bq-rec-flash {
+  0%,
+  60% {
+    outline: 3px solid var(--g7);
+    outline-offset: 6px;
+  }
+  100% {
+    outline: 3px solid transparent;
+    outline-offset: 6px;
+  }
+}
+/* ───── end Lane C2 ───── */

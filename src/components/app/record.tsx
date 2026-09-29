@@ -1,10 +1,12 @@
 "use client";
 // «سجّل دفعة»: one transfer, for one member or several (a father for his sons, brothers…).
-// Who → months (smart default) → how → total. Screenshot, ref, date, campaign and a different
-// payer are optional and tucked away. The total is the sum of the rows; a bigger transfer can
-// keep the rest as credit for one of them; a smaller one blocks with a clear message.
+// Who (late months by default) → screenshot (fills method, amount, date, ref) → how → date.
+// Transfer amount, ref, a different payer and a campaign sit in «تفاصيل أخرى», which opens by
+// itself when something there needs a look. The footer says what will be saved; its one button
+// either saves or names the missing step and takes you there. A bigger transfer keeps the rest
+// as credit (for the only member, or the one chosen); a smaller one says by how much.
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import type { CampaignProgress, FundAccount, MemberRow, PaymentMethod } from "@/lib/data/types";
@@ -21,6 +23,7 @@ import type { ReceiptView } from "./receipt-model";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
 import {
   byMostLate,
+  dayWords,
   fmt,
   groupLabel,
   MONTHS,
@@ -33,15 +36,11 @@ import { Segmented } from "./segmented";
 import { DateField } from "./date-field";
 import { I } from "./icons";
 import type { MemberCtx } from "./member";
-import { Num } from "./num";
+import { Num, prefersReduced } from "./num";
 
 const OTHER_METHODS: PaymentMethod[] = METHODS.filter(
   (m) => !MAIN_METHODS.includes(m) && m !== "paper",
 );
-
-/** «تحقق»: the reading could not confirm this field; it stays editable. */
-const Check = ({ bad }: { bad: boolean | undefined }) =>
-  bad ? <span className="bq-tag is-late bq-tag-inline">{I.search(16)} تحقق</span> : null;
 
 type Row = { m: MemberRow; months: number[]; edit: boolean };
 
@@ -217,18 +216,27 @@ function MemberPicker({
   );
 }
 
+/** «لعضوين / لـ 3 أعضاء» for the summary line. */
+function forMembers(n: number) {
+  if (n === 1) return "لعضو واحد";
+  if (n === 2) return "لعضوين";
+  return n <= 10 ? `لـ ${n} أعضاء` : `لـ ${n} عضوًا`;
+}
+
 function RowCard({
   row,
   ctx,
   price,
   onChange,
   onRemove,
+  headRef,
 }: {
   row: Row;
   ctx: MemberCtx;
   price: number;
   onChange: (r: Row) => void;
   onRemove?: () => void;
+  headRef?: (el: HTMLElement | null) => void;
 }) {
   const paid = paidSet(row.m);
   const open = MONTHS.map((_, k) => k + 1).filter((k) => !paid.has(k));
@@ -240,22 +248,19 @@ function RowCard({
     { k: "one", l: "شهر واحد", ms: open.slice(0, 1) },
   ];
   return (
-    <div className="bq-rec-row">
+    <div className={`bq-rec-row ${row.edit ? "is-edit" : ""}`}>
       <div className="bq-rec-who">
         <Avatar m={row.m} />
         <span className="bq-row-m">
-          <span className="bq-row-t">{row.m.fullName}</span>
+          <span className="bq-row-t" tabIndex={-1} ref={headRef}>
+            {row.m.fullName}
+          </span>
           <span className="bq-row-s">
-            {row.months.length ? (
-              <>
-                رسوم {monthsLabel(row.months)} · {monthCount(row.months.length)} ×{" "}
-                <Num>{fmt(price)}</Num>
-              </>
-            ) : open.length ? (
-              "لم تُختر أشهر"
-            ) : (
-              "دفع رسوم هذا العام كاملة"
-            )}
+            {row.months.length
+              ? `${monthCount(row.months.length)}: ${monthsLabel(row.months)}`
+              : open.length
+                ? "لم تُختر أشهر"
+                : "دفع رسوم هذا العام كاملة"}
           </span>
         </span>
         {onRemove && (
@@ -269,16 +274,8 @@ function RowCard({
           </button>
         )}
       </div>
-      {!row.edit ? (
-        <button
-          type="button"
-          className="bq-link bq-link-s bq-press"
-          onClick={() => onChange({ ...row, edit: true })}
-        >
-          تغيير الأشهر
-        </button>
-      ) : (
-        <>
+      {row.edit && (
+        <div className="bq-rec-in">
           <div className="bq-chips" role="group" aria-label="اختيار سريع">
             {quick.map((o) => (
               <button
@@ -321,18 +318,51 @@ function RowCard({
               );
             })}
           </ol>
+        </div>
+      )}
+      <div className="bq-rec-row-f">
+        {open.length > 0 && (
           <button
             type="button"
             className="bq-link bq-link-s bq-press"
-            onClick={() => onChange({ ...row, edit: false })}
+            aria-expanded={row.edit}
+            onClick={() => onChange({ ...row, edit: !row.edit })}
           >
-            تم
+            {row.edit ? "تم" : "تغيير الأشهر"}
           </button>
-        </>
-      )}
+        )}
+        {row.months.length > 0 && price > 0 && (
+          <span className="bq-rec-row-amt">
+            <Num>{fmt(row.months.length * price)}</Num> أوقية
+          </span>
+        )}
+      </div>
     </div>
   );
 }
+
+/** Fields the screenshot can fill; each carries a small «من الصورة» or «تحقق» mark. */
+type ShotField = "method" | "txn" | "amount" | "date";
+
+function Mark({ from, ok }: { from: boolean; ok: boolean }) {
+  if (!from) return null;
+  return ok ? (
+    <span className="bq-tag bq-tag-inline bq-rec-mark">{I.image(16)} من الصورة</span>
+  ) : (
+    <span className="bq-tag is-late bq-tag-inline bq-rec-mark">{I.search(16)} تحقق</span>
+  );
+}
+
+/** What still stops the save, in plain words, and the one step that fixes it. */
+type Step = "months" | "method" | "payer" | "amount" | "credit";
+type Block = { msg: string; step?: Step } | null;
+const STEP_CTA: Record<Step, string> = {
+  months: "اختر الأشهر",
+  method: "اختر كيف دفع",
+  payer: "اكتب اسم الدافع",
+  amount: "صحّح المبلغ",
+  credit: "اختر لمن الباقي",
+};
 
 export function RecordBody({
   members,
@@ -358,7 +388,6 @@ export function RecordBody({
   const [rows, setRows] = useState<Row[]>([]);
   const [adding, setAdding] = useState(true);
   const [payer, setPayer] = useState<string | null>(null); // null = the first member
-  const [editPayer, setEditPayer] = useState(false);
   const [meth, setMeth] = useState<PaymentMethod | null>(null);
   const [moreMeth, setMoreMeth] = useState(false);
   const [txn, setTxn] = useState("");
@@ -367,17 +396,36 @@ export function RecordBody({
   const [shot, setShot] = useState<{ url: string; name: string } | null>(null);
   const [paidOn, setPaidOn] = useState(todayIso());
   const [camp, setCamp] = useState<string | null>(null);
-  const [campOpen, setCampOpen] = useState(false);
   const [campTxt, setCampTxt] = useState("");
+  const [more, setMore] = useState(false);
   const [reading, setReading] = useState(false);
-  const [checks, setChecks] = useState<(ReceiptChecks & { readMro: number | null }) | null>(null);
+  const [checks, setChecks] = useState<ReceiptChecks | null>(null);
+  const [read, setRead] = useState<{ ok: boolean } | null>(null);
+  const [fromShot, setFromShot] = useState<Set<ShotField>>(() => new Set());
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [confirmed, setConfirmed] = useState<{ r: ReceiptView; text: string } | null>(null);
+  const readSeq = useRef(0);
+  const heads = useRef(new Map<string, HTMLElement>());
+  const focusNext = useRef<string | null>(null);
+  const methodRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const payerRef = useRef<HTMLInputElement>(null);
+  const creditRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     void warmOcr();
     return () => void terminateOcr();
   }, []);
+  // a newly added member: focus its name (keyboard and screen readers continue from there)
+  useEffect(() => {
+    const id = focusNext.current;
+    if (!id) return;
+    focusNext.current = null;
+    const el = heads.current.get(id);
+    el?.focus({ preventScroll: true });
+    el?.scrollIntoView({ block: "nearest", behavior: prefersReduced() ? "auto" : "smooth" });
+  }, [rows]);
 
   const priceOf = (m: MemberRow) => ctx.prices[m.groupCode] ?? 0;
   const feeTotal = rows.reduce((s, r) => s + r.months.length * priceOf(r.m), 0);
@@ -389,24 +437,84 @@ export function RecordBody({
   const payerName = (payer ?? rows[0]?.m.fullName ?? "").trim();
   const exclude = useMemo(() => new Set(rows.map((r) => r.m.memberId)), [rows]);
   const missingPrice = rows.some((r) => r.months.length > 0 && !priceOf(r.m));
+  // one member: the rest of a bigger transfer is kept for them unless someone else is chosen
+  const creditTo =
+    creditFor && rows.some((r) => r.m.memberId === creditFor)
+      ? creditFor
+      : rows.length === 1
+        ? rows[0].m.memberId
+        : null;
+  const credit = diff > 0 && creditTo ? diff : 0;
+  // anything that needs a look inside «تفاصيل أخرى» opens it (and it stays open)
+  if (!more && (diff !== 0 || (rows.length > 0 && !payerName))) setMore(true);
 
-  const block = !rows.length
-    ? "اختر العضو أولًا."
+  const touched = (f: ShotField) =>
+    setFromShot((s) => {
+      if (!s.has(f)) return s;
+      const n = new Set(s);
+      n.delete(f);
+      return n;
+    });
+
+  /** Bring a section into view and give it a short highlight, so a missing step is never hidden. */
+  const show = (el: HTMLElement | null, focus?: HTMLElement | null) => {
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: "center", behavior: prefersReduced() ? "auto" : "smooth" });
+      focus?.focus({ preventScroll: true });
+      el.classList.remove("is-flash");
+      void el.offsetWidth;
+      el.classList.add("is-flash");
+    });
+  };
+
+  const block: Block = !rows.length
+    ? { msg: "اختر العضو أولًا." }
     : total <= 0
-      ? "اختر شهرًا واحدًا على الأقل أو أضف مساهمة."
+      ? { msg: "اختر شهرًا واحدًا على الأقل أو أضف مساهمة.", step: "months" }
       : missingPrice
-        ? "لا نعرف الرسوم الشهرية لفئة هذا العضو. راجع المسؤول."
+        ? { msg: "لا نعرف الرسوم الشهرية لفئة هذا العضو. راجع المسؤول." }
         : !meth
-          ? "بقي أن تختار كيف دفع."
+          ? { msg: "بقي أن تختار كيف دفع.", step: "method" }
           : !payerName
-            ? "اكتب اسم الدافع."
+            ? { msg: "اكتب اسم الدافع.", step: "payer" }
             : diff < 0
-              ? `المبلغ المحوّل أقل من المجموع بـ ${fmt(-diff)} أوقية. أنقِص الأشهر أو صحّح المبلغ.`
-              : diff > 0 && !creditFor
-                ? `المبلغ المحوّل أكبر من المجموع بـ ${fmt(diff)} أوقية. احفظ الباقي رصيدًا لأحدهم أو زِد الأشهر.`
-                : "";
+              ? {
+                  msg: `المبلغ المحوّل أقل من المجموع بـ ${fmt(-diff)} أوقية.`,
+                  step: "amount",
+                }
+              : diff > 0 && !creditTo
+                ? {
+                    msg: `المبلغ المحوّل أكبر من المجموع بـ ${fmt(diff)} أوقية. اختر لمن يُحفظ الباقي.`,
+                    step: "credit",
+                  }
+                : null;
+
+  /** The footer button when something is missing: take the user to it. */
+  const goTo = (step: Step) => {
+    if (step === "months") {
+      const i = Math.max(
+        0,
+        rows.findIndex((r) => !r.months.length),
+      );
+      setRows((rs) => rs.map((x, j) => (j === i ? { ...x, edit: true } : x)));
+      show(heads.current.get(rows[i].m.memberId)?.closest<HTMLElement>(".bq-rec-row") ?? null);
+    } else if (step === "method") show(methodRef.current);
+    else if (step === "payer") show(payerRef.current?.parentElement ?? null, payerRef.current);
+    else if (step === "amount") show(amountRef.current?.parentElement ?? null, amountRef.current);
+    else show(creditRef.current);
+  };
+
+  // short transfer, one member: offer to record only the months the money covers
+  const fitMonths = (() => {
+    if (diff >= 0 || sent === null || rows.length !== 1) return null;
+    const p = priceOf(rows[0].m);
+    const n = p ? Math.floor((sent - campAmt) / p) : 0;
+    return n >= 1 && n < rows[0].months.length ? n : null;
+  })();
 
   const addRow = (m: MemberRow) => {
+    focusNext.current = m.memberId;
     setRows((rs) => [...rs, { m, months: defaultMonths(ctx, m), edit: false }]);
     setAdding(false);
   };
@@ -414,6 +522,8 @@ export function RecordBody({
   const onShot = async (f: File) => {
     setErr("");
     setChecks(null);
+    setRead(null);
+    const seq = ++readSeq.current;
     // read the original first (sharper), then compress for the upload
     setReading(true);
     readReceipt(f, {
@@ -425,18 +535,35 @@ export function RecordBody({
       })),
     })
       .then((r) => {
-        if (r.method) setMeth(r.method);
-        if (r.txnRef) setTxn(r.txnRef);
-        if (r.amountMro) setSentTxt(String(r.amountMro));
-        if (r.date && /^\d{4}-\d{2}-\d{2}/.test(r.date)) setPaidOn(r.date.slice(0, 10));
-        setChecks({ ...r.checks, readMro: r.amountMro });
+        if (seq !== readSeq.current) return; // a newer picture replaced this one
+        const got = new Set<ShotField>();
+        if (r.method) {
+          setMeth(r.method);
+          got.add("method");
+        }
+        if (r.txnRef) {
+          setTxn(r.txnRef);
+          got.add("txn");
+        }
+        if (r.amountMro) {
+          setSentTxt(String(r.amountMro));
+          got.add("amount");
+        }
+        if (r.date && /^\d{4}-\d{2}-\d{2}/.test(r.date) && r.date.slice(0, 10) <= todayIso()) {
+          setPaidOn(r.date.slice(0, 10));
+          got.add("date");
+        }
+        setFromShot(got);
+        setChecks(r.checks);
+        setRead({ ok: got.size > 0 });
       })
-      .catch(() => setChecks(null))
-      .finally(() => setReading(false));
+      .catch(() => seq === readSeq.current && setRead({ ok: false }))
+      .finally(() => seq === readSeq.current && setReading(false));
     try {
-      setShot({ url: await compressImage(f), name: f.name });
+      const url = await compressImage(f);
+      if (seq === readSeq.current) setShot({ url, name: f.name });
     } catch {
-      setErr("تعذّر قراءة الصورة. جرّب صورة أخرى.");
+      if (seq === readSeq.current) setErr("تعذّر فتح الصورة. جرّب صورة أخرى.");
     }
   };
 
@@ -459,7 +586,6 @@ export function RecordBody({
       }
       proof = up.data;
     }
-    const credit = diff > 0 && creditFor ? diff : 0;
     rememberMembers(rows.map((r) => r.m));
     const r = await recordPayment({
       id,
@@ -487,8 +613,8 @@ export function RecordBody({
               },
             ]
           : []),
-        ...(credit && creditFor
-          ? [{ kind: "credit" as const, memberId: creditFor, amount: credit }]
+        ...(credit && creditTo
+          ? [{ kind: "credit" as const, memberId: creditTo, amount: credit }]
           : []),
       ],
       txnRef: txn.trim() || undefined,
@@ -561,6 +687,41 @@ export function RecordBody({
         </button>
       </div>
     );
+
+  const feeMonths = rows.reduce((s, r) => s + r.months.length, 0);
+  const payingRows = rows.filter((r) => r.months.length);
+  const creditName = rows.find((r) => r.m.memberId === creditTo)?.m.fullName ?? "";
+  const summary = [
+    feeMonths > 0 &&
+      (payingRows.length === 1
+        ? `رسوم ${monthsLabel(payingRows[0].months)}`
+        : `رسوم ${monthCount(feeMonths)} ${forMembers(payingRows.length)}`),
+    campAmt > 0 && (
+      <>
+        مساهمة <Num>{fmt(campAmt)}</Num>
+      </>
+    ),
+    credit > 0 && (
+      <>
+        رصيد <Num>{fmt(credit)}</Num> لـ {creditName}
+      </>
+    ),
+    meth && METHOD_LABELS[meth],
+    paidOn === todayIso() ? "اليوم" : dayWords(paidOn),
+  ].filter(Boolean);
+  const moreSub = [
+    payer !== null && payerName !== rows[0]?.m.fullName ? `الدافع: ${payerName}` : "الدافع",
+    txn.trim() ? "رقم العملية" : null,
+    "المبلغ المحوّل",
+    openCamps.length ? "حملة" : null,
+  ]
+    .filter(Boolean)
+    .join("، ");
+  const methods = [
+    ...MAIN_METHODS,
+    ...(moreMeth || (meth && !MAIN_METHODS.includes(meth)) ? OTHER_METHODS : []),
+  ];
+
   return (
     <div className="bq-rec">
       <h2>سجّل دفعة</h2>
@@ -572,6 +733,10 @@ export function RecordBody({
           row={row}
           ctx={ctx}
           price={priceOf(row.m)}
+          headRef={(el) => {
+            if (el) heads.current.set(row.m.memberId, el);
+            else heads.current.delete(row.m.memberId);
+          }}
           onChange={(r) => setRows((rs) => rs.map((x, j) => (j === i ? r : x)))}
           onRemove={() => {
             setRows((rs) => rs.filter((_, j) => j !== i));
@@ -581,7 +746,8 @@ export function RecordBody({
         />
       ))}
       {adding || !rows.length ? (
-        <>
+        <div className={rows.length ? "bq-rec-in" : undefined}>
+          {rows.length > 0 && <p className="bq-rec-k">عضو آخر في نفس التحويل</p>}
           <MemberPicker
             members={members}
             exclude={exclude}
@@ -597,222 +763,304 @@ export function RecordBody({
               إلغاء
             </button>
           )}
-        </>
+        </div>
       ) : (
         <button
           type="button"
-          className="bq-btn bq-btn-soft bq-press bq-rec-add"
+          className="bq-link bq-link-s bq-press bq-rec-add"
           onClick={() => setAdding(true)}
         >
-          {I.plus(20)} إضافة عضو آخر لنفس التحويل
+          {I.plus(18)} عضو آخر في نفس التحويل
         </button>
       )}
 
-      {rows.length > 0 && (
-        <>
-          <p className="bq-rec-k">الدافع</p>
-          {editPayer ? (
-            <input
-              className="bq-input"
-              value={payer ?? rows[0].m.fullName}
-              onChange={(e) => setPayer(e.target.value)}
-              aria-label="اسم الدافع"
-              autoFocus
-            />
-          ) : (
-            <p className="bq-rec-line">
-              <span>{payerName}</span>
-              <button
-                type="button"
-                className="bq-link bq-link-s bq-press"
-                onClick={() => setEditPayer(true)}
-              >
-                دفع شخص آخر؟
-              </button>
-            </p>
-          )}
-
-          {openCamps.length > 0 &&
-            (campOpen ? (
-              <>
-                <p className="bq-rec-k">مساهمة في حملة</p>
-                <div className="bq-chips" role="radiogroup" aria-label="الحملة">
-                  {openCamps.map((c) => (
-                    <button
-                      key={c.campaignId}
-                      type="button"
-                      role="radio"
-                      aria-checked={camp === c.campaignId}
-                      className="bq-chip bq-press"
-                      onClick={() => setCamp(camp === c.campaignId ? null : c.campaignId)}
-                    >
-                      {c.title}
-                    </button>
-                  ))}
-                </div>
-                {camp && (
-                  <input
-                    className="bq-input"
-                    value={campTxt}
-                    onChange={(e) => setCampTxt(toWesternDigits(e.target.value))}
-                    inputMode="numeric"
-                    dir="ltr"
-                    placeholder="مبلغ المساهمة بالأوقية"
-                    aria-label="مبلغ المساهمة"
-                  />
-                )}
-              </>
+      {rows.length > 0 && !adding && (
+        <div className="bq-rec-in">
+          <label className={`bq-rec-shot bq-press ${shot ? "has-shot" : ""}`}>
+            {shot ? (
+              // eslint-disable-next-line @next/next/no-img-element -- local data URL preview
+              <img src={shot.url} alt="" className="bq-rec-thumb" />
             ) : (
-              <button
-                type="button"
-                className="bq-link bq-link-s bq-press"
-                onClick={() => setCampOpen(true)}
-              >
-                {I.plus(18)} ومعها مساهمة في حملة
-              </button>
-            ))}
-
-          <p className="bq-rec-k">صورة التحويل (تملأ الحقول وحدها)</p>
-          <label className="bq-btn bq-btn-soft bq-press">
-            {I.image(20)} {shot ? "تغيير الصورة" : "اختر صورة التحويل"}
+              <span className="bq-rec-shot-i">{I.image(24)}</span>
+            )}
+            <span className="bq-rec-shot-t">
+              <span className="bq-rec-shot-h">
+                {shot ? "صورة التحويل مرفقة" : "أرفق صورة التحويل"}
+              </span>
+              <span className="bq-rec-shot-s" role="status">
+                {reading ? (
+                  <>
+                    <span className="bq-spin" aria-hidden="true" /> نقرأ الصورة… يمكنك المتابعة.
+                  </>
+                ) : read ? (
+                  read.ok ? (
+                    "ملأنا ما قرأناه منها. راجعه قبل الحفظ."
+                  ) : (
+                    "لم نستطع قراءتها. أكمل الحقول بنفسك."
+                  )
+                ) : shot ? (
+                  "اضغط لتغييرها."
+                ) : (
+                  "اختياري. نقرأ منها الوسيلة والمبلغ والتاريخ."
+                )}
+              </span>
+            </span>
+            {shot && <span className="bq-rec-shot-a">تغيير</span>}
             <input
               type="file"
               accept="image/*"
               className="bq-sr"
+              aria-label={shot ? "تغيير صورة التحويل" : "أرفق صورة التحويل"}
               onChange={(e) => {
                 const f = e.target.files?.[0];
+                e.target.value = "";
                 if (f) void onShot(f);
               }}
             />
           </label>
-          {reading && (
-            <p className="bq-hint" role="status">
-              <span className="bq-spin" aria-hidden="true" /> نقرأ الصورة… يمكنك إكمال الحقول بنفسك.
-            </p>
-          )}
-          {shot && !reading && <p className="bq-hint">أُرفقت الصورة.</p>}
           {checks && !checks.recipient && (
             <p className="bq-hint">{I.search(16)} تحقق: المستلم في الصورة ليس من أرقام الصندوق.</p>
           )}
 
-          <p className="bq-rec-k">
-            كيف دفع؟ <Check bad={checks ? !checks.method : false} />
-          </p>
-          <div className="bq-meth-grid" role="radiogroup" aria-label="وسيلة الدفع">
-            {[
-              ...MAIN_METHODS,
-              ...(moreMeth || (meth && !MAIN_METHODS.includes(meth)) ? OTHER_METHODS : []),
-            ].map((m) => (
+          <div className="bq-rec-sec" ref={methodRef}>
+            <p className="bq-rec-k" id="bq-rec-meth">
+              كيف دفع؟ <Mark from={fromShot.has("method")} ok={!!checks?.method} />
+            </p>
+            <div className="bq-meth-grid" role="radiogroup" aria-labelledby="bq-rec-meth">
+              {methods.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  role="radio"
+                  aria-checked={meth === m}
+                  className="bq-meth-opt bq-press is-main"
+                  onClick={() => {
+                    setMeth(m);
+                    touched("method");
+                  }}
+                >
+                  <MethodBadge method={m} size={36} label={false} />
+                  <span>{METHOD_LABELS[m]}</span>
+                </button>
+              ))}
+            </div>
+            {!moreMeth && !(meth && !MAIN_METHODS.includes(meth)) && (
               <button
-                key={m}
                 type="button"
-                role="radio"
-                aria-checked={meth === m}
-                className="bq-meth-opt bq-press is-main"
-                onClick={() => setMeth(m)}
+                className="bq-link bq-link-s bq-press"
+                onClick={() => setMoreMeth(true)}
               >
-                <MethodBadge method={m} size={36} label={false} />
-                <span>{METHOD_LABELS[m]}</span>
+                محفظة أخرى
               </button>
-            ))}
+            )}
           </div>
-          {!moreMeth && !(meth && !MAIN_METHODS.includes(meth)) && (
+
+          <p className="bq-rec-k">
+            تاريخ الدفع <Mark from={fromShot.has("date")} ok={!!checks?.date} />
+          </p>
+          <DateField
+            value={paidOn}
+            onChange={(v) => {
+              setPaidOn(v);
+              touched("date");
+            }}
+            label="تاريخ الدفع"
+            noFuture
+          />
+
+          <div className="bq-rec-more" ref={moreRef}>
             <button
               type="button"
-              className="bq-link bq-link-s bq-press"
-              onClick={() => setMoreMeth(true)}
+              className="bq-rec-more-h bq-press"
+              aria-expanded={more}
+              aria-controls="bq-rec-more-b"
+              onClick={() => setMore(!more)}
             >
-              محفظة أخرى
+              <span className="bq-row-m">
+                <span className="bq-row-t">تفاصيل أخرى</span>
+                <span className="bq-row-s">{moreSub}</span>
+              </span>
+              <span className="bq-rec-more-i">{I.chev(20)}</span>
             </button>
-          )}
-
-          {meth && meth !== "cash" && (
-            <>
-              <p className="bq-rec-k">
-                رقم العملية (اختياري) <Check bad={checks ? !checks.txnRef : false} />
-              </p>
-              <input
-                className="bq-input"
-                value={txn}
-                onChange={(e) => setTxn(toWesternDigits(e.target.value))}
-                dir="ltr"
-                aria-label="رقم العملية"
-              />
-            </>
-          )}
-
-          <p className="bq-rec-k">
-            المبلغ المحوّل (اختياري) <Check bad={checks ? !checks.amount : false} />
-          </p>
-          <input
-            className="bq-input"
-            value={sentTxt}
-            onChange={(e) => setSentTxt(toWesternDigits(e.target.value))}
-            inputMode="numeric"
-            dir="ltr"
-            placeholder={total ? fmt(total) : ""}
-            aria-label="المبلغ المحوّل بالأوقية"
-          />
-          {diff > 0 && (
-            <div className="bq-rec-credit">
-              <p className="bq-hint">
-                الباقي <Num className="bq-strong">{fmt(diff)}</Num> أوقية. يُحفظ رصيدًا لـ:
-              </p>
-              <div className="bq-chips" role="radiogroup" aria-label="رصيد الباقي">
-                {rows.map((r) => (
+            {more && (
+              <div id="bq-rec-more-b" className="bq-rec-in">
+                <label className="bq-rec-field">
+                  <span className="bq-rec-k">
+                    المبلغ المحوّل <Mark from={fromShot.has("amount")} ok={diff === 0} />
+                  </span>
+                  <input
+                    ref={amountRef}
+                    className="bq-input"
+                    value={sentTxt}
+                    onChange={(e) => {
+                      setSentTxt(toWesternDigits(e.target.value));
+                      touched("amount");
+                    }}
+                    inputMode="numeric"
+                    dir="ltr"
+                    placeholder={total ? fmt(total) : ""}
+                    aria-describedby="bq-rec-sent-h"
+                  />
+                  <span className="bq-hint" id="bq-rec-sent-h">
+                    {sent === null ? (
+                      "اتركه فارغًا إذا حُوّل المجموع نفسه."
+                    ) : diff === 0 ? (
+                      <>{I.check(16)} يطابق المجموع.</>
+                    ) : diff < 0 ? (
+                      <>
+                        أقل من المجموع بـ <Num className="bq-strong">{fmt(-diff)}</Num> أوقية.
+                      </>
+                    ) : (
+                      <>
+                        أكبر من المجموع بـ <Num className="bq-strong">{fmt(diff)}</Num> أوقية.
+                      </>
+                    )}
+                  </span>
+                </label>
+                {fitMonths && (
                   <button
-                    key={r.m.memberId}
                     type="button"
-                    role="radio"
-                    aria-checked={creditFor === r.m.memberId}
-                    className="bq-chip bq-press"
-                    onClick={() => setCreditFor(r.m.memberId)}
+                    className="bq-chip bq-press bq-rec-fit"
+                    onClick={() =>
+                      setRows((rs) => [{ ...rs[0], months: rs[0].months.slice(0, fitMonths) }])
+                    }
                   >
-                    {r.m.fullName}
+                    سجّل {monthCount(fitMonths)} فقط
                   </button>
-                ))}
-              </div>
-            </div>
-          )}
+                )}
+                {diff > 0 && (
+                  <div className="bq-rec-credit bq-rec-in" ref={creditRef}>
+                    {rows.length === 1 ? (
+                      <p className="bq-hint">
+                        الباقي <Num className="bq-strong">{fmt(diff)}</Num> أوقية يُحفظ رصيدًا لـ{" "}
+                        {rows[0].m.fullName}.
+                      </p>
+                    ) : (
+                      <>
+                        <p className="bq-hint" id="bq-rec-credit">
+                          الباقي <Num className="bq-strong">{fmt(diff)}</Num> أوقية. يُحفظ رصيدًا
+                          لـ:
+                        </p>
+                        <div className="bq-chips" role="radiogroup" aria-labelledby="bq-rec-credit">
+                          {rows.map((r) => (
+                            <button
+                              key={r.m.memberId}
+                              type="button"
+                              role="radio"
+                              aria-checked={creditTo === r.m.memberId}
+                              className="bq-chip bq-press"
+                              onClick={() => setCreditFor(r.m.memberId)}
+                            >
+                              {r.m.fullName}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
-          <p className="bq-rec-k">
-            تاريخ الدفع <Check bad={checks ? !checks.date : false} />
-          </p>
-          <DateField value={paidOn} onChange={setPaidOn} label="تاريخ الدفع" noFuture />
-        </>
+                {meth !== "cash" && (
+                  <label className="bq-rec-field">
+                    <span className="bq-rec-k">
+                      رقم العملية (اختياري){" "}
+                      <Mark from={fromShot.has("txn")} ok={!!checks?.txnRef} />
+                    </span>
+                    <input
+                      className="bq-input"
+                      value={txn}
+                      onChange={(e) => {
+                        setTxn(toWesternDigits(e.target.value));
+                        touched("txn");
+                      }}
+                      dir="ltr"
+                    />
+                  </label>
+                )}
+
+                <label className="bq-rec-field">
+                  <span className="bq-rec-k">الدافع (صاحب التحويل)</span>
+                  <input
+                    ref={payerRef}
+                    className="bq-input"
+                    value={payer ?? rows[0].m.fullName}
+                    onChange={(e) => setPayer(e.target.value)}
+                  />
+                </label>
+
+                {openCamps.length > 0 && (
+                  <>
+                    <p className="bq-rec-k" id="bq-rec-camp">
+                      ومعها مساهمة في حملة؟
+                    </p>
+                    <div className="bq-chips" role="radiogroup" aria-labelledby="bq-rec-camp">
+                      {openCamps.map((c) => (
+                        <button
+                          key={c.campaignId}
+                          type="button"
+                          role="radio"
+                          aria-checked={camp === c.campaignId}
+                          className="bq-chip bq-press"
+                          onClick={() => setCamp(camp === c.campaignId ? null : c.campaignId)}
+                        >
+                          {c.title}
+                        </button>
+                      ))}
+                    </div>
+                    {camp && (
+                      <input
+                        className="bq-input bq-rec-in bq-rec-camp-amt"
+                        value={campTxt}
+                        onChange={(e) => setCampTxt(toWesternDigits(e.target.value))}
+                        inputMode="numeric"
+                        dir="ltr"
+                        placeholder="مبلغ المساهمة بالأوقية"
+                        aria-label="مبلغ المساهمة"
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
-      {rows.length > 0 && (
+      {rows.length > 0 && !adding && (
         <div className="bq-rec-foot">
-          <p className="bq-rec-sum" aria-live="polite">
-            <span className="bq-hint">
-              {rows.length > 1 ? `${rows.length} أعضاء` : "المجموع"}
-              {campAmt > 0 && (
-                <>
-                  {" "}
-                  + مساهمة <Num>{fmt(campAmt)}</Num>
-                </>
-              )}
-            </span>
-            <span>
-              <Num className="bq-rec-amt">{fmt(total + (diff > 0 && creditFor ? diff : 0))}</Num>{" "}
-              أوقية
-            </span>
-          </p>
+          <div className="bq-rec-sum" aria-live="polite">
+            <p className="bq-rec-sum-l">
+              <span className="bq-hint">سيُسجَّل</span>
+              <span>
+                <Num className="bq-rec-amt">{fmt(total + credit)}</Num> أوقية
+              </span>
+            </p>
+            {summary.length > 0 && (
+              <p className="bq-rec-what">
+                {summary.map((s, i) => (
+                  <span key={i}>{s}</span>
+                ))}
+              </p>
+            )}
+          </div>
           {err ? (
             <p className="bq-alert" role="alert">
               {err}
             </p>
           ) : (
-            block && rows.length > 0 && <p className={diff < 0 ? "bq-alert" : "bq-hint"}>{block}</p>
+            // the button already names the step; say more only when the numbers disagree
+            block &&
+            (!block.step || block.step === "amount" || block.step === "credit") && (
+              <p className={diff < 0 && !fitMonths ? "bq-alert" : "bq-hint"}>{block.msg}</p>
+            )
           )}
           <button
             type="button"
-            className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-            disabled={!!block || busy || !online}
-            onClick={() => void submit()}
+            className={`bq-btn bq-btn-lg bq-press ${block?.step ? "bq-btn-soft" : "bq-btn-primary"}`}
+            disabled={busy || !online || (!!block && !block.step)}
+            onClick={() => (block?.step ? goTo(block.step) : void submit())}
           >
-            {busy ? "جارٍ الحفظ…" : "سجّل الدفعة"}
+            {busy ? "جارٍ الحفظ…" : block?.step ? STEP_CTA[block.step] : "سجّل الدفعة"}
           </button>
           <OfflineWriteHint />
         </div>

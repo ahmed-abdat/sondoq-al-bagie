@@ -234,6 +234,30 @@ Notes:
 - Login: «نسيت كلمة السر؟ اطلب من المسؤول كلمة سر جديدة.» (no email reset).
 - Verified: shots `r16/` (390, 1280), check + both builds green, e2e 41/41 on fixtures.
 
+## Record payment, simplified (Lane C2, branch m2-ui-record)
+Audit and plan: `docs/RECORD-PAYMENT-AUDIT.md`. All in `record.tsx` + one marked CSS block at the
+end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`, `uploadProof`,
+`@/lib/ocr`, `useAct` demo seam).
+- Order: who (late months by default, amount per row) → «أرفق صورة التحويل» card (thumbnail,
+  reading status, «تغيير») → «كيف دفع؟» → date → «تفاصيل أخرى» (amount sent, ref, payer,
+  campaign), folded; it opens by itself when the amount sent differs or the payer is empty.
+- Footer: «سيُسجَّل» + figure, then «رسوم من يناير إلى سبتمبر · بنكيلي · اليوم» (members,
+  contribution, credit, method, date). One button: «سجّل الدفعة» when ready, otherwise it names
+  the step («اختر كيف دفع», «اختر الأشهر», «صحّح المبلغ», «اختر لمن الباقي», «اكتب اسم الدافع»),
+  scrolls to it and rings it once. Disabled only for a missing group price or offline.
+- OCR: «من الصورة» (or «تحقق») mark per field, cleared when edited; an older reading never
+  overwrites a newer picture; future dates ignored; the amount mark follows the live difference.
+- Short transfer: «أقل من المجموع بـ …» plus «سجّل N أشهر فقط» when one member. Over: the rest
+  goes to the only member by default (said in the summary), or a chosen one when several.
+- «عضو آخر في نفس التحويل» is a quiet link; the form hides while picking; focus lands on the new
+  member's name. Sections enter 220ms (opacity + 8px), fade only with reduced motion.
+- Common case (one late member, screenshot read): 6 taps + 2 scrolls → FAB, member, screenshot
+  (+ gallery pick), «سجّل الدفعة» (4, no scroll). Without a screenshot: FAB, member, method, save.
+- Checked: 390/1280 (`/private/tmp/claude-502/sondoq-shots/rec/flow.mjs`, shots `rec/`), reduced
+  motion, keyboard order, e2e `e2e/record.spec.ts` (43/43 with the suite).
+- Remaining: the reading has no sender name (Lane B/OCR); with it the payer or member could be
+  suggested. Starting from a WhatsApp share (share target) would save the gallery step.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
