@@ -20,6 +20,7 @@ import {
   monthCount,
   monthsInWords,
 } from "./derive";
+import { MemberNo } from "./bits";
 import { I } from "./icons";
 import { verifyPath, type ReceiptView } from "./receipt-model";
 
@@ -544,8 +545,16 @@ export function Receipt({
                 <dd>
                   {r.covers.map((c) => (
                     <span key={`${c.name}-${c.year}`} className="rc-cover">
-                      {(multi || c.name !== r.payer) && (
-                        <span className="rc-for">عن: {c.name}</span>
+                      {(multi || c.name !== r.payer || c.ref) && (
+                        <span className="rc-for">
+                          عن: {c.name}
+                          {c.ref && (
+                            <>
+                              {" "}
+                              (<MemberNo m={{ memberRef: c.ref }} />)
+                            </>
+                          )}
+                        </span>
                       )}
                       <span className="rc-months">{monthsInWords(c.months, c.year)}</span>
                       <span className="rc-count">{monthCount(c.months.length)}</span>

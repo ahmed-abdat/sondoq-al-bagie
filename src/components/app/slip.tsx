@@ -8,7 +8,7 @@ import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct } from "./act";
 import type { PendingPayment } from "@/lib/data/types";
 import { shareReceipt } from "@/lib/share-receipt";
-import { MethodBadge } from "./bits";
+import { MemberNo, MethodBadge } from "./bits";
 import { dayWords, fmt, monthsInWords, relativeAgo } from "./derive";
 import { ShareBtns } from "./entries";
 import { I } from "./icons";
@@ -184,8 +184,21 @@ export function PendingSlip({
       </p>
       {base.covers.map((c) => (
         <p key={`${c.name}-${c.year}`} className="bq-slip-cov">
-          {multi || c.name !== p.payerName ? `عن ${c.name}: ` : "عن: "}رسوم{" "}
-          {monthsInWords(c.months, c.year)}
+          {multi || c.name !== p.payerName || c.ref ? (
+            <>
+              عن {c.name}
+              {c.ref && (
+                <>
+                  {" "}
+                  (<MemberNo m={{ memberRef: c.ref }} />)
+                </>
+              )}
+              :{" "}
+            </>
+          ) : (
+            "عن: "
+          )}
+          رسوم {monthsInWords(c.months, c.year)}
         </p>
       ))}
       {base.campaigns.length > 0 && (

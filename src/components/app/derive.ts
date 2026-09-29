@@ -1,6 +1,7 @@
 // Pure UI helpers: Arabic wording, member state, search, dates. No React, no data fetching.
 import { MONTHS_AR, WEEKDAYS_AR } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
+import { memberNumber } from "@/lib/share-receipt";
 import type {
   ExpenseCategory,
   MemberMonth,
@@ -164,8 +165,7 @@ export function memberLabel(
   m: { memberRef: string },
   { scoped = false }: { scoped?: boolean } = {},
 ) {
-  const { letter, n } = splitRef(m.memberRef);
-  return scoped ? String(n) : `${letter}\u2009${n}`;
+  return scoped ? String(splitRef(m.memberRef).n) : memberNumber(m.memberRef);
 }
 
 const toLatinDigits = (s: string) => s.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));

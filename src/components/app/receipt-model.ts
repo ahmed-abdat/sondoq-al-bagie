@@ -17,7 +17,13 @@ export type ReceiptStatus =
   | ({ kind: "rejected"; reason: string } & ReceiptActor)
   | ({ kind: "cancelled"; reason: string } & ReceiptActor);
 
-export type ReceiptCover = { name: string; year: number; months: number[] };
+export type ReceiptCover = {
+  name: string;
+  /** memberRef «A-12» (internal key), shown as «أ 12» */
+  ref?: string | null;
+  year: number;
+  months: number[];
+};
 
 export type ReceiptView = {
   /** printed number, e.g. 2026-0042; null while pending */
@@ -43,13 +49,24 @@ export const roleLabel = (r: CommitteeRole | string | null | undefined) =>
   r && r in ROLE_LABEL ? ROLE_LABEL[r as CommitteeRole] : (r ?? "");
 
 /** Group month allocations by member and year: one cover line per member per year. */
-function coversOf(members: { fullName: string; months: { year: number; month: number }[] }[]) {
+type CoverMember = {
+  fullName: string;
+  listCode?: string;
+  number?: number;
+  months: { year: number; month: number }[];
+};
+function coversOf(members: CoverMember[]) {
   const out: ReceiptCover[] = [];
   for (const m of members) {
     const byYear = new Map<number, number[]>();
     for (const x of m.months) byYear.set(x.year, [...(byYear.get(x.year) ?? []), x.month]);
     for (const [year, months] of [...byYear].sort((a, b) => a[0] - b[0]))
-      out.push({ name: m.fullName, year, months: months.sort((a, b) => a - b) });
+      out.push({
+        name: m.fullName,
+        ref: m.listCode && m.number ? `${m.listCode}-${m.number}` : null,
+        year,
+        months: months.sort((a, b) => a - b),
+      });
   }
   return out;
 }
@@ -88,14 +105,16 @@ export function fromPending(
   p: PendingPayment,
   opts: { campaignTitles?: Record<string, string>; deciderRole?: string } = {},
 ): ReceiptView {
-  const members = new Map<
-    string,
-    { fullName: string; months: { year: number; month: number }[] }
-  >();
+  const members = new Map<string, CoverMember>();
   const campaigns: string[] = [];
   for (const a of p.allocations) {
     if (a.kind === "months") {
-      const m = members.get(a.memberId) ?? { fullName: a.fullName, months: [] };
+      const m = members.get(a.memberId) ?? {
+        fullName: a.fullName,
+        listCode: a.listCode,
+        number: a.number,
+        months: [],
+      };
       m.months.push({ year: a.year, month: a.month });
       members.set(a.memberId, m);
     } else if (a.kind === "campaign") {
