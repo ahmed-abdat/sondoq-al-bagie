@@ -47,10 +47,13 @@ Redeploy after changing variables. Crons (`vercel.json`, production only): keep-
 Then add the others in the app (committee settings, `/committee/settings` → accounts): name, email
 **or** Mauritanian phone number, role (`treasurer` أمين الصندوق, `deputy` نائبه, `committee` عضو لجنة,
 `admin`). The app shows a generated password **once**: send the login and password to the person
-yourself (WhatsApp). They sign in on `/login` with the email or the phone number. If a password is
-lost, the admin resets it there (a new one is shown once). Accounts are deactivated, never deleted.
-This needs `SUPABASE_SECRET_KEY` on Vercel. Link a committee member to their own member row so
-nobody confirms their own payment. The admin, the treasurer and the deputy confirm money.
+yourself (WhatsApp). They sign in on `/login` with the email or the phone number; the first time
+they finish a short setup (their name, their own member row or «لست عضوًا», a new password). There
+is no «forgot password» by email: if a password is lost, the admin resets it there (a new one is
+shown once, and the setup comes back). Accounts are deactivated; an account that never did anything
+can be deleted. This needs `SUPABASE_SECRET_KEY` on Vercel. Link a committee member to their own
+member row (at creation, or in the setup) so nobody confirms their own payment; changing a link
+later is for the admin. The admin, the treasurer and the deputy confirm money.
 
 ## 5. Settings in the app (admin, `/committee/settings`)
 

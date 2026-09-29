@@ -219,15 +219,7 @@ export type UpdateHandoverDraftInput = z.input<typeof updateHandoverDraftSchema>
 export type AcceptHandoverInput = z.input<typeof acceptHandoverSchema>;
 export type CancelHandoverInput = z.input<typeof cancelHandoverSchema>;
 
-export const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
 export const passwordSchema = z.object({ password: z.string().min(8).max(72) });
-
-export const inviteCommitteeMemberSchema = z.object({
-  email: emailSchema,
-  displayName: text(80),
-  role: z.enum(E.committee_role),
-  memberId: id.nullish(),
-});
 
 export const createCommitteeAccountSchema = z.object({
   displayName: text(80),
@@ -241,7 +233,6 @@ export const setCommitteeActiveSchema = z.object({ userId: id, active: z.boolean
 
 export type CreateCommitteeAccountInput = z.input<typeof createCommitteeAccountSchema>;
 export type SetCommitteeActiveInput = z.input<typeof setCommitteeActiveSchema>;
-export type InviteCommitteeMemberInput = z.input<typeof inviteCommitteeMemberSchema>;
 export type RecordPaymentInput = z.input<typeof recordPaymentSchema>;
 export type AllocationInput = z.input<typeof allocationSchema>;
 export type RecordExpenseInput = z.input<typeof recordExpenseSchema>;
