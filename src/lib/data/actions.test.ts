@@ -69,6 +69,7 @@ const {
   deleteCommitteeAccount,
   signOutEverywhere,
   completeSetup,
+  linkCommitteeMember,
 } = await import("./actions");
 
 const id = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -455,6 +456,44 @@ describe("actions", () => {
       });
       expect(await completeSetup(input)).toMatchObject({ code: "same_password" });
       expect(updateUserById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("linkCommitteeMember", () => {
+    const uid = "0f8fad5b-d9cb-469f-a165-70867728950e";
+    it("admin only; keeps name, role and active; null unlinks", async () => {
+      session = { role: "treasurer", userId: "me" };
+      expect(await linkCommitteeMember({ userId: uid, memberId: null })).toMatchObject({
+        code: "not_admin",
+      });
+      session = { role: "admin", userId: "me" };
+      accountRow = null;
+      expect(await linkCommitteeMember({ userId: uid, memberId: null })).toMatchObject({
+        code: "not_committee_account",
+      });
+      accountRow = { display_name: "سيدي", role: "deputy", active: false } as never;
+      rpc.mockResolvedValue({ data: null, error: null });
+      expect(await linkCommitteeMember({ userId: uid, memberId: null })).toEqual({
+        ok: true,
+        data: undefined,
+      });
+      expect(rpc).toHaveBeenCalledWith("set_committee_member", {
+        p_user_id: uid,
+        p_display_name: "سيدي",
+        p_role: "deputy",
+        p_member_id: null,
+        p_active: false,
+      });
+      rpc.mockResolvedValue({
+        data: null,
+        error: {
+          code: "23505",
+          message: 'duplicate key value violates unique constraint "committee_member_id_key"',
+        },
+      });
+      expect(await linkCommitteeMember({ userId: uid, memberId: member })).toMatchObject({
+        code: "member_taken",
+      });
     });
   });
 });
