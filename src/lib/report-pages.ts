@@ -13,6 +13,7 @@ import type {
   ReportMonthState,
 } from "./data/types";
 import { formatDay, monthName } from "./dates";
+import { checkLabel, monthMark, rowChecked, type CheckMeaning } from "./report-check";
 import { formatNumber } from "./format";
 import { FUND_NAME } from "./share-receipt";
 import {
@@ -202,18 +203,6 @@ export function footerLabel(no: number, of: number, asOf: string): string {
   return `${FUND_NAME} · الصفحة ${no} من ${of} · حتى ${asOf}`;
 }
 
-/** The status pill of a member row. */
-export function statusPill(m: Pick<ReportMember, "status" | "statusLabel" | "monthsBehind">): {
-  text: string;
-  tone: "ok" | "late" | "exempt" | "other";
-} {
-  if (m.status === "exempt") return { text: "معفى", tone: "exempt" };
-  if (m.status !== "active") return { text: m.statusLabel, tone: "other" };
-  return m.monthsBehind > 0
-    ? { text: `متأخر ${m.monthsBehind}`, tone: "late" }
-    : { text: "منتظم", tone: "ok" };
-}
-
 /* ─────────────── drawing ─────────────── */
 
 interface PageDrawOptions {
@@ -224,6 +213,7 @@ interface PageDrawOptions {
   /** 1-based page number and total, for the footer. */
   no: number;
   of: number;
+  check: CheckMeaning;
 }
 
 const isPaid = (s: ReportMonthState | undefined) => s === "paid" || s === "prepaid";
@@ -271,83 +261,34 @@ function band(
   );
 }
 
-/** The month mark: ● paid (early or not, the same), ○ late; anything else stays empty. */
-function mark(p: Pen, s: ReportMonthState | "none" | undefined, cx: number, cy: number) {
+/** The month mark: ● paid, ○ unpaid; not owed stays empty. */
+function mark(p: Pen, s: "paid" | "unpaid" | null, cx: number, cy: number) {
   const x = p.x;
   const r = 12;
-  if (isPaid(s as ReportMonthState)) return p.dot(cx, cy, r, T.green);
-  if (s === "late") {
+  if (s === "paid") return p.dot(cx, cy, r, T.green);
+  if (s === "unpaid") {
     x.lineWidth = 3;
     x.strokeStyle = T.slate;
     x.beginPath();
     x.arc(cx, cy, r - 1.5, 0, Math.PI * 2);
     x.stroke();
   }
-  // not due yet, not owed, exempt: empty cell
 }
 
-const PILL = {
-  ok: { bg: T.greenTint, ink: T.forest },
-  late: { bg: T.mist, ink: T.slate },
-  exempt: { bg: T.goldTint, ink: T.goldInk },
-  other: { bg: T.mist, ink: T.slate },
-} as const;
-
-function checkIcon(p: Pen, cx: number, cy: number, color: string) {
+/** The row's ✓: a green disc with a white check. */
+function okCheck(p: Pen, cx: number, cy: number, r: number) {
+  p.dot(cx, cy, r, T.green);
+  const k = r / 16;
   const x = p.x;
-  x.lineWidth = 3;
+  x.lineWidth = 3 * k;
   x.lineCap = "round";
   x.lineJoin = "round";
-  x.strokeStyle = color;
+  x.strokeStyle = T.paper;
   x.beginPath();
-  x.moveTo(cx - 7, cy);
-  x.lineTo(cx - 2, cy + 5);
-  x.lineTo(cx + 8, cy - 6);
+  x.moveTo(cx - 7 * k, cy);
+  x.lineTo(cx - 2 * k, cy + 5 * k);
+  x.lineTo(cx + 8 * k, cy - 6 * k);
   x.stroke();
-}
-
-function clockIcon(p: Pen, cx: number, cy: number, color: string) {
-  const x = p.x;
-  x.lineWidth = 2.5;
-  x.lineCap = "round";
-  x.strokeStyle = color;
-  x.beginPath();
-  x.arc(cx, cy, 8, 0, Math.PI * 2);
-  x.stroke();
-  x.beginPath();
-  x.moveTo(cx, cy - 4.5);
-  x.lineTo(cx, cy);
-  x.lineTo(cx + 3.5, cy + 2.5);
-  x.stroke();
-}
-
-/** A 40 px pill with its right edge at `right`; returns its width. */
-function pill(
-  p: Pen,
-  right: number,
-  mid: number,
-  text: string,
-  tone: keyof typeof PILL,
-  maxW: number,
-): number {
-  const c = PILL[tone];
-  const icon = tone === "ok" || tone === "late";
-  p.x.font = p.font(26, 600);
-  const inner =
-    (icon ? 26 : 0) + Math.min(p.x.measureText(text).width, maxW - 28 - (icon ? 26 : 0));
-  const pw = inner + 28;
-  p.box(right - pw, mid - 20, pw, 40, 20, c.bg);
-  let tx = right - 14;
-  if (tone === "ok") checkIcon(p, tx - 9, mid, c.ink);
-  if (tone === "late") clockIcon(p, tx - 9, mid, c.ink);
-  if (icon) tx -= 26;
-  p.text(text, tx, mid + 9, {
-    size: 26,
-    weight: 600,
-    color: c.ink,
-    max: maxW - 28 - (icon ? 26 : 0),
-  });
-  return pw;
 }
 
 function drawMembers(
@@ -369,41 +310,41 @@ function drawMembers(
     ...(fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : []),
   ]);
 
-  // Legend: marks on the right, the month numbers' key on the left
+  // Legend: marks and the ✓ on the right, the month numbers' key on the left
   let lx = R;
   const ly = L.band + L.gap + 36;
-  const items: [ReportMonthState, string][] = [
+  const items: ["paid" | "unpaid", string][] = [
     ["paid", "مدفوع"],
-    ["late", "متأخر"],
+    ["unpaid", "غير مدفوع"],
   ];
   for (const [s, label] of items) {
     mark(p, s, lx - 12, ly - 9);
     lx -= 34;
     lx -= p.text(label, lx, ly, { size: 24, color: T.slate }) + 36;
   }
+  okCheck(p, lx - 16, ly - 9, 16);
+  lx -= 40;
+  p.text(checkLabel(o.check, card.month), lx, ly, { size: 24, color: T.slate });
   p.text(`1 = ${monthName(1)} … 12 = ${monthName(12)}`, P, ly, {
     size: 20,
     color: T.slate,
     align: "left",
   });
 
-  // Columns (from the right): ref, name, 12 months, status
+  // Columns (from the right): ref, name, 12 months, ✓
   const refW = 76;
   const cRef = R - refW / 2;
   const nameR = R - refW - 12;
   const mW = 34;
-  const stW = 172;
-  const mR = P + stW + 12 + 12 * mW;
+  const okW = 90;
+  const mR = P + okW + 12 + 12 * mW;
   const nameW = nameR - mR - 14;
   const cx = (k: number) => mR - (k - 0.5) * mW;
-  const stR = P + stW;
-  const now = card.month;
+  const okX = P + okW / 2;
   const row = L.row;
 
   const hy = L.band + L.gap + L.legend;
   const rowsTop = hy + L.head;
-  // current month column
-  p.box(cx(now) - mW / 2 + 1, hy + 6, mW - 2, L.head - 6 + page.rows.length * row, 10, T.greenTint);
   const head = { size: 22, weight: 600, color: T.slate } as const;
   p.text("رقم", cRef, hy + 34, { ...head, align: "center" });
   p.text("الاسم", nameR, hy + 34, head);
@@ -411,21 +352,14 @@ function drawMembers(
     p.text(String(k), cx(k), hy + 34, {
       ...head,
       face: "display",
-      weight: k === now ? 800 : 600,
-      color: k === now ? T.forestDeep : T.slate,
       align: "center",
       dir: "ltr",
     });
-  p.text("الحالة", stR, hy + 34, head);
 
   page.rows.forEach((m, i) => {
     const y = rowsTop + i * row;
     const mid = y + row / 2;
-    if (i % 2 === 1) {
-      p.box(P - 12, y, w - 2 * P + 24, row, 12, T.greenWash);
-      // keep the current-month column visible over the zebra
-      p.box(cx(now) - mW / 2 + 1, y, mW - 2, row, 0, T.greenTint);
-    }
+    if (i % 2 === 1) p.box(P - 12, y, w - 2 * P + 24, row, 12, T.greenWash);
     // the page is one group («المجموعة أ»): the number alone
     p.text(numberOf(m), cRef, mid + 8, {
       size: 24,
@@ -436,10 +370,8 @@ function drawMembers(
       dir: "ltr",
     });
     p.text(m.fullName, nameR, mid + 11, { size: 30, weight: 600, max: nameW });
-    const exempt = m.status === "exempt";
-    for (let k = 1; k <= 12; k++) mark(p, exempt ? "none" : m.months[k - 1], cx(k), mid);
-    const s = statusPill(m);
-    pill(p, stR, mid, s.text, s.tone, stW);
+    for (let k = 1; k <= 12; k++) mark(p, monthMark(m.months[k - 1]), cx(k), mid);
+    if (rowChecked(m, o.check)) okCheck(p, okX, mid, 18);
   });
 }
 
@@ -610,6 +542,8 @@ export async function renderReportPages(
     scale?: number;
     type?: "image/png" | "image/jpeg";
     quality?: number;
+    /** what the ✓ means; «now» by default */
+    check?: CheckMeaning;
   },
 ): Promise<Blob[]> {
   const size = o.size ?? PHONE_PAGE;
@@ -629,6 +563,7 @@ export async function renderReportPages(
             size,
             no: i + 1,
             of: pages.length,
+            check: o.check ?? "now",
           }),
         o.type,
         o.quality,

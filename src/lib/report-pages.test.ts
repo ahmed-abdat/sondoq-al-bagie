@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ReportData, ReportExpense, ReportMember } from "./data/types";
+import type { ReportData, ReportExpense, ReportMember, ReportMonthState } from "./data/types";
+import { checkLabel, monthMark, rowChecked } from "./report-check";
 import {
   A4_PAGE,
   BLOCK_H,
@@ -9,7 +10,6 @@ import {
   numberOf,
   moneyBlocks,
   footerLabel,
-  statusPill,
   paginateBlocks,
   paginateReport,
   PHONE_PAGE,
@@ -68,16 +68,49 @@ it("numberOf: the number alone on a group page", () => {
   expect(numberOf({ memberRef: "7" })).toBe("7");
 });
 
-it("status pills: up to date, late with months, exempt, other", () => {
-  const m = (status: ReportMember["status"], monthsBehind = 0) => ({
-    status,
-    monthsBehind,
-    statusLabel: "مسافر",
+describe("month marks and the row ✓ (no status text)", () => {
+  const P: ReportMonthState = "paid";
+  const PP: ReportMonthState = "prepaid";
+  const X: ReportMonthState = "late";
+  const U: ReportMonthState = "upcoming";
+  const N: ReportMonthState = "not_owed";
+  const row = (months: ReportMonthState[]) => ({ months });
+
+  it("● paid (ahead too), ○ unpaid incl. future months, blank when not owed", () => {
+    expect([P, PP, X, U, N, undefined].map(monthMark)).toEqual([
+      "paid",
+      "paid",
+      "unpaid",
+      "unpaid",
+      null,
+      null,
+    ]);
   });
-  expect(statusPill(m("active"))).toEqual({ text: "منتظم", tone: "ok" });
-  expect(statusPill(m("active", 3))).toEqual({ text: "متأخر 3", tone: "late" });
-  expect(statusPill(m("exempt"))).toEqual({ text: "معفى", tone: "exempt" });
-  expect(statusPill(m("away"))).toEqual({ text: "مسافر", tone: "other" });
+
+  it("✓ «paid up to now»: nothing late; future months may be unpaid", () => {
+    expect(rowChecked(row([P, P, P, P, P, P, P, P, P, U, U, U]), "now")).toBe(true);
+    expect(rowChecked(row([P, P, P, P, P, P, P, P, X, U, U, U]), "now")).toBe(false);
+    // joined in June
+    expect(rowChecked(row([N, N, N, N, N, P, P, P, P, U, U, U]), "now")).toBe(true);
+  });
+
+  it("✓ «whole year»: every owed month paid", () => {
+    expect(rowChecked(row([P, P, P, P, P, P, P, P, P, U, U, U]), "year")).toBe(false);
+    expect(rowChecked(row([P, P, P, P, P, P, P, P, P, PP, PP, PP]), "year")).toBe(true);
+    expect(rowChecked(row([N, N, N, N, N, P, P, P, P, PP, PP, PP]), "year")).toBe(true);
+  });
+
+  it("blank ✓ when nothing is paid: exempt all year, or joining later", () => {
+    for (const c of ["now", "year"] as const) {
+      expect(rowChecked(row(Array(12).fill(N)), c)).toBe(false);
+      expect(rowChecked(row([...Array(9).fill(N), U, U, U]), c)).toBe(false);
+    }
+  });
+
+  it("legend follows the choice and the report month", () => {
+    expect(checkLabel("now", 9)).toBe("دفع حتى سبتمبر");
+    expect(checkLabel("year", 9)).toBe("دفع السنة كاملة");
+  });
 });
 
 it("footer is the same on every page", () => {
