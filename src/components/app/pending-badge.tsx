@@ -1,3 +1,4 @@
+import { AppBadgeSync } from "@/components/providers";
 import { CancellerSetter } from "./canceller-setter";
 import { ROLE_LABEL } from "./derive";
 import { PendingCountSetter } from "./pending-count-setter";
@@ -11,6 +12,7 @@ export async function PendingBadge() {
   return (
     <>
       <PendingCountSetter n={pending.length} />
+      <AppBadgeSync canConfirm={session.canConfirm} fallback={pending.length} />
       <CancellerSetter
         v={
           session.role === "committee"
