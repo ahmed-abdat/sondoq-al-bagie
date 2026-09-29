@@ -2173,6 +2173,20 @@
     font-size: 14px;
     font-weight: 600;
   }
+  /* settings: next year's «الرسوم الشهرية», one row per group */
+  .bq-yp-row {
+    padding-block: 8px;
+  }
+  .bq-yp-g {
+    flex: none;
+    min-width: 7em;
+  }
+  /* record payment: the earlier-years strip and its year labels */
+  .bq-rec-past-k {
+    margin-block: 12px 6px;
+    font-size: 14px;
+    color: var(--muted);
+  }
   /* something waits elsewhere first (pending payments): calm, not an error */
   .bq-wait {
     margin-block: 14px;

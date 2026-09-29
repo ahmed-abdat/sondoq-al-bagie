@@ -2,7 +2,7 @@
 import { toWesternDigits } from "@/lib/money";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct, useDemoState } from "../act";
 import type {
@@ -157,7 +157,10 @@ export function SettingsView({
   committee,
   members,
   selfId,
+  children,
 }: {
+  /** extra cards after «ما يراه الأعضاء» (year prices, backup) */
+  children?: ReactNode;
   role: CommitteeRole;
   displayName: string;
   showOwed: boolean;
@@ -406,6 +409,8 @@ export function SettingsView({
         <SaveNote id="bq-open-note" s={openSave} />
         <OfflineWriteHint />
       </section>
+
+      {children}
 
       {admin && (
         <section className="bq-sec" aria-labelledby="bq-acc-h">
