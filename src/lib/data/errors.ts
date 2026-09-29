@@ -11,6 +11,8 @@ export const MESSAGES = {
   not_configured: "الخادم غير مهيأ بعد (إعدادات Supabase).",
   network: "تعذّر الاتصال. تحقق من الإنترنت وحاول مرة أخرى.",
   unknown: "حدث خطأ غير متوقع. حاول مرة أخرى.",
+  timeout: "استغرقت العملية وقتًا طويلًا. تحقق هل حُفظت ثم أعد المحاولة.",
+  busy: "الخادم مشغول. حاول بعد لحظة.",
   // roles
   not_committee: "هذه العملية لأعضاء اللجنة فقط.",
   not_admin: "هذه العملية للمسؤول فقط.",
@@ -137,9 +139,15 @@ export function codeOf(err: DbError): string {
       return "number_taken";
     if (text.includes("fund_accounts_active_uniq")) return "account_exists";
     if (text.includes("committee_member_id_key")) return "member_taken";
+    if (text.includes("handovers_one_active")) return "handover_in_progress";
   }
   if (err.code === "42501") return "not_committee";
-  if (err.code === "22P02" || err.code === "23514" || err.code === "22023") return "invalid_input";
+  // bad reference (unknown member/campaign id), missing value, overlapping periods
+  if (["22P02", "23514", "22023", "23503", "23502", "23P01"].includes(err.code ?? ""))
+    return "invalid_input";
+  if (err.code === "57014") return "timeout";
+  // serialization failure, deadlock, schema cache reloading after a migration
+  if (err.code === "40001" || err.code === "40P01" || err.code === "PGRST202") return "busy";
   if (err.code === "PGRST301" || err.code === "PGRST303") return "not_signed_in";
   if (!err.code && /fetch|network/i.test(err.message ?? "")) return "network";
   return "unknown";

@@ -26,6 +26,21 @@ describe("errors", () => {
     expect(codeOf({ code: "XX000", message: "?" })).toBe("unknown");
   });
 
+  it("maps other database states to calm messages", () => {
+    expect(codeOf({ code: "23503", message: "violates foreign key constraint" })).toBe(
+      "invalid_input",
+    );
+    expect(codeOf({ code: "23502", message: "null value" })).toBe("invalid_input");
+    expect(codeOf({ code: "23P01", message: "conflicting key value" })).toBe("invalid_input");
+    expect(codeOf({ code: "57014", message: "canceling statement due to statement timeout" })).toBe(
+      "timeout",
+    );
+    for (const code of ["40001", "40P01", "PGRST202"]) expect(codeOf({ code })).toBe("busy");
+    expect(codeOf({ code: "23505", message: 'unique constraint "handovers_one_active"' })).toBe(
+      "handover_in_progress",
+    );
+  });
+
   it("has an Arabic message for every code and a fallback", () => {
     expect(failure("undo_expired")).toEqual({
       ok: false,
