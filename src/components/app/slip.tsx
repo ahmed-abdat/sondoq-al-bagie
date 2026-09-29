@@ -263,7 +263,32 @@ export function PendingSlip({
         )}
       </p>
       <div className="bq-slip-proof">
-        <Proof path={p.proofPath} amount={p.amount} method={p.method} />
+        <Proof
+          path={p.proofPath}
+          wide
+          actions={
+            st.s === "pending" && !rejecting && mayDecide ? (
+              <>
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-primary bq-press"
+                  disabled={!online}
+                  onClick={() => decide("confirmed")}
+                >
+                  {I.check(20)} تأكيد الاستلام
+                </button>
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-tonal bq-press"
+                  disabled={!online}
+                  onClick={() => setRejecting(true)}
+                >
+                  رفض
+                </button>
+              </>
+            ) : undefined
+          }
+        />
         <p className="bq-hint">
           {p.submittedByMember ? (
             <>أرسلها العضو {p.submittedByMember.fullName} عبر رابطه</>

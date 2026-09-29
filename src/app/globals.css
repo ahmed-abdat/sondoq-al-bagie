@@ -3322,6 +3322,74 @@
     max-height: none;
     object-fit: cover;
   }
+  /* committee slip (P8): a large proof thumbnail, cropped to the top, the amount readable */
+  .rc-proof.is-wide {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+  }
+  .rc-proof.is-wide .rc-shot {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 12px;
+  }
+  .rc-proof.is-wide .rc-proof-t {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  /* full screen, like a WhatsApp photo; Back or «إغلاق» returns */
+  .rc-dlg.is-full {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 56px 16px calc(16px + env(safe-area-inset-bottom));
+    border-radius: 0;
+    background: #0b140f;
+    display: none;
+  }
+  .rc-dlg.is-full[open] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  .rc-dlg.is-full::backdrop {
+    background: #0b140f;
+  }
+  .rc-dlg.is-full .rc-shot-l {
+    max-width: 100%;
+    max-height: calc(100dvh - 190px);
+    width: auto;
+    border-radius: 8px;
+    flex: 0 1 auto;
+  }
+  .rc-dlg.is-full .rc-dlg-n {
+    color: #e7efe9;
+  }
+  .rc-dlg-x {
+    position: absolute;
+    top: 8px;
+    inset-inline-end: 8px;
+    color: #fff;
+  }
+  .rc-dlg-acts {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 8px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .rc-dlg-acts .bq-btn {
+    width: 100%;
+    margin: 0;
+  }
   /* the snack leaves the way it came, a touch faster */
   .bq-snack.is-out {
     transform: translateY(6px);
