@@ -7,7 +7,7 @@
  * monthly_collection, expense_totals, recent_expenses, campaign_progress, campaign_contributions,
  * activity_feed, terms_public, member_status) are never stored.
  */
-const PUBLIC_VIEWS = [
+export const PUBLIC_VIEWS = [
   "fund_stats",
   "member_status_public",
   "member_months",
