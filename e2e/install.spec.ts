@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { devices, expect, test, type Page } from "@playwright/test";
 
 // The install flow. Needs a production build (pnpm build && pnpm start).
 
@@ -220,8 +220,31 @@ test("installed app: never", async ({ page }) => {
   await expect(card(page)).toHaveCount(0);
 });
 
-test("arriving from a member's personal link invites to install at once", async ({ page }) => {
-  await page.goto("/?welcome=1"); // where /m/<token> lands after setting the cookie
-  await expect(card(page)).toBeVisible(); // even on the very first visit
+test("a member's first open: the install invite waits until the «أنت» card was seen", async ({
+  page,
+}) => {
+  await page.goto("/m/demo"); // → /?welcome=1, the demo member's personal link
   await expect(page).toHaveURL(/\/$/); // the marker is gone from the address
+  await expect(page.locator(".bq-you")).toBeVisible();
+  await expect(card(page)).toHaveCount(0); // not over the card's buttons on arrival
+  // the card is on screen for a moment → the invite comes (even on a very first visit)
+  await page.locator(".bq-you").scrollIntoViewIfNeeded();
+  await expect(card(page)).toBeVisible({ timeout: 8_000 });
+});
+
+test("desktop wording", async ({ browser, baseURL }) => {
+  const ctx = await browser.newContext({ ...devices["Desktop Chrome"], baseURL, locale: "ar" });
+  const page = await ctx.newPage();
+  await returning(page);
+  await page.goto("/");
+  await expect(card(page)).toContainText("ثبّت التطبيق على جهازك");
+  await expect(card(page).getByRole("button", { name: "تثبيت" })).toHaveCSS("min-height", "44px");
+  await ctx.close();
+});
+
+test("never over the report", async ({ page }) => {
+  await returning(page);
+  await page.goto("/report");
+  await page.waitForLoadState("networkidle");
+  await expect(card(page)).toHaveCount(0);
 });

@@ -100,6 +100,11 @@ export function coverLine(
   return `عن: ${who}رسوم ${monthsInWords(c.months, c.year)}`;
 }
 
+/** «أحمد، أمين الصندوق», or just «أحمد» when the role is unknown (no stray comma). */
+export function confirmedBy(s: { by: string; role: string }): string {
+  return [s.by.trim(), s.role.trim()].filter(Boolean).join("، ");
+}
+
 /** Public verification page for a receipt code. */
 export function verifyUrl(code: string, origin: string): string {
   return `${origin.replace(/\/$/, "")}/r/${encodeURIComponent(code)}`;
@@ -129,7 +134,7 @@ export function receiptShareText(r: ShareableReceipt, url: string): string {
     `الوسيلة: ${r.methodLabel}${r.txnRef ? ` · ${ltr(r.txnRef)}` : ""}`,
   ];
   if (r.dateLabel) lines.push(`التاريخ: ${r.dateLabel}`);
-  if (r.status.kind === "confirmed") lines.push(`أكّدها: ${r.status.by}، ${r.status.role}`);
+  if (r.status.kind === "confirmed") lines.push(`أكّدها: ${confirmedBy(r.status)}`);
   else lines.push(STATUS_LINE[r.status.kind]);
   // The URL stays unwrapped so WhatsApp still detects it as a link.
   lines.push(`رمز التحقق: ${ltr(r.code)}`, `للتحقق: ${url}`);
@@ -256,7 +261,7 @@ export function drawReceipt(x: Ctx, r: ShareableReceipt, o: DrawOptions): void {
   txt(STATUS_LINE[st.kind], y + 46, `700 28px ${fd}`, fg, R - 24);
   const sub =
     st.kind === "confirmed"
-      ? `أكّدها ${st.by}، ${st.role}`
+      ? `أكّدها ${confirmedBy(st)}`
       : st.kind === "cancelled"
         ? (st.reason ?? "هذا الوصل لم يعد صالحًا")
         : "يصبح الوصل نهائيًا بعد التأكيد";
