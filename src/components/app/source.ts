@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 // SONDOQ_FIXTURES=1 it serves the fictional fixtures instead (screenshots, dev without a seeded
 // database). This is the ONLY file that imports ./fixtures.
 import * as data from "@/lib/data";
-import type { ActivityItem, Expense, ReportData } from "@/lib/data/types";
+import type { ActivityItem, CommitteeRole, Expense, ReportData } from "@/lib/data/types";
 import { categoryLabel, currentDueMonth, monthCount, relativeAgo } from "./derive";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberIndex, toMemberRows } from "@/lib/data/member-lists";
@@ -135,6 +135,18 @@ export async function committeeSession() {
   return s;
 }
 export const pendingPayments = () => pick(fx.fxPending, () => data.getPendingPayments());
+/** Roles that manage the fund (members, campaigns, handover); «مشرف» only records. */
+export const MANAGERS: CommitteeRole[] = ["admin", "treasurer", "deputy"];
+/**
+ * The one guard for committee pages: signed out → login (back to `next`), setup pending → setup,
+ * a role outside `roles` → the hub. /committee/setup uses anyCommitteeSession() instead.
+ */
+export async function requireCommittee(next: string, opts: { roles?: CommitteeRole[] } = {}) {
+  const s = await committeeSession();
+  if (!s) redirect(`/login?next=${encodeURIComponent(next)}`);
+  if (opts.roles && !opts.roles.includes(s.role)) redirect("/committee");
+  return s;
+}
 /** «حسابي»: the signed-in committee user (demo: the fake admin, not linked yet). */
 export async function myProfile(): Promise<MyProfile | null> {
   if (demoMode) {
