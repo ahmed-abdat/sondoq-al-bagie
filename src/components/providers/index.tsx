@@ -12,7 +12,7 @@ import { OnlineSync } from "./online";
 import { PullToRefresh } from "./pull-to-refresh";
 import { AppToaster } from "./toaster";
 import { InstallBanner, InstallCapture, InstallWatcher } from "./install";
-import { SaveVisitedPages, ServiceWorkerUpdates } from "./sw-update";
+import { SaveVisitedPages, ServiceWorkerUpdates, WarmOfflinePages } from "./sw-update";
 
 export { useOnline } from "./online";
 export { AppBadgeSync } from "./app-badge";
@@ -73,6 +73,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <OfflineBanner />
         <ServiceWorkerUpdates />
         <SaveVisitedPages />
+        <WarmOfflinePages />
         <PullToRefresh />
         {children}
         <InstallWatcher />

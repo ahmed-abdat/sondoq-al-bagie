@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { isPublicPage, mayStore, PAGES_CACHE } from "@/lib/offline/cache-rules";
 import { allowsBackgroundDownload, type NetworkInfo } from "@/lib/offline/data-saver";
+import { lastWarmed, pagesToWarm, warmDue, warmPages } from "@/lib/offline/warm";
 
 /* ───────────── update requested by the member ───────────── */
 
@@ -138,5 +139,51 @@ export function SaveVisitedPages() {
       }
     })();
   }, [pathname]);
+  return null;
+}
+
+/**
+ * Every public page saved for offline, not only the visited ones: once the worker controls the
+ * app, then when the connection comes back, when the app is reopened after 30 minutes, and at
+ * once after an update (the new worker forgets the last round). One page at a time, low priority;
+ * on Save-Data or 2G only the home and the members list. Nothing is claimed on screen: a page
+ * reads «هذه نسخة محفوظة …» only when it really came from the saved copy.
+ */
+let warming = false;
+async function warmNow(force = false) {
+  if (warming || !navigator.onLine || !navigator.serviceWorker?.controller) return;
+  warming = true;
+  try {
+    if (!force && !warmDue(await lastWarmed(caches))) return;
+    const conn = (navigator as Navigator & { connection?: NetworkInfo }).connection;
+    await warmPages(pagesToWarm(conn), {
+      caches,
+      fetch: (input, init) => fetch(input, init), // window's own fetch (a bare reference throws)
+      origin: location.origin,
+    });
+  } finally {
+    warming = false;
+  }
+}
+
+export function WarmOfflinePages() {
+  useEffect(() => {
+    const sw = navigator.serviceWorker;
+    if (!sw || !("caches" in window)) return;
+    // after the page's own load, so it never competes with what the member is opening
+    const t = window.setTimeout(() => void warmNow(), 1500);
+    const onControl = () => void warmNow();
+    const onOnline = () => void warmNow(true);
+    const onVisible = () => document.visibilityState === "visible" && void warmNow();
+    sw.addEventListener("controllerchange", onControl);
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearTimeout(t);
+      sw.removeEventListener("controllerchange", onControl);
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
   return null;
 }

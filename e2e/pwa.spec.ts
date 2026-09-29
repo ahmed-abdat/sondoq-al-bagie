@@ -184,7 +184,9 @@ test("public pages visited by in-app navigation open offline", async ({ page, co
   await context.setOffline(false);
 });
 
-test("in data-saver mode, visited pages are not downloaded again for offline", async ({ page }) => {
+test("in data-saver mode, only the home and the members list are downloaded for offline", async ({
+  page,
+}) => {
   await page.addInitScript(() =>
     Object.defineProperty(navigator, "connection", {
       configurable: true,
@@ -195,15 +197,16 @@ test("in data-saver mode, visited pages are not downloaded again for offline", a
   await waitForServiceWorker(page);
   const hits: string[] = [];
   page.on("request", (r) => {
-    if (r.resourceType() === "fetch" && new URL(r.url()).pathname === "/members")
+    if (r.resourceType() === "fetch" && new URL(r.url()).pathname === "/accounts")
       if (!r.headers()["rsc"]) hits.push(r.url());
   });
-  await page.locator('a[href="/members"]:visible').first().click();
-  await page.waitForURL("**/members");
-  await page.waitForTimeout(3000); // past the idle timeout
+  await page.locator('a[href="/accounts"]:visible').first().click();
+  await page.waitForURL("**/accounts");
+  await waitForSaved(page, "/members"); // the small set (src/lib/offline/warm.ts)
+  await page.waitForTimeout(1500);
   expect(hits).toEqual([]);
   expect(
-    await page.evaluate(async () => !!(await (await caches.open("pages-v2")).match("/members"))),
+    await page.evaluate(async () => !!(await (await caches.open("pages-v2")).match("/accounts"))),
   ).toBe(false);
 });
 

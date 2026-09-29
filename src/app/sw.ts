@@ -20,6 +20,7 @@ import {
   VIEWS_CACHE,
 } from "@/lib/offline/cache-rules";
 import { nextBadgeCount, syncAppBadge } from "@/lib/offline/app-badge";
+import { WARM_META_CACHE } from "@/lib/offline/warm";
 import { notificationOptions, parsePushPayload, safePath } from "@/lib/offline/push-payload";
 import {
   lookupServed,
@@ -123,7 +124,11 @@ const serwist = new Serwist({
 
 // Old runtime caches may hold amounts (before money privacy): drop them when this worker takes over.
 self.addEventListener("activate", (event) => {
-  event.waitUntil(Promise.all(RETIRED_CACHES.map((name) => caches.delete(name))));
+  // and forget when the pages were last saved: this build's pages must be saved again (they point
+  // at this build's script files), which the next open of the app does at once (WarmOfflinePages)
+  event.waitUntil(
+    Promise.all([...RETIRED_CACHES, WARM_META_CACHE].map((name) => caches.delete(name))),
+  );
 });
 
 self.addEventListener("message", (event) => {
