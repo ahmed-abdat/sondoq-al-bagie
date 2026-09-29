@@ -15,6 +15,7 @@ import { I } from "./icons";
 import { Num, prefersReduced, useNow } from "./num";
 import { ConfirmedMark, Proof, Stamp } from "./receipt";
 import { fromPending, toShareable, type ReceiptView } from "./receipt-model";
+import { radioKeys, radioTab } from "./radio-keys";
 
 const REASONS = ["المبلغ غير صحيح", "رقم العملية مكرر", "الصورة غير واضحة", "أخرى"];
 const UNDO_MS = 5000;
@@ -371,13 +372,23 @@ export function PendingSlip({
             لماذا ترفض هذه الدفعة؟
           </p>
           {p.submittedByMember && <p className="bq-hint">يصل السبب إلى العضو.</p>}
-          <div className="bq-chips" role="radiogroup" aria-labelledby={`rj-${p.id}`}>
-            {REASONS.map((x) => (
+          <div
+            className="bq-chips"
+            role="radiogroup"
+            onKeyDown={radioKeys}
+            aria-labelledby={`rj-${p.id}`}
+          >
+            {REASONS.map((x, i, all) => (
               <button
                 key={x}
                 type="button"
                 role="radio"
                 aria-checked={pick === x}
+                tabIndex={radioTab(
+                  pick === x,
+                  i,
+                  all.some((y) => y === pick),
+                )}
                 className="bq-chip bq-press"
                 onClick={() => setPick(x)}
               >

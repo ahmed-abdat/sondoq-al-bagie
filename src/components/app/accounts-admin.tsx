@@ -18,6 +18,7 @@ import { MemberPick, PickedMember, type Pickable } from "./member-pick";
 import { useNow } from "./num";
 import { Sheet } from "./sheet";
 import { useSnack } from "./shell";
+import { radioKeys, radioTab } from "./radio-keys";
 
 type Creds = { name: string; login: string; password: string };
 type Result<T> = { ok: true; data: T } | { ok: false; code: string; message: string };
@@ -43,13 +44,18 @@ function RolePicker({
   onChange: (r: CommitteeRole) => void;
 }) {
   return (
-    <div className="bq-role-list" role="radiogroup" aria-label="الدور">
-      {ROLES.map((r) => (
+    <div className="bq-role-list" role="radiogroup" onKeyDown={radioKeys} aria-label="الدور">
+      {ROLES.map((r, i, all) => (
         <button
           key={r.k}
           type="button"
           role="radio"
           aria-checked={value === r.k}
+          tabIndex={radioTab(
+            value === r.k,
+            i,
+            all.some((y) => y.k === value),
+          )}
           className="bq-role bq-press"
           onClick={() => onChange(r.k)}
         >

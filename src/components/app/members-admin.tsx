@@ -33,6 +33,7 @@ import { Segmented } from "./segmented";
 import { Sheet } from "./sheet";
 import { SearchField } from "./search-field";
 import { useSnack } from "./shell";
+import { radioKeys, radioTab } from "./radio-keys";
 
 type State = SettableStatus;
 const STATES = STATE_CHOICES;
@@ -106,13 +107,18 @@ export function AddMemberBody({
         aria-label="الاسم الكامل"
       />
       <p className="bq-rec-k">المجموعة</p>
-      <div className="bq-chips" role="radiogroup" aria-label="المجموعة">
-        {LISTS.map((g) => (
+      <div className="bq-chips" role="radiogroup" onKeyDown={radioKeys} aria-label="المجموعة">
+        {LISTS.map((g, i, all) => (
           <button
             key={g}
             type="button"
             role="radio"
             aria-checked={list === g}
+            tabIndex={radioTab(
+              list === g,
+              i,
+              all.some((y) => y === list),
+            )}
             className="bq-chip bq-press"
             onClick={() => pickList(g)}
           >
@@ -595,13 +601,18 @@ export function MemberAdminBody({
       {mode === "state" && !confirming && (
         <>
           <p className="bq-rec-k">الحالة الجديدة</p>
-          <div className="bq-chips" role="radiogroup" aria-label="الحالة">
-            {STATES.filter((s) => s !== m.status).map((s) => (
+          <div className="bq-chips" role="radiogroup" onKeyDown={radioKeys} aria-label="الحالة">
+            {STATES.filter((s) => s !== m.status).map((s, i, all) => (
               <button
                 key={s}
                 type="button"
                 role="radio"
                 aria-checked={state === s}
+                tabIndex={radioTab(
+                  state === s,
+                  i,
+                  all.some((y) => y === state),
+                )}
                 className="bq-chip bq-press"
                 onClick={() => setState(s)}
               >

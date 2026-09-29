@@ -19,6 +19,7 @@ import { DateField } from "../date-field";
 import { I } from "../icons";
 import { Sheet } from "../sheet";
 import { useSnack } from "../shell";
+import { radioKeys, radioTab } from "../radio-keys";
 
 function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
   const router = useRouter();
@@ -35,13 +36,18 @@ function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
     <div className="bq-rec">
       <h2>إضافة رقم</h2>
       <p className="bq-rec-k">المحفظة</p>
-      <div className="bq-meth-grid" role="radiogroup" aria-label="المحفظة">
-        {wallets.map((x) => (
+      <div className="bq-meth-grid" role="radiogroup" onKeyDown={radioKeys} aria-label="المحفظة">
+        {wallets.map((x, i, all) => (
           <button
             key={x}
             type="button"
             role="radio"
             aria-checked={m === x}
+            tabIndex={radioTab(
+              m === x,
+              i,
+              all.some((y) => y === m),
+            )}
             className="bq-meth-opt bq-press"
             onClick={() => setM(x)}
           >

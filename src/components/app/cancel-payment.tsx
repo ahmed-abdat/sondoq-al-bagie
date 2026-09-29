@@ -13,6 +13,7 @@ import { Receipt } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
 import { useSnack } from "./shell";
 import { useCanceller } from "./viewer";
+import { radioKeys, radioTab } from "./radio-keys";
 
 export const CANCEL_REASONS = ["تسجيل خاطئ", "مبلغ خاطئ", "دفعة مكررة", "تجربة", "أخرى"];
 
@@ -107,13 +108,18 @@ function CancelForm({
       </p>
       <p className="bq-lead">تبقى في السجل مع السبب، ولا تُحسب أشهرها للعضو بعد الآن.</p>
       <p className="bq-rej-l">لماذا تلغيها؟</p>
-      <div className="bq-chips" role="radiogroup" aria-label="سبب الإلغاء">
-        {CANCEL_REASONS.map((x) => (
+      <div className="bq-chips" role="radiogroup" onKeyDown={radioKeys} aria-label="سبب الإلغاء">
+        {CANCEL_REASONS.map((x, i, all) => (
           <button
             key={x}
             type="button"
             role="radio"
             aria-checked={pick === x}
+            tabIndex={radioTab(
+              pick === x,
+              i,
+              all.some((y) => y === pick),
+            )}
             className="bq-chip bq-press"
             onClick={() => setPick(x)}
           >

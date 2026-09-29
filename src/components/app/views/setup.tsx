@@ -10,6 +10,7 @@ import { I } from "../icons";
 import { LogoutButton } from "../logout";
 import { MemberPick, PasswordField, PickedMember, type Pickable } from "../member-pick";
 import { Sheet } from "../sheet";
+import { radioKeys, radioTab } from "../radio-keys";
 
 export function SetupForm({
   name: initial,
@@ -80,11 +81,17 @@ export function SetupForm({
               <p className="bq-hint">ربطك المسؤول بهذه العضوية.</p>
             </>
           ) : (
-            <div className="bq-role-list" role="radiogroup" aria-label="عضويتك">
+            <div
+              className="bq-role-list"
+              role="radiogroup"
+              aria-label="عضويتك"
+              onKeyDown={radioKeys}
+            >
               <button
                 type="button"
                 role="radio"
                 aria-checked={!!member}
+                tabIndex={radioTab(!!member, 0, !!member || who === "none")}
                 className="bq-role bq-press"
                 onClick={() => setPicking(true)}
               >
@@ -102,6 +109,7 @@ export function SetupForm({
                   type="button"
                   role="radio"
                   aria-checked={who === "none"}
+                  tabIndex={radioTab(who === "none", 1, !!member || who === "none")}
                   className="bq-role bq-press"
                   onClick={() => setWho("none")}
                 >

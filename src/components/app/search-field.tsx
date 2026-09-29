@@ -7,6 +7,7 @@ import { I } from "./icons";
 import { Sheet } from "./sheet";
 import { spokenToQuery } from "./search-text";
 import { useSpeech } from "./use-speech";
+import { radioKeys, radioTab } from "./radio-keys";
 
 type Findable = { memberRef: string; fullName: string };
 
@@ -131,13 +132,18 @@ function Keypad<T extends Findable>({
   return (
     <div className="bq-pad">
       <h2>رقم العضو</h2>
-      <div className="bq-pad-letters" role="radiogroup" aria-label="المجموعة">
-        {(["أ", "ب"] as const).map((l) => (
+      <div className="bq-pad-letters" role="radiogroup" onKeyDown={radioKeys} aria-label="المجموعة">
+        {(["أ", "ب"] as const).map((l, i, all) => (
           <button
             key={l}
             type="button"
             role="radio"
             aria-checked={letter === l}
+            tabIndex={radioTab(
+              letter === l,
+              i,
+              all.some((y) => y === letter),
+            )}
             className="bq-pad-key bq-press"
             onClick={() => setLetter(letter === l ? "" : l)}
           >
