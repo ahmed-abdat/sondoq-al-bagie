@@ -8,36 +8,32 @@ export const metadata: Metadata = { title: "الحسابات · صندوق ال�
 
 export default async function AccountsPage() {
   const year = src.thisYear();
-  const [summary, accounts, monthly, months, totals, ledger, terms, hero] = await Promise.all([
-    src.fundSummary(),
+  // amount-free reads only (money privacy): figures arrive in the browser for members/committee
+  const [index, accounts, months, ledger, terms, hero, info] = await Promise.all([
+    src.memberIndex(),
     src.fundAccounts(),
-    src.monthly(year),
     src.memberMonths(year),
-    src.expenseTotals(),
-    src.ledger(),
-    src.terms(),
+    src.ledgerPublic(),
+    src.termsInfo(),
     heroData(),
+    src.fundInfo(),
   ]);
   const payers = Array.from(
     { length: 12 },
     (_, k) => months.filter((m) => m.month === k + 1 && m.state === "paid").length,
   );
-  const spentBy = totals
-    .filter((t) => t.year === year && t.total > 0)
-    .sort((a, b) => b.total - a.total)
-    .map(({ category, total }) => ({ category, total }));
   return (
     <Tab>
       <AccountsView
-        summary={summary}
         accounts={accounts}
-        monthly={monthly}
         payers={payers}
+        membersActive={index.activeCount}
         currentMonth={src.today().getUTCMonth() + 1}
-        spentBy={spentBy}
+        year={year}
         ledger={ledger}
         term={hero.term ?? null}
-        pastTerms={terms.filter((t) => t.endedOn)}
+        pastTerms={terms}
+        whatsapp={info.whatsappContact}
       />
     </Tab>
   );

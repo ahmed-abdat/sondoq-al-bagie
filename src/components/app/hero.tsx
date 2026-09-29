@@ -2,12 +2,12 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { ASSOC, fmt } from "./derive";
+import { I } from "./icons";
+import { Dots, MoneyHint, useMoney } from "./money";
 import { Num, Roll } from "./num";
 
+/** No money here: the figures come from useMoney() (committee or member), else «•••». */
 export type HeroData = {
-  balance: number;
-  collected: number;
-  spent: number;
   /** «آخر تحديث: …» or, for the committee, the pending count */
   note: ReactNode;
   /** «منذ 1 يناير 2026» */
@@ -16,6 +16,8 @@ export type HeroData = {
 
 /** The one green field: brand, balance, two stats, a note. Band on mobile, panel on desktop. */
 export function Hero({ data, variant }: { data: HeroData; variant: "band" | "panel" }) {
+  const m = useMoney();
+  const s = m?.summary;
   return (
     <section className={`bq-hero is-${variant}`} aria-label="رصيد الصندوق">
       <div className="bq-brand">
@@ -28,26 +30,30 @@ export function Hero({ data, variant }: { data: HeroData; variant: "band" | "pan
         </span>
       </div>
       <div className="bq-hero-bal" data-hero-bal={variant === "band" ? "" : undefined}>
-        <p className="bq-hero-l">في الصندوق الآن</p>
+        <p className="bq-hero-l">
+          في الصندوق الآن
+          {!s && (
+            <span className="bq-hero-lock" aria-hidden="true">
+              {I.lock(16)}
+            </span>
+          )}
+        </p>
         <p className="bq-hero-n">
-          <Roll value={data.balance} />
+          {s ? <Roll value={s.balance} /> : <Dots className="bq-dots-hero" />}
           <span className="bq-hero-u">أوقية</span>
         </p>
       </div>
       <dl className="bq-hero-stats">
         <div>
           <dt>جُمع هذا العام</dt>
-          <dd>
-            <Roll value={data.collected} />
-          </dd>
+          <dd>{s ? <Roll value={s.collectedThisYear} /> : <Dots />}</dd>
         </div>
         <div>
           <dt>صُرف هذا العام</dt>
-          <dd>
-            <Num>{fmt(data.spent)}</Num>
-          </dd>
+          <dd>{s ? <Num>{fmt(s.spentThisYear)}</Num> : <Dots />}</dd>
         </div>
       </dl>
+      <MoneyHint tone="green" />
       <p className="bq-hero-t">
         {data.note}
         {data.term ? (

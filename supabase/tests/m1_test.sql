@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m25; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m26; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -965,6 +965,39 @@ select tests.ok((select count(*) from public.member_links where member_id = test
 -- leave no pending member payments behind for later sections
 update public.payments set status = 'rejected', reject_reason = 'test', decided_at = now()
 where submitted_via_link is not null and status = 'pending';
+
+/* ───────────── M26: public views without money ───────────── */
+
+create function tests.money_columns(p_relations text[]) returns text[] language sql stable as $$
+  select coalesce(array_agg(c.table_name || '.' || c.column_name order by 1), '{}')
+  from information_schema.columns c
+  where c.table_schema = 'public' and c.table_name = any (p_relations)
+    and c.column_name in ('amount', 'balance', 'money_in', 'money_out', 'transfers_in', 'collected', 'spent',
+                          'collected_this_year', 'spent_this_year', 'adjustment', 'adjustments', 'opening_balance',
+                          'closing_balance', 'target_amount', 'transferred', 'total', 'expected', 'amount_owed');
+$$;
+grant execute on function tests.money_columns(text[]) to anon, authenticated, service_role;
+select tests.ok(tests.money_columns(array['fund_stats', 'activity_public', 'campaigns_public', 'expenses_public',
+                                          'terms_info', 'campaign_contributors_public', 'member_status_public']) = '{}',
+  'the public variants carry no money columns');
+select tests.ok(not exists (select 1 from information_schema.columns where table_schema = 'public'
+                             and table_name = 'activity_public' and column_name = 'receipt_code'),
+  'no receipt codes for strangers (a code opens /r/<code>, which shows the amount)');
+select tests.login('public');
+select tests.ok((select members_active > 0 from public.fund_stats)
+                and (select count(*) from public.member_status_public) = (select count(*) from public.member_status)
+                and (select count(*) from public.activity_public) = (select count(*) from public.activity_feed)
+                and (select count(*) from public.campaigns_public) = (select count(*) from public.campaign_progress)
+                and (select count(*) from public.expenses_public) = (select count(*) from public.recent_expenses)
+                and (select count(*) from public.terms_info) = (select count(*) from public.terms_public)
+                and (select count(*) from public.campaign_contributors_public) = (select count(*) from public.campaign_contributions),
+  'strangers read the same rows without amounts');
+select tests.login('server');
+select tests.ok(app_private.can_see_money(), 'the server may read money (members, after the link check)');
+select tests.login('committee');
+select tests.ok(app_private.can_see_money(), 'the committee may read money');
+select tests.login('former');
+select tests.ok(not app_private.can_see_money(), 'a signed-in account that is not active committee may not');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

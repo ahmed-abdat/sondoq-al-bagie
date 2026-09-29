@@ -183,9 +183,9 @@ test("members grid: one bordered table, a plain ✓ in each paid month, empty ce
   await expect(page.locator(".rp-legend svg circle, .rp-mt svg circle")).toHaveCount(0);
   // «المجموع: … أوقية» under each group
   await expect(page.locator(".rp-gtotal")).toHaveCount(await page.locator(".rp-mt-narrow").count());
-  await expect(page.locator(".rp-gtotal").first()).toHaveText(
-    /^المجموع: [\d\s\u00a0\u202f]+ أوقية$/,
-  );
+  // a stranger: the total is hidden (money privacy)
+  await expect(page.locator(".rp-gtotal").first()).toHaveText(/^المجموع:\s+أوقية$/);
+  await expect(page.locator(".rp-gtotal").first().locator(".bq-dots")).toHaveCount(1);
   // r25: no «الرقم» column
   for (const t of await page.locator(".rp-mt").all()) await expect(t).not.toContainText("الرقم");
   const narrow = page.locator(".rp-mt-narrow").first();

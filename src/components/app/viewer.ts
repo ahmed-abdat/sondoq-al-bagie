@@ -16,7 +16,9 @@ export function setCanceller(v: Canceller | null) {
   subs.forEach((cb) => cb());
 }
 
-const signedIn = () => /(?:^|;\s*)sb-[^=]*-auth-token/.test(document.cookie);
+// a Supabase session, or the demo committee (demo mode has no real session)
+const signedIn = () =>
+  /(?:^|;\s*)(?:sb-[^=]*-auth-token|bq_demo_committee=1)/.test(document.cookie);
 
 export function useCanceller(): Canceller | null {
   const v = useSyncExternalStore(

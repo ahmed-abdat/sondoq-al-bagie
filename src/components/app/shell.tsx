@@ -17,6 +17,7 @@ import {
   type ReactNode,
 } from "react";
 import { Hero, type HeroData } from "./hero";
+import { Dots, useMoney } from "./money";
 import { I } from "./icons";
 import { Num, prefersReduced, Roll } from "./num";
 import { usePendingCount } from "./pending-count";
@@ -189,9 +190,7 @@ export function AppShell({
             <Image src="/logo.jpg" alt="" width={64} height={64} />
           </span>
           <span className="bq-compact-l">في الصندوق الآن</span>
-          <span className="bq-compact-n">
-            <Roll value={hero.balance} /> <small>أوقية</small>
-          </span>
+          <CompactBalance />
         </div>
 
         <nav className="bq-rail" aria-label="التنقل" style={{ ["--idx" as string]: idx }}>
@@ -243,5 +242,15 @@ export function AppShell({
           )}
       </div>
     </SnackCtx>
+  );
+}
+
+/** The compact bar's figure: the balance for members and the committee, «•••» otherwise. */
+function CompactBalance() {
+  const m = useMoney();
+  return (
+    <span className="bq-compact-n">
+      {m ? <Roll value={m.summary.balance} /> : <Dots />} <small>أوقية</small>
+    </span>
   );
 }

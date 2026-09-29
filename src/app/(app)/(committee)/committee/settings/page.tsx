@@ -11,7 +11,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/committ
     src.requireCommittee("/committee/settings"),
     src.fundInfo(),
     src.fundAccountsAdmin(),
-    src.fundSummary(),
+    src.committeeSummary(),
     src.fundSettings(),
   ]);
   const admin = session.role === "admin";

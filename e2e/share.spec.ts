@@ -16,6 +16,8 @@ test("receipt share falls back to a WhatsApp link when the phone cannot share fi
     }) as typeof window.open;
   });
 
+  // receipts (codes, amounts) are for members and the committee only (money privacy)
+  await page.goto("/m/demo");
   await page.goto("/");
   await page.getByRole("button", { name: /محمد ولد أحمد، .* افتح التفاصيل/ }).click();
   await page.getByRole("button", { name: "أرسل الوصل عبر واتساب" }).click();
@@ -45,6 +47,8 @@ test("receipt share uses the share sheet with a PNG when available", async ({ pa
     });
   });
 
+  // receipts (codes, amounts) are for members and the committee only (money privacy)
+  await page.goto("/m/demo");
   await page.goto("/");
   await page.getByRole("button", { name: /محمد ولد أحمد، .* افتح التفاصيل/ }).click();
   await page.getByRole("button", { name: "أرسل الوصل عبر واتساب" }).click();

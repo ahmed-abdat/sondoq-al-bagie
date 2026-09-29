@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { CampaignContribution, CampaignProgress, FundAccount } from "@/lib/data/types";
+import type { CampaignPublic, ContributorPublic, FundAccount } from "@/lib/data/types";
 import { waLink } from "@/lib/whatsapp";
 import { Track } from "../bits";
 import { dayWords, fmt } from "../derive";
@@ -8,6 +8,7 @@ import { I } from "../icons";
 import { Num } from "../num";
 import { PayTo } from "../pay-to";
 import { ConfirmedMark } from "../mark";
+import { Amount, Dots, useMoney } from "../money";
 
 export function DonationsView({
   campaign,
@@ -15,20 +16,20 @@ export function DonationsView({
   contributions,
   accounts,
   whatsapp,
-  showAmounts,
 }: {
-  campaign: CampaignProgress | null;
-  past: CampaignProgress[];
-  contributions: CampaignContribution[];
+  /** amount-free (money privacy): figures come from useMoney() for members/committee */
+  campaign: CampaignPublic | null;
+  past: CampaignPublic[];
+  contributions: ContributorPublic[];
   accounts: FundAccount[];
   whatsapp: string | null;
-  /** contribution amounts are shown only when the committee allows amounts */
-  showAmounts: boolean;
 }) {
   const [all, setAll] = useState(false);
+  const money = useMoney();
   const c = campaign;
-  const target = c?.targetAmount ?? 0;
-  const pct = c && target > 0 ? Math.min(100, Math.round((c.collected / target) * 100)) : null;
+  const cm = c && money ? money.campaigns.find((x) => x.campaignId === c.campaignId) : undefined;
+  const target = cm?.targetAmount ?? 0;
+  const pct = cm && target > 0 ? Math.min(100, Math.round((cm.collected / target) * 100)) : null;
   const shown = all ? contributions : contributions.slice(0, 4);
   const wa = c
     ? waLink(
@@ -67,10 +68,14 @@ export function DonationsView({
                 </span>
               )}
             </header>
-            {c.collected > 0 ? (
+            {!cm ? (
+              <p className="bq-big bq-camp-amt">
+                <Dots /> <span>أوقية</span>
+              </p>
+            ) : cm.collected > 0 ? (
               <>
                 <p className="bq-big bq-camp-amt">
-                  <Num>{fmt(c.collected)}</Num> <span>أوقية</span>
+                  <Num>{fmt(cm.collected)}</Num> <span>أوقية</span>
                 </p>
                 {target > 0 && (
                   <p className="bq-of">
@@ -103,12 +108,12 @@ export function DonationsView({
                   <Num>{c.participantsPaid}</Num>
                 </span>
               </li>
-              {target > 0 && c.collected > 0 && (
+              {!!cm && target > 0 && cm.collected > 0 && (
                 <li>
                   {I.coins(20)}
                   <span className="bq-f3-k">الباقي</span>
                   <span className="bq-f3-v">
-                    <Num>{fmt(Math.max(0, target - c.collected))}</Num>
+                    <Num>{fmt(Math.max(0, target - cm.collected))}</Num>
                   </span>
                 </li>
               )}
@@ -191,11 +196,6 @@ export function DonationsView({
                         <span className="bq-row-t">{x.contributorName}</span>
                         <ConfirmedMark date={x.at} size={22} />
                       </span>
-                      {showAmounts && (
-                        <span className="bq-row-e">
-                          <Num className="bq-amt a-in">{`+${fmt(x.amount)}`}</Num>
-                        </span>
-                      )}
                     </div>
                   </li>
                 ))}
@@ -227,14 +227,7 @@ export function DonationsView({
                 <span className="bq-row-m">
                   <span className="bq-row-t">{p.title}</span>
                   <span className="bq-row-s">
-                    جُمع <Num>{fmt(p.collected)}</Num>
-                    {p.targetAmount ? (
-                      <>
-                        {" "}
-                        من <Num>{fmt(p.targetAmount)}</Num>
-                      </>
-                    ) : null}{" "}
-                    أوقية
+                    <PastFigures id={p.campaignId} />
                   </span>
                 </span>
               </li>
@@ -242,6 +235,24 @@ export function DonationsView({
           </ul>
         </section>
       )}
+    </>
+  );
+}
+
+/** «جُمع … من … أوقية» for members/committee; the dots for strangers. */
+function PastFigures({ id }: { id: string }) {
+  const money = useMoney();
+  const p = money?.campaigns.find((x) => x.campaignId === id);
+  return (
+    <>
+      جُمع <Amount v={p?.collected} />
+      {p?.targetAmount ? (
+        <>
+          {" "}
+          من <Num>{fmt(p.targetAmount)}</Num>
+        </>
+      ) : null}{" "}
+      أوقية
     </>
   );
 }

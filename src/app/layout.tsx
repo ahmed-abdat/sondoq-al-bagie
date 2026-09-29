@@ -5,6 +5,7 @@ import { DemoProvider } from "@/components/app/act";
 import { DEMO_BANNER } from "@/components/app/demo";
 import { demoMode, usingFixtures } from "@/components/app/source";
 import { Providers } from "@/components/providers";
+import { MONEY_FLAG_SCRIPT } from "@/components/app/money-model";
 import "./globals.css";
 
 const body = Noto_Sans_Arabic({
@@ -49,8 +50,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ar" dir="rtl" className={`${body.variable} ${display.variable} h-full antialiased`}>
+    <html
+      lang="ar"
+      dir="rtl"
+      suppressHydrationWarning
+      className={`${body.variable} ${display.variable} h-full antialiased`}
+    >
       <body className="min-h-full font-sans">
+        {/* money privacy: a maybe-allowed browser hides the stranger hint before paint */}
+        <script dangerouslySetInnerHTML={{ __html: MONEY_FLAG_SCRIPT }} />
         {usingFixtures && (
           <p className="bq-demo" role="note">
             {demoMode ? DEMO_BANNER : "بيانات تجريبية: ليست أرقام الصندوق الحقيقية."}

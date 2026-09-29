@@ -69,7 +69,7 @@ export async function memberSheetData(): Promise<MemberSheetData | null> {
     src.memberRows(),
     memberCtx(),
     src.fundAccounts(),
-    src.campaigns(),
+    src.moneyCampaigns(),
     src.memberBeneficiaries(),
   ]);
   return {

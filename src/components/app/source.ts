@@ -5,13 +5,19 @@ import { redirect } from "next/navigation";
 // SONDOQ_FIXTURES=1 it serves the fictional fixtures instead (screenshots, dev without a seeded
 // database). This is the ONLY file that imports ./fixtures.
 import * as data from "@/lib/data";
-import type { CommitteeRole, ReportData } from "@/lib/data/types";
-import { DEMO_USER, isDemo } from "./demo";
+import type {
+  CommitteeRole,
+  MoneyBundle,
+  PublicActivityItem,
+  ReportData,
+  ReportShell,
+} from "@/lib/data/types";
+import { DEMO_COMMITTEE_COOKIE, DEMO_USER, isDemo } from "./demo";
 import { toMemberIndex, toMemberRows } from "@/lib/data/member-lists";
 import * as fx from "./fixtures";
-import { fromVerified } from "./receipt-model";
 import { toLedger } from "./ledger";
-import { assembleReport } from "@/lib/data/report";
+import { assembleReport, toReportShell } from "@/lib/data/report";
+import { toFundSummary } from "@/lib/data/map";
 import type { LedgerEntry, MyProfile } from "./types";
 import * as memberData from "@/lib/data/member";
 import { readJar } from "@/lib/member-cookies";
@@ -44,7 +50,6 @@ export async function groupPrices(year = thisYear()): Promise<Record<string, num
 }
 
 /* ───────────── public ───────────── */
-export const fundSummary = () => pick(fx.fxSummary, () => data.getFundSummary());
 export const fundInfo = () => pick(fx.fxInfo, () => data.getFundInfo());
 export const members = () =>
   pick(
@@ -56,43 +61,12 @@ export const memberMonths = (year = thisYear()) =>
     () => fx.fxMemberMonths(),
     () => data.getMemberMonths(year),
   );
-export const monthly = (year = thisYear()) =>
-  pick(fx.fxMonthly, () => data.getMonthlyCollection(year));
-export const expenses = () => pick(fx.fxExpenses, () => data.getRecentExpenses());
-export const expenseTotals = () => pick(fx.fxExpenseTotals, () => data.getExpenseTotals());
-export const campaigns = () => pick(fx.fxCampaigns, () => data.getCampaigns());
-export const contributions = (campaignId: string, limit = 20) =>
-  pick(
-    () =>
-      fx
-        .fxContributions()
-        .filter((c) => c.campaignId === campaignId)
-        .slice(0, limit),
-    () => data.getCampaignContributions(campaignId, limit),
-  );
 export const fundAccounts = () => pick(fx.fxAccounts, () => data.getFundAccounts());
 export const receipt = (code: string) =>
   pick(
     () => fx.fxReceipt(code),
     () => data.getReceipt(code),
   );
-const activity = () => pick(fx.fxActivity, () => data.getActivity());
-
-/** Confirmed payments (from the activity feed) + expenses, newest first. */
-export async function ledger(): Promise<LedgerEntry[]> {
-  const [acts, exps] = await Promise.all([activity(), expenses()]);
-  const all = toLedger(acts, exps, today());
-  // Preload the public receipt of the latest payments (cached per code on the server).
-  await Promise.all(
-    all
-      .filter((e) => e.code)
-      .slice(0, 20)
-      .map(async (e) => {
-        e.receipt = fromVerified(await receipt(e.code!));
-      }),
-  );
-  return all;
-}
 
 /* ───────────── committee (RLS decides; fixtures show a demo treasurer) ───────────── */
 /** Demo: a fake admin. Otherwise always the real signed-in session (even with fixtures). */
@@ -154,10 +128,8 @@ export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFu
 export const membersAdmin = () => pick(fx.fxMembersAdmin, () => data.getMembersAdmin());
 export const committeeAccounts = () =>
   pick(fx.fxCommitteeAccounts, () => data.getCommitteeAccounts());
-/** The fund report (/report). Fixtures assemble the same shape from the fictional data. */
-export async function report(): Promise<ReportData> {
-  if (!usingFixtures) return data.getReport();
-  // the same assembly as production, fed with the fixtures
+/** Fixtures: the full report, assembled like production from the fictional data. */
+async function fixtureReport(): Promise<ReportData> {
   const year = thisYear();
   return assembleReport({
     year,
@@ -210,7 +182,6 @@ export const memberIndex = () => {
     () => data.getMemberIndex(y, m),
   );
 };
-export const terms = () => pick(fx.fxTerms, () => data.getTerms());
 export const handovers = () => pick(fx.fxHandovers, () => data.getHandovers());
 export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());
 
@@ -270,3 +241,152 @@ export const demoTokenOf = (linkId: string) => fx.fxDemoTokenOf(linkId);
 /** Committee: the active link of each member who has one. */
 export const memberLinks = (): Promise<Record<string, MemberLinkInfo>> =>
   pick(fx.fxMemberLinks, () => memberData.getMemberLinks());
+
+/* ───────────── money privacy (docs/MONEY-PRIVACY.md) ─────────────
+ * Public pages read only the amount-free shapes below (same for everyone, cached). Money comes
+ * from money() / reportMoney(): per request, only for the committee or a member with their link;
+ * strangers get null and the UI shows «•••». Fixtures derive the public shapes by dropping the
+ * money fields, so the demo behaves like production. */
+const strip = <T extends object, K extends string>(o: T, keys: readonly K[]) => {
+  const c = { ...o } as Record<string, unknown>;
+  for (const k of keys) delete c[k];
+  return c as Omit<T, K>;
+};
+export const fundStats = () =>
+  pick(
+    () => {
+      const s = fx.fxSummary();
+      return {
+        membersOk: s.membersOk,
+        membersBehind: s.membersBehind,
+        membersActive: s.membersActive,
+        lastActivityAt: s.lastActivityAt,
+        termNumber: s.termNumber,
+        termStartedOn: s.termStartedOn,
+      };
+    },
+    () => data.getFundStats(),
+  );
+export const activityPublic = () =>
+  pick(
+    () =>
+      fx
+        .fxActivity()
+        .map((a) =>
+          strip(a, ["amount", "targetAmount", "receiptCode"] as const),
+        ) as PublicActivityItem[],
+    () => data.getActivityPublic(),
+  );
+export const expensesPublic = () =>
+  pick(
+    () => fx.fxExpenses().map((e) => strip(e, ["amount"] as const)),
+    () => data.getExpensesPublic(),
+  );
+export const campaignsPublic = () =>
+  pick(
+    () =>
+      fx
+        .fxCampaigns()
+        .map((c) =>
+          strip(c, ["targetAmount", "collected", "spent", "transferred", "balance"] as const),
+        ),
+    () => data.getCampaignsPublic(),
+  );
+export const termsInfo = () =>
+  pick(
+    () =>
+      fx.fxTerms().map(({ number, title, startedOn, endedOn }) => ({
+        number,
+        title,
+        startedOn,
+        endedOn,
+      })),
+    () => data.getTermsInfo(),
+  );
+export const contributorsPublic = (campaignId: string, limit = 20) =>
+  pick(
+    () =>
+      fx
+        .fxContributions()
+        .filter((c) => c.campaignId === campaignId)
+        .slice(0, limit)
+        .map((c) => strip(c, ["amount"] as const)),
+    () => data.getContributorsPublic(campaignId, limit),
+  );
+/** Amount-free ledger (payments and expenses): no amounts, no receipt codes. */
+export async function ledgerPublic(): Promise<LedgerEntry[]> {
+  const [acts, exps] = await Promise.all([activityPublic(), expensesPublic()]);
+  return toLedger(acts, exps, today());
+}
+/** /report for strangers and link previews: the grid and structure, no money. */
+export async function reportShell(): Promise<ReportShell> {
+  if (!usingFixtures) {
+    const s = await data.getReportShell();
+    if (s) return s;
+  }
+  return toReportShell(await fixtureReport(), await fundStats());
+}
+
+/** Demo: who may see money. A member link on this phone, or the demo committee (a cookie the
+ *  committee pages set in demo). Real mode: Lane A's moneyViewer (session or member cookie). */
+export async function demoMoneyViewer(): Promise<"committee" | "member" | null> {
+  if (!usingFixtures) return null;
+  if (await demoActive()) return "member";
+  const jar = await cookies();
+  return jar.get(DEMO_COMMITTEE_COOKIE)?.value === "1" ? "committee" : null;
+}
+
+/** Every money figure the public pages show, or null for a stranger. Never cached. */
+export async function money(): Promise<MoneyBundle | null> {
+  if (!usingFixtures) return data.getMoney({ year: thisYear() });
+  const viewer = await demoMoneyViewer();
+  return viewer ? fxMoney(viewer) : null;
+}
+function fxMoney(viewer: MoneyBundle["viewer"]): MoneyBundle {
+  const info = fx.fxInfo();
+  return {
+    viewer,
+    year: thisYear(),
+    summary: fx.fxSummary(),
+    monthly: fx.fxMonthly(),
+    expenseTotals: fx.fxExpenseTotals(),
+    expenses: fx.fxExpenses(),
+    campaigns: fx.fxCampaigns(),
+    activity: fx.fxActivity(),
+    terms: fx.fxTerms(),
+    amountOwed: info.showAmountOwed
+      ? Object.fromEntries(
+          fx
+            .fxMembers()
+            .filter((m) => m.amountOwed !== null)
+            .map((m) => [m.memberId, m.amountOwed as number]),
+        )
+      : null,
+  };
+}
+/** A campaign's contributions with amounts, or null for a stranger. */
+export async function moneyContributions(campaignId: string, limit = 20) {
+  if (!usingFixtures) return data.getMoneyContributions(campaignId, limit);
+  if (!(await demoMoneyViewer())) return null;
+  return fx
+    .fxContributions()
+    .filter((c) => c.campaignId === campaignId)
+    .slice(0, limit);
+}
+/** The full report with money, or null for a stranger. */
+export async function reportMoney(): Promise<ReportData | null> {
+  if (!usingFixtures) return data.getReportForViewer();
+  return (await demoMoneyViewer()) ? fixtureReport() : null;
+}
+/** Committee pages: money through the committee's own session (RLS); null when not allowed
+ *  (the page's requireCommittee redirects anyway). */
+export async function committeeMoney(): Promise<MoneyBundle | null> {
+  if (usingFixtures) return fxMoney("committee");
+  return money();
+}
+/** Committee pages: the fund totals (empty figures when money is not readable). */
+export const committeeSummary = () =>
+  committeeMoney().then((m) => m?.summary ?? toFundSummary(null));
+/** Committee pages (and a member's own send sheet): campaigns with their figures. */
+export const moneyCampaigns = () =>
+  (usingFixtures ? Promise.resolve(fxMoney("committee")) : money()).then((m) => m?.campaigns ?? []);

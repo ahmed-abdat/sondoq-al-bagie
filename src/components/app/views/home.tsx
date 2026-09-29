@@ -17,6 +17,7 @@ import { Hero, type HeroData } from "../hero";
 import { I } from "../icons";
 import { Avatar, StatusTag } from "../bits";
 import { Num } from "../num";
+import { useMoney } from "../money";
 import { rememberMember, useRecentMembers } from "../recent-members";
 import { MemberSlot } from "../member-slot";
 import { SearchField } from "../search-field";
@@ -45,8 +46,16 @@ export function HomeView({
   activeCount: number;
   monthName: string;
   ledger: LedgerEntry[];
-  campaign: { title: string; pct: number } | null;
+  campaign: { campaignId: string; title: string } | null;
 }) {
+  // money privacy: amounts, receipt codes and the campaign's progress only for members/committee
+  const money = useMoney();
+  const rows = money ? money.ledger : ledger;
+  const camp =
+    money && campaign ? money.campaigns.find((c) => c.campaignId === campaign.campaignId) : null;
+  const pct = camp?.targetAmount
+    ? Math.min(100, Math.round((camp.collected / camp.targetAmount) * 100))
+    : null;
   const [q, setQ] = useState("");
   const router = useRouter();
   const recent = useRecentMembers(members);
@@ -147,15 +156,15 @@ export function HomeView({
 
       <section className="bq-sec bq-rv" data-rv="home-ops" aria-labelledby="bq-ops-h">
         <h2 id="bq-ops-h">آخر العمليات</h2>
-        {ledger.length ? (
+        {rows.length ? (
           <ul className="bq-list">
-            {ledger.slice(0, 3).map((e) => (
+            {rows.slice(0, 3).map((e) => (
               <EntryRow key={e.id} e={e} onOpen={openEntry} />
             ))}
           </ul>
         ) : (
           <p className="bq-hint">
-            {hero.collected > 0
+            {paidCount > 0
               ? "سُجّلت دفعات هذا العام من السجل الورقي. ستظهر هنا الدفعات الجديدة."
               : "لا توجد عمليات مؤكَّدة بعد."}
           </p>
@@ -176,9 +185,9 @@ export function HomeView({
             <span className="bq-disc is-gold">{I.heart(22)}</span>
             <span className="bq-row-m">
               <span className="bq-row-t">حملة: {campaign.title}</span>
-              <Track f={campaign.pct / 100} />
+              {pct !== null && <Track f={pct / 100} />}
             </span>
-            <Num className="bq-camp-pct">{campaign.pct}%</Num>
+            {pct !== null && <Num className="bq-camp-pct">{pct}%</Num>}
             <span className="bq-chev">{I.go(18)}</span>
           </Link>
         </section>

@@ -10,7 +10,7 @@ export default async function HandoverPage() {
   const session = await src.requireCommittee("/committee/handover", { roles: src.MANAGERS });
   const [handovers, summary, accounts, people, pending] = await Promise.all([
     src.handovers(),
-    src.fundSummary(),
+    src.committeeSummary(),
     src.fundAccountsAdmin(),
     src.committeeAccounts(),
     src.pendingPayments(),

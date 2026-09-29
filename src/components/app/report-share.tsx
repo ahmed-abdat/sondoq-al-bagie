@@ -28,8 +28,38 @@ const DONE: Record<Exclude<Result, "retry">, string> = {
  * Committee only (owner rule): visitors and members read the report; a signed-in committee member
  * (any role) also gets «مشاركة التقرير» and the #share sheet. Hidden until known, so no flash.
  */
-export function ReportShare({ data, autoOpen = false }: { data: ReportData; autoOpen?: boolean }) {
+export function ReportShare({
+  data,
+  autoOpen = false,
+}: {
+  /** the full report (with money): null until it arrives, and always null for strangers */
+  data: ReportData | null;
+  autoOpen?: boolean;
+}) {
   const committee = useCommitteeViewer();
+  if (!committee || !data)
+    return (
+      <div className="rp-tools">
+        <PrintBtn />
+      </div>
+    );
+  return <ShareTools data={data} autoOpen={autoOpen} />;
+}
+
+function PrintBtn() {
+  return (
+    <button
+      type="button"
+      className="bq-link bq-link-s bq-link-quiet bq-press"
+      onClick={() => window.print()}
+    >
+      طباعة
+    </button>
+  );
+}
+
+function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean }) {
+  const committee = true;
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [retry, setRetry] = useState<string | null>(null);

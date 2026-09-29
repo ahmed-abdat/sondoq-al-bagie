@@ -9,7 +9,8 @@ export type LedgerEntry = {
   kind: "payment" | "donation" | "expense";
   title: string;
   sub: string;
-  amount: number;
+  /** null on public pages for strangers (money privacy) */
+  amount: number | null;
   at: string;
   /** «منذ ساعة», computed on the server */
   when: string;

@@ -5,12 +5,13 @@ import { HomeView } from "@/components/app/views/home";
 import { MONTHS } from "@/components/app/derive";
 
 export default async function Home() {
+  // amount-free reads only (money privacy): figures arrive in the browser for members/committee
   const [hero, index, all, ledger, campaigns] = await Promise.all([
     heroData(),
     src.memberIndex(),
     src.members(),
-    src.ledger(),
-    src.campaigns(),
+    src.ledgerPublic(),
+    src.campaignsPublic(),
   ]);
   // the same status word as /members (audit V2): computed from the months, not the view's label
   const byRef = new Map(all.map((m) => [m.memberRef, m]));
@@ -37,16 +38,7 @@ export default async function Home() {
         paidCount={index.paidThisMonth}
         monthName={MONTHS[(index.month || src.today().getUTCMonth() + 1) - 1]}
         ledger={ledger.slice(0, 3)}
-        campaign={
-          open
-            ? {
-                title: open.title,
-                pct: open.targetAmount
-                  ? Math.min(100, Math.round((open.collected / open.targetAmount) * 100))
-                  : 0,
-              }
-            : null
-        }
+        campaign={open ? { campaignId: open.campaignId, title: open.title } : null}
       />
     </Tab>
   );

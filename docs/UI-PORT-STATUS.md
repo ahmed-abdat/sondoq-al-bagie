@@ -448,6 +448,24 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   cookie exists), reset on sign-out; visitors and members get the report and «طباعة» only.
 - e2e 68/68 on fixtures. Shots `/private/tmp/claude-502/sondoq-shots/r26/`.
 
+## Money privacy, UI (r27, docs/MONEY-PRIVACY.md; owner design: hero A, /accounts C)
+- Public pages stay static and read only amount-free data (source.ts: fundStats, ledgerPublic,
+  campaignsPublic, contributorsPublic, termsInfo, reportShell). The deprecated money getters
+  are gone from source.ts; committee pages read money through their own session
+  (committeeMoney / committeeSummary / moneyCampaigns).
+- Figures reach the browser only from `money-action.ts` (loadMoney, loadReportMoney), asked
+  only when a cookie says maybe (member link, Supabase session, demo committee). `money.tsx`:
+  useMoney / useReportMoney, `Amount`, `Dots` («••• •••», one width), `MoneyHint` («لديك
+  رابط؟» dialog), `MoneyCard`. An inline script sets `html[data-money]` before paint, so maybe-
+  allowed browsers never see the stranger hint, and strangers never see numbers.
+- Receipt codes and receipts come only with the money bundle (ledger entries for strangers have
+  no amount, no code). /report: `ReportView` (client) over the shell; «المجموع», «عليه حتى
+  الآن» and all figures only with money; share still committee only.
+- Demo: money for /m/demo or after the demo committee (cookie `bq_demo_committee`, cleared by
+  «خروج»). Cleared in the tab at sign-out and «إزالة من هذا الهاتف».
+- e2e `money-privacy.spec.ts` (stranger HTML/network clean, member and committee see figures);
+  share/report specs updated. 75/75. Shots `/private/tmp/claude-502/sondoq-shots/r27/`.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.

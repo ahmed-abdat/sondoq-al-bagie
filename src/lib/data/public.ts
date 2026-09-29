@@ -1,10 +1,10 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
-import { toFundInfo, toFundSummary } from "./map";
+import { toFundInfo, toFundStats, toFundSummary } from "./map";
 import * as read from "./read";
 import { toMemberIndex, toMemberRows } from "./member-lists";
-import { assembleReport, loadReport, type ReportOptions } from "./report";
+import { assembleReport, loadReport, loadReportShell, type ReportOptions } from "./report";
 import { PUBLIC_TAG } from "./tags";
 
 /**
@@ -93,7 +93,7 @@ export const getMemberRows = cached(
   "member_rows",
   async (c: read.Client, year: number = new Date().getUTCFullYear()) => {
     const [members, months, pastLate, prices] = await Promise.all([
-      read.members(c),
+      read.membersPublic(c),
       read.memberMonths(c, year),
       read.pastLateMonths(c, year),
       read.groupPrices(c, year),
@@ -114,8 +114,29 @@ export const getMemberIndex = cached(
     const now = new Date();
     const y = year ?? now.getUTCFullYear();
     const m = month ?? now.getUTCMonth() + 1;
-    const [members, months] = await Promise.all([read.members(c), read.memberMonths(c, y)]);
+    const [members, months] = await Promise.all([read.membersPublic(c), read.memberMonths(c, y)]);
     return toMemberIndex(members, months, y, m);
   },
   { members: [], activeCount: 0, paidThisMonth: 0, year: 0, month: 0 },
+);
+
+/* ───────────── amount-free public reads (money privacy: what strangers get) ───────────── */
+
+export const getFundStats = cached("fund_stats", read.fundStats, toFundStats(null));
+export const getActivityPublic = cached("activity_public", read.activityPublic, []);
+export const getCampaignsPublic = cached("campaigns_public", read.campaignsPublic, []);
+export const getExpensesPublic = cached("expenses_public", read.expensesPublic, []);
+export const getTermsInfo = cached("terms_info", read.termsInfo, []);
+export const getContributorsPublic = cached(
+  "campaign_contributors_public",
+  (c: read.Client, campaignId: string, limit?: number) =>
+    read.contributorsPublic(c, campaignId, limit),
+  [],
+);
+
+/** The report for strangers and link previews: grid and structure, no money. */
+export const getReportShell = cached(
+  "report_shell",
+  (c: read.Client, opts: ReportOptions = {}) => loadReportShell(c, opts),
+  null,
 );
