@@ -58,6 +58,7 @@ export const MESSAGES = {
   before_current_period: "التاريخ قبل بداية الحالة الحالية.",
   months_already_paid_after: "توجد أشهر مدفوعة بعد هذا التاريخ.",
   campaign_closed: "هذه الحملة مغلقة.",
+  campaign_has_pending: "للحملة مساهمات بانتظار التأكيد. أكّدها أو ارفضها قبل الإغلاق.",
   handover_in_progress: "يوجد تسليم جارٍ لم يكتمل.",
   handover_not_draft: "لم يعد هذا التسليم قابلاً للتعديل.",
   handover_not_submitted: "لم يُرسل هذا التسليم بعد.",

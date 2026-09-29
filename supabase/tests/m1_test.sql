@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m14; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m15; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -433,13 +433,31 @@ select tests.login('public');
 select tests.ok((select collected = 3000 and spent = 1000 and balance = 2000 and participants_paid = 1 and target_amount = 25000
                  from public.campaign_progress where campaign_id = tests.id('c6')), 'campaign progress after split payment, edit and expense');
 select tests.set('bal6', (select balance from public.fund_summary));
+-- a pending contribution blocks closing (audit C1)
+select tests.login('committee');
+select tests.pay('cp6', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)));
 select tests.login('treasurer');
+select tests.throws($$select public.close_campaign(tests.id('c6'), 'to_fund')$$, 'campaign_has_pending',
+  'a campaign with a pending contribution cannot be closed');
+select public.reject_payment(tests.id('cp6'), 'اختبار');
 select tests.ok(public.close_campaign(tests.id('c6'), 'to_fund') = 2000, 'closing moves the surplus to the fund');
 select tests.ok(public.close_campaign(tests.id('c6'), 'to_fund') = 0, 'closing twice is a no-op');
 select tests.throws($$select public.update_campaign(tests.id('c6'), 'x', null, null, null)$$, 'campaign_closed', 'closed campaigns are not edited');
 select tests.throws($$select public.record_payment(gen_random_uuid(), 'دافع', 'cash', 500, current_date,
   jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)))$$,
   'campaign_closed', 'no contributions after closing');
+select tests.throws($$select public.record_expense(gen_random_uuid(), current_date, 'other', 100, 'بعد الإغلاق', tests.id('c6'))$$,
+  'campaign_closed', 'no expenses on a closed campaign (audit C2)');
+-- a contribution still pending when a campaign closed (older data, or a race) cannot be confirmed (audit C1)
+select tests.set('c7', public.create_campaign('00000000-0000-0000-0000-00000000c007', 'حملة مغلقة'));
+select tests.login('committee');
+select tests.pay('cp7', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c7'), 'member_id', null, 'amount', 500)));
+select tests.login('server');
+update public.campaigns set status = 'closed', closed_at = now(), surplus_action = 'keep' where id = tests.id('c7');
+select tests.login('deputy');
+select tests.throws($$select public.confirm_payment(tests.id('cp7'))$$, 'campaign_closed',
+  'a contribution to a closed campaign cannot be confirmed');
+select public.reject_payment(tests.id('cp7'), 'الحملة مغلقة');
 select tests.login('public');
 select tests.ok((select balance from public.fund_summary) = tests.get('bal6')::int + 2000, 'main fund balance grows by the surplus');
 select tests.ok((select balance from public.campaign_progress where campaign_id = tests.id('c6')) = 0, 'campaign balance is zero after transfer');
