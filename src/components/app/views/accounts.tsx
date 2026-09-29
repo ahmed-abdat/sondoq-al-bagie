@@ -149,10 +149,10 @@ export function AccountsView({
         </dl>
         <p className="bq-hint">تبرعات الحملات تُحفظ في حسابها الخاص، ولا تدخل هنا.</p>
         <div className="bq-link-row">
-          <Link href="/report#share" className="bq-link bq-press">
+          <Link href="/report#share" prefetch={false} className="bq-link bq-press">
             {I.wa(18)} مشاركة التقرير
           </Link>
-          <Link href="/report" className="bq-link bq-press">
+          <Link href="/report" prefetch={false} className="bq-link bq-press">
             التقرير كاملًا {I.go(18)}
           </Link>
         </div>

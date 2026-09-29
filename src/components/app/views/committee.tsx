@@ -71,7 +71,13 @@ function MenuRow({
 }) {
   return (
     <li>
-      <Link href={href} className="bq-row bq-press" transitionTypes={["tab-fwd"]}>
+      <Link
+        href={href}
+        // the report page is heavy; load it only when asked
+        prefetch={href.startsWith("/report") ? false : undefined}
+        className="bq-row bq-press"
+        transitionTypes={["tab-fwd"]}
+      >
         <span className="bq-disc">{icon}</span>
         <span className="bq-row-m">
           <span className="bq-row-t">{title}</span>

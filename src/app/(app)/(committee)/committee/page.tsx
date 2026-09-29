@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { ROLE_LABEL } from "@/components/app/derive";
 import { memberCtx } from "@/components/app/page-data";
 import * as src from "@/components/app/source";
@@ -17,6 +18,7 @@ export default async function CommitteePage() {
     src.arrears(),
     src.campaigns(),
   ]);
+  if (!session) redirect("/login?next=/committee");
   return (
     <Tab>
       <CommitteeView
