@@ -71,8 +71,9 @@ function pastLabel(keys: string[]) {
     .join("، ");
 }
 /** What a row covers, in words: earlier years first. */
-function rowLabel(r: Row) {
-  return [r.past.length ? pastLabel(r.past) : "", r.months.length ? monthsLabel(r.months) : ""]
+function rowLabel(r: Row, year: number) {
+  const now = r.months.length ? monthsLabel(r.months) : "";
+  return [r.past.length ? pastLabel(r.past) : "", now && r.past.length ? `${now} ${year}` : now]
     .filter(Boolean)
     .join("، ");
 }
@@ -284,7 +285,7 @@ function RowCard({
           </span>
           <span className="bq-row-s">
             {rowCount(row)
-              ? `${monthCount(rowCount(row))}: ${rowLabel(row)}`
+              ? `${monthCount(rowCount(row))}: ${rowLabel(row, ctx.year)}`
               : open.length || row.m.pastLate?.length
                 ? "لم تُختر أشهر"
                 : states.some((x) => x === "paid")
@@ -713,7 +714,7 @@ export function RecordBody({
   const summary = [
     feeMonths > 0 &&
       (payingRows.length === 1
-        ? `رسوم ${rowLabel(payingRows[0])}`
+        ? `رسوم ${rowLabel(payingRows[0], ctx.year)}`
         : `رسوم ${monthCount(feeMonths)} ${forMembers(payingRows.length)}`),
     campAmt > 0 && (
       <>

@@ -280,9 +280,15 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   that account (demo: the same login twice is taken).
 - e2e `e2e/edge-cases.spec.ts` (M9, M16, H1/H2). Shots `/private/tmp/claude-502/sondoq-shots/r17/`
   (script `r17/shots.mjs 390`, incl. the stalled slip via a held demo timer).
-- Waiting for Lane A (m2-backend): per-month price and past-year late months (M8/M11/M12),
-  cancelLastPeriod/setJoinMonth (E1), getBackupStatus (D2), then credit (M7), confirmer link flag
-  (E6), former members' debt (M14). `campaign_has_pending` / H1 server fix are Lane A's.
+- Lane A data (m2-app 4740ca4): record screen shows earlier years' late months (`MemberRow.pastLate`,
+  chosen by default, own chip strip), prices each month from `row.prices[ym]` else this year's
+  group price (`rowMonths`/`fitRow` in payment-draft.ts, tested), a year with no price blocks
+  with «حدد الرسوم الشهرية لسنة … أولًا.»; allocations carry their year. Settings: «الرسوم
+  الشهرية لسنة …» (admin, setGroupPrice, from 1 December or when this year has none; demo
+  `?prices=1`) and «آخر نسخة احتياطية» (getBackupStatus, admin). Member sheet (admin): «تراجع عن
+  آخر تغيير» (cancelLastPeriod) and «تصحيح شهر الانضمام» (setJoinMonth), reason required.
+  Fixtures: A-4 late Nov/Dec 2025 at 800; backup ok on 27 Sep.
+- Still waiting: credit «ادفع من الرصيد» (M7), confirmer link flag (E6), former members' debt (M14).
 
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,

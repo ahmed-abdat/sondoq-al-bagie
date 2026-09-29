@@ -46,3 +46,23 @@ test("a mid-year joiner is never offered the months before joining (M9)", async 
   await expect(sheet.getByRole("button", { name: /يناير/ })).toBeDisabled();
   await expect(sheet.getByRole("button", { name: /يناير/ })).toContainText("غير مستحق");
 });
+
+test("last year's late months are on the record screen, each at its own price (M8/M11)", async ({
+  page,
+}) => {
+  await page.goto("/committee");
+  await page.locator(".bq-fab").click();
+  const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
+  await sheet.getByLabel("ابحث عن العضو", { exact: true }).fill("أ 4");
+  await sheet.locator(".bq-pick button.bq-row").first().click();
+  const row = sheet.locator(".bq-rec-row").first();
+  await expect(row).toContainText("من نوفمبر إلى ديسمبر 2025");
+  // 2 × 800 (2025) + 9 × 1000
+  await expect(row).toContainText("10 600");
+});
+
+test("settings: next year's fees and the last backup (M12/D2)", async ({ page }) => {
+  await page.goto("/committee/settings?prices=1");
+  await expect(page.getByRole("heading", { name: "الرسوم الشهرية لسنة 2027" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "آخر نسخة احتياطية" })).toBeVisible();
+});
