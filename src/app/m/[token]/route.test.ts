@@ -7,13 +7,13 @@ vi.mock("@/lib/data/member", () => ({ verifyMemberToken: (t: string) => verify(t
 const { GET } = await import("./route");
 
 const TOKEN = "Qm9zc2EtdGVzdC10b2tlbi0wMTIzNDU2Nzg5YWJjZGVm_-x";
-const call = (token: string, ip = "1.2.3.4") =>
-  GET(
-    new NextRequest(`https://baqie.vercel.app/m/${token}`, {
-      headers: { "x-forwarded-for": ip },
-    }),
-    { params: Promise.resolve({ token }) },
-  );
+const call = (token: string, ip = "1.2.3.4", cookies: Record<string, string> = {}) => {
+  const req = new NextRequest(`https://baqie.vercel.app/m/${token}`, {
+    headers: { "x-forwarded-for": ip },
+  });
+  for (const [k, v] of Object.entries(cookies)) req.cookies.set(k, v);
+  return GET(req, { params: Promise.resolve({ token }) });
+};
 
 beforeEach(() => verify.mockReset());
 
@@ -54,4 +54,28 @@ it("too many wrong tries from one IP: stops checking for a while", async () => {
   expect(verify).toHaveBeenCalledTimes(10);
   // another IP is not affected
   expect((await call(TOKEN, "8.8.8.8")).headers.get("location")).toContain("/?welcome=1");
+});
+
+it("a second person's link on the same phone: kept aside, the choice page", async () => {
+  verify.mockResolvedValue({ memberId: "m2" });
+  const other = "B".repeat(43);
+  const res = await call(other, "1.1.1.1", {
+    bq_member: TOKEN,
+    bq_member_saved: JSON.stringify([TOKEN]),
+  });
+  expect(res.headers.get("location")).toBe("https://baqie.vercel.app/m/switch");
+  expect(res.cookies.get("bq_member_pending")).toMatchObject({ value: other, maxAge: 600 });
+  expect(res.cookies.get("bq_member")?.value).toBe(TOKEN); // still the first person
+});
+
+it("a profile already saved here: back to it, home", async () => {
+  verify.mockResolvedValue({ memberId: "m1" });
+  const other = "B".repeat(43);
+  const res = await call(TOKEN, "1.1.1.1", {
+    bq_member: other,
+    bq_member_saved: JSON.stringify([other, TOKEN]),
+  });
+  expect(res.headers.get("location")).toBe("https://baqie.vercel.app/");
+  expect(res.cookies.get("bq_member")?.value).toBe(TOKEN);
+  expect(JSON.parse(res.cookies.get("bq_member_saved")!.value)).toEqual([TOKEN, other]);
 });

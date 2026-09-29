@@ -19,9 +19,10 @@ export function MemberPushToggle({ className = "bq-small-top" }: { className?: s
 }
 
 /**
- * Before «خروج من هذا الجهاز» (memberSignOut): this device stops the member's notifications (the
- * committee's, if any, stay), and saved copies of personalised pages are dropped. Returns this
- * device's push endpoint, for memberSignOut({ endpoint }) to delete on the server.
+ * When the LAST member profile leaves this phone (removeProfile(...).last), before memberSignOut:
+ * this device stops the member notifications (the committee's, if any, stay) and drops saved
+ * copies of personalised pages. Returns this device's push endpoint for memberSignOut({ endpoint }).
+ * Removing one of several profiles: do not call it (the others keep their notifications).
  */
 export async function forgetMemberOnThisDevice(): Promise<string | undefined> {
   if (typeof window === "undefined") return undefined;

@@ -1,11 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyMemberToken } from "@/lib/data/member";
-import {
-  MEMBER_COOKIE,
-  MEMBER_COOKIE_MAX_AGE,
-  MEMBER_MARKER_COOKIE,
-} from "@/lib/data/member-types";
 import { clientIp, createFailLimiter } from "@/lib/fail-limiter";
+import { openLink, readJar, writeJar } from "@/lib/member-cookies";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +16,11 @@ const go = (request: NextRequest, path: string) => {
 };
 
 /**
- * A member's personal link (docs/MEMBER-ACCESS.md). Valid → the httpOnly key cookie plus the
- * readable marker, then home (?welcome=1 invites to install). Wrong, revoked, or too many wrong
- * tries from this IP → the calm «هذا الرابط لم يعد يعمل» page. The token never reaches a page.
- * (/m/demo and /m/invalid are static routes of their own and win over this one.)
+ * A member's personal link (docs/MEMBER-ACCESS.md; a phone holds up to 5 profiles). Wrong,
+ * revoked, or too many wrong tries from this IP → the calm «هذا الرابط لم يعد يعمل» page. Valid:
+ * the first profile here → active (+ install invite); a saved one → active; another person →
+ * kept aside for the choice page /m/switch. The token never reaches a page.
+ * (/m/demo, /m/invalid and /m/switch are static routes of their own and win over this one.)
  */
 export async function GET(
   request: NextRequest,
@@ -39,14 +36,8 @@ export async function GET(
     return go(request, "/m/invalid");
   }
 
-  const res = go(request, "/?welcome=1");
-  const cookie = {
-    secure: true,
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: MEMBER_COOKIE_MAX_AGE,
-  };
-  res.cookies.set(MEMBER_COOKIE, token, { ...cookie, httpOnly: true });
-  res.cookies.set(MEMBER_MARKER_COOKIE, "1", cookie);
+  const { jar, to } = openLink(readJar(request.cookies), token);
+  const res = go(request, to);
+  writeJar(res.cookies, jar);
   return res;
 }
