@@ -304,6 +304,7 @@ export async function committeeAccounts(c: Client): Promise<CommitteeAccount[]> 
     login: r.login ?? "",
     lastSignInAt: r.last_sign_in_at,
     createdAt: r.created_at ?? "",
+    canDelete: r.can_delete ?? false,
   }));
 }
 

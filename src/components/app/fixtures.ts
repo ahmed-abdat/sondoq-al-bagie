@@ -545,6 +545,7 @@ export const fxCommitteeAccounts = (): CommitteeAccount[] => [
     login: "demo@example.com",
     lastSignInAt: "2026-09-28T09:00:00Z",
     createdAt: "2026-09-01T09:00:00Z",
+    canDelete: false,
   },
   {
     userId: uuid("9", 2),
@@ -555,6 +556,7 @@ export const fxCommitteeAccounts = (): CommitteeAccount[] => [
     login: "+22236123456",
     lastSignInAt: "2026-09-27T18:30:00Z",
     createdAt: "2026-09-01T09:00:00Z",
+    canDelete: false,
   },
   {
     userId: uuid("9", 3),
@@ -565,6 +567,7 @@ export const fxCommitteeAccounts = (): CommitteeAccount[] => [
     login: "+22246123457",
     lastSignInAt: null,
     createdAt: "2026-09-20T09:00:00Z",
+    canDelete: true,
   },
 ];
 

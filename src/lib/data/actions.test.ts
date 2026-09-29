@@ -66,6 +66,7 @@ const {
   requestPasswordReset,
   createCommitteeAccount,
   resetCommitteePassword,
+  deleteCommitteeAccount,
 } = await import("./actions");
 
 const id = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -381,5 +382,43 @@ describe("actions", () => {
     const r = await resetCommitteePassword({ userId: uid });
     expect(r).toMatchObject({ ok: true, data: { userId: uid, login: "+22236123456" } });
     expect(updateUserById).toHaveBeenCalledWith(uid, { password: r.ok ? r.data.password : "" });
+  });
+
+  describe("deleteCommitteeAccount", () => {
+    const userId = "0f8fad5b-d9cb-469f-a165-70867728950e";
+    it("needs the secret key before touching anything", async () => {
+      secret = false;
+      expect(await deleteCommitteeAccount({ userId })).toMatchObject({
+        ok: false,
+        code: "not_configured",
+      });
+      expect(rpc).not.toHaveBeenCalled();
+    });
+    it("refuses an account with history and keeps the login", async () => {
+      rpc.mockResolvedValue({
+        data: null,
+        error: { code: "P0001", hint: "has_history", message: "x" },
+      });
+      const r = await deleteCommitteeAccount({ userId });
+      expect(r).toMatchObject({ ok: false, code: "has_history" });
+      expect(!r.ok && r.message).toMatch(/أوقفه/);
+      expect(deleteUser).not.toHaveBeenCalled();
+    });
+    it("removes the committee row then the login", async () => {
+      rpc.mockResolvedValue({ data: null, error: null });
+      deleteUser.mockResolvedValueOnce({ error: null } as never);
+      expect(await deleteCommitteeAccount({ userId })).toEqual({ ok: true, data: undefined });
+      expect(rpc).toHaveBeenCalledWith("delete_committee_member", { p_user_id: userId });
+      expect(deleteUser).toHaveBeenCalledWith(userId);
+    });
+    it("says so when the login could not be deleted", async () => {
+      rpc.mockResolvedValue({ data: null, error: null });
+      deleteUser.mockResolvedValueOnce({ error: { message: "boom" } } as never);
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      expect(await deleteCommitteeAccount({ userId })).toMatchObject({
+        ok: false,
+        code: "delete_failed",
+      });
+    });
   });
 });

@@ -1,6 +1,15 @@
 -- Undo the M2 migrations (dev/branch only). Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- delete accounts (m11): committee rows back to never deleted
+drop function if exists public.delete_committee_member(uuid);
+drop trigger if exists a_guard_delete on public.committee;
+drop function if exists app_private.tg_committee_delete();
+drop trigger if exists a_guard on public.committee;
+create trigger a_guard before update or delete on public.committee for each row execute function
+  app_private.tg_append_only('', 'display_name,role,member_id,active');
+drop view if exists public.committee_accounts;
+drop function if exists app_private.committee_accounts(), app_private.account_has_history(uuid);
 -- push subscriptions (m10)
 drop function if exists public.save_push_subscription(text, text, text, text), public.delete_push_subscription(text);
 drop table if exists public.push_subscriptions;
