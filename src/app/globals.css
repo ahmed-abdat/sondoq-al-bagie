@@ -4452,8 +4452,8 @@
   /* a stopped committee account: a clear chip, the row dimmed by .is-off */
   .bq-chip-off {
     margin-inline-start: 8px;
-    background: var(--rej-tint);
-    color: var(--rej-ink);
+    background: var(--n1);
+    color: var(--muted);
     vertical-align: middle;
   }
   /* «المزيد…» sits on its own line, away from the everyday actions */
@@ -4476,5 +4476,44 @@
   }
   .bq-mine {
     margin-block-start: 8px;
+  }
+  /* a new password with «إظهار» on the left (the field is LTR) */
+  .bq-pw-box {
+    position: relative;
+    display: block;
+  }
+  .bq-pw .bq-input {
+    width: 100%;
+    padding-left: 88px;
+  }
+  .bq-pw-eye {
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+  .bq-pw .bq-hint {
+    font-weight: 400;
+  }
+  .bq-role .bq-chev {
+    margin-inline-start: auto;
+  }
+  /* first sign-in setup */
+  .bq-setup-who {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .bq-setup-who legend {
+    padding: 0;
+    margin-block-end: 6px;
+    font-size: 14px;
+    font-weight: 600;
   }
 }

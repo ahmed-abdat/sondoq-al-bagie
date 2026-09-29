@@ -82,6 +82,13 @@ export function AddMemberBody({
   return (
     <div className="bq-rec">
       <h2>إضافة عضو</h2>
+      <p className="bq-rec-k">الاسم الكامل</p>
+      <input
+        className="bq-input"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        aria-label="الاسم الكامل"
+      />
       <p className="bq-rec-k">المجموعة</p>
       <div className="bq-chips" role="radiogroup" aria-label="المجموعة">
         {LISTS.map((g) => (
@@ -104,8 +111,8 @@ export function AddMemberBody({
         ))}
       </div>
       <p className="bq-rec-k">الرقم</p>
-      <div className="bq-field" dir="ltr">
-        <Num className="bq-strong">{list}-</Num>
+      <div className="bq-field">
+        <span className="bq-strong">{groupLabel(list)}</span>
         <input
           className="bq-input"
           value={num}
@@ -116,15 +123,8 @@ export function AddMemberBody({
         />
       </div>
       <p className="bq-hint">
-        {taken ? "هذا الرقم مأخوذ في هذه المجموعة." : "أول رقم فارغ في المجموعة."}
+        {taken ? "هذا الرقم مأخوذ في هذه المجموعة." : "أول رقم فارغ، غيّره إن شئت."}
       </p>
-      <p className="bq-rec-k">الاسم الكامل</p>
-      <input
-        className="bq-input"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        aria-label="الاسم الكامل"
-      />
       <p className="bq-rec-k">رقم الهاتف (اختياري)</p>
       <input
         className="bq-input"
@@ -135,7 +135,7 @@ export function AddMemberBody({
         aria-label="رقم الهاتف"
       />
       <p className="bq-hint">للتذكير عبر واتساب فقط. لا يظهر للأعضاء.</p>
-      <p className="bq-rec-k">تُحسب عليه الرسوم من شهر</p>
+      <p className="bq-rec-k">أول شهر تُحسب عليه الرسوم</p>
       <MonthPicker value={from} onChange={setFrom} label="أول شهر" />
       <div className="bq-rec-foot">
         <Err text={err} />
@@ -157,7 +157,7 @@ export function AddMemberBody({
             setBusy(false);
             if (!r.ok) return setErr(r.message);
             router.refresh();
-            onDone(`أُضيف ${name.trim()} برقم ${list}-${n}`);
+            onDone(`أُضيف ${name.trim()} برقم ${groupLabel(list)} ${n}`);
           }}
         >
           {busy ? "جارٍ الحفظ…" : "أضف العضو"}
@@ -244,13 +244,13 @@ export function MemberAdminBody({
           </bdi>
         </a>
       ) : (
-        <p className="bq-hint">لا يوجد رقم هاتف. أضِفه من «تعديل البيانات» ليصله التذكير.</p>
+        <p className="bq-hint">لا رقم هاتف. أضِفه من «تعديل البيانات» ليصله التذكير.</p>
       )}
 
       {mode === "view" && (
         <div className="bq-btn-col bq-small-top">
           <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("edit")}>
-            تعديل الاسم أو الهاتف
+            تعديل البيانات
           </button>
           <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => go("state")}>
             تغيير الحالة
@@ -259,7 +259,7 @@ export function MemberAdminBody({
       )}
       {mode === "view" && (
         <button type="button" className="bq-link bq-link-quiet bq-press" onClick={() => go("move")}>
-          نقله إلى المجموعة {groupLabel(other)} (الرسوم الشهرية)
+          نقله إلى رسوم المجموعة {groupLabel(other)}
         </button>
       )}
 
@@ -628,7 +628,7 @@ export function MembersAdmin({
           <p className="bq-empty-t">
             {q.trim() ? "لم نجد عضوًا بهذا الاسم أو الرقم" : "لا أحد بهذه الحالة"}
           </p>
-          <p className="bq-hint">جرّب جزءًا من الاسم، أو رقمًا مثل B-12.</p>
+          <p className="bq-hint">جرّب جزءًا من الاسم، أو رقمًا مثل ب 12.</p>
         </div>
       )}
 

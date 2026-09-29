@@ -1,6 +1,8 @@
 "use client";
-// «حسابات اللجنة» (admin): list accounts, add one, new password, stop/restart. No email invites:
-// the admin hands the login details over once (WhatsApp or copy); the password is never shown again.
+// «حسابات اللجنة» (admin): one row per account; tapping it opens everything about it (new password,
+// role, membership, stop/restart, delete). No email: the admin hands the login details over once
+// (WhatsApp or copy); the password is never shown again.
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
@@ -8,8 +10,10 @@ import type { CommitteeAccount, CommitteeRole, IssuedCredentials } from "@/lib/d
 import { parseLogin } from "@/lib/data/logins";
 import { waLink } from "@/lib/whatsapp";
 import { useAct } from "./act";
-import { memberLabel, parseMemberRef, relativeAgo, ROLE_LABEL } from "./derive";
+import { MemberNo } from "./bits";
+import { memberLabel, relativeAgo, ROLE_LABEL } from "./derive";
 import { I } from "./icons";
+import { MemberPick, PickedMember, type Pickable } from "./member-pick";
 import { useNow } from "./num";
 import { Sheet } from "./sheet";
 import { useSnack } from "./shell";
@@ -137,11 +141,14 @@ function CredentialsCard({ c, onClose }: { c: Creds; onClose: () => void }) {
   );
 }
 
+type Linkable = Pickable & { status: string };
+
 function AddAccountForm({
   members,
   onCreated,
 }: {
-  members: { memberId: string; memberRef: string }[];
+  /** active members not linked to an account yet */
+  members: Linkable[];
   onCreated: (c: Creds) => void;
 }) {
   const online = useOnline();
@@ -149,14 +156,12 @@ function AddAccountForm({
   const [name, setName] = useState("");
   const [login, setLogin] = useState("");
   const [role, setRole] = useState<CommitteeRole | null>(null);
-  const [memberRef, setMemberRef] = useState("");
+  const [member, setMember] = useState<Linkable | null>(null);
+  const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const loginOk = !!parseLogin(login);
-  const typed = memberRef.trim();
-  const ref = typed ? (parseMemberRef(typed) ?? typed) : "";
-  const member = ref ? members.find((m) => m.memberRef.toUpperCase() === ref) : undefined;
-  const ok = name.trim().length > 1 && loginOk && !!role && (!ref || !!member);
+  const ok = name.trim().length > 1 && loginOk && !!role;
   return (
     <div className="bq-rec">
       <h2>إضافة حساب</h2>
@@ -178,19 +183,25 @@ function AddAccountForm({
         placeholder="مثل 36 12 34 56"
         aria-label="رقم الهاتف أو البريد"
       />
-      <p className="bq-rec-k">الدور (اختر واحدًا)</p>
+      <p className="bq-rec-k">الدور</p>
       <RolePicker value={role} onChange={setRole} />
-      <p className="bq-rec-k">رقمه في الصندوق (اختياري)</p>
-      <input
-        className="bq-input"
-        value={memberRef}
-        onChange={(e) => setMemberRef(e.target.value)}
-        placeholder="مثل أ 12"
-        aria-label="رقم العضو"
-      />
-      <p className="bq-hint">
-        {ref && !member ? "لا يوجد عضو بهذا الرقم." : "حتى لا يؤكد دفعاته بنفسه."}
-      </p>
+      <p className="bq-rec-k">عضويته في الصندوق (اختياري)</p>
+      {member ? (
+        <PickedMember
+          m={member}
+          onChange={() => setPicking(true)}
+          onClear={() => setMember(null)}
+        />
+      ) : (
+        <button
+          type="button"
+          className="bq-btn bq-btn-tonal bq-press"
+          onClick={() => setPicking(true)}
+        >
+          {I.people(20)} اختر العضو
+        </button>
+      )}
+      <p className="bq-hint">حتى لا يؤكد دفعاته بنفسه.</p>
       <div className="bq-rec-foot">
         {err && (
           <p className="bq-alert" role="alert">
@@ -219,6 +230,236 @@ function AddAccountForm({
         </button>
         <OfflineWriteHint />
       </div>
+      {picking && (
+        <Sheet label="اختر العضو" onDone={() => setPicking(false)}>
+          <MemberPick
+            members={members}
+            title="من هو في قائمة الأعضاء؟"
+            onPick={(m) => {
+              setMember(m);
+              setPicking(false);
+            }}
+          />
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+type Mode = "view" | "role" | "member" | "stop" | "delete";
+
+/** One account: facts, then its actions. Confirmations replace the content in the same sheet. */
+function AccountSheet({
+  a,
+  self,
+  member,
+  free,
+  onPatch,
+  onCreds,
+  onGone,
+}: {
+  a: CommitteeAccount;
+  self: boolean;
+  member: Linkable | undefined;
+  /** members that can be linked to this account */
+  free: Linkable[];
+  onPatch: (p: Partial<CommitteeAccount>, note: string) => void;
+  onCreds: (c: Creds) => void;
+  onGone: () => void;
+}) {
+  const online = useOnline();
+  const now = useNow();
+  const { resetCommitteePassword, setCommitteeActive, setCommitteeMember } = useAct();
+  const [mode, setMode] = useState<Mode>("view");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const act = async (f: () => Promise<{ ok: boolean; code?: string; message?: string }>) => {
+    setBusy(true);
+    setErr("");
+    const r = await f();
+    setBusy(false);
+    if (!r.ok) setErr(say({ code: r.code ?? "", message: r.message ?? "" }));
+    return r.ok;
+  };
+  const back = () => {
+    setMode("view");
+    setErr("");
+  };
+
+  if (mode === "role")
+    return (
+      <ChangeRole
+        a={a}
+        onBack={back}
+        onSaved={(role) => onPatch({ role }, `صار دور ${a.displayName}: ${ROLE_LABEL[role]}`)}
+      />
+    );
+  if (mode === "member")
+    return (
+      <MemberPick
+        members={free}
+        title={`عضوية ${a.displayName}`}
+        onPick={async (m) => {
+          const ok = await act(() =>
+            setCommitteeMember({
+              userId: a.userId,
+              displayName: a.displayName,
+              role: a.role,
+              memberId: m.memberId,
+              active: a.active,
+            }),
+          );
+          if (ok) onPatch({ memberId: m.memberId }, `رُبط ${a.displayName} بعضوية ${m.fullName}`);
+          else back();
+        }}
+      />
+    );
+  if (mode === "stop")
+    return (
+      <Confirm
+        title={`إيقاف حساب ${a.displayName}`}
+        lead="لن يستطيع الدخول إلى صفحة اللجنة حتى تعيد تفعيله. تبقى عملياته كما هي."
+        verb={busy ? "جارٍ الإيقاف…" : "أوقف الحساب"}
+        busy={busy}
+        err={err}
+        onBack={back}
+        onYes={async () => {
+          if (await act(() => setCommitteeActive({ userId: a.userId, active: false })))
+            onPatch({ active: false }, `أُوقف حساب ${a.displayName}`);
+        }}
+      />
+    );
+  if (mode === "delete")
+    return (
+      <DeleteAccount
+        a={a}
+        onBack={back}
+        onDeleted={() => {
+          onGone();
+        }}
+      />
+    );
+
+  return (
+    <div className="bq-rec">
+      <div className="bq-mhead">
+        <span className="bq-disc">{I.lock(22)}</span>
+        <div>
+          <h2>{a.displayName}</h2>
+          <p className="bq-hint">
+            {ROLE_LABEL[a.role]}
+            {!a.active && " · موقوف"}
+          </p>
+        </div>
+      </div>
+      <dl className="bq-facts">
+        <div className="is-wide">
+          <dt>رقم الدخول</dt>
+          <dd>
+            <bdi dir="ltr" className="bq-num">
+              {a.login}
+            </bdi>
+          </dd>
+        </div>
+        <div>
+          <dt>آخر دخول</dt>
+          <dd>{a.lastSignInAt ? (now ? relativeAgo(a.lastSignInAt, now) : "") : "لم يدخل بعد"}</dd>
+        </div>
+        <div>
+          <dt>العضوية</dt>
+          <dd>{member ? `${member.fullName} (${memberLabel(member)})` : "غير مربوط"}</dd>
+        </div>
+      </dl>
+      {err && (
+        <p className="bq-alert" role="alert">
+          {err}
+        </p>
+      )}
+      {self ? (
+        <>
+          <p className="bq-hint bq-small-top">هذا حسابك. اسمك وكلمة السر في «حسابي».</p>
+          <div className="bq-btn-col">
+            <Link className="bq-btn bq-btn-soft bq-press" href="/committee/account">
+              {I.people(20)} حسابي
+            </Link>
+          </div>
+        </>
+      ) : a.active ? (
+        <div className="bq-btn-col">
+          <button
+            type="button"
+            className="bq-btn bq-btn-soft bq-press"
+            disabled={!online || busy}
+            onClick={async () => {
+              setBusy(true);
+              setErr("");
+              const r: Result<IssuedCredentials> = await resetCommitteePassword({
+                userId: a.userId,
+              });
+              setBusy(false);
+              if (!r.ok) return setErr(say(r));
+              onCreds({ name: a.displayName, login: r.data.login, password: r.data.password });
+            }}
+          >
+            {I.lock(20)} كلمة سر جديدة
+          </button>
+          <button
+            type="button"
+            className="bq-btn bq-btn-soft bq-press"
+            disabled={!online}
+            onClick={() => setMode("role")}
+          >
+            تغيير الدور
+          </button>
+          <button
+            type="button"
+            className="bq-btn bq-btn-soft bq-press"
+            disabled={!online}
+            onClick={() => setMode("member")}
+          >
+            {member ? "تغيير العضوية" : "ربطه بعضوية"}
+          </button>
+          <button
+            type="button"
+            className="bq-btn bq-btn-tonal bq-press"
+            disabled={!online}
+            onClick={() => setMode("stop")}
+          >
+            إيقاف الحساب
+          </button>
+        </div>
+      ) : (
+        <div className="bq-btn-col">
+          <button
+            type="button"
+            className="bq-btn bq-btn-primary bq-btn-lg bq-press"
+            disabled={!online || busy}
+            onClick={async () => {
+              if (await act(() => setCommitteeActive({ userId: a.userId, active: true })))
+                onPatch(
+                  { active: true },
+                  `فُعّل الحساب. اطلب من ${a.displayName} تسجيل الدخول من جديد.`,
+                );
+            }}
+          >
+            {busy ? "جارٍ التفعيل…" : "أعد تفعيل الحساب"}
+          </button>
+        </div>
+      )}
+      {!self &&
+        (a.canDelete ? (
+          <button
+            type="button"
+            className="bq-link bq-link-quiet bq-press bq-small-top"
+            disabled={!online}
+            onClick={() => setMode("delete")}
+          >
+            حذف الحساب نهائيًا
+          </button>
+        ) : (
+          <p className="bq-hint bq-small-top">لا يُحذف لأن له عمليات مسجّلة. يمكنك إيقافه.</p>
+        ))}
+      <OfflineWriteHint />
     </div>
   );
 }
@@ -229,55 +470,23 @@ export function CommitteeAccounts({
   selfId,
 }: {
   accounts: CommitteeAccount[];
-  members: { memberId: string; memberRef: string }[];
+  members: Linkable[];
   /** the signed-in admin: no password reset or stop on oneself */
   selfId: string | null;
 }) {
-  const online = useOnline();
   const now = useNow();
   const router = useRouter();
-  const { resetCommitteePassword, setCommitteeActive } = useAct();
-  const [activeOver, setActiveOver] = useState<Record<string, boolean>>({});
-  const [sheet, setSheet] = useState<
-    | { t: "add" }
-    | { t: "creds"; c: Creds }
-    | { t: "role"; a: CommitteeAccount }
-    | { t: "delete"; a: CommitteeAccount }
-    | { t: "more"; a: CommitteeAccount }
-    | { t: "stop"; a: CommitteeAccount }
-    | null
-  >(null);
-  const [roleOver, setRoleOver] = useState<Record<string, CommitteeRole>>({});
-  const [note, setNote] = useState<Record<string, string>>({});
-  const [gone, setGone] = useState<Set<string>>(new Set());
   const toast = useSnack();
-  const setActive = async (a: CommitteeAccount, next: boolean) => {
-    setActiveOver((o) => ({ ...o, [a.userId]: next }));
-    const r = await setCommitteeActive({ userId: a.userId, active: next });
-    if (!r.ok) {
-      setActiveOver((o) => ({ ...o, [a.userId]: !next }));
-      setNote((n) => ({ ...n, [a.userId]: say(r) }));
-      return false;
-    }
-    toast(
-      next
-        ? `فُعّل الحساب. اطلب من ${a.displayName} تسجيل الدخول من جديد.`
-        : `أُوقف حساب ${a.displayName}.`,
-    );
-    router.refresh();
-    return true;
-  };
-  const list = server
-    .filter((a) => !gone.has(a.userId))
-    .map((a) => ({
-      ...a,
-      active: activeOver[a.userId] ?? a.active,
-      role: roleOver[a.userId] ?? a.role,
-    }));
-  const refOf = (id: string | null) => {
-    const m = id ? members.find((x) => x.memberId === id) : undefined;
-    return m ? memberLabel(m) : undefined;
-  };
+  const [sheet, setSheet] = useState<
+    { t: "add" } | { t: "creds"; c: Creds } | { t: "acct"; id: string } | null
+  >(null);
+  const [patch, setPatch] = useState<Record<string, Partial<CommitteeAccount>>>({});
+  const [gone, setGone] = useState<Set<string>>(new Set());
+  const list = server.filter((a) => !gone.has(a.userId)).map((a) => ({ ...a, ...patch[a.userId] }));
+  const byId = new Map(members.map((m) => [m.memberId, m]));
+  const linked = new Set(list.map((a) => a.memberId).filter(Boolean));
+  const free = members.filter((m) => m.status === "active" && !linked.has(m.memberId));
+  const open = sheet?.t === "acct" ? list.find((a) => a.userId === sheet.id) : undefined;
   return (
     <>
       <button
@@ -289,97 +498,42 @@ export function CommitteeAccounts({
       </button>
       {list.length ? (
         <ul className="bq-list bq-gap-top">
-          {list.map((a) => (
-            <li key={a.userId}>
-              <div className={`bq-row ${a.active ? "" : "is-off"}`}>
-                <span className="bq-disc">{I.lock(22)}</span>
-                <span className="bq-row-m">
-                  <span className="bq-row-t">
-                    {a.displayName}
-                    {!a.active && <span className="bq-kind bq-chip-off">موقوف</span>}
-                  </span>
-                  <span className="bq-row-s">
-                    <bdi dir="ltr" className="bq-num">
-                      {a.login}
-                    </bdi>{" "}
-                    · {ROLE_LABEL[a.role]}
-                    {refOf(a.memberId) ? (
-                      <>
-                        {" "}
-                        · <bdi className="bq-num">{refOf(a.memberId)}</bdi>
-                      </>
-                    ) : null}
-                  </span>
-                  <span className="bq-row-s">
-                    {!a.active
-                      ? "لا يستطيع الدخول إلى صفحة اللجنة"
-                      : a.lastSignInAt
-                        ? `آخر دخول ${now ? relativeAgo(a.lastSignInAt, now) : ""}`
-                        : "لم يدخل بعد"}
-                  </span>
-                  {note[a.userId] && <span className="bq-row-s">{note[a.userId]}</span>}
-                  {a.userId !== selfId && (
-                    <span className="bq-com-actions">
-                      {a.active && (
+          {list.map((a) => {
+            const m = a.memberId ? byId.get(a.memberId) : undefined;
+            return (
+              <li key={a.userId}>
+                <button
+                  type="button"
+                  className={`bq-row bq-press ${a.active ? "" : "is-off"}`}
+                  onClick={() => setSheet({ t: "acct", id: a.userId })}
+                >
+                  <span className="bq-disc">{I.lock(22)}</span>
+                  <span className="bq-row-m">
+                    <span className="bq-row-t">
+                      {a.displayName}
+                      {a.userId === selfId && <span className="bq-row-s"> (أنت)</span>}
+                    </span>
+                    <span className="bq-row-s">
+                      {ROLE_LABEL[a.role]}
+                      {m && (
                         <>
-                          <button
-                            type="button"
-                            className="bq-link bq-link-s bq-press"
-                            disabled={!online}
-                            onClick={() => setSheet({ t: "role", a })}
-                          >
-                            تغيير الدور
-                          </button>
-                          <button
-                            type="button"
-                            className="bq-link bq-link-s bq-press"
-                            disabled={!online}
-                            onClick={async () => {
-                              const r: Result<IssuedCredentials> = await resetCommitteePassword({
-                                userId: a.userId,
-                              });
-                              if (!r.ok) return setNote((n) => ({ ...n, [a.userId]: say(r) }));
-                              setSheet({
-                                t: "creds",
-                                c: {
-                                  name: a.displayName,
-                                  login: r.data.login,
-                                  password: r.data.password,
-                                },
-                              });
-                            }}
-                          >
-                            كلمة سر جديدة
-                          </button>
+                          {" "}
+                          · <MemberNo m={m} />
                         </>
                       )}
-                      {!a.active && (
-                        <button
-                          type="button"
-                          className="bq-link bq-link-s bq-press"
-                          disabled={!online}
-                          onClick={() => void setActive(a, true)}
-                        >
-                          تفعيل
-                        </button>
-                      )}
+                      {" · "}
+                      {!a.active
+                        ? "موقوف"
+                        : a.lastSignInAt
+                          ? `دخل ${now ? relativeAgo(a.lastSignInAt, now) : ""}`
+                          : "لم يدخل بعد"}
                     </span>
-                  )}
-                  {a.userId !== selfId && (a.active || canDelete(a)) && (
-                    <span className="bq-com-actions bq-com-more">
-                      <button
-                        type="button"
-                        className="bq-link bq-link-s bq-link-quiet bq-press"
-                        onClick={() => setSheet({ t: "more", a })}
-                      >
-                        المزيد…
-                      </button>
-                    </span>
-                  )}
-                </span>
-              </div>
-            </li>
-          ))}
+                  </span>
+                  <span className="bq-chev">{I.go(18)}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <p className="bq-hint bq-gap-top">لا توجد حسابات أخرى بعد.</p>
@@ -387,7 +541,7 @@ export function CommitteeAccounts({
       {sheet?.t === "add" && (
         <Sheet key="add" label="إضافة حساب" onDone={() => setSheet(null)}>
           <AddAccountForm
-            members={members}
+            members={free}
             onCreated={(c) => {
               router.refresh();
               setSheet({ t: "creds", c });
@@ -395,74 +549,24 @@ export function CommitteeAccounts({
           />
         </Sheet>
       )}
-      {sheet?.t === "role" && (
-        <Sheet key="role" label="تغيير الدور" onDone={() => setSheet(null)}>
-          <ChangeRole
-            a={sheet.a}
-            onSaved={(role) => {
-              setRoleOver((o) => ({ ...o, [sheet.a.userId]: role }));
-              setNote((n) => ({ ...n, [sheet.a.userId]: `صار دوره: ${ROLE_LABEL[role]}.` }));
+      {open && (
+        <Sheet key={`acct-${open.userId}`} label={open.displayName} onDone={() => setSheet(null)}>
+          <AccountSheet
+            a={open}
+            self={open.userId === selfId}
+            member={open.memberId ? byId.get(open.memberId) : undefined}
+            free={free}
+            onPatch={(p, note) => {
+              setPatch((o) => ({ ...o, [open.userId]: { ...o[open.userId], ...p } }));
               setSheet(null);
+              toast(note);
               router.refresh();
             }}
-          />
-        </Sheet>
-      )}
-      {sheet?.t === "more" && (
-        <Sheet key="more" label={sheet.a.displayName} onDone={() => setSheet(null)}>
-          <div className="bq-rec">
-            <h2>{sheet.a.displayName}</h2>
-            <div className="bq-btn-col bq-small-top">
-              {sheet.a.active && (
-                <button
-                  type="button"
-                  className="bq-btn bq-btn-tonal bq-press"
-                  onClick={() => setSheet({ t: "stop", a: sheet.a })}
-                >
-                  إيقاف الحساب
-                </button>
-              )}
-              {canDelete(sheet.a) ? (
-                <button
-                  type="button"
-                  className="bq-btn bq-btn-tonal bq-press"
-                  onClick={() => setSheet({ t: "delete", a: sheet.a })}
-                >
-                  حذف الحساب
-                </button>
-              ) : (
-                <p className="bq-hint">لا يُحذف لأن له عمليات مسجّلة؛ يمكنك إيقافه.</p>
-              )}
-              <button
-                type="button"
-                className="bq-btn bq-btn-ghost bq-press"
-                onClick={() => setSheet(null)}
-              >
-                رجوع
-              </button>
-            </div>
-          </div>
-        </Sheet>
-      )}
-      {sheet?.t === "stop" && (
-        <Sheet key="stop" label="إيقاف الحساب" onDone={() => setSheet(null)}>
-          <StopAccount
-            a={sheet.a}
-            onBack={() => setSheet(null)}
-            onStop={async () => {
-              if (await setActive(sheet.a, false)) setSheet(null);
-            }}
-          />
-        </Sheet>
-      )}
-      {sheet?.t === "delete" && (
-        <Sheet key="delete" label="حذف الحساب" onDone={() => setSheet(null)}>
-          <DeleteAccount
-            a={sheet.a}
-            onBack={() => setSheet(null)}
-            onDeleted={() => {
-              setGone((g) => new Set(g).add(sheet.a.userId));
+            onCreds={(c) => setSheet({ t: "creds", c })}
+            onGone={() => {
+              setGone((g) => new Set(g).add(open.userId));
               setSheet(null);
+              toast(`حُذف حساب ${open.displayName}`);
               router.refresh();
             }}
           />
@@ -477,7 +581,60 @@ export function CommitteeAccounts({
   );
 }
 
-function ChangeRole({ a, onSaved }: { a: CommitteeAccount; onSaved: (r: CommitteeRole) => void }) {
+function Confirm({
+  title,
+  lead,
+  verb,
+  busy,
+  err,
+  onBack,
+  onYes,
+}: {
+  title: string;
+  lead: string;
+  verb: string;
+  busy: boolean;
+  err: string;
+  onBack: () => void;
+  onYes: () => void;
+}) {
+  const online = useOnline();
+  return (
+    <div className="bq-rec bq-cancel">
+      <h2>{title}</h2>
+      <p className="bq-lead">{lead}</p>
+      {err && (
+        <p className="bq-alert" role="alert">
+          {err}
+        </p>
+      )}
+      <div className="bq-rec-foot">
+        <button
+          type="button"
+          className="bq-btn bq-btn-danger bq-btn-lg bq-press"
+          disabled={busy || !online}
+          onClick={onYes}
+        >
+          {verb}
+        </button>
+        <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={onBack}>
+          رجوع
+        </button>
+        <OfflineWriteHint />
+      </div>
+    </div>
+  );
+}
+
+function ChangeRole({
+  a,
+  onBack,
+  onSaved,
+}: {
+  a: CommitteeAccount;
+  onBack: () => void;
+  onSaved: (r: CommitteeRole) => void;
+}) {
   const online = useOnline();
   const { setCommitteeMember } = useAct();
   const [role, setRole] = useState<CommitteeRole>(a.role);
@@ -517,14 +674,14 @@ function ChangeRole({ a, onSaved }: { a: CommitteeAccount; onSaved: (r: Committe
         >
           {busy ? "جارٍ الحفظ…" : `اجعله ${ROLE_LABEL[role]}`}
         </button>
+        <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={onBack}>
+          رجوع
+        </button>
         <OfflineWriteHint />
       </div>
     </div>
   );
 }
-
-/** Only accounts with no recorded operations can be deleted; the others are stopped instead. */
-const canDelete = (a: CommitteeAccount) => a.canDelete;
 
 function DeleteAccount({
   a,
@@ -563,43 +720,6 @@ function DeleteAccount({
           }}
         >
           {busy ? "جارٍ الحذف…" : "احذف الحساب"}
-        </button>
-        <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={onBack}>
-          رجوع
-        </button>
-        <OfflineWriteHint />
-      </div>
-    </div>
-  );
-}
-
-function StopAccount({
-  a,
-  onBack,
-  onStop,
-}: {
-  a: CommitteeAccount;
-  onBack: () => void;
-  onStop: () => Promise<void>;
-}) {
-  const online = useOnline();
-  const [busy, setBusy] = useState(false);
-  return (
-    <div className="bq-rec bq-cancel">
-      <h2>إيقاف حساب {a.displayName}</h2>
-      <p className="bq-lead">سيتوقف دخول {a.displayName} إلى صفحة اللجنة حتى تعيد تفعيله.</p>
-      <div className="bq-rec-foot">
-        <button
-          type="button"
-          className="bq-btn bq-btn-danger bq-btn-lg bq-press"
-          disabled={busy || !online}
-          onClick={async () => {
-            setBusy(true);
-            await onStop();
-            setBusy(false);
-          }}
-        >
-          {busy ? "جارٍ الإيقاف…" : "أوقف الحساب"}
         </button>
         <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={onBack}>
           رجوع
