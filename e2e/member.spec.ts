@@ -16,7 +16,7 @@ test("the link sets the cookies and home shows «أنت»", async ({ page, conte
   const card = you(page);
   await expect(card).toBeVisible();
   await expect(card.getByRole("heading", { level: 2 })).not.toBeEmpty();
-  await expect(card.getByRole("button", { name: /أرسلت دفعة/ })).toBeVisible();
+  await expect(card.getByRole("button", { name: /ادفع عن شخص آخر/ })).toBeVisible();
   await expect(card.getByRole("link", { name: /دفعاتي/ })).toHaveAttribute("href", "/me");
 });
 

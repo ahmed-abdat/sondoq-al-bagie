@@ -12,21 +12,27 @@ test("public home has no «أنت» card", async ({ page }) => {
   await expect(page.locator(".bq-you")).toHaveCount(0);
 });
 
-test("demo link → «أنت» card → «أرسلت دفعة» → pending, on /me and in the committee queue", async ({
+test("whole year paid: thanks, no pay button; «ادفع عن شخص آخر» → pending, on /me and in the committee queue", async ({
   page,
 }) => {
   await page.goto("/m/demo");
   const card = page.locator("section.bq-you");
   await expect(card).toBeVisible();
   await expect(card).toContainText("أنت");
-  await expect(card).toContainText("عليك 3 أشهر");
+  await expect(card).toContainText("دفعت رسوم 2026 كاملة");
+  await expect(card).toContainText("شكرًا لك");
+  await expect(card.getByRole("button", { name: "ادفع الآن" })).toHaveCount(0);
+  // months like the report: 12 bordered cells, a ✓ in each paid month
+  await expect(card.locator(".bq-you-cells li")).toHaveCount(12);
+  await expect(card.locator(".bq-you-cells li svg")).toHaveCount(12);
+  await expect(card.locator(".bq-you-key")).toHaveText(/مدفوع/);
 
-  await card.getByRole("button", { name: "أرسلت دفعة" }).click();
-  const sheet = page.getByRole("dialog", { name: "أرسلت دفعة" });
-  // me first
-  await expect(sheet.getByRole("heading", { name: "أنت" })).toBeVisible();
+  await card.getByRole("button", { name: "ادفع عن شخص آخر" }).click();
+  const sheet = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
+  // for someone else: no «أنت» shortcut, «دفعت لهم سابقًا» first
+  await expect(sheet.getByRole("heading", { name: "أنت" })).toHaveCount(0);
   await expect(sheet.getByRole("heading", { name: "دفعت لهم سابقًا" })).toBeVisible();
-  await sheet.locator('section[aria-label="أنت"] button.bq-row').click();
+  await sheet.locator('section[aria-label="دفعت لهم سابقًا"] button.bq-row').first().click();
 
   // the screenshot is required: the one button asks for it first
   const btn = sheet.locator(".bq-rec-foot").getByRole("button");
@@ -41,7 +47,9 @@ test("demo link → «أنت» card → «أرسلت دفعة» → pending, on 
   await expect(btn).toHaveText("أرسل إلى اللجنة");
   await btn.click();
   await expect(page.getByText("أُرسلت إلى اللجنة. ستصلك رسالة عند التأكيد.")).toBeVisible();
-  await expect(card).toContainText("دفعة واحدة بانتظار التأكيد");
+  // one small line, linking to «دفعاتي»
+  const wait = card.getByRole("link", { name: "دفعة بانتظار التأكيد" });
+  await expect(wait).toHaveAttribute("href", "/me");
 
   // «دفعاتي»: the submission waits, an earlier one was rejected with its reason
   await card.getByRole("link", { name: "دفعاتي" }).click();
@@ -52,6 +60,28 @@ test("demo link → «أنت» card → «أرسلت دفعة» → pending, on 
   // the committee (demo) sees it in the queue, labelled
   await page.locator("nav").getByRole("link", { name: "اللجنة" }).first().click();
   await expect(page.getByText(/أرسلها العضو .* عبر رابطه/)).toBeVisible();
+});
+
+test("late: one «ادفع الآن» → amount and wallets → «دفعت؟ أرسل صورة التحويل» with me and my late months chosen", async ({
+  page,
+}) => {
+  await page.goto("/m/demo2");
+  const card = page.locator("section.bq-you");
+  await expect(card).toContainText(/عليك 3 أشهر · 1\s500 أوقية/);
+  await expect(card.getByRole("button", { name: "ادفع الآن" })).toHaveCount(1);
+  await expect(card.getByRole("button", { name: "ادفع عن شخص آخر" })).toBeVisible();
+  await expect(card.locator(".bq-you-cells li svg")).toHaveCount(6);
+
+  await card.getByRole("button", { name: "ادفع الآن" }).click();
+  const pay = page.getByRole("dialog", { name: "ادفع الآن" });
+  await expect(pay).toContainText(/عليك 1\s500 أوقية عن 3 أشهر/);
+  await expect(pay).toContainText("كيف أدفع؟");
+  await pay.getByRole("button", { name: /دفعت؟ أرسل صورة التحويل/ }).click();
+
+  const sheet = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
+  await expect(sheet).toContainText("الحسن ولد عبد الله");
+  await expect(sheet).toContainText(/يوليو|سبتمبر/);
+  await expect(sheet.locator(".bq-rec-foot").getByRole("button")).toHaveText("أرفق صورة التحويل");
 });
 
 test("«إزالة … من هذا الهاتف» forgets the link here", async ({ page }) => {

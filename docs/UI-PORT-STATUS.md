@@ -303,10 +303,17 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - Home «أنت» (`member-slot.tsx` → lazy `member-card.tsx`): only when the readable `bq_member_on`
   flag exists (`hasMemberFlag`); then the server action `memberHome()` (`member-view-action.ts`)
   reads the session. Home stays static; non-members load none of this code and see Lane B's
-  `MemberLinkPaste` (installed app only). Card: name, «أ 3», «أنت منتظم» / «عليك 3 أشهر · 3 000
-  أوقية», this year's months as dots (+ key), credit, «دفعة واحدة بانتظار التأكيد», «أرسلت دفعة»,
-  «ادفع الآن» (PayTo + amount due), link «دفعاتي».
-- «أرسلت دفعة» = `RecordBody` with `member={ selfId, selfName, recent }`: picker «أنت» → «دفعت لهم
+  `MemberLinkPaste` (installed app only). Card changes with the state (r24, `youCard` in
+  `member-model.ts`): whole year → «✓ دفعت رسوم 2026 كاملة» + «شكرًا لك», only a quiet «ادفع عن شخص
+  آخر»; up to date → «✓ دفعت حتى سبتمبر», quiet «ادفع أشهرًا قادمة» (me + next months chosen) and
+  «ادفع عن شخص آخر»; late → «عليك 3 أشهر · 1 500 أوقية», one primary «ادفع الآن» (sheet: «عليك …
+  عن 3 أشهر», «كيف أدفع؟» PayTo, «دفعت؟ أرسل صورة التحويل» → me + late months chosen) and «ادفع
+  عن شخص آخر» (no «أنت» shortcut); exempt → «أنت معفى…» + «ادفع عن شخص آخر». Months like the
+  report: 12 bordered white cells, ✓ badge when paid, 1–12 under, legend «✓ مدفوع». Waiting = a
+  small link «دفعة بانتظار التأكيد» to /me. Credit line, link «دفعاتي».
+  Demo: /m/demo A-3 paid the whole year (fixtures `UP_TO`), /m/demo2 B-6 late 3 months.
+- «أرسل صورة التحويل» (was «أرسلت دفعة», r24) = `RecordBody` with `member={ selfId, selfName,
+  recent, start }` (`start: "self"` preselects me, `"others"` hides «أنت»): picker «أنت» → «دفعت لهم
   سابقًا» → everyone; screenshot required (CTA «أرفق صورة التحويل», right after months); «كيف
   دفعت؟»; payer defaults to the member; optional «ملاحظة للجنة»; footer «سيُرسل … / أرسل إلى
   اللجنة»; one id per sheet (`sendOnce`) for `memberUploadProof` + `memberSubmitPayment`; result
