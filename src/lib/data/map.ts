@@ -304,7 +304,15 @@ export function toPendingPayment(r: Row<"payment_queue">): PendingPayment {
     allocations: raw.map(toAllocation).filter((a): a is Allocation => a !== null),
     receiptCode: r.receipt_code,
     receiptNo: r.receipt_no,
+    submittedByMember: toLinkMember(r.submitted_by_member),
   };
+}
+
+function toLinkMember(v: unknown): { memberRef: string; fullName: string } | null {
+  const o = v as { member_ref?: unknown; full_name?: unknown } | null;
+  return o && typeof o.member_ref === "string" && typeof o.full_name === "string"
+    ? { memberRef: o.member_ref, fullName: o.full_name }
+    : null;
 }
 
 export function toArrear(r: Row<"arrears">): Arrear {

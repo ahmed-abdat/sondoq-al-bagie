@@ -6,6 +6,8 @@ import type { ListCode, MembershipStatus, PaymentMethod, PaymentStatus } from ".
 /** httpOnly cookie holding the raw link token (1 year). Set by /m/[token] after verifyMemberToken. */
 export const MEMBER_COOKIE = "bq_member";
 export const MEMBER_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+/** Non-httpOnly marker set next to MEMBER_COOKIE (value "1") so static pages know to fetch «أنت». */
+export const MEMBER_MARKER_COOKIE = "bq_member_on";
 
 /** The member behind the link on this device («أنت»). Their own debt is shown to them. */
 export type MemberSession = {

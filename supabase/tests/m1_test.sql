@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m23; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m24; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -619,7 +619,7 @@ select public.set_committee_member('00000000-0000-0000-0000-0000000000a3', 'ال
 select tests.login('server');
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000a6', 'mistake@test.invalid');
 select tests.ok((select count(*) from pg_constraint where contype = 'f' and confrelid = 'auth.users'::regclass
-                   and connamespace = 'public'::regnamespace) = 23,
+                   and connamespace = 'public'::regnamespace) = 25,
   'every column pointing at auth.users is checked by account_has_history (update it when this count changes)');
 select tests.login('admin');
 select public.set_committee_member('00000000-0000-0000-0000-0000000000a6', 'خطأ', 'committee');
@@ -868,6 +868,86 @@ select tests.set('cp9', public.record_payment(gen_random_uuid(), 'متبرع', '
 select public.close_campaign(tests.id('c9'), 'to_fund');
 select tests.throws($$select public.cancel_payment(tests.id('cp9'), 'خطأ')$$, 'campaign_closed',
   'a contribution already moved to the fund cannot be cancelled');
+
+/* ───────────── M24: member links ───────────── */
+
+select tests.login('server');
+insert into tests.users values ('service', '{"role":"service_role"}', 'service_role');
+-- submit through a link; p_n makes the proof unique
+create function tests.msub(p_hash text, p_key text, p_alloc jsonb, p_amount integer, p_n integer,
+                           p_method public.payment_method default 'bankily', p_proof boolean default true)
+returns jsonb language plpgsql as $$
+declare r jsonb; pid uuid := gen_random_uuid();
+begin
+  r := public.member_submit_payment(p_hash, pid, 'عضو', p_method, p_amount, current_date, p_alloc, null,
+         case when p_proof then 'payments/' || pid || '-aaaaaaaaaaaa.jpg' end,
+         case when p_proof then lpad(to_hex(p_n), 64, 'b') end);
+  perform tests.set(p_key, pid);
+  return r;
+end $$;
+grant execute on function tests.msub(text, text, jsonb, integer, integer, public.payment_method, boolean) to service_role;
+select tests.set('h1', repeat('1', 64));
+select tests.set('h2', repeat('2', 64));
+
+select tests.login('public');
+select tests.throws($$select public.create_member_link(tests.id('K'), tests.get('h1'))$$, '42501', 'anon cannot create links');
+select tests.login('committee');
+select tests.set('lk1', public.create_member_link(tests.id('K'), tests.get('h1')));
+select tests.ok((select count(*) from public.member_links_admin where member_id = tests.id('K')) = 1,
+  'the committee sees the active link (no hash)');
+select tests.throws($$select public.member_session(tests.get('h1'))$$, '42501', 'committee accounts cannot call member RPCs');
+select tests.throws('select * from public.member_links', '42501', 'nobody reads the hashes');
+select tests.login('public');
+select tests.throws($$select public.member_session(tests.get('h1'))$$, '42501', 'anon cannot call member RPCs');
+
+select tests.login('service');
+select tests.ok((select s ->> 'member_ref' = 'A-1005' and s ->> 'full_name' = 'عضو ك' and (s ->> 'credit')::int >= 0
+                 from (select public.member_session(tests.get('h1')) s) x), 'the link opens the member session');
+select tests.ok(public.member_session(repeat('f', 64)) is null, 'an unknown link is no session');
+select tests.throws($$select tests.msub(tests.get('h1'), 'mx', jsonb_build_array(tests.month('K', 1, 1000)), 1000, 1, 'bankily', false)$$,
+  'proof_required', 'members must attach the screenshot');
+select tests.throws($$select tests.msub(tests.get('h1'), 'mx', jsonb_build_array(tests.month('K', 1, 1000)), 1000, 1, 'paper')$$,
+  'invalid_input', 'members cannot record paper payments');
+select tests.ok((tests.msub(tests.get('h1'), 'ms1', jsonb_build_array(tests.month('K', 1, 1000)), 1000, 1) ->> 'status') = 'pending',
+  'a member submission is pending');
+select tests.ok((public.member_submit_payment(tests.get('h1'), tests.id('ms1'), 'x', 'bankily', 1, current_date, '[]'::jsonb)
+                 ->> 'replay')::boolean, 'the same id again is a replay');
+select tests.msub(tests.get('h1'), 'ms2', jsonb_build_array(tests.month('F', 0, 1000)), 1000, 2);
+select tests.ok((select bool_or(e ->> 'id' = tests.get('ms1') and (e ->> 'sent_by_me')::boolean and (e ->> 'for_me')::boolean)
+                        and bool_or(e ->> 'id' = tests.get('ms2') and (e ->> 'sent_by_me')::boolean and not (e ->> 'for_me')::boolean)
+                 from jsonb_array_elements(public.member_history(tests.get('h1'))) e),
+  'history lists what I sent, for me and for others');
+select tests.ok((select b -> 0 ->> 'member_ref' = 'A-9004' from (select public.member_recent_beneficiaries(tests.get('h1')) b) x),
+  'people I paid for come first in the picker');
+select tests.msub(tests.get('h1'), 'ms3', jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)), 100, 3);
+select tests.msub(tests.get('h1'), 'ms4', jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)), 100, 4);
+select tests.msub(tests.get('h1'), 'ms5', jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)), 100, 5);
+select tests.throws($$select tests.msub(tests.get('h1'), 'ms6', jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)), 100, 6)$$,
+  'member_rate_limited', 'at most 5 pending submissions per link');
+select public.member_save_push(tests.get('h1'), 'https://push.test/m1', 'p', 'a');
+select tests.ok((select count(*) from public.member_push_subscriptions where link_id = tests.id('lk1')) = 1, 'member push saved');
+
+select tests.login('treasurer');
+select tests.ok((select submitted_by_member ->> 'member_ref' from public.payment_queue where id = tests.id('ms1')) = 'A-1005'
+                and (select created_by is null from public.payment_queue where id = tests.id('ms1')),
+  'the queue shows which member sent it');
+select tests.login('committee');
+select public.create_member_link(tests.id('K'), tests.get('h2'));
+select tests.login('service');
+select tests.ok(public.member_session(tests.get('h1')) is null and public.member_session(tests.get('h2')) is not null,
+  'a new link revokes the old one');
+select tests.login('committee');
+select public.revoke_member_link(tests.id('K'));
+select tests.login('service');
+select tests.throws($$select tests.msub(tests.get('h2'), 'mx', jsonb_build_array(tests.month('K', 2, 1000)), 1000, 7)$$,
+  'member_link_invalid', 'a revoked link cannot submit');
+select tests.login('server');
+select tests.ok((select count(*) from public.member_links where member_id = tests.id('K') and revoked_at is null) = 0
+                and (select count(*) from public.audit_log where action in ('create_member_link', 'revoke_member_link')) = 3,
+  'links are revoked, never deleted, and audited');
+-- leave no pending member payments behind for later sections
+update public.payments set status = 'rejected', reject_reason = 'test', decided_at = now()
+where submitted_via_link is not null and status = 'pending';
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
