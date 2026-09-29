@@ -139,6 +139,8 @@ export const applyCreditSchema = z.object({
     .max(60),
 });
 
+export const memberIdSchema = z.object({ memberId: id });
+
 /** Admin marks a confirmer as genuinely not a member of the fund (clears «غير مربوط بعضو»). */
 export const setCommitteeNotMemberSchema = z.object({ userId: id, notMember: z.boolean() });
 

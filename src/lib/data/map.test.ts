@@ -75,6 +75,7 @@ describe("map", () => {
 
   it("parses payment allocations from the queue view", () => {
     const p = toPendingPayment({
+      submitted_by_member: { member_ref: "B-12", full_name: "سيدي" },
       id: "p1",
       status: "pending",
       payer_name: "دافع",
@@ -131,6 +132,7 @@ describe("map", () => {
       { kind: "credit", memberId: "m1", listCode: "B", number: 7, fullName: "عضو", amount: 500 },
     ]);
     expect(p.createdByName).toBe("مشرف");
+    expect(p.submittedByMember).toEqual({ memberRef: "B-12", fullName: "سيدي" });
   });
 
   it("reads verify_receipt JSON and treats anything odd as not found", () => {

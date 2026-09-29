@@ -445,6 +445,69 @@ export type Database = {
         }
         Relationships: []
       }
+      member_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          last_used_at: string | null
+          member_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_used_at?: string | null
+          member_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_used_at?: string | null
+          member_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          token_hash?: string
+        }
+        Relationships: []
+      }
+      member_push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          failures: number
+          id: string
+          link_id: string
+          p256dh: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          failures?: number
+          id?: string
+          link_id: string
+          p256dh: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          failures?: number
+          id?: string
+          link_id?: string
+          p256dh?: string
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           created_at: string
@@ -695,6 +758,7 @@ export type Database = {
           receipt_year: number | null
           reject_reason: string | null
           status: Database["public"]["Enums"]["payment_status"]
+          submitted_via_link: string | null
           txn_ref: string | null
         }
         Insert: {
@@ -718,6 +782,7 @@ export type Database = {
           receipt_year?: number | null
           reject_reason?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          submitted_via_link?: string | null
           txn_ref?: string | null
         }
         Update: {
@@ -741,6 +806,7 @@ export type Database = {
           receipt_year?: number | null
           reject_reason?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          submitted_via_link?: string | null
           txn_ref?: string | null
         }
         Relationships: []
@@ -1123,6 +1189,14 @@ export type Database = {
         }
         Relationships: []
       }
+      member_links_admin: {
+        Row: {
+          created_at: string | null
+          last_used_at: string | null
+          member_id: string | null
+        }
+        Relationships: []
+      }
       members_admin: {
         Row: {
           amount_owed: number | null
@@ -1201,6 +1275,7 @@ export type Database = {
           receipt_no: string | null
           reject_reason: string | null
           status: Database["public"]["Enums"]["payment_status"] | null
+          submitted_by_member: Json | null
           txn_ref: string | null
         }
         Relationships: []
@@ -1232,6 +1307,50 @@ export type Database = {
       }
     }
     Functions: {
+      create_member_link: {
+        Args: { p_member_id: string; p_token_hash: string }
+        Returns: string
+      }
+      member_delete_push: {
+        Args: { p_endpoint: string; p_token_hash: string }
+        Returns: undefined
+      }
+      member_history: {
+        Args: { p_token_hash: string }
+        Returns: Json
+      }
+      member_recent_beneficiaries: {
+        Args: { p_token_hash: string }
+        Returns: Json
+      }
+      member_save_push: {
+        Args: { p_auth: string; p_endpoint: string; p_p256dh: string; p_token_hash: string }
+        Returns: undefined
+      }
+      member_session: {
+        Args: { p_token_hash: string }
+        Returns: Json
+      }
+      member_submit_payment: {
+        Args: {
+          p_allocations: Json
+          p_amount: number
+          p_id: string
+          p_method: Database["public"]["Enums"]["payment_method"]
+          p_note?: string
+          p_paid_on: string
+          p_payer_name: string
+          p_proof_hash?: string
+          p_proof_path?: string
+          p_token_hash: string
+          p_txn_ref?: string
+        }
+        Returns: Json
+      }
+      revoke_member_link: {
+        Args: { p_member_id: string }
+        Returns: undefined
+      }
       accept_handover: {
         Args: { p_id: string; p_new_term_title?: string }
         Returns: number
