@@ -74,6 +74,19 @@ export function MemberCard({
   const say = useSnack();
   const [sheet, setSheet] = useState<SheetKind | null>(null);
   const [data, setData] = useState<MemberSheetData | null | undefined>();
+  // «ادفع الآن» → wallet → back (P3): one big «أرفق صورة التحويل»; the picked file goes along
+  const [back, setBack] = useState(false);
+  const [file, setFile] = useState<File | undefined>();
+  useEffect(() => {
+    if (sheet !== "pay") return;
+    let left = false;
+    const on = () => {
+      if (document.visibilityState === "hidden") left = true;
+      else if (left) setBack(true);
+    };
+    document.addEventListener("visibilitychange", on);
+    return () => document.removeEventListener("visibilitychange", on);
+  }, [sheet]);
   const router = useRouter();
   const { memberSwitch } = useMemberAct();
   const [switching, setSwitching] = useState<string | null>(null);
@@ -245,6 +258,7 @@ export function MemberCard({
           label="أرسل صورة التحويل"
           onDone={() => {
             setSheet(null);
+            setFile(undefined);
             if (sheet === "again") onAgainDone?.();
           }}
         >
@@ -260,8 +274,10 @@ export function MemberCard({
                 recent: data.recent,
                 start: sheet === "again" ? "self" : sheet,
                 again: sheet === "again" ? (again?.rows ?? undefined) : undefined,
+                file: sheet === "self" ? file : undefined,
               }}
               onDone={(t) => {
+                setFile(undefined);
                 if (sheet === "again") onAgainDone?.();
                 setSheet(null);
                 say(t);
@@ -274,25 +290,58 @@ export function MemberCard({
         </Sheet>
       )}
       {sheet === "pay" && (
-        <Sheet key="pay" label="ادفع الآن" onDone={() => setSheet(null)}>
-          <div className="bq-rec">
-            <h2>ادفع الآن</h2>
-            {s.amountOwed > 0 && (
-              <p className="bq-lead">
-                عليك <Num className="bq-strong">{fmt(s.amountOwed)}</Num> أوقية عن{" "}
-                {monthCount(s.monthsBehind)}.
-              </p>
-            )}
-            <p className="bq-rec-k">كيف أدفع؟ حوّل إلى أحد أرقام الصندوق</p>
-            {data ? <PayTo accounts={data.accounts} /> : <SheetWait failed={data === null} />}
-            <button
-              type="button"
-              className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-              onClick={() => setSheet("self")}
-            >
-              {I.image(20)} دفعت؟ أرسل صورة التحويل
-            </button>
-          </div>
+        <Sheet
+          key="pay"
+          label="ادفع الآن"
+          onDone={() => {
+            setSheet(null);
+            setBack(false);
+          }}
+        >
+          {back ? (
+            <div className="bq-rec bq-pay-back">
+              <h2>أرسل صورة التحويل</h2>
+              <p className="bq-lead">حوّلت المال؟ اختر صورة التحويل من المعرض.</p>
+              <label className="bq-btn bq-btn-primary bq-btn-lg bq-press">
+                {I.image(22)} أرفق صورة التحويل
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="bq-sr"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!f) return;
+                    setFile(f);
+                    setBack(false);
+                    setSheet("self");
+                  }}
+                />
+              </label>
+              <button type="button" className="bq-link bq-press" onClick={() => setBack(false)}>
+                عرض أرقام الصندوق
+              </button>
+            </div>
+          ) : (
+            <div className="bq-rec">
+              <h2>ادفع الآن</h2>
+              {s.amountOwed > 0 && (
+                <p className="bq-lead">
+                  عليك <Num className="bq-strong">{fmt(s.amountOwed)}</Num> أوقية عن{" "}
+                  {monthCount(s.monthsBehind)}.
+                </p>
+              )}
+              <p className="bq-rec-k">كيف أدفع؟ حوّل إلى أحد أرقام الصندوق</p>
+              {data ? <PayTo accounts={data.accounts} /> : <SheetWait failed={data === null} />}
+              <button
+                type="button"
+                className="bq-btn bq-btn-primary bq-btn-lg bq-press"
+                onClick={() => setSheet("self")}
+              >
+                {I.image(20)} دفعت؟ أرسل صورة التحويل
+              </button>
+            </div>
+          )}
         </Sheet>
       )}
     </section>

@@ -457,6 +457,8 @@ type MemberMode = {
   start?: "self" | "others";
   /** «أرسلها من جديد» (audit M7): the rejected payment's members and months, still payable ones */
   again?: SendAgain;
+  /** back from the wallet (UX-PATTERNS P3): the screenshot already picked, read at once */
+  file?: File;
 };
 /** A rejected submission to send again: who it covered and which months (by year). */
 export type SendAgain = { memberId: string; months: { year: number; month: number }[] }[];
@@ -687,6 +689,16 @@ export function RecordBody({
       if (seq === readSeq.current) setErr(imageOpenError(f));
     }
   };
+
+  // a screenshot picked before the sheet opened (P3): attach and read it once
+  const fileDone = useRef(false);
+  useEffect(() => {
+    const f = member?.file;
+    if (!f || fileDone.current) return;
+    fileDone.current = true;
+    void onShot(f);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, with the first render's rows
+  }, [member?.file]);
 
   const submit = async () => {
     if (block || !meth) return;
