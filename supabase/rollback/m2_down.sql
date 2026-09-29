@@ -1,6 +1,11 @@
--- Undo every migration after M1 (m2 … m22, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m23, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- P2 guards (m23): the txn index goes back to raw refs; function bodies are restored below
+drop index if exists public.payments_txn_ref_uniq;
+create unique index payments_txn_ref_uniq on public.payments (method, txn_ref)
+  where txn_ref is not null and status in ('pending', 'confirmed');
+drop function if exists app_private.norm_txn(text);
 -- member link flag, former debt (m22): views are recreated by the m11/m7 undos below
 drop function if exists public.set_committee_not_member(uuid, boolean), app_private.set_committee_not_member(uuid, boolean);
 drop view if exists public.committee_accounts;

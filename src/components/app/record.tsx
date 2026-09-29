@@ -640,8 +640,8 @@ export function RecordBody({
       return;
     }
     rememberRecent(rows.map((r) => r.m.memberId));
-    // TODO(lane-a e06d0b4): RecordPaymentResult.pendingOverlap; optional until it lands
-    const overlap = (r.data as { pendingOverlap?: boolean }).pendingOverlap
+    // another pending payment already covers one of these months (the confirmer should look)
+    const overlap = r.data.pendingOverlap
       ? " يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر."
       : "";
     router.refresh();

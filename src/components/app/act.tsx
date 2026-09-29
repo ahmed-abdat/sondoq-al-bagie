@@ -97,7 +97,13 @@ const demo = {
   async recordPayment(p) {
     // like the server: the same id again is a replay, not a second payment
     if (state.pending.some((x) => x.id === p.id))
-      return ok({ id: p.id, status: "pending" as const, replay: true, receiptCode: null });
+      return ok({
+        id: p.id,
+        status: "pending" as const,
+        replay: true,
+        receiptCode: null,
+        pendingOverlap: false,
+      });
     const pay: PendingPayment = {
       id: p.id,
       status: "pending",

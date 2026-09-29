@@ -27,7 +27,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     email: who.authEmail,
     password,
   });
-  if (error) return { error: "البيانات غير صحيحة. تحقق من البريد أو الرقم وكلمة السر." };
+  if (error) return { error: loginError(error) };
 
   // The password is right, but the committee pages open only for an active committee account
   // (RLS shows the row only then). Say so here instead of bouncing back to this page silently.
@@ -43,6 +43,18 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
   const next = String(formData.get("next") ?? "");
   redirect(next.startsWith("/committee") ? next : "/committee");
+}
+
+/** Too many tries and a dropped connection are not a wrong password: say which. */
+function loginError(error: { message?: string; status?: number; code?: string }): string {
+  if (
+    error.status === 429 ||
+    /rate.?limit|too many/i.test(`${error.code ?? ""} ${error.message ?? ""}`)
+  )
+    return "محاولات كثيرة. انتظر دقيقة ثم حاول.";
+  if (!error.status && /fetch|network/i.test(error.message ?? ""))
+    return "تعذّر الاتصال. تحقق من الإنترنت وحاول مرة أخرى.";
+  return "البيانات غير صحيحة. تحقق من البريد أو الرقم وكلمة السر.";
 }
 
 export async function logout() {
