@@ -4024,75 +4024,124 @@
     margin-block-start: 20px;
     font-size: 14px;
   }
-  .rp-members {
-    display: flex;
-    flex-direction: column;
+  /* members' months like the paper sheet (variant A, r25): white bordered cells, a green ✓
+     when paid, empty otherwise. ≥600px one line per member; on a phone one continuous table,
+     each member a name row with its 12 cells beneath, the month header sticky */
+  .rp-mt {
+    --rp-line: #b3c5b9; /* soft brand grey green, as on the shared images */
+    --rp-edge: #7f9a88;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--rp-edge);
+    border-radius: 14px;
+    background: var(--paper);
+    font-size: 15px;
+    line-height: 1.35;
+    color: var(--ink);
   }
-  .rp-members li {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas: "ref name" "ref st" "cells cells";
-    column-gap: 10px;
-    row-gap: 4px;
-    padding-block: 10px;
-    border-block-end: 1px solid rgba(20, 32, 26, 0.06);
-  }
-  .rp-ref {
-    grid-area: ref;
-    align-self: start;
-    min-width: 44px;
-    padding: 2px 6px;
-    border-radius: 999px;
-    background: var(--n1);
-    font-size: 14px;
-    font-weight: 700;
+  .rp-mt th,
+  .rp-mt td {
+    padding: 0;
+    border: 0;
+    border-block-end: 1px solid var(--rp-line);
     text-align: center;
+    vertical-align: middle;
   }
-  .rp-mname {
-    grid-area: name;
+  .rp-mt tr > :not(:last-child) {
+    border-inline-end: 1px solid var(--rp-line);
+  }
+  .rp-mt > tbody:last-child > tr:last-child > td {
+    border-block-end: 0;
+  }
+  .rp-mt thead th {
+    height: 34px;
+    background: var(--g1);
+    color: var(--g8);
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .rp-mt thead th:first-child {
+    border-start-start-radius: 13px;
+  }
+  .rp-mt thead th:last-child {
+    border-start-end-radius: 13px;
+  }
+  .rp-mt > tbody:last-child > tr:last-child > td:first-child {
+    border-end-start-radius: 13px;
+  }
+  .rp-mt > tbody:last-child > tr:last-child > td:last-child {
+    border-end-end-radius: 13px;
+  }
+  .rp-mt .rp-mt-name {
+    padding: 8px 12px;
+    text-align: start;
     font-weight: 600;
-    line-height: 1.4;
   }
-  .rp-mst {
-    grid-area: st;
-    font-size: 14px;
+  .rp-mt thead th.rp-mt-name {
+    font-family: inherit;
+  }
+  .rp-mt td.rp-mt-c {
+    height: 40px;
+  }
+  @media (hover: hover) {
+    .rp-mt-wide tbody tr:hover td,
+    .rp-mt-narrow tbody:hover td {
+      background: var(--g0);
+    }
+  }
+  .rp-mt-wide td.rp-mt-c,
+  .rp-mt-wide thead th:not(.rp-mt-name) {
+    width: 38px;
+  }
+  .rp-owed {
+    display: block;
+    font-size: 13px;
+    font-weight: 400;
     color: var(--muted);
   }
-  /* 12 month cells: a paid month holds a ✓ badge, any other month stays empty (owner, r19) */
-  /* like the paper sheet (r22): a bordered cell per month, white, a ✓ when paid */
-  .rp-cells {
-    grid-area: cells;
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    min-height: 26px;
-    border: 1px solid var(--switch-off);
-    background: var(--paper);
+  .rp-mt-narrow {
+    display: none;
+    table-layout: fixed;
   }
-  .rp-cells > span {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  .rp-mt-narrow thead th {
+    position: sticky;
+    top: var(--safe-t);
+    z-index: 1;
   }
-  .rp-cells > span + span {
-    border-inline-start: 1px solid var(--switch-off);
+  .rp-mt-nrow td {
+    padding: 8px 12px 6px;
+    text-align: start;
+  }
+  .rp-mt-nm {
+    font-weight: 600;
+  }
+  .rp-mt-nrow .rp-owed {
+    display: inline;
+    margin-inline-start: 8px;
+  }
+  .rp-mt-cells td.rp-mt-c {
+    height: 34px;
+  }
+  @media (max-width: 599.98px) {
+    .rp-mt-wide {
+      display: none;
+    }
+    .rp-mt-narrow {
+      display: table;
+    }
+  }
+  .bq-check {
+    flex: none;
+    display: inline-block;
+    vertical-align: -4px;
   }
   .rp-gtotal {
     margin-block-start: 10px;
     font-family: var(--font-display);
     font-weight: 700;
-  }
-  .rp-mhead {
-    padding-block: 6px 4px;
-    border-block-end: 1px solid rgba(20, 32, 26, 0.1);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-  .rp-okm {
-    flex: none;
-    display: inline-block;
-    vertical-align: -4px;
   }
   .rp-share .bq-row:disabled {
     opacity: 1;
@@ -4137,28 +4186,24 @@
   .rp-cards {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .rp-members {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 8mm;
-  }
-  .rp-members li {
-    break-inside: avoid;
-    padding-block: 5px;
-  }
-  .rp-mname {
+  .rp-mt {
     font-size: 9.5pt;
   }
-  .rp-mst,
-  .rp-ref {
+  .rp-mt thead {
+    display: table-header-group;
+  }
+  .rp-mt tr {
+    break-inside: avoid;
+  }
+  .rp-mt td.rp-mt-c {
+    height: 20px;
+  }
+  .rp-owed {
     font-size: 8pt;
   }
-  .rp-okm {
-    width: 12px;
-    height: 12px;
-  }
-  .rp-cells {
-    min-height: 12px;
+  .rp-mt .bq-check {
+    width: 13px;
+    height: 13px;
   }
 }
 
@@ -4838,10 +4883,6 @@
     font-weight: 600;
     color: var(--muted);
     font-variant-numeric: tabular-nums;
-  }
-  .bq-okm {
-    flex: none;
-    display: inline-block;
   }
   .bq-you-key {
     display: flex;

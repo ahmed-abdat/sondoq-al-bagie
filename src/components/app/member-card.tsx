@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MemberLinkPaste } from "@/components/providers";
 import { useIsDemo } from "./act";
-import { Avatar, MemberNo } from "./bits";
+import { Avatar, MemberNo, PaidCheck } from "./bits";
 import { fmt, groupLabel, monthCount } from "./derive";
 import { I } from "./icons";
 import { rememberDemoMember, useMemberAct, useMemberDemo } from "./member-act";
@@ -147,7 +147,7 @@ export function MemberCard({
           }
         >
           {dots.map((x) => (
-            <li key={x.month}>{x.state === "paid" ? <OkMark /> : null}</li>
+            <li key={x.month}>{x.state === "paid" ? <PaidCheck /> : null}</li>
           ))}
         </ol>
         <ol className="bq-you-nums" aria-hidden="true">
@@ -157,7 +157,7 @@ export function MemberCard({
         </ol>
       </div>
       <p className="bq-you-key" aria-hidden="true">
-        <OkMark /> مدفوع
+        <PaidCheck /> مدفوع
       </p>
       {s.credit > 0 && (
         <p className="bq-hint">
@@ -263,22 +263,5 @@ function SheetWait({ failed }: { failed: boolean }) {
     <p className="bq-hint" role="status">
       <span className="bq-spin" aria-hidden="true" /> جارٍ التحميل…
     </p>
-  );
-}
-
-/** The report's ✓ badge (green disc, white check). */
-function OkMark() {
-  return (
-    <svg className="bq-okm" viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
-      <circle cx="16" cy="16" r="16" fill="var(--g7)" />
-      <path
-        d="M9 16l5 5 10-11"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
