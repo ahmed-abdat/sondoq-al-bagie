@@ -1,6 +1,6 @@
 /**
  * The fund report as a set of pages drawn on a canvas, for the WhatsApp group:
- * cover (summary), one or more pages per member list (12 month marks per member),
+ * cover (summary), one or more pages per member list (a ✓ badge in each paid month),
  * then expenses and campaigns. 1080×1350 for images; 1080×1575 for the PDF (A4 inside a 10 mm
  * margin). Loaded on demand by share-report.ts. Pagination is pure and unit tested.
  */
@@ -10,10 +10,9 @@ import type {
   ReportData,
   ReportExpense,
   ReportMember,
-  ReportMonthState,
 } from "./data/types";
 import { formatDay, monthName } from "./dates";
-import { checkLabel, monthMark, rowChecked, type CheckMeaning } from "./report-check";
+import { monthPaid } from "./report-check";
 import { formatNumber } from "./format";
 import { FUND_NAME } from "./share-receipt";
 import {
@@ -213,10 +212,7 @@ interface PageDrawOptions {
   /** 1-based page number and total, for the footer. */
   no: number;
   of: number;
-  check: CheckMeaning;
 }
-
-const isPaid = (s: ReportMonthState | undefined) => s === "paid" || s === "prepaid";
 
 /** Header band of the inner pages: brand on the right, the page's title and lines on the left. */
 function band(
@@ -261,26 +257,12 @@ function band(
   );
 }
 
-/** The month mark: ● paid, ○ unpaid; not owed stays empty. */
-function mark(p: Pen, s: "paid" | "unpaid" | null, cx: number, cy: number) {
-  const x = p.x;
-  const r = 12;
-  if (s === "paid") return p.dot(cx, cy, r, T.green);
-  if (s === "unpaid") {
-    x.lineWidth = 3;
-    x.strokeStyle = T.slate;
-    x.beginPath();
-    x.arc(cx, cy, r - 1.5, 0, Math.PI * 2);
-    x.stroke();
-  }
-}
-
-/** The row's ✓: a green disc with a white check. */
-function okCheck(p: Pen, cx: number, cy: number, r: number) {
+/** A paid month: a green disc with a white check (the app's ConfirmedMark). */
+function okBadge(p: Pen, cx: number, cy: number, r: number) {
   p.dot(cx, cy, r, T.green);
   const k = r / 16;
   const x = p.x;
-  x.lineWidth = 3 * k;
+  x.lineWidth = 3.2 * k;
   x.lineCap = "round";
   x.lineJoin = "round";
   x.strokeStyle = T.paper;
@@ -289,6 +271,28 @@ function okCheck(p: Pen, cx: number, cy: number, r: number) {
   x.lineTo(cx - 2 * k, cy + 5 * k);
   x.lineTo(cx + 8 * k, cy - 6 * k);
   x.stroke();
+}
+
+/**
+ * Member grid columns at width `w` (from the right): ref, name, then 12 month cells down to the
+ * left margin. Pure, so the fit is unit tested.
+ */
+export function memberCols(w: number) {
+  const R = w - L.pad;
+  const refW = 76;
+  const nameR = R - refW - 12;
+  const cell = 40;
+  const badge = 14;
+  const monthsR = L.pad + 12 * cell;
+  return {
+    cRef: R - refW / 2,
+    nameR,
+    nameW: nameR - monthsR - 16,
+    cell,
+    badge,
+    /** centre of month k (1 = January, on the right) */
+    cx: (k: number) => monthsR - (k - 0.5) * cell,
+  };
 }
 
 function drawMembers(
@@ -303,44 +307,24 @@ function drawMembers(
   const P = L.pad;
   const all = r.members.filter((m) => isShown(m) && listOf(m) === page.list);
   const active = all.filter((m) => m.status === "active");
-  const paid = active.filter((m) => isPaid(m.months[card.month - 1])).length;
+  const paid = active.filter((m) => monthPaid(m.months[card.month - 1])).length;
   const fee = (r.groupPrices as Record<string, number | undefined>)[page.list];
   band(p, w, card, o.logo, `المجموعة ${listLabel(page.list)}`, [
     `${paid} من ${active.length} دفعوا رسوم ${monthName(card.month)}`,
     ...(fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : []),
   ]);
 
-  // Legend: marks and the ✓ on the right, the month numbers' key on the left
-  let lx = R;
+  // Legend: «✓ مدفوع» on the right, the month numbers' key on the left
   const ly = L.band + L.gap + 36;
-  const items: ["paid" | "unpaid", string][] = [
-    ["paid", "مدفوع"],
-    ["unpaid", "غير مدفوع"],
-  ];
-  for (const [s, label] of items) {
-    mark(p, s, lx - 12, ly - 9);
-    lx -= 34;
-    lx -= p.text(label, lx, ly, { size: 24, color: T.slate }) + 36;
-  }
-  okCheck(p, lx - 16, ly - 9, 16);
-  lx -= 40;
-  p.text(checkLabel(o.check, card.month), lx, ly, { size: 24, color: T.slate });
+  okBadge(p, R - 14, ly - 9, 14);
+  p.text("مدفوع", R - 38, ly, { size: 24, color: T.slate });
   p.text(`1 = ${monthName(1)} … 12 = ${monthName(12)}`, P, ly, {
     size: 20,
     color: T.slate,
     align: "left",
   });
 
-  // Columns (from the right): ref, name, 12 months, ✓
-  const refW = 76;
-  const cRef = R - refW / 2;
-  const nameR = R - refW - 12;
-  const mW = 34;
-  const okW = 90;
-  const mR = P + okW + 12 + 12 * mW;
-  const nameW = nameR - mR - 14;
-  const cx = (k: number) => mR - (k - 0.5) * mW;
-  const okX = P + okW / 2;
+  const { cRef, nameR, nameW, cx, badge } = memberCols(w);
   const row = L.row;
 
   const hy = L.band + L.gap + L.legend;
@@ -370,8 +354,7 @@ function drawMembers(
       dir: "ltr",
     });
     p.text(m.fullName, nameR, mid + 11, { size: 30, weight: 600, max: nameW });
-    for (let k = 1; k <= 12; k++) mark(p, monthMark(m.months[k - 1]), cx(k), mid);
-    if (rowChecked(m, o.check)) okCheck(p, okX, mid, 18);
+    for (let k = 1; k <= 12; k++) if (monthPaid(m.months[k - 1])) okBadge(p, cx(k), mid, badge);
   });
 }
 
@@ -542,8 +525,6 @@ export async function renderReportPages(
     scale?: number;
     type?: "image/png" | "image/jpeg";
     quality?: number;
-    /** what the ✓ means; «now» by default */
-    check?: CheckMeaning;
   },
 ): Promise<Blob[]> {
   const size = o.size ?? PHONE_PAGE;
@@ -563,7 +544,6 @@ export async function renderReportPages(
             size,
             no: i + 1,
             of: pages.length,
-            check: o.check ?? "now",
           }),
         o.type,
         o.quality,

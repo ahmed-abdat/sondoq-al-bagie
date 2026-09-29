@@ -4020,7 +4020,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 8px;
+    gap: 6px 18px;
     margin-block-start: 20px;
     font-size: 14px;
   }
@@ -4030,9 +4030,8 @@
   }
   .rp-members li {
     display: grid;
-    /* ✓ column at the far edge, like the shared images (owner, variant P) */
-    grid-template-columns: auto minmax(0, 1fr) 24px;
-    grid-template-areas: "ref name ok" "ref st ok" "dots dots ok";
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "ref name" "ref st" "cells cells";
     column-gap: 10px;
     row-gap: 4px;
     padding-block: 10px;
@@ -4059,70 +4058,31 @@
     font-size: 14px;
     color: var(--muted);
   }
-  .rp-ok {
-    grid-area: ok;
-    align-self: end;
+  /* 12 month cells: a paid month holds a ✓ badge, any other month stays empty (owner, r19) */
+  .rp-cells {
+    grid-area: cells;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 2px;
+    min-height: 18px;
+  }
+  .rp-cells > span {
     display: flex;
     justify-content: center;
+    align-items: center;
+  }
+  .rp-mhead {
+    padding-block: 6px 4px;
+    border-block-end: 1px solid rgba(20, 32, 26, 0.1);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
   }
   .rp-okm {
     flex: none;
-    vertical-align: -3px;
-  }
-  .rp-dots {
-    grid-area: dots;
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 4px;
-  }
-  .rp-d {
     display: inline-block;
-    height: 12px;
-    min-width: 12px;
-    border-radius: 999px;
-    background: var(--n1);
-    box-shadow: inset 0 0 0 1px var(--n3);
-  }
-  .rp-dots .rp-d {
-    height: 14px;
-  }
-  .rp-d.is-paid {
-    background: var(--g7);
-    box-shadow: none;
-  }
-  .rp-d.is-ahead {
-    background: var(--g2);
-    box-shadow: inset 0 0 0 1.5px var(--g7);
-  }
-  /* ○ متأخر: an empty ring */
-  .rp-d.is-late {
-    background: transparent;
-    box-shadow: inset 0 0 0 1.5px var(--muted);
-  }
-  /* not due yet, or exempt: an empty cell */
-  .rp-d.is-none {
-    background: transparent;
-    box-shadow: none;
-  }
-  .rp-d.is-off {
-    background: transparent;
-    box-shadow: inset 0 0 0 1px var(--n2);
-  }
-  .rp-check {
-    display: grid;
-    gap: 8px;
-    margin-block: 4px 16px;
-  }
-  .rp-check .bq-rej-l {
-    margin: 0;
-  }
-  .rp-check-k {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px 14px;
-  }
-  .rp-check-k span {
-    white-space: nowrap;
+    vertical-align: -4px;
   }
   .rp-share .bq-row:disabled {
     opacity: 1;
@@ -4183,16 +4143,12 @@
   .rp-ref {
     font-size: 8pt;
   }
-  .rp-dots .rp-d {
-    height: 8px;
-    min-width: 8px;
-  }
   .rp-okm {
     width: 12px;
     height: 12px;
   }
-  .rp-members li {
-    grid-template-columns: auto minmax(0, 1fr) 14px;
+  .rp-cells {
+    min-height: 12px;
   }
 }
 

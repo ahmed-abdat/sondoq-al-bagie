@@ -17,7 +17,7 @@ import { Engaged } from "@/components/app/engaged";
 import { SITE_URL } from "@/components/app/site";
 import { ReportShare } from "@/components/app/report-share";
 import * as src from "@/components/app/source";
-import { checkLabel, monthMark, rowChecked } from "@/lib/report-check";
+import { monthPaid } from "@/lib/report-check";
 
 export const metadata: Metadata = {
   title: "تقرير الصندوق · صندوق الرابطة",
@@ -51,19 +51,14 @@ export default async function ReportPage() {
   const lists = [...new Set(shown.map(listOf))].sort();
   const month = today.getUTCMonth() + 1;
   const active = shown.filter((m) => m.status === "active");
-  const paidNow = active.filter(
-    (m) => m.months[month - 1] === "paid" || m.months[month - 1] === "prepaid",
-  ).length;
-  const payers = (k: number) =>
-    shown.filter((m) => m.months[k - 1] === "paid" || m.months[k - 1] === "prepaid").length;
+  const paidNow = active.filter((m) => monthPaid(m.months[month - 1])).length;
+  const payers = (k: number) => shown.filter((m) => monthPaid(m.months[k - 1])).length;
   const current = r.term;
   const termLabel = summary.termNumber ? `الدورة ${summary.termNumber}` : null;
   const monthly = r.monthly;
   const yearExpenses = r.expenses;
   const campaigns = r.campaigns.filter((c) => !isEmptyClosedCampaign(c));
 
-  // ● paid (ahead or not), ○ unpaid (due or still to come), blank = not owed (owner decision)
-  const MARK = { paid: "مدفوع", unpaid: "غير مدفوع" } as const;
   const cards: { k: string; v: number; sign?: string }[] = [
     { k: "رصيد سابق", v: summary.openingBalance },
     { k: "جُمع من الرسوم", v: summary.moneyIn, sign: "+" },
@@ -160,52 +155,51 @@ export default async function ReportPage() {
       </Collapsible>
 
       <p className="rp-note rp-legend">
-        <span className="rp-d is-paid" /> مدفوع <span className="rp-d is-late" /> غير مدفوع{" "}
-        <OkMark /> {checkLabel("now", month)}
+        <span>
+          <OkMark /> مدفوع
+        </span>
+        <span>
+          1 = {MONTHS[0]} … 12 = {MONTHS[11]}
+        </span>
       </p>
       {lists.map((l) => {
         const rows = shown.filter((m) => listOf(m) === l);
         return (
           <Collapsible key={l} title={`المجموعة ${groupLabel(l)}`} count={rows.length}>
+            {/* month numbers over the cells: a paid month shows ✓, any other month stays empty */}
+            <div className="rp-mhead" aria-hidden="true">
+              <span className="rp-cells">
+                {MONTHS.map((_, i) => (
+                  <span key={i}>{i + 1}</span>
+                ))}
+              </span>
+            </div>
             <ul className="rp-members">
-              {rows.map((m) => (
-                <li key={m.memberId}>
-                  <span className="rp-ref">
-                    <MemberNo m={m} scoped />
-                  </span>
-                  <span className="rp-mname">{m.fullName}</span>
-                  {r.showAmountOwed && m.amountOwed ? (
-                    <span className="rp-mst">
-                      عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num> أوقية
+              {rows.map((m) => {
+                const paid = m.months.flatMap((st, i) => (monthPaid(st) ? [MONTHS[i]] : []));
+                return (
+                  <li key={m.memberId}>
+                    <span className="rp-ref">
+                      <MemberNo m={m} scoped />
                     </span>
-                  ) : null}
-                  <span className="rp-ok">
-                    {rowChecked(m, "now") ? <OkMark label={checkLabel("now", month)} /> : null}
-                  </span>
-                  <span
-                    className="rp-dots"
-                    aria-label={m.months
-                      .map((st, i) => {
-                        const k = monthMark(st);
-                        return k ? `${MONTHS[i]}: ${MARK[k]}` : "";
-                      })
-                      .filter(Boolean)
-                      .join("، ")}
-                  >
-                    {/* every owed month of the year: ● or ○; months not owed stay empty */}
-                    {m.months.map((st, i) => {
-                      const k = monthMark(st);
-                      return (
-                        <span
-                          key={i}
-                          className={`rp-d ${k === "paid" ? "is-paid" : k ? "is-late" : "is-none"}`}
-                          aria-hidden="true"
-                        />
-                      );
-                    })}
-                  </span>
-                </li>
-              ))}
+                    <span className="rp-mname">{m.fullName}</span>
+                    {r.showAmountOwed && m.amountOwed ? (
+                      <span className="rp-mst">
+                        عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num> أوقية
+                      </span>
+                    ) : null}
+                    <span
+                      className="rp-cells"
+                      role="img"
+                      aria-label={paid.length ? `مدفوع: ${paid.join("، ")}` : "لا أشهر مدفوعة"}
+                    >
+                      {m.months.map((st, i) => (
+                        <span key={i}>{monthPaid(st) ? <OkMark /> : null}</span>
+                      ))}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </Collapsible>
         );
@@ -274,18 +268,10 @@ export default async function ReportPage() {
   );
 }
 
-/** The row's ✓ (a green disc with a white check), as on the shared images. */
-function OkMark({ label }: { label?: string }) {
+/** A paid month: a green disc with a white check, as on the shared images. */
+function OkMark() {
   return (
-    <svg
-      className="rp-okm"
-      viewBox="0 0 32 32"
-      width="18"
-      height="18"
-      role={label ? "img" : undefined}
-      aria-label={label}
-      aria-hidden={label ? undefined : true}
-    >
+    <svg className="rp-okm" viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
       <circle cx="16" cy="16" r="16" fill="var(--g7)" />
       <path
         d="M9 16l5 5 10-11"

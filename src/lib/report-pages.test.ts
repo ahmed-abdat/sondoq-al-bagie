@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { ReportData, ReportExpense, ReportMember, ReportMonthState } from "./data/types";
-import { checkLabel, monthMark, rowChecked } from "./report-check";
+import { monthPaid } from "./report-check";
 import {
   A4_PAGE,
   BLOCK_H,
   chunkEven,
   L,
+  memberCols,
   membersPerPage,
   numberOf,
   moneyBlocks,
@@ -68,48 +69,26 @@ it("numberOf: the number alone on a group page", () => {
   expect(numberOf({ memberRef: "7" })).toBe("7");
 });
 
-describe("month marks and the row ✓ (no status text)", () => {
-  const P: ReportMonthState = "paid";
-  const PP: ReportMonthState = "prepaid";
-  const X: ReportMonthState = "late";
-  const U: ReportMonthState = "upcoming";
-  const N: ReportMonthState = "not_owed";
-  const row = (months: ReportMonthState[]) => ({ months });
-
-  it("● paid (ahead too), ○ unpaid incl. future months, blank when not owed", () => {
-    expect([P, PP, X, U, N, undefined].map(monthMark)).toEqual([
+describe("month cells: a ✓ badge when paid, empty otherwise", () => {
+  it("paid and paid ahead get the badge; late, future and not owed stay empty", () => {
+    const states: (ReportMonthState | undefined)[] = [
       "paid",
-      "paid",
-      "unpaid",
-      "unpaid",
-      null,
-      null,
-    ]);
+      "prepaid",
+      "late",
+      "upcoming",
+      "not_owed",
+      undefined,
+    ];
+    expect(states.map(monthPaid)).toEqual([true, true, false, false, false, false]);
   });
 
-  it("✓ «paid up to now»: nothing late; future months may be unpaid", () => {
-    expect(rowChecked(row([P, P, P, P, P, P, P, P, P, U, U, U]), "now")).toBe(true);
-    expect(rowChecked(row([P, P, P, P, P, P, P, P, X, U, U, U]), "now")).toBe(false);
-    // joined in June
-    expect(rowChecked(row([N, N, N, N, N, P, P, P, P, U, U, U]), "now")).toBe(true);
-  });
-
-  it("✓ «whole year»: every owed month paid", () => {
-    expect(rowChecked(row([P, P, P, P, P, P, P, P, P, U, U, U]), "year")).toBe(false);
-    expect(rowChecked(row([P, P, P, P, P, P, P, P, P, PP, PP, PP]), "year")).toBe(true);
-    expect(rowChecked(row([N, N, N, N, N, P, P, P, P, PP, PP, PP]), "year")).toBe(true);
-  });
-
-  it("blank ✓ when nothing is paid: exempt all year, or joining later", () => {
-    for (const c of ["now", "year"] as const) {
-      expect(rowChecked(row(Array(12).fill(N)), c)).toBe(false);
-      expect(rowChecked(row([...Array(9).fill(N), U, U, U]), c)).toBe(false);
-    }
-  });
-
-  it("legend follows the choice and the report month", () => {
-    expect(checkLabel("now", 9)).toBe("دفع حتى سبتمبر");
-    expect(checkLabel("year", 9)).toBe("دفع السنة كاملة");
+  it("12 badges fit on the 1080 page with room between them and for the name", () => {
+    const c = memberCols(PHONE_PAGE.w);
+    expect(c.cx(12) - c.badge).toBeGreaterThanOrEqual(L.pad);
+    expect(c.cell - 2 * c.badge).toBeGreaterThanOrEqual(10); // gap between two badges
+    expect(2 * c.badge).toBeLessThan(L.row - 8); // row striping still shows around them
+    expect(c.cx(1) + c.badge).toBeLessThan(c.nameR - c.nameW);
+    expect(c.nameW).toBeGreaterThanOrEqual(380);
   });
 });
 
