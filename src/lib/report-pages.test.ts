@@ -6,9 +6,9 @@ import {
   chunkEven,
   L,
   membersPerPage,
-  rowHeight,
   moneyBlocks,
-  numberOf,
+  footerLabel,
+  statusPill,
   paginateBlocks,
   paginateReport,
   PHONE_PAGE,
@@ -49,11 +49,9 @@ const report = (members: ReportMember[], expenses: ReportExpense[] = []): Report
     generatedAt: "2026-09-28T10:00:00.000Z",
   }) as ReportData;
 
-it("fits 23 member rows on a phone page and 27 on A4; fewer rows get taller", () => {
-  expect(membersPerPage(PHONE_PAGE)).toBe(23);
-  expect(membersPerPage(A4_PAGE)).toBe(27);
-  expect(rowHeight(PHONE_PAGE, 23)).toBe(41);
-  expect(rowHeight(PHONE_PAGE, 5)).toBe(L.rowMax);
+it("fits 21 member rows on a phone page and 26 on an A4 page", () => {
+  expect(membersPerPage(PHONE_PAGE)).toBe(21);
+  expect(membersPerPage(A4_PAGE)).toBe(26);
 });
 
 it("chunkEven balances pages", () => {
@@ -63,9 +61,30 @@ it("chunkEven balances pages", () => {
   expect(chunkEven([], 20)).toEqual([]);
 });
 
-it("numberOf drops the list prefix", () => {
-  expect(numberOf({ memberRef: "A-12" })).toBe("12");
-  expect(numberOf({ memberRef: "7" })).toBe("7");
+it("status pills: up to date, late with months, exempt, other", () => {
+  const m = (status: ReportMember["status"], monthsBehind = 0) => ({
+    status,
+    monthsBehind,
+    statusLabel: "مسافر",
+  });
+  expect(statusPill(m("active"))).toEqual({ text: "منتظم", tone: "ok" });
+  expect(statusPill(m("active", 3))).toEqual({ text: "متأخر 3", tone: "late" });
+  expect(statusPill(m("exempt"))).toEqual({ text: "معفى", tone: "exempt" });
+  expect(statusPill(m("away"))).toEqual({ text: "مسافر", tone: "other" });
+});
+
+it("footer names the page, and the part of a split list instead of the fund", () => {
+  expect(footerLabel({ kind: "cover" }, 1, 6, "28 سبتمبر 2026")).toBe(
+    "صندوق الشباب · الصفحة 1 من 6 · حتى 28 سبتمبر 2026",
+  );
+  expect(
+    footerLabel(
+      { kind: "members", list: "B", rows: [], part: 2, parts: 3 },
+      4,
+      6,
+      "28 سبتمبر 2026",
+    ),
+  ).toBe("الصفحة 4 من 6 · الجزء 2 من 3 · حتى 28 سبتمبر 2026");
 });
 
 describe("paginateReport", () => {
@@ -79,13 +98,21 @@ describe("paginateReport", () => {
 
   it("cover, then each list in pages (gone members hidden), then money", () => {
     const pages = paginateReport(report(members));
-    expect(pages.map((p) => p.kind)).toEqual(["cover", "members", "members", "members", "money"]);
+    expect(pages.map((p) => p.kind)).toEqual([
+      "cover",
+      "members",
+      "members",
+      "members",
+      "members",
+      "money",
+    ]);
     const lists = pages.flatMap((p) =>
       p.kind === "members" ? [[p.list, p.rows.length, p.part, p.parts]] : [],
     );
     expect(lists).toEqual([
-      ["A", 23, 1, 2],
-      ["A", 22, 2, 2],
+      ["A", 15, 1, 3],
+      ["A", 15, 2, 3],
+      ["A", 15, 3, 3],
       ["B", 19, 1, 1],
     ]);
     const refs = pages.flatMap((p) => (p.kind === "members" ? p.rows.map((m) => m.memberRef) : []));
@@ -95,7 +122,7 @@ describe("paginateReport", () => {
   });
 
   it("A4 pages hold more rows", () => {
-    const many = Array.from({ length: 27 }, (_, i) => member(`A-${i + 1}`));
+    const many = Array.from({ length: 26 }, (_, i) => member(`A-${i + 1}`));
     const count = (size?: typeof A4_PAGE) =>
       paginateReport(report(many), size).filter((p) => p.kind === "members").length;
     expect(count(A4_PAGE)).toBe(1);
@@ -106,7 +133,7 @@ describe("paginateReport", () => {
 describe("money pages", () => {
   it("says so when nothing was spent", () => {
     const b = moneyBlocks(report([]));
-    expect(b.map((x) => x.t)).toEqual(["heading", "note"]);
+    expect(b.map((x) => x.t)).toEqual(["heading", "note", "space", "cta"]);
   });
 
   it("splits long expense lists, repeating the heading and the column header", () => {

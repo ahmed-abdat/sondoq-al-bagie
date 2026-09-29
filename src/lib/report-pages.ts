@@ -1,8 +1,8 @@
 /**
  * The fund report as a set of pages drawn on a canvas, for the WhatsApp group:
- * cover (summary), one or more pages per member list (12 month dots per member),
- * then expenses and campaigns. 1080×1350 for images, 1080×1527 (A4 ratio) for the PDF.
- * Loaded on demand by share-report.ts. Pagination is pure and unit tested.
+ * cover (summary), one or more pages per member list (12 month marks per member),
+ * then expenses and campaigns. 1080×1350 for images; 1080×1575 for the PDF (A4 inside a 10 mm
+ * margin). Loaded on demand by share-report.ts. Pagination is pure and unit tested.
  */
 import { renderPng, type CanvasFonts } from "./canvas-share";
 import type {
@@ -22,6 +22,7 @@ import {
   T,
   yearLine,
   type Pen,
+  type ReportInput,
   type ReportSummaryData,
 } from "./share-report";
 
@@ -30,7 +31,8 @@ export interface PageSize {
   h: number;
 }
 export const PHONE_PAGE: PageSize = { w: 1080, h: 1350 };
-export const A4_PAGE: PageSize = { w: 1080, h: 1527 };
+/** A4 minus 10 mm on each side (538.6 × 785.2 pt), at 1080 px wide. */
+export const A4_PAGE: PageSize = { w: 1080, h: 1575 };
 
 /** Layout (px at 1080 wide). */
 export const L = {
@@ -39,29 +41,32 @@ export const L = {
   gap: 24,
   legend: 60,
   head: 52,
-  /** member rows: at least this tall (so a page holds 23 on a phone, 27 on A4), at most `rowMax` */
-  row: 41,
-  rowMax: 52,
+  /** one member row height everywhere */
+  row: 44,
   foot: 92,
 } as const;
 
 /* ─────────────── pagination (pure) ─────────────── */
 
 export type Block =
-  | { t: "heading"; text: string; aside?: string }
+  | { t: "heading"; text: string }
   | { t: "expHead" }
   | { t: "expense"; e: ReportExpense; zebra: boolean }
+  | { t: "expTotal"; label: string; amount: number }
   | { t: "campaign"; c: ReportCampaign }
   | { t: "note"; text: string }
-  | { t: "space" };
+  | { t: "space" }
+  | { t: "cta" };
 
 export const BLOCK_H: Record<Block["t"], number> = {
   heading: 84,
   expHead: 48,
   expense: 80,
+  expTotal: 72,
   campaign: 188,
   note: 60,
   space: 32,
+  cta: 130,
 };
 
 export type ReportPage =
@@ -71,9 +76,6 @@ export type ReportPage =
 
 /** «A-12» → «A». */
 export const listOf = (m: Pick<ReportMember, "memberRef">) => m.memberRef.split("-")[0];
-/** «A-12» → «12». */
-export const numberOf = (m: Pick<ReportMember, "memberRef">) =>
-  m.memberRef.split("-").slice(1).join("-") || m.memberRef;
 export const listLabel = (code: string) => {
   const c = code.trim().toUpperCase();
   return c === "A" ? "أ" : c === "B" ? "ب" : code;
@@ -82,15 +84,8 @@ export const listLabel = (code: string) => {
 export const isShown = (m: Pick<ReportMember, "status">) =>
   m.status !== "left" && m.status !== "deceased";
 
-const rowsSpace = (size: PageSize) => size.h - L.band - L.gap - L.legend - L.head - L.foot;
-
 export function membersPerPage(size: PageSize): number {
-  return Math.floor(rowsSpace(size) / L.row);
-}
-
-/** Row height for `n` rows: fill the page, within [row, rowMax]. */
-export function rowHeight(size: PageSize, n: number): number {
-  return Math.max(L.row, Math.min(L.rowMax, Math.floor(rowsSpace(size) / Math.max(1, n))));
+  return Math.floor((size.h - L.band - L.gap - L.legend - L.head - L.foot) / L.row);
 }
 
 /** Split into the fewest pages of at most `max`, as even as possible (45 by 20 → 15, 15, 15). */
@@ -104,23 +99,23 @@ export function chunkEven<X>(xs: X[], max: number): X[][] {
 }
 
 export function moneyBlocks(r: ReportData): Block[] {
-  const out: Block[] = [
-    {
-      t: "heading",
-      text: `المصاريف في ${r.year}`,
-      aside: `المجموع ${formatNumber(r.summary.spentThisYear)} أوقية`,
-    },
-  ];
+  const out: Block[] = [{ t: "heading", text: `المصاريف في ${r.year}` }];
   if (!r.expensesComplete) out.push({ t: "note", text: "تظهر هنا آخر 50 مصروفًا فقط." });
   if (!r.expenses.length) out.push({ t: "note", text: "لم يُصرف شيء هذا العام." });
   else {
     out.push({ t: "expHead" });
     r.expenses.forEach((e, i) => out.push({ t: "expense", e, zebra: i % 2 === 1 }));
+    out.push({
+      t: "expTotal",
+      label: `مجموع المصاريف في ${r.year}`,
+      amount: r.summary.spentThisYear,
+    });
   }
   if (r.campaigns.length) {
     out.push({ t: "space" }, { t: "heading", text: "حملات التبرع" });
     for (const c of r.campaigns) out.push({ t: "campaign", c });
   }
+  out.push({ t: "space" }, { t: "cta" });
   return out;
 }
 
@@ -132,7 +127,7 @@ export function paginateBlocks(blocks: Block[], avail: number): Block[][] {
   const pages: Block[][] = [];
   let page: Block[] = [];
   let used = 0;
-  let heading: Block | null = null;
+  let heading: Extract<Block, { t: "heading" }> | null = null;
   const h = (b: Block) => BLOCK_H[b.t];
   const newPage = () => {
     if (page.length) pages.push(page);
@@ -146,17 +141,16 @@ export function paginateBlocks(blocks: Block[], avail: number): Block[][] {
     let need = h(b);
     for (
       let j = i;
-      (blocks[j]?.t === "heading" || blocks[j]?.t === "expHead") && blocks[j + 1];
+      (blocks[j]?.t === "heading" || blocks[j]?.t === "expHead" || blocks[j]?.t === "space") &&
+      blocks[j + 1];
       j++
     )
       need += h(blocks[j + 1]);
     if (used + need > avail && page.length) {
       newPage();
-      if (b.t === "expense" && heading) {
-        const cont: Block[] = [
-          { ...heading, text: `${heading.text}، تابع` } as Block,
-          { t: "expHead" },
-        ];
+      if (b.t === "space") continue; // no gap at the top of a page
+      if ((b.t === "expense" || b.t === "expTotal") && heading) {
+        const cont: Block[] = [{ t: "heading", text: `${heading.text}، تابع` }, { t: "expHead" }];
         page.push(...cont);
         used += cont.reduce((s, c) => s + h(c), 0);
       }
@@ -189,6 +183,27 @@ export function paginateReport(r: ReportData, size: PageSize = PHONE_PAGE): Repo
   return pages;
 }
 
+/** Footer text of page `no` of `of`, naming the part of a split list. */
+export function footerLabel(page: ReportPage, no: number, of: number, asOf: string): string {
+  const part =
+    page.kind !== "cover" && page.parts > 1 ? `الجزء ${page.part} من ${page.parts}` : null;
+  return [part ? null : FUND_NAME, `الصفحة ${no} من ${of}`, part, `حتى ${asOf}`]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** The status pill of a member row. */
+export function statusPill(m: Pick<ReportMember, "status" | "statusLabel" | "monthsBehind">): {
+  text: string;
+  tone: "ok" | "late" | "exempt" | "other";
+} {
+  if (m.status === "exempt") return { text: "معفى", tone: "exempt" };
+  if (m.status !== "active") return { text: m.statusLabel, tone: "other" };
+  return m.monthsBehind > 0
+    ? { text: `متأخر ${m.monthsBehind}`, tone: "late" }
+    : { text: "منتظم", tone: "ok" };
+}
+
 /* ─────────────── drawing ─────────────── */
 
 export interface PageDrawOptions {
@@ -203,14 +218,14 @@ export interface PageDrawOptions {
 
 const isPaid = (s: ReportMonthState | undefined) => s === "paid" || s === "prepaid";
 
-/** Header band of the inner pages: brand on the right, the page's title on the left. */
+/** Header band of the inner pages: brand on the right, the page's title and lines on the left. */
 function band(
   p: Pen,
   w: number,
   card: ReportSummaryData,
   logo: PageDrawOptions["logo"],
   title: string,
-  sub?: string,
+  lines: string[] = [],
 ) {
   const R = w - L.pad;
   const x = p.x;
@@ -226,28 +241,31 @@ function band(
   p.logo(logo, R - 46, L.band / 2, 46);
   p.text(FUND_NAME, R - 112, 78, { size: 34, weight: 700, face: "display", color: T.paper });
   p.text(yearLine(card), R - 112, 120, { size: 24, color: T.onGreen });
-  p.text(title, L.pad, 80, {
+  const max = w - 2 * L.pad - 440;
+  const two = lines.length > 1;
+  p.text(title, L.pad, two ? 66 : 80, {
     size: 40,
     weight: 700,
     face: "display",
     color: T.paper,
     align: "left",
-    max: w / 2 - L.pad - 40,
+    max,
   });
-  if (sub)
-    p.text(sub, L.pad, 124, {
-      size: 24,
-      color: T.greenMist,
+  lines.forEach((t, i) =>
+    p.text(t, L.pad, (two ? 108 : 124) + i * 36, {
+      size: i ? 22 : 24,
+      color: i ? T.onGreen : T.greenMist,
       align: "left",
-      max: w / 2 - L.pad - 40,
-    });
+      max,
+    }),
+  );
 }
 
-/** The month mark: ● paid (early or not, the same), ○ late, · not due yet. */
-function mark(p: Pen, s: ReportMonthState | undefined, cx: number, cy: number) {
+/** The month mark: ● paid (early or not, the same), ○ late, · not due / not owed. */
+function mark(p: Pen, s: ReportMonthState | "none" | undefined, cx: number, cy: number) {
   const x = p.x;
   const r = 12;
-  if (isPaid(s)) return p.dot(cx, cy, r, T.green);
+  if (isPaid(s as ReportMonthState)) return p.dot(cx, cy, r, T.green);
   if (s === "late") {
     x.lineWidth = 3;
     x.strokeStyle = T.slate;
@@ -256,35 +274,95 @@ function mark(p: Pen, s: ReportMonthState | undefined, cx: number, cy: number) {
     x.stroke();
     return;
   }
-  p.dot(cx, cy, 4, T.pebble);
+  p.dot(cx, cy, 6, T.pebble);
+}
+
+const PILL = {
+  ok: { bg: T.greenTint, ink: T.forest },
+  late: { bg: T.mist, ink: T.slate },
+  exempt: { bg: T.goldTint, ink: T.goldInk },
+  other: { bg: T.mist, ink: T.slate },
+} as const;
+
+function checkIcon(p: Pen, cx: number, cy: number, color: string) {
+  const x = p.x;
+  x.lineWidth = 3;
+  x.lineCap = "round";
+  x.lineJoin = "round";
+  x.strokeStyle = color;
+  x.beginPath();
+  x.moveTo(cx - 7, cy);
+  x.lineTo(cx - 2, cy + 5);
+  x.lineTo(cx + 8, cy - 6);
+  x.stroke();
+}
+
+function clockIcon(p: Pen, cx: number, cy: number, color: string) {
+  const x = p.x;
+  x.lineWidth = 2.5;
+  x.lineCap = "round";
+  x.strokeStyle = color;
+  x.beginPath();
+  x.arc(cx, cy, 8, 0, Math.PI * 2);
+  x.stroke();
+  x.beginPath();
+  x.moveTo(cx, cy - 4.5);
+  x.lineTo(cx, cy);
+  x.lineTo(cx + 3.5, cy + 2.5);
+  x.stroke();
+}
+
+/** A 40 px pill with its right edge at `right`; returns its width. */
+function pill(
+  p: Pen,
+  right: number,
+  mid: number,
+  text: string,
+  tone: keyof typeof PILL,
+  maxW: number,
+): number {
+  const c = PILL[tone];
+  const icon = tone === "ok" || tone === "late";
+  p.x.font = p.font(26, 600);
+  const inner =
+    (icon ? 26 : 0) + Math.min(p.x.measureText(text).width, maxW - 28 - (icon ? 26 : 0));
+  const pw = inner + 28;
+  p.box(right - pw, mid - 20, pw, 40, 20, c.bg);
+  let tx = right - 14;
+  if (tone === "ok") checkIcon(p, tx - 9, mid, c.ink);
+  if (tone === "late") clockIcon(p, tx - 9, mid, c.ink);
+  if (icon) tx -= 26;
+  p.text(text, tx, mid + 9, {
+    size: 26,
+    weight: 600,
+    color: c.ink,
+    max: maxW - 28 - (icon ? 26 : 0),
+  });
+  return pw;
 }
 
 function drawMembers(
   p: Pen,
   page: Extract<ReportPage, { kind: "members" }>,
-  r: ReportData,
+  r: ReportInput,
   card: ReportSummaryData,
   o: PageDrawOptions,
 ) {
   const { w } = o.size;
   const R = w - L.pad;
+  const P = L.pad;
   const all = r.members.filter((m) => isShown(m) && listOf(m) === page.list);
   const active = all.filter((m) => m.status === "active");
   const paid = active.filter((m) => isPaid(m.months[card.month - 1])).length;
-  const paidText = `${paid} من ${active.length} دفعوا رسوم ${monthName(card.month)}`;
-  band(
-    p,
-    w,
-    card,
-    o.logo,
-    `المجموعة ${listLabel(page.list)}`,
-    page.parts > 1 ? `الجزء ${page.part} من ${page.parts} · ${paidText}` : paidText,
-  );
-  const row = rowHeight(o.size, page.rows.length);
+  const fee = r.groupPrices?.[page.list];
+  band(p, w, card, o.logo, `المجموعة ${listLabel(page.list)}`, [
+    `${paid} من ${active.length} دفعوا رسوم ${monthName(card.month)}`,
+    ...(fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : []),
+  ]);
 
-  // Legend
+  // Legend: marks on the right, the month numbers' key on the left
   let lx = R;
-  const ly = L.band + L.gap + 34;
+  const ly = L.band + L.gap + 36;
   const items: [ReportMonthState, string][] = [
     ["paid", "مدفوع"],
     ["late", "متأخر"],
@@ -295,23 +373,35 @@ function drawMembers(
     lx -= 34;
     lx -= p.text(label, lx, ly, { size: 24, color: T.slate }) + 36;
   }
+  p.x.font = p.font(22, 600);
+  const ew = p.x.measureText("معفى").width + 24;
+  p.box(lx - ew, ly - 29, ew, 34, 17, T.goldTint);
+  p.text("معفى", lx - 12, ly - 3, { size: 22, weight: 600, color: T.goldInk });
+  p.text(`1 = ${monthName(1)} … 12 = ${monthName(12)}`, P, ly, {
+    size: 20,
+    color: T.slate,
+    align: "left",
+  });
 
-  // Columns (from the right): number, name, 12 months, status
-  const cNo = R - 30;
-  const nameR = R - 72;
-  const nameW = 312;
-  const mR = nameR - nameW - 16;
-  const mW = 36;
+  // Columns (from the right): ref, name, 12 months, status
+  const refW = 76;
+  const cRef = R - refW / 2;
+  const nameR = R - refW - 12;
+  const mW = 34;
+  const stW = 172;
+  const mR = P + stW + 12 + 12 * mW;
+  const nameW = nameR - mR - 14;
   const cx = (k: number) => mR - (k - 0.5) * mW;
-  const stR = mR - 12 * mW - 12;
+  const stR = P + stW;
   const now = card.month;
+  const row = L.row;
 
   const hy = L.band + L.gap + L.legend;
   const rowsTop = hy + L.head;
   // current month column
-  p.box(cx(now) - mW / 2 + 2, hy + 6, mW - 4, L.head - 6 + page.rows.length * row, 10, T.greenTint);
+  p.box(cx(now) - mW / 2 + 1, hy + 6, mW - 2, L.head - 6 + page.rows.length * row, 10, T.greenTint);
   const head = { size: 22, weight: 600, color: T.slate } as const;
-  p.text("رقم", cNo, hy + 34, { ...head, align: "center" });
+  p.text("رقم", cRef, hy + 34, { ...head, align: "center" });
   p.text("الاسم", nameR, hy + 34, head);
   for (let k = 1; k <= 12; k++)
     p.text(String(k), cx(k), hy + 34, {
@@ -328,33 +418,23 @@ function drawMembers(
     const y = rowsTop + i * row;
     const mid = y + row / 2;
     if (i % 2 === 1) {
-      p.x.globalAlpha = 0.9;
-      p.box(L.pad - 12, y, w - 2 * L.pad + 24, row, 12, T.greenWash);
-      p.x.globalAlpha = 1;
+      p.box(P - 12, y, w - 2 * P + 24, row, 12, T.greenWash);
       // keep the current-month column visible over the zebra
-      p.box(cx(now) - mW / 2 + 2, y, mW - 4, row, 0, T.greenTint);
+      p.box(cx(now) - mW / 2 + 1, y, mW - 2, row, 0, T.greenTint);
     }
-    p.text(numberOf(m), cNo, mid + 9, {
-      size: 26,
+    p.text(m.memberRef, cRef, mid + 8, {
+      size: 24,
       weight: 600,
       face: "display",
       color: T.slate,
       align: "center",
       dir: "ltr",
     });
-    p.text(m.fullName, nameR, mid + 9, { size: 26, weight: 600, max: nameW });
-    for (let k = 1; k <= 12; k++) mark(p, m.months[k - 1], cx(k), mid);
-    const ok = m.status === "active" && m.monthsBehind === 0;
-    const label = m.statusLabel;
-    p.x.font = p.font(22, 600);
-    const tw = Math.min(p.x.measureText(label).width, stR - L.pad - 28);
-    p.box(stR - tw - 28, mid - 17, tw + 28, 34, 17, ok ? T.greenTint : T.mist);
-    p.text(label, stR - 14, mid + 8, {
-      size: 22,
-      weight: 600,
-      color: ok ? T.forest : T.slate,
-      max: stR - L.pad - 28,
-    });
+    p.text(m.fullName, nameR, mid + 11, { size: 30, weight: 600, max: nameW });
+    const exempt = m.status === "exempt";
+    for (let k = 1; k <= 12; k++) mark(p, exempt ? "none" : m.months[k - 1], cx(k), mid);
+    const s = statusPill(m);
+    pill(p, stR, mid, s.text, s.tone, stW);
   });
 }
 
@@ -364,27 +444,29 @@ function drawMoney(
   card: ReportSummaryData,
   o: PageDrawOptions,
 ) {
-  const { w } = o.size;
+  const { w, h: H } = o.size;
   const R = w - L.pad;
   const P = L.pad;
-  band(
-    p,
-    w,
-    card,
-    o.logo,
-    "المصاريف والحملات",
-    page.parts > 1 ? `${page.part} من ${page.parts}` : undefined,
-  );
+  band(p, w, card, o.logo, "المصاريف والحملات");
   const dateR = R - 8;
-  const textR = R - 180;
+  const textR = R - 176;
+  const amtR = P + 200; // amount column: digits right-aligned here, «أوقية» at P
   let y = L.band + L.gap;
+  const money = (n: number, yy: number, size: number) => {
+    p.text(formatNumber(n), amtR, yy, {
+      size,
+      weight: 700,
+      face: "display",
+      dir: "ltr",
+      align: "right",
+    });
+    p.text("أوقية", P + 4, yy, { size: 20, color: T.slate, align: "left" });
+  };
   for (const b of page.blocks) {
     const h = BLOCK_H[b.t];
     switch (b.t) {
       case "heading":
         p.text(b.text, R, y + 54, { size: 36, weight: 700, face: "display" });
-        if (b.aside)
-          p.text(b.aside, P, y + 54, { size: 24, weight: 600, color: T.slate, align: "left" });
         break;
       case "note":
         p.text(b.text, R, y + 38, { size: 24, color: T.slate });
@@ -393,40 +475,39 @@ function drawMoney(
         const o2 = { size: 22, weight: 600, color: T.slate } as const;
         p.text("التاريخ", dateR, y + 32, o2);
         p.text("البيان", textR, y + 32, o2);
-        p.text("المبلغ بالأوقية", P + 8, y + 32, { ...o2, align: "left" });
+        p.text("المبلغ", amtR, y + 32, o2);
         break;
       }
       case "expense": {
         const e = b.e;
         if (b.zebra) p.box(P - 12, y, w - 2 * P + 24, h, 12, T.greenWash);
         p.text(formatDay(e.spentOn), dateR, y + 50, {
-          size: 26,
-          weight: 600,
+          size: 24,
+          weight: 500,
           face: "display",
           color: T.slate,
         });
-        const maxText = textR - (P + 240);
+        const maxText = textR - (amtR + 32);
         if (e.note) {
           p.text(e.note, textR, y + 36, { size: 26, weight: 600, max: maxText });
           p.text(e.categoryLabel, textR, y + 66, { size: 22, color: T.slate, max: maxText });
         } else p.text(e.categoryLabel, textR, y + 50, { size: 26, weight: 600, max: maxText });
-        p.text(formatNumber(e.amount), P + 8, y + 50, {
-          size: 28,
-          weight: 700,
-          face: "display",
-          dir: "ltr",
-          align: "left",
-        });
+        money(e.amount, y + 50, 28);
         break;
       }
+      case "expTotal":
+        p.box(P - 12, y + 10, w - 2 * P + 24, 2, 0, T.stone);
+        p.text(b.label, R, y + 56, { size: 28, weight: 700, face: "display" });
+        money(b.amount, y + 56, 28);
+        break;
       case "campaign": {
         const c = b.c;
         const open = c.status === "open";
-        const pill = open ? "مفتوحة" : "مغلقة";
+        const label = open ? "مفتوحة" : "مغلقة";
         p.x.font = p.font(22, 600);
-        const pw = p.x.measureText(pill).width + 28;
+        const pw = p.x.measureText(label).width + 28;
         p.box(P, y + 18, pw, 36, 18, open ? T.greenTint : T.mist);
-        p.text(pill, P + pw - 14, y + 44, {
+        p.text(label, P + pw - 14, y + 44, {
           size: 22,
           weight: 600,
           color: open ? T.forest : T.slate,
@@ -458,6 +539,26 @@ function drawMoney(
         );
         break;
       }
+      case "cta": {
+        // at the foot of the page, so a short page still ends well
+        const cy = Math.max(y, H - L.foot - h);
+        p.box(P - 12, cy, w - 2 * P + 24, h - 16, 24, T.greenTint);
+        p.text("ابحث عن اسمك وتحقّق من أشهرك", R - 16, cy + 50, {
+          size: 30,
+          weight: 700,
+          face: "display",
+          color: T.forestDeep,
+        });
+        p.text(o.url.replace(/^https?:\/\//, ""), R - 16, cy + 94, {
+          size: 28,
+          weight: 600,
+          face: "display",
+          color: T.forest,
+          dir: "ltr",
+          align: "right",
+        });
+        break;
+      }
     }
     y += h;
   }
@@ -466,11 +567,11 @@ function drawMoney(
 export function drawReportPage(
   x: CanvasRenderingContext2D,
   page: ReportPage,
-  r: ReportData,
+  r: ReportInput,
   o: PageDrawOptions,
 ): void {
   const card = reportSummary(r);
-  const footer = `${FUND_NAME} · الصفحة ${o.no} من ${o.of} · حتى ${card.asOfLabel}`;
+  const footer = footerLabel(page, o.no, o.of, card.asOfLabel);
   if (page.kind === "cover") {
     drawReportSummary(x, card, {
       url: o.url,
@@ -478,6 +579,7 @@ export function drawReportPage(
       logo: o.logo,
       height: o.size.h,
       footer,
+      variant: "cover",
     });
     return;
   }
@@ -492,7 +594,7 @@ export function drawReportPage(
 /* ─────────────── browser ─────────────── */
 
 export async function renderReportPages(
-  r: ReportData,
+  r: ReportInput,
   o: {
     url: string;
     fonts: CanvasFonts;

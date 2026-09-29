@@ -20,11 +20,20 @@ const withSerwist = withSerwistInit({
   globPublicPatterns: ["icons/**", "offline.html"],
 });
 
+// Links printed on shared report images always point at production, never a preview or localhost.
+const SITE_ORIGIN = (
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://sondoq-al-bagie-one.vercel.app")
+).replace(/\/$/, "");
+
 const noindex = ["/committee", "/committee/:path*", "/login", "/auth/:path*", "/api/:path*"];
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
   poweredByHeader: false,
+  env: { NEXT_PUBLIC_SITE_ORIGIN: SITE_ORIGIN },
   // Serwist needs webpack for `next build`; dev runs on Turbopack with the SW disabled.
   turbopack: {},
   async headers() {
