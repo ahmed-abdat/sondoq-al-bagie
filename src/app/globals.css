@@ -3976,9 +3976,6 @@
     box-shadow: 0 0 0 8px #fff;
   }
   .bq-pick-h {
-    position: sticky;
-    top: 60px;
-    z-index: 1;
     margin-block-start: 12px;
     padding-block: 8px 4px;
     background: #fff;
@@ -3986,6 +3983,11 @@
     font-size: 14px;
     font-weight: 700;
     color: var(--g8);
+  }
+  .bq-pick .bq-pick-h {
+    position: sticky;
+    top: 60px;
+    z-index: 1;
   }
   .bq-row.is-dim {
     opacity: 0.7;
