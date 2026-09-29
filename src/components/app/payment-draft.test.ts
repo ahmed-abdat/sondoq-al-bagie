@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarize, toRecordInput, type Draft } from "./payment-draft";
+import { payableMonths, summarize, toRecordInput, type Draft } from "./payment-draft";
 
 const A1 = { memberId: "m-a1", groupCode: "A" };
 const B2 = { memberId: "m-b2", groupCode: "B" };
@@ -133,5 +133,21 @@ describe("toRecordInput", () => {
       memberId: "m-b2",
       amount: 2000,
     });
+  });
+});
+
+describe("payableMonths: only owed months", () => {
+  it("a June joiner: January to May are not owed, never offered", () => {
+    // N×5, paid June, late July to September, upcoming after
+    expect(payableMonths("NNNNNPLLLUUU", 9)).toEqual({
+      open: [7, 8, 9, 10, 11, 12],
+      late: [7, 8, 9],
+    });
+  });
+  it("exempt from October: nothing after it", () => {
+    expect(payableMonths("PPPPPPPPLNNN", 9)).toEqual({ open: [9], late: [9] });
+  });
+  it("everything paid or not owed", () => {
+    expect(payableMonths("NNNNNNNNNNNN", 9)).toEqual({ open: [], late: [] });
   });
 });

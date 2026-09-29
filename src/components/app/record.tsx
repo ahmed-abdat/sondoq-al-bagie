@@ -22,7 +22,7 @@ import { failure } from "@/lib/data/errors";
 import { ShareBtns } from "./entries";
 import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
-import { summarize, toRecordInput, type Draft, type Step } from "./payment-draft";
+import { payableMonths, summarize, toRecordInput, type Draft, type Step } from "./payment-draft";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
 import {
   byMostLate,
@@ -47,15 +47,9 @@ const OTHER_METHODS: PaymentMethod[] = METHODS.filter(
 
 type Row = { m: MemberRow; months: number[]; edit: boolean };
 
-function paidSet(m: MemberRow) {
-  return new Set(monthStates(m.months).flatMap((st, i) => (st === "paid" ? [i + 1] : [])));
-}
-
-/** Default months: the unpaid ones that are due (late); if none, the whole rest of the year. */
+/** Default months: the owed ones that are due (late); if none, the whole rest of the year. */
 function defaultMonths(ctx: MemberCtx, m: MemberRow) {
-  const paid = paidSet(m);
-  const open = MONTHS.map((_, k) => k + 1).filter((k) => !paid.has(k));
-  const late = open.filter((k) => k <= ctx.dueMonth);
+  const { open, late } = payableMonths(m.months, ctx.dueMonth);
   return late.length ? late : open;
 }
 
@@ -241,9 +235,8 @@ function RowCard({
   onRemove?: () => void;
   headRef?: (el: HTMLElement | null) => void;
 }) {
-  const paid = paidSet(row.m);
-  const open = MONTHS.map((_, k) => k + 1).filter((k) => !paid.has(k));
-  const late = open.filter((k) => k <= ctx.dueMonth);
+  const states = monthStates(row.m.months);
+  const { open, late } = payableMonths(row.m.months, ctx.dueMonth);
   const same = (a: number[], b: number[]) => a.length === b.length && a.every((x, i) => x === b[i]);
   const quick = [
     { k: "late", l: `المتأخرة${late.length ? ` (${late.length})` : ""}`, ms: late },
@@ -263,7 +256,9 @@ function RowCard({
               ? `${monthCount(row.months.length)}: ${monthsLabel(row.months)}`
               : open.length
                 ? "لم تُختر أشهر"
-                : "دفع رسوم هذا العام كاملة"}
+                : states.some((x) => x === "paid")
+                  ? "دفع رسوم هذا العام كاملة"
+                  : "لا رسوم مستحقة عليه هذا العام"}
           </span>
         </span>
         {onRemove && (
@@ -296,15 +291,16 @@ function RowCard({
           <ol className="bq-mstrip" aria-label={`أشهر ${row.m.fullName}`}>
             {MONTHS.map((name, i) => {
               const k = i + 1;
-              const isPaid = paid.has(k);
+              const isPaid = states[i] === "paid";
+              const notOwed = states[i] === "not_owed";
               const on = row.months.includes(k);
               return (
                 <li key={k}>
                   <button
                     type="button"
-                    className={`bq-mpick bq-press ${isPaid ? "is-paid" : ""}`}
+                    className={`bq-mpick bq-press ${isPaid || notOwed ? "is-paid" : ""}`}
                     aria-pressed={on}
-                    disabled={isPaid}
+                    disabled={isPaid || notOwed}
                     onClick={() =>
                       onChange({
                         ...row,
@@ -316,6 +312,7 @@ function RowCard({
                   >
                     {name}
                     {isPaid && <span className="bq-mpick-s">مدفوع</span>}
+                    {notOwed && <span className="bq-mpick-s">غير مستحق</span>}
                   </button>
                 </li>
               );

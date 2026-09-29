@@ -2,6 +2,7 @@
 // sent to recordPayment. record.tsx keeps the state and the screen; the server re-validates.
 import type { RecordPaymentInput } from "@/lib/data/schemas";
 import type { PaymentMethod } from "@/lib/data/types";
+import { monthStates } from "@/lib/data/month-code";
 import { parseAmount } from "@/lib/money";
 import { fmt } from "./derive";
 
@@ -24,6 +25,18 @@ export type Draft = {
   campaignText: string;
   year: number;
 };
+
+/**
+ * The months a payment can cover (from the 12-letter code): late or upcoming. Paid months and
+ * «غير مستحق» ones (before joining, exempt, left) are out; the server refuses them anyway.
+ * `late` = the open ones already due.
+ */
+export function payableMonths(code: string, dueMonth: number) {
+  const open = monthStates(code).flatMap((st, i) =>
+    st === "late" || st === "upcoming" ? [i + 1] : [],
+  );
+  return { open, late: open.filter((k) => k <= dueMonth) };
+}
 
 export function summarize(d: Draft) {
   const priceOf = (m: DraftRow["m"]) => d.prices[m.groupCode] ?? 0;
