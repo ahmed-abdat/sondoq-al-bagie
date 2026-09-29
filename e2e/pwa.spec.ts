@@ -133,6 +133,39 @@ test("receipt verification is never served from the cache", async ({ page, conte
   await context.setOffline(false);
 });
 
+test("first visit, offline right after the worker takes over: the page read, not the offline page", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/members");
+  await waitForServiceWorker(page); // no waiting for the saved copy: flaky 3G drops any time
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toHaveCount(0);
+  await expect(page.getByText(/غير متصل/)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await context.setOffline(false);
+});
+
+test("a page opened in the app is saved at once, even on a phone that is never idle", async ({
+  page,
+}) => {
+  // a busy phone: idle callbacks never come (saving used to wait for one)
+  await page.addInitScript(() => {
+    window.requestIdleCallback = () => 0;
+  });
+  await page.goto("/");
+  await waitForServiceWorker(page);
+  await page.locator('a[href="/members"]:visible').first().click();
+  await page.waitForURL("**/members");
+  await expect
+    .poll(
+      () => page.evaluate(async () => !!(await (await caches.open("pages-v2")).match("/members"))),
+      { timeout: 3_000 },
+    )
+    .toBe(true);
+});
+
 test("public pages visited by in-app navigation open offline", async ({ page, context }) => {
   await page.goto("/");
   await waitForServiceWorker(page);
