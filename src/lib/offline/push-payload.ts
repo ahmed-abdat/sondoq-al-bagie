@@ -10,7 +10,7 @@ const PUSH_ICON = "/icons/icon-192.png";
 const PUSH_BADGE = "/icons/badge-96.png";
 
 const DEFAULT: PushPayload = {
-  title: "صندوق الشباب",
+  title: "صندوق الرابطة",
   body: "",
   url: "/committee",
   tag: "sondoq",

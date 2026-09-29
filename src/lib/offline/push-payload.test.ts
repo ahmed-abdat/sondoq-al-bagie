@@ -22,7 +22,7 @@ describe("parsePushPayload", () => {
   });
   it("falls back safely", () => {
     expect(parsePushPayload(null)).toEqual({
-      title: "صندوق الشباب",
+      title: "صندوق الرابطة",
       body: "",
       url: "/committee",
       tag: "sondoq",
@@ -30,7 +30,7 @@ describe("parsePushPayload", () => {
     expect(parsePushPayload("نص عادي").body).toBe("نص عادي");
     expect(
       parsePushPayload(JSON.stringify({ title: 5, url: "https://evil.example" })),
-    ).toMatchObject({ title: "صندوق الشباب", url: "/committee" });
+    ).toMatchObject({ title: "صندوق الرابطة", url: "/committee" });
     expect(parsePushPayload(JSON.stringify({ body: "x".repeat(500) })).body).toHaveLength(200);
   });
 });
