@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+const SITE = process.env.NEXT_PUBLIC_SITE_ORIGIN ?? "";
+
 // Colours come from the logo (see globals.css): splash = page background, bar = primary green.
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -17,6 +19,25 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#237a3b",
     categories: ["finance", "social"],
     prefer_related_applications: false,
+    // lets the page ask Android whether the app is already installed (getInstalledRelatedApps)
+    related_applications: [{ platform: "webapp", url: `${SITE}/manifest.webmanifest` }],
+    // Android shows these in its richer install sheet, like an app store (pnpm screenshots)
+    screenshots: [
+      ...(["home", "members", "report"] as const).map((n, i) => ({
+        src: `/screenshots/${n}-narrow.jpg`,
+        sizes: "1080x1920",
+        type: "image/jpeg",
+        form_factor: "narrow" as const,
+        label: ["الرئيسية: ما في الصندوق ومن دفع", "الأعضاء: حالة كل عضو", "تقرير الصندوق"][i],
+      })),
+      {
+        src: "/screenshots/home-wide.jpg",
+        sizes: "1920x1080",
+        type: "image/jpeg",
+        form_factor: "wide" as const,
+        label: "صندوق الشباب على الحاسوب",
+      },
+    ],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

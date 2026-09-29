@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { DISMISS_FOR_MS, detectPlatform, isDismissed, isIosSafari } from "./install";
+import {
+  chromeIntentUrl,
+  DISMISS_FOR_MS,
+  detectPlatform,
+  installMode,
+  isDismissed,
+  isIosSafari,
+  recordVisitDay,
+  shouldInvite,
+} from "./install";
 
 const ANDROID =
   "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36";
@@ -32,5 +41,65 @@ describe("isDismissed", () => {
     expect(isDismissed(String(now - DISMISS_FOR_MS - 1), now)).toBe(false);
     expect(isDismissed(null, now)).toBe(false);
     expect(isDismissed("garbage", now)).toBe(false);
+  });
+});
+
+describe("installMode", () => {
+  const base = { standalone: false, hasPrompt: false };
+  it("installed wins", () => {
+    expect(installMode({ ...base, userAgent: ANDROID, standalone: true })).toBe("installed");
+    expect(installMode({ ...base, userAgent: ANDROID, installed: true })).toBe("installed");
+  });
+  it("Android: native dialog when the browser gave one, else menu steps", () => {
+    expect(installMode({ ...base, userAgent: ANDROID, hasPrompt: true })).toBe("native");
+    expect(installMode({ ...base, userAgent: ANDROID })).toBe("android");
+    expect(installMode({ ...base, userAgent: `${ANDROID} SamsungBrowser/27.0` })).toBe("samsung");
+  });
+  it("in-app browsers: open in Chrome / Safari", () => {
+    const wv = ANDROID.replace("(Linux; Android 10; K)", "(Linux; Android 10; K; wv)");
+    expect(installMode({ ...base, userAgent: wv, hasPrompt: true })).toBe("in-app");
+    expect(installMode({ ...base, userAgent: `${ANDROID} [FB_IAB/FB4A;FBAV/400.0]` })).toBe(
+      "in-app",
+    );
+    expect(installMode({ ...base, userAgent: `${IPHONE} Instagram 300` })).toBe("in-app");
+  });
+  it("iPhone: Safari steps, or open in Safari first", () => {
+    expect(installMode({ ...base, userAgent: IPHONE })).toBe("ios");
+    expect(installMode({ ...base, userAgent: IPHONE.replace("Version/18.0", "CriOS/140.0") })).toBe(
+      "ios-other",
+    );
+  });
+  it("desktop", () => {
+    expect(installMode({ ...base, userAgent: IPAD_DESKTOP })).toBe("desktop");
+    expect(installMode({ ...base, userAgent: IPAD_DESKTOP, hasPrompt: true })).toBe("native");
+  });
+});
+
+it("chromeIntentUrl opens the same page in Chrome", () => {
+  expect(chromeIntentUrl("https://x.app/members?q=1")).toBe(
+    "intent://x.app/members?q=1#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=https%3A%2F%2Fx.app%2Fmembers%3Fq%3D1;end",
+  );
+});
+
+describe("when to invite", () => {
+  const now = 1_800_000_000_000;
+  it("records distinct visit days, last five", () => {
+    expect(recordVisitDay(null, "2026-09-28")).toBe("2026-09-28");
+    expect(recordVisitDay("2026-09-28", "2026-09-28")).toBe("2026-09-28");
+    expect(recordVisitDay("2026-09-28", "2026-09-29")).toBe("2026-09-28,2026-09-29");
+    expect(recordVisitDay("a,1,2,3,4,5", "x")).toBe("");
+    expect(
+      recordVisitDay("2026-01-01,2026-01-02,2026-01-03,2026-01-04,2026-01-05", "2026-01-06"),
+    ).toBe("2026-01-02,2026-01-03,2026-01-04,2026-01-05,2026-01-06");
+  });
+  it("not on the first day unless engaged; never within two weeks of «ليس الآن»", () => {
+    const one = "2026-09-28";
+    const two = "2026-09-27,2026-09-28";
+    expect(shouldInvite({ visitDays: one, engaged: false, dismissedAt: null, now })).toBe(false);
+    expect(shouldInvite({ visitDays: one, engaged: true, dismissedAt: null, now })).toBe(true);
+    expect(shouldInvite({ visitDays: two, engaged: false, dismissedAt: null, now })).toBe(true);
+    expect(shouldInvite({ visitDays: two, engaged: true, dismissedAt: String(now - 1), now })).toBe(
+      false,
+    );
   });
 });
