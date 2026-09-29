@@ -5757,3 +5757,13 @@
     margin-block-start: 12px;
   }
 }
+@layer components {
+  /* a decided payment in the review list: the name keeps whole words; the rest wraps under it */
+  .bq-rev .bq-slip-one {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .bq-rev .bq-slip-one .bq-row-t {
+    min-width: 8em;
+  }
+}
