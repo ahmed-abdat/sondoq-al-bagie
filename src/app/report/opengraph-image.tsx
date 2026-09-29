@@ -1,11 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { dayDate, fmt, isGone, MONTHS } from "@/components/app/derive";
+import { dayDate, isGone, MONTHS } from "@/components/app/derive";
 import * as src from "@/components/app/source";
 
-// Link preview for a pasted /report link (WhatsApp shows it as a rich card).
-export const alt = "ملخص صندوق الرابطة: ما في الصندوق الآن ومن دفع رسوم هذا الشهر";
+// Link preview for a pasted /report link (WhatsApp shows it as a rich card). Public by nature,
+// so no money figure at all (docs/MONEY-PRIVACY.md): who paid this month's fees, as a count.
+export const alt = "صندوق الرابطة: كم عضوًا دفع رسوم هذا الشهر";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const revalidate = 300;
@@ -35,11 +36,7 @@ function Rtl({ text, style }: { text: string; style?: React.CSSProperties }) {
 }
 
 export default async function Image() {
-  const [summary, members, months] = await Promise.all([
-    src.fundSummary(),
-    src.members(),
-    src.memberMonths(),
-  ]);
+  const [members, months] = await Promise.all([src.members(), src.memberMonths()]);
   const today = src.today();
   const month = today.getUTCMonth() + 1;
   const active = members.filter((m) => m.status === "active" && !isGone(m.status));
@@ -50,12 +47,12 @@ export default async function Image() {
 
   const title = "صندوق الرابطة";
   const sub = "رابطة شباب قرية البقيع";
-  const label = "في الصندوق الآن";
-  const amount = fmt(summary.balance).replace(/ /g, " ");
-  const unit = "أوقية";
-  const line = `${paidCount} من ${active.length} دفعوا رسوم ${MONTHS[month - 1]}`;
+  const label = `دفعوا رسوم ${MONTHS[month - 1]}`;
+  const count = String(paidCount);
+  const of = `من ${active.length} عضوًا`;
+  const line = "التقرير الكامل للأعضاء واللجنة";
   const date = `حتى ${dayDate(today)}`;
-  const all = [title, sub, label, amount, unit, line, date, "0123456789 "].join("");
+  const all = [title, sub, label, count, of, line, date, "0123456789 "].join("");
 
   const [bold, regular, logo] = await Promise.all([
     font("Alexandria", 700, all),
@@ -105,8 +102,8 @@ export default async function Image() {
         <div
           style={{ display: "flex", flexDirection: "row-reverse", alignItems: "baseline", gap: 24 }}
         >
-          <div style={{ fontFamily: "Alexandria", fontSize: 140, fontWeight: 700 }}>{amount}</div>
-          <Rtl text={unit} style={{ fontSize: 46, color: "#EEF5EF" }} />
+          <div style={{ fontFamily: "Alexandria", fontSize: 140, fontWeight: 700 }}>{count}</div>
+          <Rtl text={of} style={{ fontSize: 46, color: "#EEF5EF" }} />
         </div>
       </div>
       <div

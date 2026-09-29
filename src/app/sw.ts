@@ -14,6 +14,10 @@ import {
   isPrivatePath,
   isPublicPage,
   isPublicViewRead,
+  mayStore,
+  PAGES_CACHE,
+  RETIRED_CACHES,
+  VIEWS_CACHE,
 } from "@/lib/offline/cache-rules";
 import { nextBadgeCount, syncAppBadge } from "@/lib/offline/app-badge";
 import { notificationOptions, parsePushPayload, safePath } from "@/lib/offline/push-payload";
@@ -29,6 +33,11 @@ declare const self: ServiceWorkerGlobalScope &
 
 const DAY = 24 * 60 * 60;
 const ok = new CacheableResponsePlugin({ statuses: [0, 200] });
+// personal or no-store responses (committee, member «أنت», money reads) are never kept
+const shareable = {
+  cacheWillUpdate: async ({ response }: { response: Response }) =>
+    mayStore(response.headers.get("cache-control")) ? response : null,
+};
 const expire = (maxEntries: number, maxAgeSeconds: number) =>
   new ExpirationPlugin({ maxEntries, maxAgeSeconds, purgeOnQuotaError: true });
 
@@ -55,8 +64,8 @@ const runtimeCaching: RuntimeCaching[] = [
   {
     matcher: ({ url, request }) => isPublicViewRead(url, request.method),
     handler: new StaleWhileRevalidate({
-      cacheName: "sb-public-views",
-      plugins: [ok, expire(32, DAY)],
+      cacheName: VIEWS_CACHE,
+      plugins: [ok, shareable, expire(32, DAY)],
     }),
   },
   // Auth, storage (proof images), realtime, RPC, tables: never cached.
@@ -90,9 +99,9 @@ const runtimeCaching: RuntimeCaching[] = [
   {
     matcher: ({ url, sameOrigin }) => isPublicPage(url, sameOrigin),
     handler: new NetworkFirst({
-      cacheName: "pages",
+      cacheName: PAGES_CACHE,
       networkTimeoutSeconds: 6,
-      plugins: [ok, expire(48, 14 * DAY), markServed],
+      plugins: [ok, shareable, expire(48, 14 * DAY), markServed],
     }),
   },
   { matcher: /.*/, handler: new NetworkOnly() },
@@ -110,6 +119,11 @@ const serwist = new Serwist({
       { url: "/offline.html", matcher: ({ request }) => request.destination === "document" },
     ],
   },
+});
+
+// Old runtime caches may hold amounts (before money privacy): drop them when this worker takes over.
+self.addEventListener("activate", (event) => {
+  event.waitUntil(Promise.all(RETIRED_CACHES.map((name) => caches.delete(name))));
 });
 
 self.addEventListener("message", (event) => {

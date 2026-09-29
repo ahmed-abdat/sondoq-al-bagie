@@ -128,7 +128,9 @@ test("public pages visited by in-app navigation open offline", async ({ page, co
     await page.locator(`a[href="${path}"]:visible`).first().click();
     await page.waitForURL(`**${path}`);
     await expect
-      .poll(() => page.evaluate(async (p) => !!(await (await caches.open("pages")).match(p)), path))
+      .poll(() =>
+        page.evaluate(async (p) => !!(await (await caches.open("pages-v2")).match(p)), path),
+      )
       .toBe(true);
   }
   await context.setOffline(true);
@@ -159,7 +161,7 @@ test("in data-saver mode, visited pages are not downloaded again for offline", a
   await page.waitForTimeout(3000); // past the idle timeout
   expect(hits).toEqual([]);
   expect(
-    await page.evaluate(async () => !!(await (await caches.open("pages")).match("/members"))),
+    await page.evaluate(async () => !!(await (await caches.open("pages-v2")).match("/members"))),
   ).toBe(false);
 });
 
@@ -184,4 +186,21 @@ test("a page shown from the saved copy says how old it is", async ({ page, conte
   await bar.getByRole("button", { name: "تحديث" }).click();
   await page.waitForLoadState("load");
   await expect(page.getByText(/هذه نسخة محفوظة/)).toHaveCount(0);
+});
+
+test("copies saved before money privacy are dropped when the new worker takes over", async ({
+  page,
+}) => {
+  // a phone with the old caches (they could hold amounts)
+  await page.addInitScript(() => {
+    void caches.open("pages").then((c) => c.put("/old", new Response("٢٩٠ ٥٠٠")));
+    void caches.open("sb-public-views").then((c) => c.put("/old", new Response("{}")));
+  });
+  await page.goto("/");
+  await waitForServiceWorker(page);
+  await expect
+    .poll(() => page.evaluate(() => caches.keys()))
+    .not.toEqual(expect.arrayContaining(["pages"]));
+  const keys = await page.evaluate(() => caches.keys());
+  expect(keys).not.toContain("sb-public-views");
 });

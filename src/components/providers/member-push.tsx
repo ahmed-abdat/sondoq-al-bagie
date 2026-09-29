@@ -4,6 +4,7 @@
 // forgetting this device at «خروج من هذا الجهاز».
 import { useIsDemo } from "@/components/app/act";
 import { memberDeletePush, memberSavePush } from "@/lib/data/member-actions";
+import { PAGES_CACHE } from "@/lib/offline/cache-rules";
 import { unsubscribePush, type PushSubscriptionData } from "@/lib/push";
 import { PushToggle } from "./push-toggle";
 
@@ -36,7 +37,7 @@ export async function forgetMemberOnThisDevice(): Promise<string | undefined> {
     /* no worker or no push: nothing to stop */
   }
   try {
-    await caches.delete("pages"); // pages saved while «أنت» was shown
+    await caches.delete(PAGES_CACHE); // pages saved while «أنت» was shown
   } catch {
     /* no Cache Storage */
   }

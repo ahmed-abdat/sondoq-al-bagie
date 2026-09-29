@@ -33,7 +33,7 @@ test("the member's pages are never saved for offline", async ({ page }) => {
   await page.goto("/me");
   await page.reload();
   const saved = await page.evaluate(async () =>
-    (await (await caches.open("pages")).keys()).map((r) => new URL(r.url).pathname),
+    (await (await caches.open("pages-v2")).keys()).map((r) => new URL(r.url).pathname),
   );
   expect(saved.filter((p) => p === "/me" || p.startsWith("/m/"))).toEqual([]);
 });
