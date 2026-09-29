@@ -641,9 +641,7 @@ export function RecordBody({
     }
     rememberRecent(rows.map((r) => r.m.memberId));
     // another pending payment already covers one of these months (the confirmer should look)
-    const overlap = r.data.pendingOverlap
-      ? " يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر."
-      : "";
+    const overlap = r.data.pendingOverlap ? " يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر." : "";
     router.refresh();
     const who =
       rows.length > 1

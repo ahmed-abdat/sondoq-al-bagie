@@ -83,3 +83,17 @@ test("pay late months from a member's credit (M7)", async ({ page }) => {
   await expect(again).toContainText(/له رصيد 500 أوقية، لا يكفي لشهر كامل\./);
   await expect(again).not.toContainText("متأخر");
 });
+
+test("a second payment for months already waiting says so (M5)", async ({ page }) => {
+  await page.goto("/committee");
+  for (let i = 0; i < 2; i++) {
+    await page.locator(".bq-fab").click();
+    const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
+    await sheet.getByLabel("ابحث عن العضو", { exact: true }).fill("أ 4");
+    await sheet.locator(".bq-pick button.bq-row").first().click();
+    await sheet.getByRole("radio", { name: "بنكيلي" }).click();
+    await sheet.locator(".bq-rec-foot").getByRole("button", { name: "سجّل الدفعة" }).click();
+    await expect(sheet).toBeHidden();
+  }
+  await expect(page.getByText(/يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر\./)).toBeVisible();
+});

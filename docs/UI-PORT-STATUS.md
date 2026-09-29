@@ -294,6 +294,10 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   needsMemberLink, admin «ليس عضوًا» / «إلغاء "ليس عضوًا"» (setCommitteeNotMember). Setup hides
   «لست عضوًا» for admin/treasurer/deputy. Close-campaign sheet has no «keep» option. Fixtures:
   B-12 credit 2 000, B-33 old debt 2 months. e2e: credit, past-year months, settings cards.
+- pendingOverlap (m2-app): after saving, «يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر.» is added to
+  the snack (demo stub checks its own pending). Demo: the demo user is «ليس عضوًا», a deputy
+  «المختار» carries «غير مربوط بعضو»; a demo credit payment lowers the shown arrears and credit.
+  Report-images e2e was flaky (the share mock pushed files one by one); it now publishes at once.
 
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
