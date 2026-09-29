@@ -524,6 +524,22 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - e2e touched (Lane B): member.spec `you()` locates the region by its «أنت، …» heading;
   member-ui.spec: P1 wording, grid label instead of `.bq-you-key`.
 
+## Round-2 owner picks (r31, proto/qa-layouts 6b0b196)
+- /committee: Segmented «للمراجعة N» / «الأعمال». Review = chat-like list, newest first
+  (wallet logo, name, «سجّلها/أرسلها … · منذ …», amount; dividers), one PendingSlip open in place
+  as a flat tonal band (first by default; `onSettled` after the 5 s undo opens the next); decided
+  slips stay mounted (collapsed) so the send is never cut; «عرض الكل» past 5; a flat «سجّل
+  دفعة» button under the list (the FAB is gone: it hid behind the open slip); empty «لا دفعات
+  تنتظر» + «سجّل دفعة نقدًا أو تحويلًا» + «الأعمال الأخرى». «الأعمال» = 4 flat tiles + `<details>`
+  «المزيد» (members and campaigns only for managers). Sr-only `#bq-wait-h` keeps the count.
+- /committee/member-links: progress bar, الكل / أ / ب Segmented, walk button follows the group,
+  search, filter chips (none/made/all; links made here stay under «none»), flat divided list
+  (first 40, then «و N آخرون»), flat walk card.
+- /donations: «كيف أساهم؟» 4 steps (wallet radios with logos, number + «نسخ», amount chips,
+  «أرسل صورة التحويل» + trust line), then a flat progress box (dots + MoneyHint for strangers).
+- e2e touched (Lane B): record/edge-cases press «سجّل دفعة»; member-links and report reach hub
+  links via «الأعمال» → «المزيد»; member-links spec for the selector/filter.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
