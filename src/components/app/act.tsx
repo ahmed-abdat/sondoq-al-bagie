@@ -415,7 +415,16 @@ const demo = {
     return ok("demo");
   },
   cancelLastPeriod: async () => ok("demo"),
-  setJoinMonth: async () => ok("demo"),
+  async setJoinMonth(p) {
+    update((s) => ({
+      ...s,
+      memberPatch: {
+        ...s.memberPatch,
+        [p.memberId]: { ...s.memberPatch[p.memberId], joinedMonth: p.fromMonth },
+      },
+    }));
+    return ok("demo");
+  },
   setGroupPrice: async () => ok(undefined),
   savePushSubscription: async () => ok(undefined),
   deletePushSubscription: async () => ok(undefined),

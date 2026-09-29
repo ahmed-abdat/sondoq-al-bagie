@@ -367,16 +367,19 @@ export function MembersPage({
   members,
   prices,
   thisMonth,
+  admin = false,
 }: {
   members: MemberAdmin[];
   prices: Record<string, number>;
+  /** admin: may undo the last change and correct the join month */
+  admin?: boolean;
   thisMonth: string;
 }) {
   return (
     <>
       <SubHead title="الأعضاء" />
       <section className="bq-sec bq-sec-first">
-        <MembersAdmin members={members} prices={prices} thisMonth={thisMonth} />
+        <MembersAdmin members={members} prices={prices} thisMonth={thisMonth} admin={admin} />
       </section>
     </>
   );

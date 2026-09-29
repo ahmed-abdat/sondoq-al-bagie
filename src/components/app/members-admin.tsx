@@ -173,9 +173,12 @@ export function MemberAdminBody({
   m,
   members = [],
   thisMonth,
+  admin = false,
   onDone,
 }: {
   m: MemberAdmin;
+  /** admin only: «تراجع عن آخر تغيير», «تصحيح شهر الانضمام» */
+  admin?: boolean;
   /** everyone, to say at once when a new number is taken */
   members?: MemberAdmin[];
   thisMonth: string;
@@ -183,8 +186,10 @@ export function MemberAdminBody({
 }) {
   const router = useRouter();
   const online = useOnline();
-  const { updateMember, changeMemberStatus, changeMemberGroup } = useAct();
-  const [mode, setMode] = useState<"view" | "edit" | "state" | "move">("view");
+  const { updateMember, changeMemberStatus, changeMemberGroup, cancelLastPeriod, setJoinMonth } =
+    useAct();
+  const [mode, setMode] = useState<"view" | "edit" | "state" | "move" | "undo" | "join">("view");
+  const [joinYm, setJoinYm] = useState(m.joinedMonth?.slice(0, 7) ?? thisMonth);
   const [name, setName] = useState(m.fullName);
   const [phone, setPhone] = useState(m.phone ?? "");
   const [note, setNote] = useState(m.note ?? "");
@@ -271,6 +276,116 @@ export function MemberAdminBody({
         <button type="button" className="bq-link bq-link-quiet bq-press" onClick={() => go("move")}>
           نقله إلى رسوم المجموعة {groupLabel(other)}
         </button>
+      )}
+      {mode === "view" && admin && (
+        <>
+          <button
+            type="button"
+            className="bq-link bq-link-quiet bq-press"
+            onClick={() => go("undo")}
+          >
+            تراجع عن آخر تغيير
+          </button>
+          <button
+            type="button"
+            className="bq-link bq-link-quiet bq-press"
+            onClick={() => go("join")}
+          >
+            تصحيح شهر الانضمام
+          </button>
+        </>
+      )}
+
+      {mode === "undo" && (
+        <div className="bq-rej bq-small-top">
+          <p className="bq-rej-l">تراجع عن آخر تغيير</p>
+          <p className="bq-lead">
+            يُلغى آخر تغيير في حالة {m.fullName} أو مجموعته، ويعود كما كان قبله. لا يمكن ذلك إذا
+            كانت فيه أشهر مدفوعة.
+          </p>
+          <p className="bq-rec-k">السبب</p>
+          <input
+            className="bq-input"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="مثل: اختير «غادر» بالخطأ"
+            aria-label="سبب التراجع"
+          />
+          <Err text={err} />
+          <div className="bq-slip-btns bq-small-top">
+            <button
+              type="button"
+              className="bq-btn bq-btn-tonal bq-press"
+              disabled={!reason.trim() || busy || !online}
+              onClick={() =>
+                run(
+                  () => cancelLastPeriod({ memberId: m.memberId, reason: reason.trim() }),
+                  `أُلغي آخر تغيير لـ ${m.fullName}`,
+                )
+              }
+            >
+              نعم، تراجع
+            </button>
+            <button
+              type="button"
+              className="bq-btn bq-btn-ghost bq-press"
+              onClick={() => go("view")}
+            >
+              رجوع
+            </button>
+          </div>
+          <OfflineWriteHint />
+        </div>
+      )}
+
+      {mode === "join" && (
+        <>
+          <p className="bq-lead bq-small-top">
+            الأشهر قبل شهر الانضمام لا تُحسب عليه.
+            {m.joinedMonth ? ` المسجَّل الآن: ${ymLabel(m.joinedMonth.slice(0, 7))}.` : ""}
+          </p>
+          <p className="bq-rec-k">انضم في شهر</p>
+          <MonthPicker value={joinYm} onChange={setJoinYm} label="شهر الانضمام" />
+          <p className="bq-rec-k">السبب</p>
+          <input
+            className="bq-input"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="مثل: خطأ عند نقل الورقة"
+            aria-label="سبب التصحيح"
+          />
+          <div className="bq-rec-foot">
+            <Err text={err} />
+            <div className="bq-slip-btns">
+              <button
+                type="button"
+                className="bq-btn bq-btn-primary bq-press"
+                disabled={!reason.trim() || busy || !online}
+                onClick={() =>
+                  run(
+                    () =>
+                      setJoinMonth({
+                        memberId: m.memberId,
+                        fromMonth: firstOf(joinYm),
+                        reason: reason.trim(),
+                      }),
+                    `صُحّح شهر انضمام ${m.fullName}: ${ymLabel(joinYm)}`,
+                  )
+                }
+              >
+                صحّح الشهر
+              </button>
+              <button
+                type="button"
+                className="bq-btn bq-btn-ghost bq-press"
+                onClick={() => go("view")}
+              >
+                رجوع
+              </button>
+            </div>
+            <OfflineWriteHint />
+          </div>
+        </>
       )}
 
       {mode === "edit" && (
@@ -523,10 +638,12 @@ export function MembersAdmin({
   members: server,
   prices,
   thisMonth,
+  admin = false,
 }: {
   members: MemberAdmin[];
   prices: Record<string, number>;
   thisMonth: string;
+  admin?: boolean;
 }) {
   const say = useSnack();
   const demo = useDemoState();
@@ -669,7 +786,13 @@ export function MembersAdmin({
       )}
       {open && (
         <Sheet key={open.memberId} label={open.fullName} onDone={() => setSheet(null)}>
-          <MemberAdminBody m={open} members={members} thisMonth={thisMonth} onDone={done} />
+          <MemberAdminBody
+            m={open}
+            members={members}
+            thisMonth={thisMonth}
+            admin={admin}
+            onDone={done}
+          />
         </Sheet>
       )}
     </>
