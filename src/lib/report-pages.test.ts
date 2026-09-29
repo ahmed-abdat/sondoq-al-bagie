@@ -96,7 +96,7 @@ describe("paginateReport", () => {
   ];
 
   it("cover, then each list in pages (gone members hidden), then money", () => {
-    const pages = paginateReport(report(members));
+    const pages = paginateReport(report(members, [expense(1)]));
     expect(pages.map((p) => p.kind)).toEqual([
       "cover",
       "members",
@@ -130,9 +130,37 @@ describe("paginateReport", () => {
 });
 
 describe("money pages", () => {
-  it("says so when nothing was spent", () => {
-    const b = moneyBlocks(report([]));
-    expect(b.map((x) => x.t)).toEqual(["heading", "note", "space", "cta"]);
+  const campaign = (status: "open" | "closed", collected: number, spent = 0) =>
+    ({
+      campaignId: `${status}${collected}`,
+      title: "حملة",
+      status,
+      targetAmount: null,
+      collected,
+      spent,
+      balance: collected - spent,
+    }) as ReportData["campaigns"][number];
+
+  it("no expenses and no campaigns worth showing: no money page at all", () => {
+    const r = { ...report([member("A-1")]), campaigns: [campaign("closed", 0)] };
+    expect(moneyBlocks(r)).toEqual([]);
+    const pages = paginateReport(r);
+    expect(pages.map((p) => p.kind)).toEqual(["cover", "members"]);
+  });
+
+  it("keeps open campaigns and closed ones that moved money; titles the page by what is on it", () => {
+    const r = {
+      ...report([]),
+      campaigns: [campaign("open", 0), campaign("closed", 0), campaign("closed", 500)],
+    };
+    const b = moneyBlocks(r);
+    expect(b.map((x) => x.t)).toEqual(["heading", "campaign", "campaign", "space", "cta"]);
+    const money = paginateReport(r).filter((p) => p.kind === "money");
+    expect(money.map((p) => p.kind === "money" && p.title)).toEqual(["حملات التبرع"]);
+    const withExp = paginateReport({ ...r, expenses: [expense(1)] }).find(
+      (p) => p.kind === "money",
+    );
+    expect(withExp?.kind === "money" && withExp.title).toBe("المصاريف والحملات");
   });
 
   it("splits long expense lists, repeating the heading and the column header", () => {
