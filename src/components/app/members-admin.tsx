@@ -17,7 +17,7 @@ import {
   fmt,
   groupLabel,
   memberLabel,
-  monthsWord,
+  statusLabel,
   monthCount,
   monthsLabel,
   MONTHS,
@@ -291,11 +291,10 @@ export function MemberAdminBody({
         <p className="bq-mline">
           {m.status === "active" ? (
             <>
-              دفع رسوم <Num className="bq-strong">{m.monthsPaidThisYear}</Num> من 12 شهرًا هذا العام
+              {statusLabel(m)}
               {m.monthsBehind > 0 && (
                 <span className="bq-row-s">
-                  متأخر {monthsWord(m.monthsBehind)} · عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num>{" "}
-                  أوقية
+                  عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num> أوقية
                 </span>
               )}
             </>
@@ -923,7 +922,7 @@ export function MembersAdmin({
                             .join(" · ")}
                         </span>
                       </span>
-                      <StatusTag m={m} />
+                      <StatusTag m={{ ...m, months: months[m.memberId] }} />
                     </button>
                   </li>
                 ))}

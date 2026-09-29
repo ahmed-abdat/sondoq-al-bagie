@@ -9,9 +9,8 @@ import {
   memberLabel,
   memberState,
   monthCells,
-  monthsLabel,
-  lateCount,
   MONTHS,
+  statusLabel,
 } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
@@ -55,54 +54,37 @@ export type MemberCtx = {
 };
 
 /**
- * A member's months this year: the count line, the late line and the twelve cells in the
+ * A member's months this year: one status phrase and the twelve cells in the
  * report's language. Public member sheet and the committee's member sheet (audit C7).
  */
 export function MemberMonths({
   m,
   ctx,
 }: {
-  m: Pick<MemberRow, "months" | "memberId" | "status" | "monthsBehind" | "monthsPaidThisYear">;
+  m: Pick<
+    MemberRow,
+    "months" | "memberId" | "status" | "monthsBehind" | "monthsPaidThisYear" | "pastLate"
+  >;
   ctx: Pick<MemberCtx, "year" | "dueMonth">;
 }) {
   const { year } = ctx;
   const cells = monthCells(decodeMonths(m.months, m.memberId, ctx.year), ctx.dueMonth);
-  const owed = cells.filter((c) => c.state === "owed").map((c) => c.month);
-  const paidDue = cells.filter((c) => c.state === "paid").length;
-  const aheadMonths = cells.filter((c) => c.state === "ahead").map((c) => c.month);
-  const paidAll = cells.every((c) => c.state === "paid" || c.state === "ahead");
-  const lastAhead = aheadMonths.length ? Math.max(...aheadMonths) : 0;
-  const due = paidDue + owed.length;
   const st = memberState(m);
+  // one phrase, «دفع حتى أغسطس 2026» (UX-PATTERNS P1): no counts, lateness is implicit
   return (
     <>
-      {st !== "off" &&
-        (paidAll ? (
-          <p className="bq-mline">
-            دفع رسوم السنة كاملة · <Num className="bq-strong">12</Num> شهرًا
-          </p>
-        ) : due > 0 ? (
-          <p className="bq-mline">
-            دفع <Num className="bq-strong">{paidDue}</Num> من <Num className="bq-strong">{due}</Num>{" "}
-            {due <= 2
-              ? due === 1
-                ? "شهر مستحق"
-                : "شهرين مستحقين"
-              : due <= 10
-                ? "أشهر مستحقة"
-                : "شهرًا مستحقًا"}
-            {lastAhead ? ` ومقدَّمًا حتى ${MONTHS[lastAhead - 1]}` : ""}
-          </p>
-        ) : null)}
-      {st !== "ok" && st !== "ahead" && (
+      {st === "off" ? (
         <p className="bq-mstatus is-late">
           {I.clock(18)}
-          {st === "off"
-            ? "لا تُستحق عليه رسوم الآن"
-            : m.monthsPaidThisYear === 0
-              ? "لم يدفع هذا العام"
-              : `متأخر عن رسوم ${lateCount(owed.length || m.monthsBehind)}${owed.length ? `: ${monthsLabel(owed)}` : ""}`}
+          لا تُستحق عليه رسوم الآن
         </p>
+      ) : st === "late" ? (
+        <p className="bq-mstatus is-late">
+          {I.clock(18)}
+          {statusLabel(m, year)}
+        </p>
+      ) : (
+        <p className="bq-mline">{statusLabel(m, year)}</p>
       )}
       <ol className="bq-months" aria-label={`أشهر ${year}`}>
         {cells.map((c) => (

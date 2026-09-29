@@ -27,7 +27,11 @@ import type { LedgerEntry } from "../types";
 type S = { t: "entry"; e: LedgerEntry };
 /** Only what a search result shows; keeps the home payload small. */
 export type IndexMember = Pick<MemberIndex["members"][number], "memberRef" | "fullName"> &
-  Pick<MemberStatus, "status" | "monthsBehind" | "monthsPaidThisYear">;
+  Pick<MemberStatus, "status" | "monthsBehind" | "monthsPaidThisYear"> & {
+    /** this year's month code and older late months, for «دفع حتى <شهر>» */
+    months?: string;
+    pastLate?: string[];
+  };
 
 export function HomeView({
   hero,

@@ -2,6 +2,7 @@
 import { MONTHS_AR, WEEKDAYS_AR } from "@/lib/dates";
 import { CATEGORY_LABELS } from "@/lib/data/labels";
 import { formatNumber } from "@/lib/format";
+import { monthStates } from "@/lib/data/month-code";
 import { memberNumber } from "@/lib/share-receipt";
 import { nameRank, toLatinDigits } from "./search-text";
 import type {
@@ -243,20 +244,46 @@ export function memberState(m: StateInput): MState {
   return m.monthsPaidThisYear >= 12 ? "ahead" : "ok";
 }
 
-/** Calm, count-only wording for the status tag. Never amounts in public. */
-export function statusLabel(m: StateInput, dueMonth?: number) {
-  const st = memberState(m);
-  if (st === "off") return OFF_LABEL[m.status as Exclude<MembershipStatus, "active">];
-  if (st === "ahead") return "دفع السنة كاملة";
-  if (st === "ok") {
-    // up to date and paid past the due month (months are paid from January on)
-    const due = dueMonth ?? currentDueMonth(new Date(), 10);
-    if (m.monthsPaidThisYear > due && m.monthsPaidThisYear < 12)
-      return `مدفوع مقدَّمًا حتى ${MONTHS[m.monthsPaidThisYear - 1]}`;
-    return "منتظم";
+/**
+ * One status phrase, like phone credit «صالح حتى» (UX-PATTERNS P1): «دفع حتى أغسطس», the last
+ * month of the unbroken paid run from the first owed month. No counting («X من Y», «متأخر 3»);
+ * lateness is implicit. Nothing paid yet: «لم يدفع هذا العام»; every owed month paid: «دفع السنة
+ * كاملة»; a gap before a later payment or an older year: «لم يدفع رسوم <شهر> [<سنة>]»;
+ * nothing due yet: «منتظم». `year` adds the year to month phrases (member sheet). Needs the
+ * month code for exact words; without it, months are assumed paid from January.
+ */
+export type StatusInput = StateInput & { months?: string; pastLate?: string[] };
+export function statusLabel(m: StatusInput, year?: number) {
+  if (m.status !== "active") return OFF_LABEL[m.status as Exclude<MembershipStatus, "active">];
+  const y = year ? ` ${year}` : "";
+  if (m.pastLate?.length) {
+    const [py, pm] = m.pastLate[0].split("-").map(Number);
+    if (py && pm) return `لم يدفع رسوم ${MONTHS[pm - 1]} ${py}`;
   }
-  if (m.monthsPaidThisYear === 0) return "لم يدفع هذا العام";
-  return `متأخر ${monthsWord(m.monthsBehind)}`;
+  if (!m.months) {
+    if (m.monthsPaidThisYear >= 12) return "دفع السنة كاملة";
+    if (m.monthsPaidThisYear > 0) return `دفع حتى ${MONTHS[m.monthsPaidThisYear - 1]}${y}`;
+    return m.monthsBehind > 0 ? "لم يدفع هذا العام" : "منتظم";
+  }
+  const st = monthStates(m.months);
+  const owed = st.flatMap((x, i) => (x === "not_owed" ? [] : [i]));
+  const paid = owed.filter((i) => st[i] === "paid");
+  if (owed.length && paid.length === owed.length) return "دفع السنة كاملة";
+  let upTo = -1;
+  for (const i of owed) {
+    if (st[i] !== "paid") break;
+    upTo = i;
+  }
+  if (upTo >= 0) return `دفع حتى ${MONTHS[upTo]}${y}`;
+  const firstLate = owed.find((i) => st[i] === "late");
+  if (firstLate === undefined) return "منتظم";
+  return paid.length ? `لم يدفع رسوم ${MONTHS[firstLate]}${y}` : "لم يدفع هذا العام";
+}
+
+/** Committee late list: «لم يدفع منذ يوليو 2026» from the oldest late month ("YYYY-MM"). */
+export function unpaidSince(months: string[]) {
+  const [y, m] = (months[0] ?? "").split("-").map(Number);
+  return y && m ? `لم يدفع منذ ${MONTHS[m - 1]} ${y}` : "";
 }
 
 export const byMostLate = (a: MemberStatus, b: MemberStatus) =>

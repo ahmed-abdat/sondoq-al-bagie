@@ -1,8 +1,8 @@
 // Small shared pieces that need no client state.
 import Image from "next/image";
-import type { MemberStatus, PaymentMethod } from "@/lib/data/types";
+import type { PaymentMethod } from "@/lib/data/types";
 import { METHOD_LABELS, methodLogo } from "@/lib/methods";
-import { memberLabel, memberState, splitRef, statusLabel } from "./derive";
+import { memberLabel, memberState, splitRef, statusLabel, type StatusInput } from "./derive";
 import { I } from "./icons";
 
 /**
@@ -51,12 +51,8 @@ export function MemberNo({ m, scoped }: { m: { memberRef: string }; scoped?: boo
   return <bdi className="bq-num bq-nowrap">{memberLabel(m, { scoped })}</bdi>;
 }
 
-/** Icon + word. Grey for late (never red), green tint for paid. Counts only, never amounts. */
-export function StatusTag({
-  m,
-}: {
-  m: Pick<MemberStatus, "status" | "monthsBehind" | "monthsPaidThisYear">;
-}) {
+/** Icon + «دفع حتى <شهر>» (P1). Grey for late (never red), green tint for paid. No amounts. */
+export function StatusTag({ m }: { m: StatusInput }) {
   const st = memberState(m);
   const ok = st === "ok" || st === "ahead";
   return (
@@ -88,7 +84,12 @@ export function MethodBadge({
         style={{ width: size, height: size, borderRadius: Math.round(size * 0.28) }}
       >
         {logo ? (
-          <Image src={logo} alt={label || decorative ? "" : METHOD_LABELS[method]} width={size} height={size} />
+          <Image
+            src={logo}
+            alt={label || decorative ? "" : METHOD_LABELS[method]}
+            width={size}
+            height={size}
+          />
         ) : method === "cash" ? (
           I.cash(Math.round(size * 0.64))
         ) : (

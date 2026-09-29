@@ -43,12 +43,12 @@ describe("youStatus", () => {
       late: false,
       text: "أنت منتظم",
     });
-    expect(youStatus({ status: "active", monthsBehind: 3, amountOwed: 3000 }).text).toMatch(
-      /^عليك 3 أشهر · 3\s000 أوقية$/,
-    );
-    expect(youStatus({ status: "active", monthsBehind: 1, amountOwed: 0 }).text).toBe(
-      "عليك شهر واحد",
-    );
+    expect(
+      youStatus({ status: "active", monthsBehind: 3, amountOwed: 3000 }, "PPPPPPLLLUUU").text,
+    ).toMatch(/^دفعت حتى يونيو · عليك 3\s000 أوقية$/);
+    expect(
+      youStatus({ status: "active", monthsBehind: 1, amountOwed: 0 }, "LLLLLLLLLUUU").text,
+    ).toBe("لم تدفع هذا العام");
     expect(youStatus({ status: "exempt", monthsBehind: 0, amountOwed: 0 }).late).toBe(false);
   });
 });
@@ -69,7 +69,7 @@ describe("youCard", () => {
   it("late and exempt", () => {
     const late = youCard({ ...on, monthsBehind: 3, amountOwed: 3000 }, "PPPPPPLLLUUU", 2026);
     expect(late.kind).toBe("late");
-    expect(late.text).toMatch(/^عليك 3 أشهر · 3\s000 أوقية$/);
+    expect(late.text).toMatch(/^دفعت حتى يونيو · عليك 3\s000 أوقية$/);
     // proof sent and waiting: the card says so, the late words give way (audit M1)
     expect(youCard({ ...on, monthsBehind: 3, amountOwed: 3000 }, "PPPPPPLLLUUU", 2026, 1)).toEqual({
       kind: "pending",

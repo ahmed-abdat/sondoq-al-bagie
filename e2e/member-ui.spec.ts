@@ -76,7 +76,7 @@ test("late: one «ادفع الآن» → amount and wallets → «دفعت؟ أ
 }) => {
   await page.goto("/m/demo2");
   const card = page.locator("section.bq-you");
-  await expect(card).toContainText(/عليك 3 أشهر · 1\s500 أوقية/);
+  await expect(card).toContainText(/دفعت حتى يونيو · عليك 1\s500 أوقية/);
   await expect(card.getByRole("button", { name: "ادفع الآن" })).toHaveCount(1);
   await expect(card.getByRole("button", { name: "ادفع عن شخص آخر" })).toBeVisible();
   await expect(card.locator(".bq-you-cells li svg")).toHaveCount(6);
@@ -103,7 +103,7 @@ test("late: one «ادفع الآن» → amount and wallets → «دفعت؟ أ
   await expect(btn).toHaveText("أرسل إلى اللجنة");
   await btn.click();
   await expect(card).toContainText("أرسلت صورة التحويل. تنتظر تأكيد اللجنة.");
-  await expect(card).not.toContainText("عليك 3 أشهر");
+  await expect(card).not.toContainText("دفعت حتى يونيو");
   await expect(card.getByRole("button", { name: "ادفع الآن" })).toHaveCount(0);
 });
 
@@ -127,7 +127,7 @@ test("late member who sends proof for someone else keeps «ادفع الآن» (
   await expect(btn).toHaveText("أرسل إلى اللجنة");
   await btn.click();
   await expect(card.getByRole("link", { name: "دفعة بانتظار التأكيد" })).toBeVisible();
-  await expect(card).toContainText(/عليك 3 أشهر/);
+  await expect(card).toContainText(/دفعت حتى يونيو/);
   await expect(card.getByRole("button", { name: "ادفع الآن" })).toHaveCount(1);
 
   await page.goto("/me");

@@ -9,7 +9,7 @@ export default async function Home() {
   const [hero, index, all, ledger, campaigns] = await Promise.all([
     heroData(),
     src.memberIndex(),
-    src.members(),
+    src.memberRows(),
     src.ledgerRecent(3),
     src.campaignsPublic(),
   ]);
@@ -30,6 +30,8 @@ export default async function Home() {
                   status: m.status,
                   monthsBehind: m.monthsBehind,
                   monthsPaidThisYear: m.monthsPaidThisYear,
+                  months: m.months,
+                  ...(m.pastLate?.length ? { pastLate: m.pastLate } : {}),
                 },
               ]
             : [];

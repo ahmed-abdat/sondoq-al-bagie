@@ -9,7 +9,7 @@ import { groupReminderText, reminderLink, type ReminderContext } from "@/lib/dat
 import type { Arrear } from "@/lib/data/types";
 import { waLink } from "@/lib/whatsapp";
 import { Avatar } from "./bits";
-import { fmt, monthsWord, remindedLabel } from "./derive";
+import { fmt, remindedLabel, unpaidSince } from "./derive";
 import { I } from "./icons";
 import { Num, useNow } from "./num";
 
@@ -83,8 +83,7 @@ export function LateList({
               </p>
               <p className="bq-ml-walk-t">{cur.fullName}</p>
               <p className="bq-row-s">
-                متأخر {monthsWord(cur.monthsCount)} · عليه حتى الآن <Num>{fmt(cur.amountOwed)}</Num>{" "}
-                أوقية
+                {unpaidSince(cur.months)} · عليه حتى الآن <Num>{fmt(cur.amountOwed)}</Num> أوقية
               </p>
               <div className="bq-ml-walk-btns">
                 <button
@@ -142,8 +141,7 @@ export function LateList({
                     <span className="bq-row-m">
                       <span className="bq-row-t">{a.fullName}</span>
                       <span className="bq-row-s">
-                        متأخر {monthsWord(a.monthsCount)} · عليه حتى الآن{" "}
-                        <Num>{fmt(a.amountOwed)}</Num> أوقية
+                        {unpaidSince(a.months)} · عليه حتى الآن <Num>{fmt(a.amountOwed)}</Num> أوقية
                       </span>
                       <span className={`bq-row-s ${sent[a.memberId] ? "is-ok" : ""}`}>
                         {a.phone

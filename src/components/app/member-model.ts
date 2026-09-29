@@ -1,14 +1,28 @@
 // Member link, pure: the «أنت» card's words and the «دفعاتي» sections. Unit tested.
 import { monthStates } from "@/lib/data/month-code";
-import { fmt, monthCount, monthsInWords, MONTHS } from "./derive";
+import { fmt, monthsInWords, MONTHS, statusLabel } from "./derive";
 import type { MemberHistoryItem, MemberSession } from "@/lib/data/member-types";
 
-/** «أنت منتظم» or «عليك 3 أشهر · 3 000 أوقية» (plus «معفى من الرسوم» for exempt members). */
-export function youStatus(s: Pick<MemberSession, "status" | "monthsBehind" | "amountOwed">) {
+/** The member's own status phrase (P1), in the second person: «دفعت حتى يوليو». */
+export function youPhrase(code: string) {
+  return statusLabel({ status: "active", monthsBehind: 1, monthsPaidThisYear: 0, months: code })
+    .replace(/^دفع /, "دفعت ")
+    .replace(/^لم يدفع/, "لم تدفع");
+}
+
+/**
+ * «أنت منتظم» or «دفعت حتى يوليو · عليك 1 500 أوقية» (plus «معفى من الرسوم» for exempt
+ * members). No month counts (UX-PATTERNS P1); the amount is the member's own.
+ */
+export function youStatus(
+  s: Pick<MemberSession, "status" | "monthsBehind" | "amountOwed">,
+  code = "",
+) {
   if (s.status === "exempt") return { late: false, text: "أنت معفى من الرسوم الشهرية" };
   if (s.monthsBehind <= 0) return { late: false, text: "أنت منتظم" };
-  const owed = s.amountOwed > 0 ? ` · ${fmt(s.amountOwed)} أوقية` : "";
-  return { late: true, text: `عليك ${monthCount(s.monthsBehind)}${owed}` };
+  const owed = s.amountOwed > 0 ? `عليك ${fmt(s.amountOwed)} أوقية` : "";
+  const phrase = code ? youPhrase(code) : "";
+  return { late: true, text: [phrase, owed].filter(Boolean).join(" · ") || "عليك رسوم" };
 }
 
 /**
@@ -27,7 +41,7 @@ export function youCard(
   // late but proof already sent (audit M1): say it arrived, no second big «ادفع الآن»
   if (s.monthsBehind > 0 && waiting > 0)
     return { kind: "pending", text: "أرسلت صورة التحويل. تنتظر تأكيد اللجنة." };
-  if (s.monthsBehind > 0) return { kind: "late", text: youStatus(s).text };
+  if (s.monthsBehind > 0) return { kind: "late", text: youStatus(s, code).text };
   const dots = youDots(code);
   const owed = dots.filter((d) => d.state !== "off");
   if (owed.length && owed.every((d) => d.state === "paid"))

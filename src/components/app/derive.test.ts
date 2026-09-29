@@ -30,6 +30,7 @@ import {
   remindedLabel,
   searchMembers,
   statusLabel,
+  unpaidSince,
 } from "./derive";
 
 const m = (p: Partial<MemberStatus>): MemberStatus => ({
@@ -92,12 +93,35 @@ describe("member state", () => {
   it("derives state and a calm label", () => {
     expect(memberState(m({ monthsPaidThisYear: 12 }))).toBe("ahead");
     expect(statusLabel(m({ monthsPaidThisYear: 12 }))).toBe("دفع السنة كاملة");
-    expect(statusLabel(m({}), 9)).toBe("منتظم");
-    expect(statusLabel(m({ monthsPaidThisYear: 11 }), 9)).toBe("مدفوع مقدَّمًا حتى نوفمبر");
-    expect(statusLabel(m({ monthsBehind: 2, monthsPaidThisYear: 7 }))).toBe("متأخر شهرين");
+    // without the month code: paid from January
+    expect(statusLabel(m({}))).toBe("دفع حتى سبتمبر");
+    expect(statusLabel(m({ monthsBehind: 2, monthsPaidThisYear: 7 }))).toBe("دفع حتى يوليو");
     expect(statusLabel(m({ monthsBehind: 9, monthsPaidThisYear: 0 }))).toBe("لم يدفع هذا العام");
+    expect(statusLabel(m({ monthsPaidThisYear: 0 }))).toBe("منتظم");
     expect(memberState(m({ status: "exempt" }))).toBe("off");
     expect(statusLabel(m({ status: "exempt" }))).toBe("معفى");
+  });
+  it("«دفع حتى <شهر>» from the month code (UX-PATTERNS P1): no counting words", () => {
+    const c = (months: string, p: Partial<MemberStatus & { pastLate: string[] }> = {}) =>
+      statusLabel({ ...m(p), months });
+    expect(c("PPPPPPPLLUUU")).toBe("دفع حتى يوليو");
+    expect(c("PPPPPPPPPPPU")).toBe("دفع حتى نوفمبر");
+    expect(c("PPPPPPPPPPPP")).toBe("دفع السنة كاملة");
+    expect(c("NNNNPPPPPPPP")).toBe("دفع السنة كاملة"); // joined in May, all paid
+    expect(c("NNNNPPLLLUUU")).toBe("دفع حتى يونيو"); // joined in May
+    expect(c("LLLLLLLLLUUU")).toBe("لم يدفع هذا العام");
+    expect(c("LLPPPPPPPUUU")).toBe("لم يدفع رسوم يناير"); // a gap, then later months
+    expect(c("UUUUUUUUUUUU")).toBe("منتظم"); // nothing due yet
+    expect(statusLabel({ ...m({}), months: "PPPPPPPLLUUU" }, 2026)).toBe("دفع حتى يوليو 2026");
+    expect(c("PPPPPPPPPUUU", { pastLate: ["2025-11", "2025-12"] })).toBe(
+      "لم يدفع رسوم نوفمبر 2025",
+    );
+    for (const code of ["PPPPPPPLLUUU", "LLLLLLLLLUUU", "LLPPPPPPPUUU"])
+      expect(c(code)).not.toMatch(/متأخر|من \d|\d+ أشهر/);
+  });
+  it("unpaidSince: the oldest late month", () => {
+    expect(unpaidSince(["2025-11", "2026-01"])).toBe("لم يدفع منذ نوفمبر 2025");
+    expect(unpaidSince([])).toBe("");
   });
   it("maps groups", () => {
     expect(groupLabel("A")).toBe("أ");
