@@ -145,13 +145,9 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberRow; ctx: MemberCtx; 
           <p className="bq-hint">
             المجموعة {groupLabel(m.groupCode)}
             {price ? (
-              <>
-                {" "}
-                ·{" "}
-                <span className="bq-nowrap">
-                  الرسوم الشهرية <Num>{fmt(price)}</Num> أوقية
-                </span>
-              </>
+              <span className="bq-mhead-fee">
+                الرسوم الشهرية <Num>{fmt(price)}</Num> أوقية
+              </span>
             ) : null}
           </p>
         </div>

@@ -282,7 +282,7 @@ export function MemberAdminBody({
         <>
           <MemberMonths m={{ ...m, months }} ctx={monthsCtx} />
           {m.status === "active" && m.monthsBehind > 0 && (
-            <p className="bq-hint">
+            <p className="bq-hint bq-small-top">
               عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num> أوقية
             </p>
           )}

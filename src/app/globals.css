@@ -455,8 +455,13 @@
   .bq-find {
     margin-block-start: 32px;
   }
+  /* clear of the compact balance bar that takes over from the hero */
+  .bq-mhead-fee {
+    display: block;
+    white-space: nowrap;
+  }
   .bq-find > h2 {
-    scroll-margin-block-start: calc(var(--safe-t) + 12px);
+    scroll-margin-block-start: calc(var(--safe-t) + 68px);
   }
   .bq-desk-only {
     display: none;
@@ -4928,7 +4933,7 @@
     font-weight: 600;
   }
   .bq-you {
-    scroll-margin-block-start: calc(var(--safe-t) + 12px);
+    scroll-margin-block-start: calc(var(--safe-t) + 68px);
   }
   .bq-you-key {
     display: flex;
