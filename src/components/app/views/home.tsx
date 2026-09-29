@@ -139,8 +139,8 @@ export function HomeView({
       {total > 0 && (
         <section className="bq-sec bq-rv" data-rv="home-count" aria-labelledby="bq-count-h">
           <h2 id="bq-count-h" className="bq-count">
-            <Num className="bq-count-n">{paidCount}</Num> من <Num>{total}</Num> {memberNoun(total)} دفعوا رسوم{" "}
-            {monthName}
+            <Num className="bq-count-n">{paidCount}</Num> من <Num>{total}</Num> {memberNoun(total)}{" "}
+            دفعوا رسوم {monthName}
           </h2>
           <Track f={paidCount / total} label={`${paidCount} دفعوا من ${total}`} />
           <p className="bq-track-k">

@@ -41,7 +41,7 @@ describe("youStatus", () => {
   it("says regular, late with count and amount, or exempt", () => {
     expect(youStatus({ status: "active", monthsBehind: 0, amountOwed: 0 })).toEqual({
       late: false,
-      text: "أنت منتظم",
+      text: "لا رسوم عليك الآن",
     });
     expect(
       youStatus({ status: "active", monthsBehind: 3, amountOwed: 3000 }, "PPPPPPLLLUUU").text,
@@ -64,7 +64,7 @@ describe("youCard", () => {
   });
   it("up to date: paid up to the last paid month", () => {
     expect(youCard(on, "PPPPPPPPPUUU", 2026)).toEqual({ kind: "upto", text: "دفعت حتى سبتمبر" });
-    expect(youCard(on, "UUUUUUUUUUUU", 2026).text).toBe("أنت منتظم");
+    expect(youCard(on, "UUUUUUUUUUUU", 2026).text).toBe("لا رسوم عليك الآن");
   });
   it("late and exempt", () => {
     const late = youCard({ ...on, monthsBehind: 3, amountOwed: 3000 }, "PPPPPPLLLUUU", 2026);

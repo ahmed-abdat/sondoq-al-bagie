@@ -44,7 +44,7 @@ export function MeView({
         <section className="bq-sec bq-sec-first">
           <div className="bq-empty">
             <span className="bq-disc">{I.lock(22)}</span>
-            <p className="bq-empty-t">هذه الصفحة لمن فتح رابطه الخاص</p>
+            <p className="bq-empty-t">افتح رابطك الخاص لترى دفعاتك</p>
             <p className="bq-hint">افتح رسالة اللجنة في واتساب، ثم اضغط الرابط.</p>
           </div>
           <MemberLinkPaste />
@@ -89,7 +89,7 @@ export function MeView({
         <Group id="bq-me-wait" title="بانتظار التأكيد" items={s.waiting} {...who} />
       )}
       {s.rejected.length > 0 && (
-        <Group id="bq-me-rej" title="لم تعتمدها اللجنة" items={s.rejected} {...who} />
+        <Group id="bq-me-rej" title="رفضتها اللجنة" items={s.rejected} {...who} />
       )}
       <Group
         id="bq-me-mine"
@@ -181,7 +181,7 @@ function HistoryRow({
         ))}
         {x.status === "rejected" && (
           <span className="bq-me-rej">
-            <span className="bq-kind">لم تعتمد اللجنة الصورة</span>
+            <span className="bq-kind">رفضتها اللجنة</span>
             {x.rejectReason ? `السبب: ${x.rejectReason}` : "صوّر الإيصال مرة ثانية."}
           </span>
         )}

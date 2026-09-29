@@ -33,7 +33,7 @@ import { SubHead } from "./views/committee";
 const STATE_WORD: Record<LinkState, string> = {
   none: "بلا رابط",
   made: "جُهّز الرابط",
-  using: "فتحه",
+  using: "فتح الرابط",
 };
 
 /** Open WhatsApp in this tab (a popup after an await is blocked on iOS Safari). */

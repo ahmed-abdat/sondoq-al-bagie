@@ -121,8 +121,9 @@ export function HandoverView({
           </p>
         )}
         <p className="bq-lead">
-          عند انتهاء دورة اللجنة، تعدّ اللجنة الحالية المال الموجود وتسلّمه للجنة الجديدة. يقبله
-          مسؤول آخر، فتبدأ الدورة {termNumber + 1}.
+          عند نهاية الدورة، عدّوا المال وسلّموه للجنة الجديدة. يقبله مسؤول آخر.
+          <br />
+          بعدها تبدأ الدورة {termNumber + 1}.
         </p>
         <ol className="bq-steps bq-small-top">
           {[
@@ -464,7 +465,7 @@ function Draft({
       </section>
 
       <section className="bq-sec" aria-labelledby="ho-5">
-        <h2 id="ho-5">5. إرسال للتسليم</h2>
+        <h2 id="ho-5">5. أرسل المحضر للجنة الجديدة</h2>
         <p className="bq-lead">
           بعد الإرسال لا يمكن التعديل. يقبله مسؤول آخر فتبدأ الدورة الجديدة.
         </p>
@@ -484,7 +485,7 @@ function Draft({
                 await run(() => act.submitHandover({ id: h.id }));
             }}
           >
-            {busy ? "جارٍ الإرسال…" : "إرسال للتسليم"}
+            {busy ? "جارٍ الإرسال…" : "أرسل المحضر للجنة الجديدة"}
           </button>
           <button
             type="button"

@@ -9,7 +9,7 @@ export type LoginState = { error?: string };
 /** Committee sign-in with an email OR a phone number (same mapping as account creation). */
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const supabase = await createClient();
-  if (!supabase) return { error: "الخادم غير مهيأ بعد (إعدادات Supabase)." };
+  if (!supabase) return { error: "التطبيق غير جاهز الآن. تواصل مع المسؤول." };
 
   // Text copied from a WhatsApp message carries invisible direction marks (LRI/PDI, LRM…) and
   // stray spaces around the login or password; they are never part of either, so drop them.

@@ -57,7 +57,7 @@ describe("errors", () => {
     expect(paid.code).toBe("month_already_paid");
     expect(paid.message).toBe("شهر يوليو 2026 لـ محمد (\u2066A-12\u2069) مدفوع من قبل.");
     expect(messageFor("month_not_owed", d({ name: "محمد", ym: "2026-01" }))).toBe(
-      "شهر يناير 2026 غير مستحق على محمد: قبل انضمامه، أو وهو معفى أو غادر.",
+      "شهر يناير 2026 غير مستحق على محمد: قبل انضمامه، أو بعد إعفائه أو مغادرته.",
     );
     expect(
       messageFor("wrong_month_amount", d({ name: "محمد", ym: "2026-03", price: 1000 })),

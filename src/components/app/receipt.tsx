@@ -254,7 +254,7 @@ function ShotMock({ large }: { large?: boolean }) {
  * Committee only: the transfer screenshot (signed URL, 5 min). Tap opens it full screen like a
  * WhatsApp photo (UX-PATTERNS P8); the phone's Back closes it (one history entry). `wide`: a
  * large thumbnail cropped to the top, so the amount reads without opening. `actions` (the slip's
- * «تأكيد الاستلام» / «رفض») show under the full-screen picture and close it when used.
+ * «أكّد الاستلام» / «رفض») show under the full-screen picture and close it when used.
  */
 export function Proof({
   path,
@@ -267,7 +267,7 @@ export function Proof({
   method?: ReceiptView["method"];
   wide?: boolean;
   actions?: ReactNode;
-  /** the picture could not be loaded (the slip then blocks «تأكيد الاستلام») */
+  /** the picture could not be loaded (the slip then blocks «أكّد الاستلام») */
   onFail?: (failed: true) => void;
 }) {
   const dlg = useRef<HTMLDialogElement>(null);
@@ -664,7 +664,9 @@ export function Receipt({
                   <Num>{r.code}</Num>
                 </p>
                 <p className="rc-foot-n">
-                  {pub ? "أعطِ هذا الرمز للجنة إن سُئلت عن دفعتك" : "امسح الرمز للتحقق من الوصل"}
+                  {pub
+                    ? "أعطِ هذا الرمز للجنة إن سُئلت عن دفعتك"
+                    : "وجّه كاميرا الهاتف إلى الرمز للتحقق"}
                 </p>
               </div>
               {!pub && (

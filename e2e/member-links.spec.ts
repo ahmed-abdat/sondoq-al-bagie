@@ -37,13 +37,16 @@ test("send in order: WhatsApp opens with the link, the walk advances, the row sh
   await expect(page.getByRole("button", { name: "أرسل للجميع بالترتيب" })).toBeVisible();
   await page.getByRole("button", { name: /المجموعة أ/ }).click();
   await expect(page.getByRole("button", { name: "أرسل للمجموعة أ بالترتيب" })).toBeVisible();
-  await page.getByRole("button", { name: /^الكل$/ }).first().click();
+  await page
+    .getByRole("button", { name: /^الكل$/ })
+    .first()
+    .click();
   await page.getByRole("button", { name: /^الكل \d+$/ }).click();
   // fixtures: some links made, one used, some members without a phone; words, not ✓ (audit C6);
   // never «أُرسل»: WhatsApp delivery is unknown (audit B10)
   await expect(page.locator(".bq-ml-tick", { hasText: "جُهّز الرابط" }).first()).toBeVisible();
   await expect(page.locator(".bq-ml-tick", { hasText: "أُرسل" })).toHaveCount(0);
-  await expect(page.locator(".bq-ml-tick", { hasText: "فتحه" }).first()).toBeVisible();
+  await expect(page.locator(".bq-ml-tick", { hasText: "فتح الرابط" }).first()).toBeVisible();
   await expect(page.locator(".bq-ml-legend")).toHaveCount(0);
   await expect(page.getByText("بلا رقم هاتف").first()).toBeVisible();
 

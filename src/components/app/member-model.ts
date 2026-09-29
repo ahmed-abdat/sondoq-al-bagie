@@ -11,15 +11,15 @@ export function youPhrase(code: string) {
 }
 
 /**
- * «أنت منتظم» or «دفعت حتى يوليو · عليك 1 500 أوقية» (plus «معفى من الرسوم» for exempt
+ * «لا رسوم عليك الآن» or «دفعت حتى يوليو · عليك 1 500 أوقية» (plus «معفى من الرسوم» for exempt
  * members). No month counts (UX-PATTERNS P1); the amount is the member's own.
  */
 export function youStatus(
   s: Pick<MemberSession, "status" | "monthsBehind" | "amountOwed">,
   code = "",
 ) {
-  if (s.status === "exempt") return { late: false, text: "أنت معفى من الرسوم الشهرية" };
-  if (s.monthsBehind <= 0) return { late: false, text: "أنت منتظم" };
+  if (s.status === "exempt") return { late: false, text: "إعفاء من الرسوم الشهرية" };
+  if (s.monthsBehind <= 0) return { late: false, text: "لا رسوم عليك الآن" };
   const owed = s.amountOwed > 0 ? `عليك ${fmt(s.amountOwed)} أوقية` : "";
   const phrase = code ? youPhrase(code) : "";
   return { late: true, text: [phrase, owed].filter(Boolean).join(" · ") || "عليك رسوم" };
@@ -37,7 +37,7 @@ export function youCard(
   /** payments sent from this link, waiting for the committee */
   waiting = 0,
 ): { kind: YouKind; text: string } {
-  if (s.status === "exempt") return { kind: "exempt", text: "أنت معفى من الرسوم الشهرية" };
+  if (s.status === "exempt") return { kind: "exempt", text: "إعفاء من الرسوم الشهرية" };
   // late but proof already sent (audit M1): say it arrived, no second big «ادفع الآن»
   if (s.monthsBehind > 0 && waiting > 0)
     return { kind: "pending", text: "وصلتنا الصورة. اللجنة تراجعها. لم تُسجّل الدفعة بعد." };
@@ -47,7 +47,7 @@ export function youCard(
   if (owed.length && owed.every((d) => d.state === "paid"))
     return { kind: "full", text: `دفعت رسوم ${year} كاملة` };
   const last = [...dots].reverse().find((d) => d.state === "paid");
-  return { kind: "upto", text: last ? `دفعت حتى ${last.name}` : "أنت منتظم" };
+  return { kind: "upto", text: last ? `دفعت حتى ${last.name}` : "لا رسوم عليك الآن" };
 }
 
 export type Dot = { month: number; name: string; state: "paid" | "late" | "upcoming" | "off" };

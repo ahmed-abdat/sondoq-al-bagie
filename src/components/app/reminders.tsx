@@ -160,7 +160,7 @@ export function LateList({
             )
           )}
           <p className="bq-hint bq-list-count">
-            الأكثر تأخرًا أولًا. التذكير يصل للعضو وحده مع أشهره ومبلغه.
+            الأكثر تأخرًا أولًا. افتح رسالة كل عضو في واتساب وأرسلها له.
           </p>
           <ul className="bq-list">
             {arrears.map((a) => {
