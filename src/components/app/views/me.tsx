@@ -80,7 +80,7 @@ export function MeView({
       <section className="bq-sec" aria-labelledby="bq-me-dev">
         <h2 id="bq-me-dev">هذا الجهاز</h2>
         <MemberPushToggle />
-        <SignOut />
+        <SignOut name={home.s.fullName} others={home.profiles.length - 1} />
       </section>
     </>
   );
@@ -174,7 +174,7 @@ function HistoryRow({ x, me, myName }: { x: MemberHistoryItem; me: string; myNam
 }
 
 /** «خروج من هذا الجهاز»: this browser forgets the link (the link itself keeps working). */
-function SignOut() {
+function SignOut({ name, others }: { name: string; others: number }) {
   const router = useRouter();
   const online = useOnline();
   const { memberSignOut } = useMemberAct();
@@ -188,13 +188,15 @@ function SignOut() {
         className="bq-btn bq-btn-tonal bq-press bq-small-top"
         onClick={() => setAsk(true)}
       >
-        {I.out(20)} خروج من هذا الجهاز
+        {I.out(20)} إزالة {name} من هذا الهاتف
       </button>
     );
   return (
     <div className="bq-rej bq-small-top">
       <p className="bq-lead">
-        لن يعرفك هذا الجهاز بعد الخروج. تبقى رسالة اللجنة التي فيها رابطك، وتستطيع فتحه من جديد.
+        لن يظهر {name} على هذا الهاتف بعد الآن.
+        {others > 0 ? " يبقى الآخرون كما هم." : ""} تبقى رسالة اللجنة التي فيها الرابط، ويمكن فتحه
+        من جديد.
       </p>
       {err && (
         <p className="bq-alert" role="alert">
@@ -218,7 +220,7 @@ function SignOut() {
             router.refresh();
           }}
         >
-          {busy ? "جارٍ الخروج…" : "نعم، اخرج"}
+          {busy ? "جارٍ الإزالة…" : "نعم، أزِله"}
         </button>
         <button
           type="button"

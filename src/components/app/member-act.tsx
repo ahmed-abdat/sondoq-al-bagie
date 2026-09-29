@@ -7,11 +7,19 @@ import { useSyncExternalStore } from "react";
 import { reportActionError } from "@/components/providers";
 import type { ActionResult, PendingPayment } from "@/lib/data/types";
 import { knownMember, pushDemoPending, useIsDemo } from "./act";
-import * as real from "@/lib/data/member-actions";
+import * as memberActions from "@/lib/data/member-actions";
+// TODO(lane-a): memberSwitch / memberAcceptPending / memberDeclinePending from member-actions
+import * as profileActions from "./lane-a-profiles-actions";
 import type { MemberHistoryItem, MemberSession } from "./member-types";
-import { demoMemberSignOut } from "./member-view-action";
+import {
+  demoMemberAccept,
+  demoMemberDecline,
+  demoMemberSignOut,
+  demoMemberSwitch,
+} from "./member-view-action";
 import { safeAct } from "./safe-act";
 
+const real = { ...memberActions, ...profileActions };
 type Actions = typeof real;
 
 /* ───────────── demo store ───────────── */
@@ -135,6 +143,17 @@ const demo: Actions = {
     update(() => EMPTY);
     return demoMemberSignOut();
   },
+  // this phone's profiles (cookies, so the server pages follow)
+  // (a demo submission belongs to the person who sent it: the list starts again)
+  async memberSwitch(p) {
+    update(() => EMPTY);
+    return demoMemberSwitch(p);
+  },
+  async memberAcceptPending() {
+    update(() => EMPTY);
+    return demoMemberAccept();
+  },
+  memberDeclinePending: () => demoMemberDecline(),
   // Lane B's push toggle (demo: nothing is stored)
   memberSavePush: async () => ok(undefined),
   memberDeletePush: async () => ok(undefined),

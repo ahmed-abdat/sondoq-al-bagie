@@ -4925,3 +4925,27 @@
   }
 }
 /* ───── end Lane C member link ───── */
+@layer components {
+  /* «تبديل:» other people on this phone (up to 5 profiles) */
+  .bq-you-sw {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .bq-you-sw .bq-chip {
+    background: var(--paper);
+  }
+  /* /m/switch: two people, one choice */
+  .bq-switch-who {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .bq-switch-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+}

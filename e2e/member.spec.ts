@@ -54,16 +54,49 @@ test("demo link → «أنت» card → «أرسلت دفعة» → pending, on 
   await expect(page.getByText(/أرسلها العضو .* عبر رابطه/)).toBeVisible();
 });
 
-test("«خروج من هذا الجهاز» forgets the link here", async ({ page }) => {
+test("«إزالة … من هذا الهاتف» forgets the link here", async ({ page }) => {
   await page.goto("/m/demo");
   await expect(page.locator("section.bq-you")).toBeVisible();
   await page.goto("/me");
-  await page.getByRole("button", { name: /خروج من هذا الجهاز/ }).click();
-  await page.getByRole("button", { name: "نعم، اخرج" }).click();
+  await page.getByRole("button", { name: /إزالة سيدي ولد الشيخ من هذا الهاتف/ }).click();
+  await page.getByRole("button", { name: "نعم، أزِله" }).click();
   await page.waitForURL((u) => u.pathname === "/");
   await expect(page.locator("section.bq-you")).toHaveCount(0);
   await page.goto("/me");
   await expect(page.getByText("هذه الصفحة لمن فتح رابطه الخاص")).toBeVisible();
+});
+
+test("a second person's link on the same phone: ask, add, switch, remove one", async ({ page }) => {
+  await page.goto("/m/demo");
+  const card = page.locator("section.bq-you");
+  await expect(card).toContainText("سيدي ولد الشيخ");
+
+  // «ابقَ باسم …» keeps the phone as it was
+  await page.goto("/m/demo2");
+  await expect(page).toHaveURL(/\/m\/switch$/);
+  await expect(page.getByText("هذا الهاتف مفتوح باسم سيدي ولد الشيخ (أ 3).")).toBeVisible();
+  await expect(page.getByText("هذا رابط الحسن ولد عبد الله (ب 6).")).toBeVisible();
+  await expect(page.getByText("لا يضيع شيء: بيانات كل شخص محفوظة عند اللجنة.")).toBeVisible();
+  await page.getByRole("button", { name: "ابقَ باسم سيدي ولد الشيخ" }).click();
+  await page.waitForURL((u) => u.pathname === "/");
+  await expect(card).toContainText("سيدي ولد الشيخ");
+  await expect(card.locator(".bq-you-sw")).toHaveCount(0);
+
+  // «أضف … وانتقل إليه»: both on the phone, the new one active
+  await page.goto("/m/demo2");
+  await page.getByRole("button", { name: "أضف الحسن ولد عبد الله وانتقل إليه" }).click();
+  await page.waitForURL((u) => u.pathname === "/");
+  await expect(card.getByRole("heading", { name: "الحسن ولد عبد الله" })).toBeVisible();
+  await card.getByRole("button", { name: "انتقل إلى سيدي ولد الشيخ" }).click();
+  await expect(card.getByRole("heading", { name: "سيدي ولد الشيخ" })).toBeVisible();
+
+  // removing the active person keeps the other
+  await page.goto("/me");
+  await page.getByRole("button", { name: /إزالة سيدي ولد الشيخ من هذا الهاتف/ }).click();
+  await page.getByRole("button", { name: "نعم، أزِله" }).click();
+  await page.waitForURL((u) => u.pathname === "/");
+  await expect(card.getByRole("heading", { name: "الحسن ولد عبد الله" })).toBeVisible();
+  await expect(card.locator(".bq-you-sw")).toHaveCount(0);
 });
 
 test("committee creates a member link, shown once with the WhatsApp text", async ({ page }) => {

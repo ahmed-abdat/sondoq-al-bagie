@@ -3,13 +3,14 @@
 // as dots, credit, waiting submissions) and its two sheets: «أرسلت دفعة» (the committee record
 // flow in member mode) and «ادفع الآن» (the fund's wallets and the amount due).
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MemberLinkPaste } from "@/components/providers";
 import { useIsDemo } from "./act";
 import { Avatar, MemberNo } from "./bits";
 import { fmt, groupLabel } from "./derive";
 import { I } from "./icons";
-import { rememberDemoMember, useMemberDemo } from "./member-act";
+import { rememberDemoMember, useMemberAct, useMemberDemo } from "./member-act";
 import { DOT_WORD, waitingLine, youDots, youStatus } from "./member-model";
 import {
   memberHome,
@@ -22,24 +23,20 @@ import { PayTo } from "./pay-to";
 import { RecordBody } from "./record";
 import { Sheet } from "./sheet";
 import { useSnack } from "./shell";
+import { cardCache, forgetMemberCard } from "./member-card-cache";
 
-// the last answer, so moving between tabs does not flash the card away while it refreshes
-let last: MemberHome | null | undefined;
-/** After «خروج من هذا الجهاز»: forget the card. */
-export function forgetMemberCard() {
-  last = null;
-}
+export { forgetMemberCard };
 
 /** Fetch the member's card data (null = no valid link here). `initial` comes from a dynamic page. */
 function useMemberHome(initial?: MemberHome | null) {
-  const [d, setD] = useState<MemberHome | null | undefined>(initial ?? last);
+  const [d, setD] = useState<MemberHome | null | undefined>(initial ?? cardCache.last);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     if (initial !== undefined && tick === 0) return;
     let live = true;
     memberHome()
       .then((v) => {
-        last = v;
+        cardCache.last = v;
         if (live) setD(v);
       })
       .catch(() => {}); // offline: keep what we had
@@ -67,6 +64,19 @@ export function MemberCard({
   const say = useSnack();
   const [sheet, setSheet] = useState<SheetKind | null>(null);
   const [data, setData] = useState<MemberSheetData | null | undefined>();
+  const router = useRouter();
+  const { memberSwitch } = useMemberAct();
+  const [switching, setSwitching] = useState<string | null>(null);
+  const switchTo = async (linkId: string, name: string) => {
+    setSwitching(linkId);
+    const r = await memberSwitch({ linkId });
+    setSwitching(null);
+    if (!r.ok) return say(r.message);
+    setData(undefined); // «دفعت لهم سابقًا» belongs to the other person
+    refresh();
+    router.refresh();
+    say(`هذا الهاتف الآن باسم ${name}`);
+  };
   useEffect(() => {
     if (isDemo && d) rememberDemoMember(d.s);
   }, [isDemo, d]);
@@ -100,6 +110,26 @@ export function MemberCard({
           </p>
         </div>
       </div>
+      {d.profiles.length > 1 && (
+        <div className="bq-you-sw" role="group" aria-label="أشخاص آخرون على هذا الهاتف">
+          <span className="bq-hint">تبديل:</span>
+          {d.profiles
+            .filter((p) => !p.active && p.memberId !== s.memberId)
+            .map((p) => (
+              <button
+                key={p.linkId}
+                type="button"
+                className="bq-chip bq-press"
+                disabled={!!switching}
+                aria-label={`انتقل إلى ${p.fullName}`}
+                onClick={() => void switchTo(p.linkId, p.fullName)}
+              >
+                {switching === p.linkId && <span className="bq-spin" aria-hidden="true" />}
+                {p.fullName}
+              </button>
+            ))}
+        </div>
+      )}
       <p className={`bq-you-st ${st.late ? "is-late" : "is-ok"}`}>
         {st.late ? I.clock(20) : I.check(20)}
         <span>{st.text}</span>

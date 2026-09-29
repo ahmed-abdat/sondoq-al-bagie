@@ -5,8 +5,16 @@
 import { cookies } from "next/headers";
 import type { CampaignProgress, FundAccount, MemberRow } from "@/lib/data/types";
 import type { MemberCtx } from "./member";
-import { DEMO_MEMBER_TOKEN, MEMBER_COOKIE, MEMBER_MARKER_COOKIE } from "./member-types";
-import type { MemberSession } from "./member-types";
+import { writeDemoPhone } from "./demo-link";
+import {
+  acceptPending,
+  declinePending,
+  MAX_PROFILES,
+  removeActive,
+  switchTo,
+  type DemoPhone,
+} from "./demo-member";
+import type { MemberProfile, MemberSession } from "./member-types";
 import { memberCtx } from "./page-data";
 import * as src from "./source";
 
@@ -18,16 +26,19 @@ export type MemberHome = {
   dueMonth: number;
   /** my submissions still waiting for the committee */
   waiting: number;
+  /** every member profile on this phone (the switcher shows when there is more than one) */
+  profiles: MemberProfile[];
 };
 
 /** The «أنت» card: null when there is no (valid) member link in this browser. */
 export async function memberHome(): Promise<MemberHome | null> {
   const s = await src.memberSession();
   if (!s) return null;
-  const [rows, ctx, history] = await Promise.all([
+  const [rows, ctx, history, profiles] = await Promise.all([
     src.memberRows(),
     memberCtx(),
     src.memberHistory(),
+    src.memberProfiles(),
   ]);
   const row = rows.find((r) => r.memberId === s.memberId);
   return {
@@ -36,6 +47,7 @@ export async function memberHome(): Promise<MemberHome | null> {
     year: ctx.year,
     dueMonth: ctx.dueMonth,
     waiting: history.filter((h) => h.status === "pending" && h.sentByMe).length,
+    profiles,
   };
 }
 
@@ -68,12 +80,33 @@ export async function memberSheetData(): Promise<MemberSheetData | null> {
   };
 }
 
-/** Demo only: «خروج من هذا الجهاز» clears the demo link's cookies. */
-export async function demoMemberSignOut(): Promise<{ ok: true; data: undefined }> {
-  const jar = await cookies();
-  if (src.demoMode && jar.get(MEMBER_COOKIE)?.value === DEMO_MEMBER_TOKEN) {
-    jar.delete(MEMBER_COOKIE);
-    jar.delete(MEMBER_MARKER_COOKIE);
-  }
-  return { ok: true, data: undefined };
+/* ───────────── demo only: this phone's member profiles live in cookies ───────────── */
+type Done = { ok: true; data: undefined } | { ok: false; code: string; message: string };
+const done: Done = { ok: true, data: undefined };
+async function withDemoPhone(f: (p: DemoPhone) => DemoPhone | null): Promise<Done> {
+  const p = await src.demoPhone();
+  if (!p) return done;
+  const next = f(p);
+  if (!next)
+    return {
+      ok: false,
+      code: "member_profiles_full",
+      message: `هذا الهاتف فيه ${MAX_PROFILES} أشخاص. أزِل أحدهم أولًا.`,
+    };
+  writeDemoPhone(await cookies(), next);
+  return done;
+}
+/** «إزالة … من هذا الهاتف»: only the active profile goes. */
+export async function demoMemberSignOut(): Promise<Done> {
+  return withDemoPhone(removeActive);
+}
+export async function demoMemberSwitch({ linkId }: { linkId: string }): Promise<Done> {
+  const t = src.demoTokenOf(linkId);
+  return withDemoPhone((p) => (t ? switchTo(p, t) : p));
+}
+export async function demoMemberAccept(): Promise<Done> {
+  return withDemoPhone(acceptPending);
+}
+export async function demoMemberDecline(): Promise<Done> {
+  return withDemoPhone(declinePending);
 }

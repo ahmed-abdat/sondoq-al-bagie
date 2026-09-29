@@ -14,13 +14,16 @@ import { toLedger } from "./ledger";
 import { assembleReport } from "@/lib/data/report";
 import type { LedgerEntry, MyProfile } from "./types";
 import * as memberData from "@/lib/data/member";
+import * as profileData from "./lane-a-profiles";
+import { readDemoPhone, type DemoPhone } from "./demo-member";
 import {
-  DEMO_MEMBER_TOKEN,
   MEMBER_COOKIE,
   type Beneficiary,
   type MemberHistoryItem,
   type MemberLinkInfo,
+  type MemberProfile,
   type MemberSession,
+  type PendingMemberLink,
 } from "./member-types";
 
 export const usingFixtures = process.env.SONDOQ_FIXTURES === "1";
@@ -214,25 +217,59 @@ export const handovers = () => pick(fx.fxHandovers, () => data.getHandovers());
 export const expensesAdmin = () => pick(fx.fxExpensesAdmin, () => data.getExpensesAdmin());
 
 /* ───────────── member link (docs/MEMBER-ACCESS.md; dynamic pages and actions only) ───────────── */
-/** Demo: the cookie `/m/demo` sets. Never true outside demo mode. */
-async function demoMember() {
-  return demoMode && (await cookies()).get(MEMBER_COOKIE)?.value === DEMO_MEMBER_TOKEN;
+/** Demo: the profiles `/m/demo` and `/m/demo2` put on this phone (cookies). Null outside demo. */
+export async function demoPhone(): Promise<DemoPhone | null> {
+  if (!demoMode) return null;
+  const jar = await cookies();
+  return readDemoPhone((n) => jar.get(n)?.value, MEMBER_COOKIE);
+}
+async function demoActive() {
+  return (await demoPhone())?.active ?? null;
 }
 /** The member whose personal link opened this browser, or null. Reads the cookie (dynamic). */
 export async function memberSession(): Promise<MemberSession | null> {
-  if (usingFixtures) return (await demoMember()) ? fx.fxMemberSession() : null;
+  if (usingFixtures) {
+    const t = await demoActive();
+    return t ? fx.fxMemberSession(t) : null;
+  }
   return memberData.memberSession();
 }
 /** Their payments, the ones they sent for others and their submissions (newest first). */
 export async function memberHistory(): Promise<MemberHistoryItem[]> {
-  if (usingFixtures) return (await demoMember()) ? fx.fxMemberHistory() : [];
+  if (usingFixtures) {
+    const t = await demoActive();
+    return t ? fx.fxMemberHistory(t) : [];
+  }
   return memberData.memberHistory();
 }
 /** «دفعت لهم سابقًا»: members covered by earlier payments sent through this link (not me). */
 export async function memberBeneficiaries(): Promise<Beneficiary[]> {
-  if (usingFixtures) return (await demoMember()) ? fx.fxMemberBeneficiaries() : [];
+  if (usingFixtures) {
+    const t = await demoActive();
+    return t ? fx.fxMemberBeneficiaries(t) : [];
+  }
   return memberData.memberRecentBeneficiaries();
 }
+/** Every member profile on this phone (up to 5), the active one flagged. */
+export async function memberProfiles(): Promise<MemberProfile[]> {
+  if (usingFixtures) {
+    const p = await demoPhone();
+    return p ? p.profiles.map((t) => fx.fxMemberProfile(t, t === p.active)) : [];
+  }
+  return profileData.memberProfiles();
+}
+/** A link for someone else opened here, waiting for a choice on /m/switch. */
+export async function memberPending(): Promise<PendingMemberLink | null> {
+  if (usingFixtures) {
+    const t = (await demoPhone())?.pending;
+    if (!t) return null;
+    const { memberId, memberRef, fullName } = fx.fxMemberSession(t);
+    return { memberId, memberRef, fullName };
+  }
+  return profileData.memberPending();
+}
+/** Demo: link id → demo token (the switcher sends link ids). */
+export const demoTokenOf = (linkId: string) => fx.fxDemoTokenOf(linkId);
 /** Committee: the active link of each member who has one. */
 export const memberLinks = (): Promise<Record<string, MemberLinkInfo>> =>
   pick(fx.fxMemberLinks, () => memberData.getMemberLinks());
