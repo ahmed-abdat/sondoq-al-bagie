@@ -3,20 +3,27 @@
 // cookie, hashes it and calls a server-only RPC with the secret key; without a valid link it
 // returns `member_link_invalid`. Members never confirm anything: submissions are pending until a
 // confirmer decides. Same result shape as the committee actions: { ok, data } | { ok: false, code, message }.
+import { cookies } from "next/headers";
 import { after } from "next/server";
 import { pendingPaymentPayload } from "@/lib/push/payload";
 import { notifyConfirmers } from "@/lib/push/send";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { codeOf, failure } from "./errors";
-import { hashMemberToken, liveProfiles, memberToken, verifyMemberToken } from "./member";
 import {
-  activate,
-  clearAll,
-  clearPending,
-  readPending,
-  readProfiles,
-  withoutProfile,
-} from "./member-cookies";
+  hashMemberToken,
+  isMemberToken,
+  liveProfiles,
+  memberToken,
+  verifyMemberToken,
+} from "./member";
+import {
+  acceptPending,
+  declinePending,
+  readJar,
+  removeProfile,
+  switchTo,
+  writeJar,
+} from "@/lib/member-cookies";
 import type { MemberSubmitInput, MemberSubmitResult } from "./member-types";
 import { PROOF_MAX_BYTES, proofPath, sha256Hex, sniffImage } from "./proof";
 import * as s from "./schemas";
@@ -151,7 +158,7 @@ export async function memberSavePush(input: s.PushSubscriptionInput): Promise<Ac
   if (!parsed.success) return failure("invalid_input");
   const admin = tryCreateAdminClient();
   if (!admin) return failure("not_configured");
-  const { saved } = await readProfiles();
+  const saved = readJar(await cookies()).saved.filter(isMemberToken);
   if (!saved.length) return failure("member_link_invalid");
   const { error } = await admin.rpc("member_save_push", {
     p_token_hashes: saved.map(hashMemberToken),
@@ -173,50 +180,54 @@ export async function memberDeletePush(input: { endpoint: string }): Promise<Act
   return error ? failure(codeOf(error)) : { ok: true, data: undefined };
 }
 
-/** «أنت» switcher: act as another profile saved on this device. */
+/** «أنت» switcher: act as another profile saved on this device (by its link id). */
 export async function memberSwitch(input: { linkId: string }): Promise<ActionResult> {
-  const { saved } = await readProfiles();
-  const live = await liveProfiles(saved);
-  const token = saved.find((t) => live.get(t)?.linkId === input?.linkId);
+  const store = await cookies();
+  const jar = readJar(store);
+  const live = await liveProfiles(jar.saved.filter(isMemberToken));
+  const token = jar.saved.find((t) => live.get(t)?.linkId === input?.linkId);
   if (!token) return failure("member_link_invalid");
-  await activate(token, saved);
+  writeJar(store, switchTo(jar, token));
   return { ok: true, data: undefined };
 }
 
-/** «أضف X وانتقل إليه»: save the pending link (cap 5, least recently used drops) and use it. */
-export async function memberAcceptPending(): Promise<ActionResult> {
-  const pending = await readPending();
-  if (!pending || !(await verifyMemberToken(pending))) {
-    await clearPending();
+/**
+ * «أضف X وانتقل إليه»: the pending link is saved and becomes active (with 5 saved, the least
+ * recently used one drops; `droppedName` says whose, for the page).
+ */
+export async function memberAcceptPending(): Promise<ActionResult<{ droppedName: string | null }>> {
+  const store = await cookies();
+  const jar = readJar(store);
+  if (!jar.pending || !(await verifyMemberToken(jar.pending))) {
+    writeJar(store, declinePending(jar));
     return failure("member_link_invalid");
   }
-  const { saved } = await readProfiles();
-  await activate(pending, saved);
-  await clearPending();
-  return { ok: true, data: undefined };
+  const { jar: next, dropped } = acceptPending(jar);
+  const droppedName = dropped
+    ? ((await liveProfiles([dropped])).get(dropped)?.fullName ?? null)
+    : null;
+  writeJar(store, next);
+  return { ok: true, data: { droppedName } };
 }
 
 /** «ابقَ بالاسم الحالي»: forget the pending link. */
 export async function memberDeclinePending(): Promise<ActionResult> {
-  await clearPending();
+  const store = await cookies();
+  writeJar(store, declinePending(readJar(store)));
   return { ok: true, data: undefined };
 }
 
 /**
  * «خروج من هذا الجهاز» for the ACTIVE profile only (and its push on this device, if given). The
- * next saved profile becomes active; with none left, every member cookie (and the flag) goes.
+ * next saved profile becomes active. `last`: nothing left on this phone (the UI then calls
+ * forgetMemberOnThisDevice).
  */
-export async function memberSignOut(input: { endpoint?: string } = {}): Promise<ActionResult> {
+export async function memberSignOut(
+  input: { endpoint?: string } = {},
+): Promise<ActionResult<{ last: boolean }>> {
   if (input?.endpoint) await memberDeletePush({ endpoint: input.endpoint });
-  const { active, saved } = await readProfiles();
-  const rest = active ? withoutProfile(saved, active) : saved;
-  const live = await liveProfiles(rest);
-  const next = rest.find((t) => live.has(t));
-  if (next)
-    await activate(
-      next,
-      rest.filter((t) => live.has(t)),
-    );
-  else await clearAll();
-  return { ok: true, data: undefined };
+  const store = await cookies();
+  const { jar, last } = removeProfile(readJar(store));
+  writeJar(store, jar);
+  return { ok: true, data: { last } };
 }

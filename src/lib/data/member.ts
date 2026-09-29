@@ -5,6 +5,7 @@ import "server-only";
 // per request, and member data must never land in the public cache or the offline store.
 import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
+import { readJar } from "@/lib/member-cookies";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -15,7 +16,7 @@ import type {
   MemberProfile,
   MemberSession,
 } from "./member-types";
-import { MEMBER_COOKIE, MEMBER_PENDING_COOKIE } from "./member-types";
+import { MEMBER_COOKIE } from "./member-types";
 import type { MembershipStatus, PaymentMethod, PaymentStatus } from "./types";
 
 /** base64url, 32 random bytes → 43 characters. Anything else is not one of our tokens. */
@@ -191,6 +192,19 @@ export async function liveProfiles(
 
 /** Another member's link opened on this device and waiting for the choice, or null. */
 export async function memberPending(): Promise<MemberSession | null> {
-  const t = (await cookies()).get(MEMBER_PENDING_COOKIE)?.value ?? "";
-  return isMemberToken(t) ? verifyMemberToken(t) : null;
+  const { pending } = readJar(await cookies());
+  return pending && isMemberToken(pending) ? verifyMemberToken(pending) : null;
+}
+
+/**
+ * The «أنت» switcher: this device's saved profiles (active first, then most recently used),
+ * invalid or revoked ones left out. One RPC for all of them.
+ */
+export async function memberProfiles(): Promise<MemberProfile[]> {
+  const { active, saved } = readJar(await cookies());
+  const live = await liveProfiles(saved.filter(isMemberToken));
+  return saved.flatMap((t) => {
+    const p = live.get(t);
+    return p ? [{ ...p, active: t === active }] : [];
+  });
 }

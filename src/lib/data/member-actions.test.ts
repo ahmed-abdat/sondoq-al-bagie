@@ -154,7 +154,7 @@ describe("member actions", () => {
     );
     expect(await a.memberSignOut({ endpoint: "https://push.test/1" })).toEqual({
       ok: true,
-      data: undefined,
+      data: { last: false },
     });
     expect(rpc).toHaveBeenCalledWith("member_delete_push", {
       p_token_hash: hashMemberToken(token),
@@ -169,7 +169,7 @@ describe("member actions", () => {
     jar.set("bq_member_saved", JSON.stringify([token]));
     jar.set("bq_member_on", "1");
     rpc.mockResolvedValue({ data: [], error: null });
-    await a.memberSignOut();
+    expect(await a.memberSignOut()).toEqual({ ok: true, data: { last: true } });
     expect([...jar.keys()]).toEqual([]);
   });
 
@@ -205,7 +205,7 @@ describe("member actions", () => {
     const other = "C".repeat(43);
     jar.set("bq_member_pending", other);
     rpc.mockResolvedValue({ data: { member_id: "m2", link_id: "l2" }, error: null });
-    expect(await a.memberAcceptPending()).toEqual({ ok: true, data: undefined });
+    expect(await a.memberAcceptPending()).toEqual({ ok: true, data: { droppedName: null } });
     expect(jar.get("bq_member")).toBe(other);
     expect(JSON.parse(jar.get("bq_member_saved")!)).toEqual([other, token]);
     expect(jar.has("bq_member_pending")).toBe(false);
@@ -213,6 +213,31 @@ describe("member actions", () => {
     await a.memberDeclinePending();
     expect(jar.has("bq_member_pending")).toBe(false);
     expect(jar.get("bq_member")).toBe(other);
+  });
+
+  it("a sixth profile drops the least recently used, and says whose", async () => {
+    const five = ["C", "D", "E", "F", "G"].map((c) => c.repeat(43));
+    jar.set("bq_member", five[0]);
+    jar.set("bq_member_saved", JSON.stringify(five));
+    jar.set("bq_member_pending", token);
+    rpc.mockImplementation(async (fn: string) =>
+      fn === "member_sessions"
+        ? {
+            data: [
+              {
+                token_hash: hashMemberToken(five[4]),
+                link_id: "lg",
+                member_id: "mg",
+                member_ref: "B-7",
+                full_name: "جدي",
+              },
+            ],
+            error: null,
+          }
+        : { data: { member_id: "m1", link_id: "l1" }, error: null },
+    );
+    expect(await a.memberAcceptPending()).toEqual({ ok: true, data: { droppedName: "جدي" } });
+    expect(JSON.parse(jar.get("bq_member_saved")!)).toEqual([token, ...five.slice(0, 4)]);
   });
 
   it("saves this device's push for every saved profile", async () => {
