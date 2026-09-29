@@ -44,7 +44,7 @@ it("paidLine / url / file name", () => {
   expect(reportUrl("https://x.app/")).toBe("https://x.app/report");
   expect(reportFileName(2026, 9)).toBe("ملخص-صندوق-الرابطة-2026-09.png");
   expect(reportFileBase("2026-09-28T10:25:00Z")).toBe("تقرير-صندوق-الرابطة-2026-09-28");
-  expect(reminderFileBase("2026-09-28T10:25:00Z")).toBe("تذكير-بالرسوم-2026-09");
+  expect(reminderFileBase("2026-09-28T10:25:00Z")).toBe("المتأخرات-2026-09");
 });
 
 describe("monthBars", () => {
@@ -242,11 +242,15 @@ describe("reportSummary (ReportData → card)", () => {
 });
 
 describe("reminderShareText", () => {
-  it("a gentle reminder with how to pay and the app link, no amounts", () => {
-    const t = reminderShareText("https://baqie.vercel.app/", "ادفع عبر: بنكيلي 22 12 34 56");
-    expect(t).toContain("*تذكير بالرسوم · صندوق الرابطة*");
-    expect(t).toContain("ادفع عبر: بنكيلي 22 12 34 56");
-    expect(t).toContain("https://baqie.vercel.app/");
-    expect(t).not.toMatch(/متأخر|أوقية/);
+  it("«المتأخرات» with the app link, no amounts and no payment numbers", () => {
+    const t = reminderShareText("https://baqie.vercel.app");
+    expect(t).toBe(
+      [
+        "*المتأخرات · صندوق الرابطة*",
+        "هذه الأسماء عليها متأخرات لم تُدفع بعد.",
+        "ابحث عن اسمك في التطبيق: https://baqie.vercel.app",
+      ].join("\n"),
+    );
+    expect(t).not.toMatch(/أوقية|ادفع عبر/);
   });
 });

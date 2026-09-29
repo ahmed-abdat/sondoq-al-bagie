@@ -4,7 +4,7 @@
 // committee or a member with their link (money privacy). Strangers see «•••».
 import Image from "next/image";
 import Link from "next/link";
-import type { FundAccount, ReportData, ReportShell } from "@/lib/data/types";
+import type { ReportData, ReportShell } from "@/lib/data/types";
 import { monthPaid, paidTotal } from "@/lib/report-check";
 import { PaidCheck } from "./bits";
 import { Collapsible } from "./collapsible";
@@ -31,14 +31,7 @@ const Num = ({ children }: { children: React.ReactNode }) => (
 );
 
 /** The fund's report, ready to print on A4 (or save as PDF); the committee shares it. */
-export function ReportView({
-  shell,
-  accounts = [],
-}: {
-  shell: ReportShell;
-  /** the fund's public wallets, for the committee's fee reminder */
-  accounts?: FundAccount[];
-}) {
+export function ReportView({ shell }: { shell: ReportShell }) {
   const r: ReportData | null | undefined = useReportMoney();
   const full = r ?? null;
   const { year } = shell;
@@ -119,7 +112,7 @@ export function ReportView({
         </div>
       </header>
 
-      <ReportShare data={full} accounts={accounts} />
+      <ReportShare data={full} />
 
       <section className="rp-sec" aria-label="الملخّص">
         <div className="rp-now">

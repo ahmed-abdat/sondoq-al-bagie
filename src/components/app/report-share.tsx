@@ -2,12 +2,10 @@
 // «مشاركة التقرير»: one button, one sheet, four big one-tap options. The images and the PDF are
 // rendered in the background as soon as the sheet opens (prepareReportShare), so the tap shares
 // at once and stays within the browser's "user activation" window.
-import { useEffect, useMemo, useState } from "react";
-import type { FundAccount, ReportData } from "@/lib/data/types";
-import { METHOD_LABELS } from "@/lib/methods";
+import { useEffect, useState } from "react";
+import type { ReportData } from "@/lib/data/types";
 import {
   hasReminder,
-  type PayAccount,
   prepareReminderShare,
   prepareReportShare,
   shareReminderImages,
@@ -38,13 +36,10 @@ const DONE: Record<Exclude<Result, "retry" | "manual">, string> = {
  */
 export function ReportShare({
   data,
-  accounts = [],
   autoOpen = false,
 }: {
   /** the full report (with money): null until it arrives, and always null for strangers */
   data: ReportData | null;
-  /** the fund's public wallets, for «ادفع عبر: …» in the fee reminder */
-  accounts?: FundAccount[];
   autoOpen?: boolean;
 }) {
   const committee = useCommitteeViewer();
@@ -54,7 +49,7 @@ export function ReportShare({
         <PrintBtn />
       </div>
     );
-  return <ShareTools data={data} accounts={accounts} autoOpen={autoOpen} />;
+  return <ShareTools data={data} autoOpen={autoOpen} />;
 }
 
 function PrintBtn() {
@@ -69,28 +64,11 @@ function PrintBtn() {
   );
 }
 
-function ShareTools({
-  data,
-  accounts,
-  autoOpen,
-}: {
-  data: ReportData;
-  accounts: FundAccount[];
-  autoOpen: boolean;
-}) {
+function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean }) {
   const committee = true;
-  // «التقرير كاملًا» or the fee reminder «من عليه رسوم فقط» (same grid, only who owes, no money)
+  // «التقرير كاملًا» or «من عليه متأخرات فقط» (same grid, only who owes, no money)
   const [kind, setKind] = useState<"full" | "reminder">("full");
   const canRemind = hasReminder(data);
-  const pay = useMemo<PayAccount[]>(
-    () =>
-      accounts.map((a) => ({
-        method: a.method,
-        accountNumber: a.accountNumber,
-        label: METHOD_LABELS[a.method],
-      })),
-    [accounts],
-  );
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [retry, setRetry] = useState<string | null>(null);
@@ -103,9 +81,9 @@ function ShareTools({
   }, [autoOpen, committee]);
   useEffect(() => {
     if (!open) return;
-    if (kind === "reminder") prepareReminderShare(data, pay);
+    if (kind === "reminder") prepareReminderShare(data);
     else prepareReportShare(data);
-  }, [open, data, kind, pay]);
+  }, [open, data, kind]);
 
   const run = async (key: string, f: () => Promise<Result>) => {
     setBusy(key);
@@ -123,7 +101,7 @@ function ShareTools({
         setManual(false);
         setMsg(
           r === "whatsapp" && kind === "reminder"
-            ? "فُتح واتساب بنص التذكير ورابط التطبيق. اضغط إرسال هناك."
+            ? "فُتح واتساب بنص المتأخرات ورابط التطبيق. اضغط إرسال هناك."
             : DONE[r],
         );
       }
@@ -146,15 +124,15 @@ function ShareTools({
       key: "r-images",
       icon: I.image(24),
       title: "صور لواتساب",
-      sub: "أسماء من عليه رسوم، مع طريقة الدفع",
-      run: () => shareReminderImages(data, pay),
+      sub: "أسماء من عليه متأخرات، صورًا",
+      run: () => shareReminderImages(data),
     },
     {
       key: "r-pdf",
       icon: I.save(24),
       title: "ملف PDF",
-      sub: "تذكير بالرسوم في ملف واحد",
-      run: () => shareReminderPdf(data, pay),
+      sub: "المتأخرات في ملف واحد",
+      run: () => shareReminderPdf(data),
     },
   ];
   const fullOptions: Option[] = [
@@ -229,10 +207,10 @@ function ShareTools({
                 disabled={!canRemind}
                 onClick={() => setKind("reminder")}
               >
-                من عليه رسوم فقط
+                من عليه متأخرات فقط
               </button>
             </div>
-            {!canRemind && <p className="bq-hint">لا أحد عليه رسوم الآن.</p>}
+            {!canRemind && <p className="bq-hint">لا أحد عليه متأخرات الآن.</p>}
             <ul className="bq-list bq-menu rp-share">
               {(kind === "reminder" ? reminderOptions : fullOptions).map((o) => (
                 <li key={o.key}>

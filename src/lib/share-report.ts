@@ -17,7 +17,6 @@ import {
   type ShareResult,
 } from "./canvas-share";
 import type { ReportData } from "./data/types";
-import type { PayAccount } from "./report-pages";
 import { formatDay, monthName } from "./dates";
 import { formatNumber } from "./format";
 import { ASSOC_NAME, FUND_NAME } from "./share-receipt";
@@ -516,8 +515,8 @@ export async function shareReportSummary(
 type Prepared = {
   pages?: Promise<File[]>;
   pdf?: Promise<File>;
-  /** the fee reminder, for these wallets */
-  reminder?: { accounts: PayAccount[]; pages?: Promise<File[]>; pdf?: Promise<File> };
+  /** «المتأخرات» */
+  reminder?: { pages?: Promise<File[]>; pdf?: Promise<File> };
 };
 const prepared = new WeakMap<ReportInput, Prepared>();
 const slot = (d: ReportInput) => {
@@ -553,7 +552,7 @@ async function buildPdf(
   url: string,
   title: string,
   base: string,
-  reminder?: PayAccount[],
+  reminder?: boolean,
 ): Promise<File> {
   const [pages, { jpegsToPdf, A4_PT }] = await Promise.all([
     import("./report-pages"),
@@ -636,88 +635,74 @@ export async function shareReportPdf(
   return "downloaded";
 }
 
-/* ─────────────── the fee reminder («من عليه رسوم فقط») ─────────────── */
-// The same members grid, only members who owe, no money at all (owner): «تذكير بالرسوم».
+/* ─────────────── «المتأخرات» («من عليه متأخرات فقط») ─────────────── */
+// The same members grid, only members who owe, no money at all (owner). No payment numbers:
+// wallets change, and the committee adds them in the chat.
 
-export type { PayAccount };
-
-/** Owes fees: an active member with a month due and unpaid this year (away/exempt/left: never). */
+/** Owes: an active member with a month due and unpaid this year (away/exempt/left: never). */
 export const owesFees = (m: Pick<ReportData["members"][number], "status" | "monthsBehind">) =>
   m.status === "active" && m.monthsBehind > 0;
 
-/** Anyone to remind? (else the sheet's «من عليه رسوم فقط» is off: «لا أحد عليه رسوم الآن») */
+/** Anyone who owes? (else the sheet's «من عليه متأخرات فقط» is off) */
 export const hasReminder = (r: Pick<ReportData, "members">) => r.members.some(owesFees);
 
-/** «تذكير-بالرسوم-2026-09». */
+/** «المتأخرات-2026-09». */
 export function reminderFileBase(iso: string): string {
-  return `تذكير-بالرسوم-${iso.slice(0, 7)}`;
+  return `المتأخرات-${iso.slice(0, 7)}`;
 }
 
-/** The app's home link (where each member finds their name and pays). */
+/** The app's home link (where each member finds their name). */
 const appUrl = () => publicOrigin().replace(/\/$/, "");
 
-export function reminderShareText(url: string, pay: string | null): string {
+export function reminderShareText(url: string): string {
   return [
-    `*تذكير بالرسوم · ${FUND_NAME}*`,
-    "هذه الأسماء عليها رسوم لم تُدفع بعد.",
-    ...(pay ? [pay] : []),
-    `ابحث عن اسمك وادفع من التطبيق: ${url}`,
+    `*المتأخرات · ${FUND_NAME}*`,
+    "هذه الأسماء عليها متأخرات لم تُدفع بعد.",
+    `ابحث عن اسمك في التطبيق: ${url}`,
   ].join("\n");
 }
 
-function reminderSlot(d: ReportInput, accounts: PayAccount[]) {
+function reminderSlot(d: ReportInput) {
   const s = slot(d);
-  if (s.reminder?.accounts !== accounts) s.reminder = { accounts };
+  s.reminder ??= {};
   return s.reminder;
 }
 
-function reminderPageFiles(d: ReportInput, accounts: PayAccount[], url: string): Promise<File[]> {
-  const s = reminderSlot(d, accounts);
+function reminderPageFiles(d: ReportInput, url: string): Promise<File[]> {
+  const s = reminderSlot(d);
   s.pages ??= (async () => {
     const pages = await import("./report-pages");
     const { fonts, logo } = await drawKit();
     const base = reminderFileBase(d.generatedAt);
-    const blobs = await pages.renderReportPages(d, { url, fonts, logo, reminder: accounts });
+    const blobs = await pages.renderReportPages(d, { url, fonts, logo, reminder: true });
     return blobs.map((b, i) => new File([b], `${base}-${i + 1}.png`, { type: "image/png" }));
   })();
   s.pages.catch(() => (s.pages = undefined));
   return s.pages;
 }
 
-function reminderPdfFile(d: ReportInput, accounts: PayAccount[], url: string): Promise<File> {
-  const s = reminderSlot(d, accounts);
-  s.pdf ??= buildPdf(
-    d,
-    url,
-    `تذكير بالرسوم · ${FUND_NAME}`,
-    reminderFileBase(d.generatedAt),
-    accounts,
-  );
+function reminderPdfFile(d: ReportInput, url: string): Promise<File> {
+  const s = reminderSlot(d);
+  s.pdf ??= buildPdf(d, url, `المتأخرات · ${FUND_NAME}`, reminderFileBase(d.generatedAt), true);
   s.pdf.catch(() => (s.pdf = undefined));
   return s.pdf;
 }
 
-/** Start rendering the reminder in the background (when it is chosen in the sheet). */
-export function prepareReminderShare(d: ReportInput, accounts: PayAccount[], url = appUrl()): void {
-  reminderPageFiles(d, accounts, url).catch(() => {});
+/** Start rendering the arrears pages in the background (when chosen in the sheet). */
+export function prepareReminderShare(d: ReportInput, url = appUrl()): void {
+  reminderPageFiles(d, url).catch(() => {});
 }
 
-async function reminderText(accounts: PayAccount[], url: string) {
-  const { payLine } = await import("./report-pages");
-  return reminderShareText(url, payLine(accounts));
-}
-
-/** The reminder's pages as PNG in one share; without file sharing, WhatsApp text with the link. */
+/** The arrears pages as PNG in one share; without file sharing, WhatsApp text with the link. */
 export async function shareReminderImages(
   d: ReportInput,
-  accounts: PayAccount[],
   url = appUrl(),
   opts: ShareImageOptions = {},
 ): Promise<ShareResult> {
   const nav = opts.nav ?? (navigator as ShareNavigator);
-  const text = await reminderText(accounts, url);
+  const text = reminderShareText(url);
   if (typeof nav.share === "function" && nav.canShare) {
-    const files = await reminderPageFiles(d, accounts, url).catch(() => null);
+    const files = await reminderPageFiles(d, url).catch(() => null);
     const res = files && (await shareFiles(files, text, nav));
     if (res) return res;
   }
@@ -725,16 +710,15 @@ export async function shareReminderImages(
   return "whatsapp";
 }
 
-/** The reminder as one A4 PDF through the share sheet; if files cannot be shared, download it. */
+/** The arrears as one A4 PDF through the share sheet; if files cannot be shared, download it. */
 export async function shareReminderPdf(
   d: ReportInput,
-  accounts: PayAccount[],
   url = appUrl(),
   opts: { nav?: ShareNavigator; download?: (b: Blob, name: string) => void } = {},
 ): Promise<ShareResult | "downloaded"> {
   const nav = opts.nav ?? (navigator as ShareNavigator);
-  const file = await reminderPdfFile(d, accounts, url);
-  const res = await shareFiles([file], await reminderText(accounts, url), nav);
+  const file = await reminderPdfFile(d, url);
+  const res = await shareFiles([file], reminderShareText(url), nav);
   if (res) return res;
   (opts.download ?? downloadPng)(file, file.name);
   return "downloaded";

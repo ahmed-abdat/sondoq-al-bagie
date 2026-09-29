@@ -148,7 +148,7 @@ test("PDF: one A4 file to the share sheet", async ({ page }) => {
   expect(f.size).toBeLessThan(1_500_000);
 });
 
-test("fee reminder: only who owes, as a PDF «تذكير-بالرسوم-…» and as images, no money", async ({
+test("«المتأخرات»: only who owes, as a PDF «المتأخرات-…» and as images, no money", async ({
   page,
 }) => {
   await shareSheet(page);
@@ -162,21 +162,22 @@ test("fee reminder: only who owes, as a PDF «تذكير-بالرسوم-…» an
     "aria-pressed",
     "true",
   );
-  await choice.getByRole("button", { name: "من عليه رسوم فقط" }).click();
+  await choice.getByRole("button", { name: "من عليه متأخرات فقط" }).click();
   await expect(page.getByRole("button", { name: /صورة الملخص فقط/ })).toHaveCount(0);
   await page.evaluate(() => ((window as unknown as Win).__shared = []));
   await page.getByRole("button", { name: /ملف PDF/ }).click();
   await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).toHaveLength(1);
   const [pdf] = await win(page, "__shared");
   expect(pdf).toMatchObject({ type: "application/pdf", head: "%PDF-" });
-  expect(pdf.name).toMatch(/^تذكير-بالرسوم-\d{4}-\d{2}\.pdf$/);
+  expect(pdf.name).toMatch(/^المتأخرات-\d{4}-\d{2}\.pdf$/);
   // members pages only (no cover, no money pages), and fewer names than the full report
   expect(pdf.pages).toBeGreaterThanOrEqual(1);
   expect(pdf.pages).toBeLessThan(full.pages);
   const text = await win(page, "__text");
-  expect(text).toContain("تذكير بالرسوم");
-  expect(text).toMatch(/ادفع عبر: /);
-  expect(text).not.toMatch(/أوقية|متأخر/);
+  expect(text).toContain("*المتأخرات · صندوق الرابطة*");
+  expect(text).toMatch(/ابحث عن اسمك في التطبيق: https?:\/\/\S+/);
+  expect(text).not.toMatch(/ادفع عبر/);
+  expect(text).not.toMatch(/أوقية/); // no amounts
 
   await page.evaluate(() => ((window as unknown as Win).__shared = []));
   await page.getByRole("button", { name: /صور لواتساب/ }).click();
@@ -184,7 +185,7 @@ test("fee reminder: only who owes, as a PDF «تذكير-بالرسوم-…» an
   const files = await win(page, "__shared");
   files.forEach((f, i) => {
     expect(f).toMatchObject({ type: "image/png", w: 1080, h: 1350 });
-    expect(f.name).toMatch(new RegExp(`^تذكير-بالرسوم-\\d{4}-\\d{2}-${i + 1}\\.png$`));
+    expect(f.name).toMatch(new RegExp(`^المتأخرات-\\d{4}-\\d{2}-${i + 1}\\.png$`));
   });
 });
 
@@ -284,7 +285,7 @@ test("«مشاركة التقرير» is for the committee only: a visitor reads
   await page.waitForTimeout(500);
   await expect(page.getByRole("button", { name: "مشاركة التقرير" })).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByText("من عليه رسوم فقط")).toHaveCount(0); // the fee reminder too
+  await expect(page.getByText("من عليه متأخرات فقط")).toHaveCount(0); // «المتأخرات» too
   await page.goto("/accounts");
   await expect(page.getByRole("link", { name: /مشاركة التقرير/ })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /التقرير كاملًا/ })).toBeVisible();

@@ -14,7 +14,6 @@ import {
   paginateBlocks,
   paginateReminder,
   paginateReport,
-  payLine,
   hasReminder,
   owesFees,
   PHONE_PAGE,
@@ -229,18 +228,13 @@ it("group band: the group's size, no current-month count", () => {
   ]);
 });
 
-describe("fee reminder («من عليه رسوم فقط»)", () => {
+describe("«المتأخرات» («من عليه متأخرات فقط»)", () => {
   const owing = (ref: string, status: ReportMember["status"] = "active"): ReportMember => ({
     ...member(ref, status),
     months: [...Array(8).fill("paid"), "late", "upcoming", "upcoming", "upcoming"],
     monthsPaid: 8,
     monthsBehind: 1,
   });
-  const accounts = [
-    { method: "bankily", accountNumber: "22 12 34 56", label: "بنكيلي" },
-    { method: "cash", accountNumber: "", label: "نقدًا" },
-    { method: "masrvi", accountNumber: "33 00 11 22", label: "مصرفي" },
-  ];
 
   it("only active members with an unpaid due month; away, exempt, left never", () => {
     expect(owesFees(owing("A-1"))).toBe(true);
@@ -257,26 +251,20 @@ describe("fee reminder («من عليه رسوم فقط»)", () => {
       member("B-1"),
       owing("B-2", "away"),
     ]);
-    const pages = paginateReminder(r, accounts);
+    const pages = paginateReminder(r);
     expect(pages).toHaveLength(1); // no cover, no money pages, no group B
     const [p] = pages;
     expect(p.kind === "members" && p.list).toBe("A");
     expect(p.kind === "members" && p.rows.map((m) => m.memberRef)).toEqual(["A-1", "A-3"]);
-    expect(p.kind === "members" && p.reminder).toEqual({
-      pay: "ادفع عبر: بنكيلي 22 12 34 56 · مصرفي 33 00 11 22",
-    });
+    expect(p.kind === "members" && p.reminder).toBe(true);
     expect(hasReminder(r)).toBe(true);
     expect(hasReminder(report([member("A-1"), owing("B-2", "exempt")]))).toBe(false);
-    expect(paginateReminder(report([member("A-1")]), accounts)).toEqual([]);
+    expect(paginateReminder(report([member("A-1")]))).toEqual([]);
   });
 
-  it("leaves room for «ادفع عبر» under the grid; no wallet set → no line", () => {
+  it("the same rows per page as the full report", () => {
     const many = Array.from({ length: 40 }, (_, i) => owing(`A-${i + 1}`));
-    const pages = paginateReminder(report(many), [], A4_PAGE);
-    const per = membersPerPage(A4_PAGE, L.pay);
-    expect(per).toBeLessThan(membersPerPage(A4_PAGE));
-    for (const p of pages) expect(p.kind === "members" && p.rows.length).toBeLessThanOrEqual(per);
-    expect(payLine([])).toBeNull();
-    expect(payLine([accounts[1]])).toBeNull(); // cash only: no number to send to
+    for (const p of paginateReminder(report(many), A4_PAGE))
+      expect(p.kind === "members" && p.rows.length).toBeLessThanOrEqual(membersPerPage(A4_PAGE));
   });
 });
