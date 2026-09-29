@@ -81,6 +81,7 @@ const ok = async <T,>(data: T): Promise<ActionResult<T>> => {
 };
 const now = () => new Date().toISOString();
 let receiptSeq = 0;
+const demoLogins = new Set<string>();
 const nextCode = () => `BQ-DEMO-${String(++receiptSeq).padStart(4, "0")}`;
 
 /**
@@ -239,6 +240,12 @@ const demo = {
       await wait();
       return { ok: false, code: "bad_login", message: "اكتب رقم هاتف أو بريدًا صحيحًا." };
     }
+    // like the server: the same login twice (e.g. a retry after a lost answer) is taken
+    if (demoLogins.has(login.display)) {
+      await wait();
+      return { ok: false, code: "login_taken", message: "هذا البريد أو الرقم مستخدم لحساب آخر." };
+    }
+    demoLogins.add(login.display);
     return ok({ userId: crypto.randomUUID(), login: login.display, password: generatePassword() });
   },
   async resetCommitteePassword() {

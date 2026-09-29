@@ -146,14 +146,19 @@ type Linkable = Pickable & { status: string };
 
 function AddAccountForm({
   members,
+  accounts,
   onCreated,
 }: {
   /** active members not linked to an account yet */
   members: Linkable[];
+  /** existing accounts: a login already taken (an earlier try whose answer was lost) is found here */
+  accounts: CommitteeAccount[];
   onCreated: (c: Creds) => void;
 }) {
+  const router = useRouter();
   const online = useOnline();
-  const { createCommitteeAccount } = useAct();
+  const { createCommitteeAccount, resetCommitteePassword } = useAct();
+  const [taken, setTaken] = useState(false);
   const [name, setName] = useState("");
   const [login, setLogin] = useState("");
   const [role, setRole] = useState<CommitteeRole | null>(null);
@@ -162,6 +167,8 @@ function AddAccountForm({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const loginOk = !!parseLogin(login);
+  const sameLogin = (a: string) => parseLogin(a)?.display === parseLogin(login)?.display;
+  const existing = taken ? accounts.find((a) => sameLogin(a.login)) : undefined;
   const ok = name.trim().length > 1 && loginOk && !!role;
   return (
     <div className="bq-rec">
@@ -177,7 +184,10 @@ function AddAccountForm({
       <input
         className="bq-input"
         value={login}
-        onChange={(e) => setLogin(e.target.value)}
+        onChange={(e) => {
+          setLogin(e.target.value);
+          setTaken(false);
+        }}
         dir="ltr"
         inputMode="email"
         autoComplete="off"
@@ -204,6 +214,34 @@ function AddAccountForm({
       )}
       <p className="bq-hint">حتى لا يؤكد دفعاته بنفسه.</p>
       <div className="bq-rec-foot">
+        {taken && (
+          <div className="bq-wait" role="status">
+            <p>الحساب موجود. أعد تعيين كلمة السر لتحصل على كلمة جديدة.</p>
+            {existing ? (
+              <button
+                type="button"
+                className="bq-btn bq-btn-tonal bq-press"
+                disabled={busy || !online}
+                onClick={async () => {
+                  setBusy(true);
+                  setErr("");
+                  const r = await resetCommitteePassword({ userId: existing.userId });
+                  setBusy(false);
+                  if (!r.ok) return setErr(say(r));
+                  onCreated({
+                    name: existing.displayName,
+                    login: r.data.login,
+                    password: r.data.password,
+                  });
+                }}
+              >
+                كلمة سر جديدة لحساب {existing.displayName}
+              </button>
+            ) : (
+              <p className="bq-hint">تجده في قائمة الحسابات بعد لحظة، ومنه «كلمة سر جديدة».</p>
+            )}
+          </div>
+        )}
         {err && (
           <p className="bq-alert" role="alert">
             {err}
@@ -212,7 +250,7 @@ function AddAccountForm({
         <button
           type="button"
           className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-          disabled={!ok || busy || !online}
+          disabled={!ok || busy || !online || taken}
           onClick={async () => {
             setBusy(true);
             setErr("");
@@ -223,6 +261,11 @@ function AddAccountForm({
               memberId: member?.memberId ?? null,
             });
             setBusy(false);
+            if (!r.ok && r.code === "login_taken") {
+              setTaken(true);
+              router.refresh(); // the list may not have it yet
+              return;
+            }
             if (!r.ok) return setErr(say(r));
             onCreated({ name: name.trim(), login: r.data.login, password: r.data.password });
           }}
@@ -564,6 +607,7 @@ export function CommitteeAccounts({
         <Sheet key="add" label="إضافة حساب" onDone={() => setSheet(null)}>
           <AddAccountForm
             members={free}
+            accounts={list}
             onCreated={(c) => {
               router.refresh();
               setSheet({ t: "creds", c });
