@@ -5512,3 +5512,120 @@
     line-height: 1.65;
   }
 }
+
+/* ───── committee hub, owner pick (r31): flat Material 3, no shadows, tonal surfaces ───── */
+@layer components {
+  .bq-rev-sec {
+    margin-block-start: 8px;
+  }
+  .bq-rev {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  /* dividers, not boxes */
+  .bq-rev > li + li {
+    border-block-start: 1px solid var(--n2);
+  }
+  .bq-rev-row {
+    min-height: 72px;
+  }
+  .bq-rev-row .bq-row-t {
+    font-weight: 700;
+  }
+  /* the open slip: a soft tonal band in the list, not a floating white card */
+  .bq-rev-open {
+    padding-block: 8px;
+  }
+  .bq-rev-open .bq-slip {
+    background: var(--g0);
+    box-shadow: none;
+    border-radius: var(--r-lg);
+  }
+  .bq-rev-open .bq-slip.is-rejected {
+    background: var(--n1);
+  }
+  .bq-rev-open + li,
+  li + .bq-rev-open {
+    border-block-start-color: transparent;
+  }
+  .bq-rev-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-block-start: 12px;
+    padding: 16px;
+    border-radius: var(--r-lg);
+    background: var(--g0);
+  }
+  .bq-rev-empty-t {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 19px;
+    color: var(--g8);
+  }
+  .bq-rev-empty .bq-btn-col {
+    margin-block-start: 8px;
+  }
+  /* «الأعمال»: 2×2 flat tonal tiles */
+  .bq-tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .bq-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 96px;
+    padding: 14px;
+    border-radius: var(--r-lg);
+    background: var(--n1);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+    text-align: start;
+    text-decoration: none;
+  }
+  .bq-tile > svg {
+    color: var(--g8);
+  }
+  .bq-tile.is-main {
+    background: var(--g8);
+    color: #fff;
+  }
+  .bq-tile.is-main > svg {
+    color: #fff;
+  }
+  .bq-more {
+    margin-block-start: 16px;
+  }
+  .bq-more > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .bq-more > summary::-webkit-details-marker {
+    display: none;
+  }
+  .bq-more > summary .bq-group-i {
+    margin-inline-start: auto;
+    transition: transform 200ms var(--ease-out);
+    transform: rotate(90deg);
+  }
+  .bq-more[open] > summary .bq-group-i {
+    transform: none;
+  }
+}

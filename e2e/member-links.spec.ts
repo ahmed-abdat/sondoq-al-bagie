@@ -15,6 +15,9 @@ const textOf = (url: string) => decodeURIComponent(new URL(url).searchParams.get
 
 test("hub and «الأعضاء» link to «روابط الأعضاء»", async ({ page }) => {
   await page.goto("/committee");
+  // hub tabs (r31): «الأعمال» → «المزيد»
+  await page.getByRole("button", { name: "الأعمال" }).click();
+  await page.getByText("المزيد").click();
   await page.getByRole("link", { name: /روابط الأعضاء/ }).click();
   await expect(page.getByRole("heading", { name: "روابط الأعضاء", level: 1 })).toBeVisible();
   await page.goto("/committee/members");

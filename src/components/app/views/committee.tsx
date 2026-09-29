@@ -17,18 +17,19 @@ import type {
   PendingPayment,
 } from "@/lib/data/types";
 import { useDemoState } from "../act";
-import { EmptyState } from "../bits";
+import { MethodBadge } from "../bits";
 import { CampaignAdminList, CampaignFormBody } from "../campaign-form";
-import { pendingForCampaign } from "../derive";
+import { fmt, pendingForCampaign, relativeAgo } from "../derive";
 import { ShareBtns } from "../entries";
 import { ExpenseAdminList, RecordExpenseBody } from "../expense";
 import { I } from "../icons";
 import type { MemberCtx } from "../member";
 import { MembersAdmin, type MemberCredit } from "../members-admin";
-import { Num } from "../num";
+import { Num, useNow } from "../num";
 import { Receipt } from "../receipt";
 import type { ReceiptView } from "../receipt-model";
 import { PushSuggest } from "../push-suggest";
+import { Segmented } from "../segmented";
 import { RecordBody } from "../record";
 import { LateList } from "../reminders";
 import { Sheet } from "../sheet";
@@ -159,6 +160,20 @@ export function CommitteeView({
     null,
   );
   const openCamps = campaigns.filter((c) => c.status === "open").length;
+  // owner pick (r31): two tabs; «للمراجعة» is a chat-like list, one slip open in place (the first
+  // by default); after a decision's 5 s «تراجع» window the next one opens by itself
+  const [tab, setTab] = useState<"rev" | "work">("rev");
+  const [openId, setOpenId] = useState<string | null | undefined>(undefined);
+  const [all, setAll] = useState(false);
+  const now = useNow();
+  const undecided = seen.filter((p) => !decided.has(p.id));
+  const openNow =
+    openId !== undefined && undecided.some((p) => p.id === openId)
+      ? openId
+      : (undecided[0]?.id ?? null);
+  const shownIds = new Set(
+    (all ? undecided : undecided.slice(0, 5)).map((p) => p.id).concat(openNow ?? []),
+  );
 
   return (
     <>
@@ -177,115 +192,205 @@ export function CommitteeView({
 
       <CloseStalePushNotifications pendingIds={serverPending.map((p) => p.id)} />
       {me.canConfirm && <PushSuggest />}
-      <section className="bq-sec bq-sec-first" aria-labelledby="bq-wait-h">
-        <h2 id="bq-wait-h" className="bq-h-count">
-          بانتظار التأكيد <Num className="bq-com-n">{waiting}</Num>
-        </h2>
-        {seen.length > 0 && (
-          <ul className="bq-queue">
-            {seen.map((p) => (
-              <li key={p.id} id={`bq-slip-${p.id}`}>
-                <PendingSlip
-                  p={p}
-                  me={me}
-                  onFull={(r) => setSheet({ t: "receipt", r })}
-                  onDecided={(d) =>
-                    setDecided((x) => {
-                      const n = new Set(x);
-                      if (d) n.add(p.id);
-                      else n.delete(p.id);
-                      return n;
-                    })
+      <section className="bq-sec bq-sec-first">
+        <Segmented
+          label="اللجنة"
+          value={tab}
+          onChange={setTab}
+          items={[
+            {
+              k: "rev",
+              l: waiting ? (
+                <>
+                  للمراجعة <Num>{waiting}</Num>
+                </>
+              ) : (
+                "للمراجعة"
+              ),
+            },
+            { k: "work", l: "الأعمال" },
+          ]}
+        />
+      </section>
+
+      {tab === "rev" ? (
+        <section className="bq-sec bq-rev-sec" aria-labelledby="bq-wait-h">
+          <h2 id="bq-wait-h" className="bq-sr">
+            بانتظار التأكيد <Num>{waiting}</Num>
+          </h2>
+          {seen.length > 0 && (
+            <ul className="bq-rev">
+              {seen.map((p) =>
+                p.id === openNow || decided.has(p.id) ? (
+                  <li key={p.id} id={`bq-slip-${p.id}`} className="bq-rev-open">
+                    <PendingSlip
+                      p={p}
+                      me={me}
+                      onFull={(r) => setSheet({ t: "receipt", r })}
+                      onDecided={(d) =>
+                        setDecided((x) => {
+                          const n = new Set(x);
+                          if (d) n.add(p.id);
+                          else n.delete(p.id);
+                          return n;
+                        })
+                      }
+                      onSettled={() => setOpenId(undefined)}
+                    />
+                  </li>
+                ) : shownIds.has(p.id) ? (
+                  <li key={p.id} id={`bq-slip-${p.id}`}>
+                    <button
+                      type="button"
+                      className="bq-row bq-press bq-rev-row"
+                      aria-expanded={false}
+                      onClick={() => setOpenId(p.id)}
+                    >
+                      <MethodBadge method={p.method} size={40} label={false} />
+                      <span className="bq-row-m">
+                        <span className="bq-row-t">{p.payerName}</span>
+                        <span className="bq-row-s">
+                          {p.submittedByMember
+                            ? `أرسلها ${p.submittedByMember.fullName}`
+                            : p.createdByName
+                              ? `سجّلها ${p.createdByName}`
+                              : "سُجّلت"}
+                          {now ? ` · ${relativeAgo(p.createdAt, now)}` : ""}
+                        </span>
+                      </span>
+                      <Num className="bq-amt">{fmt(p.amount)}</Num>
+                    </button>
+                  </li>
+                ) : null,
+              )}
+            </ul>
+          )}
+          {undecided.length > 5 && (
+            <button type="button" className="bq-link bq-press" onClick={() => setAll(!all)}>
+              {all ? (
+                "عرض أقل"
+              ) : (
+                <>
+                  عرض الكل <Num>{undecided.length}</Num>
+                </>
+              )}{" "}
+              {I.chev(18)}
+            </button>
+          )}
+          {waiting === 0 && (
+            <div className="bq-rev-empty">
+              <p className="bq-rev-empty-t">{I.check(24)} لا دفعات تنتظر</p>
+              <p className="bq-hint">عندما يرسل عضو صورة تحويل تظهر هنا، ويصلك إشعار.</p>
+              <div className="bq-btn-col">
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-primary bq-btn-lg bq-press"
+                  onClick={() => setSheet({ t: "record" })}
+                >
+                  {I.plus(22)} سجّل دفعة نقدًا أو تحويلًا
+                </button>
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-soft bq-press"
+                  onClick={() => setTab("work")}
+                >
+                  الأعمال الأخرى
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      ) : (
+        <section className="bq-sec" aria-label="الأعمال">
+          <div className="bq-tiles">
+            <button
+              type="button"
+              className="bq-tile is-main bq-press"
+              onClick={() => setSheet({ t: "record" })}
+            >
+              {I.plus(24)} سجّل دفعة
+            </button>
+            <Link href="/committee/late" className="bq-tile bq-press" transitionTypes={["tab-fwd"]}>
+              {I.clock(24)}
+              <span>
+                ذكّر المتأخرين <Num className="bq-group-n">{lateCount}</Num>
+              </span>
+            </Link>
+            <Link
+              href="/committee/expenses"
+              className="bq-tile bq-press"
+              transitionTypes={["tab-fwd"]}
+            >
+              {I.bag(24)} سجّل مصروفًا
+            </Link>
+            <Link
+              href="/committee/payments"
+              className="bq-tile bq-press"
+              transitionTypes={["tab-fwd"]}
+            >
+              {I.coins(24)} الدفعات الأخيرة
+            </Link>
+          </div>
+          <details className="bq-more">
+            <summary>
+              المزيد <span className="bq-group-i">{I.chev(20)}</span>
+            </summary>
+            <ul className="bq-list bq-menu">
+              {canManage && (
+                <MenuRow
+                  href="/committee/members"
+                  icon={I.people(22)}
+                  title="الأعضاء"
+                  sub="إضافة عضو، تعديل رقم الهاتف أو الحالة"
+                  count={memberCount}
+                />
+              )}
+              <MenuRow
+                href="/committee/member-links"
+                icon={I.copy(22)}
+                title="روابط الأعضاء"
+                sub="أرسل لكل عضو رابطه الخاص في واتساب"
+              />
+              {canManage && (
+                <MenuRow
+                  href="/committee/campaigns"
+                  icon={I.heart(22)}
+                  title="حملات التبرع"
+                  sub={
+                    openCamps
+                      ? `${openCamps === 1 ? "حملة مفتوحة" : `${openCamps} حملات مفتوحة`}`
+                      : "لا توجد حملة مفتوحة"
                   }
                 />
+              )}
+              <MenuRow
+                href="/report#share"
+                icon={I.image(22)}
+                title="مشاركة التقرير"
+                sub="صور أو PDF لمجموعة الواتساب"
+              />
+              <li>
+                <InstallEntry />
               </li>
-            ))}
-          </ul>
-        )}
-        {waiting === 0 && (
-          <EmptyState
-            icon={I.check(22)}
-            title="لا توجد دفعات تنتظر التأكيد"
-            hint="عندما يصلك تحويل، اضغط «سجّل دفعة» في الأسفل."
-          />
-        )}
-      </section>
-
-      <section className="bq-sec" aria-labelledby="bq-more-h">
-        <h2 id="bq-more-h">أعمال أخرى</h2>
-        <ul className="bq-list bq-menu">
-          <MenuRow
-            href="/committee/payments"
-            icon={I.coins(22)}
-            title="الدفعات الأخيرة"
-            sub="وصل كل دفعة، وإلغاء دفعة سُجّلت خطأً"
-          />
-          <MenuRow
-            href="/committee/late"
-            icon={I.clock(22)}
-            title="تذكير المتأخرين"
-            sub="رسالة واتساب لكل متأخر أو للمجموعة"
-            count={lateCount}
-          />
-          <MenuRow
-            href="/committee/expenses"
-            icon={I.bag(22)}
-            title="المصاريف"
-            sub="سجّل ما صُرف من الصندوق"
-          />
-          {canManage && (
-            <MenuRow
-              href="/committee/members"
-              icon={I.people(22)}
-              title="الأعضاء"
-              sub="إضافة عضو، تعديل رقم الهاتف أو الحالة"
-              count={memberCount}
-            />
-          )}
-          <MenuRow
-            href="/committee/member-links"
-            icon={I.copy(22)}
-            title="روابط الأعضاء"
-            sub="أرسل لكل عضو رابطه الخاص في واتساب"
-          />
-          {canManage && (
-            <MenuRow
-              href="/committee/campaigns"
-              icon={I.heart(22)}
-              title="حملات التبرع"
-              sub={
-                openCamps
-                  ? `${openCamps === 1 ? "حملة مفتوحة" : `${openCamps} حملات مفتوحة`}`
-                  : "لا توجد حملة مفتوحة"
-              }
-            />
-          )}
-          <MenuRow
-            href="/report#share"
-            icon={I.image(22)}
-            title="مشاركة التقرير"
-            sub="صور أو PDF لمجموعة الواتساب"
-          />
-          <li>
-            <InstallEntry />
-          </li>
-          <MenuRow
-            href="/committee/account"
-            icon={I.people(22)}
-            title="حسابي"
-            sub="اسمك، كلمة السر، عضويتك، الإشعارات"
-          />
-          <MenuRow
-            href="/committee/settings"
-            icon={I.lock(22)}
-            title="الإعدادات"
-            sub="أرقام الصندوق، كلمة السر، الخروج"
-          />
-        </ul>
-      </section>
+              <MenuRow
+                href="/committee/account"
+                icon={I.people(22)}
+                title="حسابي"
+                sub="اسمك، كلمة السر، عضويتك، الإشعارات"
+              />
+              <MenuRow
+                href="/committee/settings"
+                icon={I.lock(22)}
+                title="الإعدادات"
+                sub="أرقام الصندوق، كلمة السر، الخروج"
+              />
+            </ul>
+          </details>
+        </section>
+      )}
 
       {/* stays mounted under the sheet's scrim: closing the sheet gives focus back to it (B05) */}
-      <Fab onClick={() => setSheet({ t: "record" })} />
+      {tab === "rev" && <Fab onClick={() => setSheet({ t: "record" })} />}
 
       {sheet?.t === "record" && (
         <Sheet key="record" label="سجّل دفعة" onDone={() => setSheet(null)}>

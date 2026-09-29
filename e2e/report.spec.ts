@@ -71,6 +71,9 @@ async function noShare(page: Page) {
 /** Share is committee only: from the hub (demo committee) to /report#share, the sheet opens. */
 async function openSheet(page: Page) {
   await page.goto("/committee");
+  // hub tabs (r31): «الأعمال» → «المزيد»
+  await page.getByRole("button", { name: "الأعمال" }).click();
+  await page.getByText("المزيد").click();
   await page.getByRole("link", { name: /مشاركة التقرير/ }).click();
   await expect(page.getByRole("dialog", { name: "مشاركة التقرير" })).toBeVisible();
 }

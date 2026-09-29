@@ -40,6 +40,7 @@ export function PendingSlip({
   me,
   onFull,
   onDecided,
+  onSettled,
 }: {
   p: PendingPayment;
   /** who is deciding: name + role label; may they confirm, and their own member id */
@@ -47,6 +48,8 @@ export function PendingSlip({
   onFull: (r: ReceiptView) => void;
   /** true once decided here (for the waiting count), false after undo or a failed send */
   onDecided?: (decided: boolean) => void;
+  /** the 5 s «تراجع» window closed and the decision is on its way (the hub moves to the next) */
+  onSettled?: () => void;
 }) {
   const router = useRouter();
   const online = useOnline();
@@ -125,6 +128,7 @@ export function PendingSlip({
       timer.current = null;
       setCollapsed(true);
       void send.current?.();
+      onSettled?.();
     }, UNDO_MS);
   };
   // sent but no answer yet (slow network, or the request was dropped): after a while say so
