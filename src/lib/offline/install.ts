@@ -64,16 +64,42 @@ export function chromeIntentUrl(href: string): string {
 
 /* ───────────── when to invite ───────────── */
 
+const DAY = 24 * 60 * 60 * 1000;
+
+/** Old single «ليس الآن» timestamp (two weeks), still honoured. */
 export const DISMISS_KEY = "sondoq:install-dismissed-at";
-/** After «ليس الآن», ask again only after two weeks. */
-export const DISMISS_FOR_MS = 14 * 24 * 60 * 60 * 1000;
+export const DISMISS_FOR_MS = 14 * DAY;
 
 export function isDismissed(dismissedAt: string | null, now: number = Date.now()): boolean {
   const t = Number(dismissedAt);
   return Number.isFinite(t) && t > 0 && now - t < DISMISS_FOR_MS;
 }
 
+/** After each «✕»/«ليس الآن»: wait 1, then 3, 7, 14, then 30 days (capped). */
+export const BACKOFF_KEY = "sondoq:install-backoff";
+export const BACKOFF_DAYS = [1, 3, 7, 14, 30] as const;
+
+/** Stored as "count,nextAt" (ms). Anything unreadable counts as never dismissed. */
+export function parseBackoff(stored: string | null): { count: number; nextAt: number } {
+  const [c, n] = (stored ?? "").split(",").map(Number);
+  return Number.isInteger(c) && c > 0 && Number.isFinite(n)
+    ? { count: c, nextAt: n }
+    : { count: 0, nextAt: 0 };
+}
+
+/** The stored value after one more dismissal at `now`. */
+export function snooze(stored: string | null, now: number = Date.now()): string {
+  const count = parseBackoff(stored).count + 1;
+  const days = BACKOFF_DAYS[Math.min(count, BACKOFF_DAYS.length) - 1];
+  return `${count},${now + days * DAY}`;
+}
+
+export function isSnoozed(stored: string | null, now: number = Date.now()): boolean {
+  return now < parseBackoff(stored).nextAt;
+}
+
 export const VISITS_KEY = "sondoq:visit-days";
+export const SESSIONS_KEY = "sondoq:sessions";
 export const ENGAGED_KEY = "sondoq:engaged";
 
 /** Adds today (YYYY-MM-DD) to the stored list of visit days; keeps the last 5. */
@@ -85,17 +111,25 @@ export function recordVisitDay(stored: string | null, today: string): string {
 }
 
 /**
- * Invite to install only when it means something: from the second day of use, or right after a
- * meaningful action (found one's own name, opened a receipt…), never on the very first page, and
- * not for two weeks after «ليس الآن».
+ * Invite to install only when it means something: from the second visit (another session or
+ * another day), or right after a meaningful action; never on the very first page; not while
+ * snoozed.
  */
 export function shouldInvite(o: {
   visitDays: string | null;
+  sessions?: number;
   engaged: boolean;
-  dismissedAt: string | null;
+  backoff?: string | null;
+  dismissedAt?: string | null;
   now?: number;
 }): boolean {
-  if (isDismissed(o.dismissedAt, o.now)) return false;
+  if (isSnoozed(o.backoff ?? null, o.now) || isDismissed(o.dismissedAt ?? null, o.now))
+    return false;
   const days = (o.visitDays ?? "").split(",").filter(Boolean).length;
-  return o.engaged || days >= 2;
+  return o.engaged || days >= 2 || (o.sessions ?? 0) >= 2;
+}
+
+/** Paths where the banner never shows (someone checking a receipt, signing in). */
+export function bannerAllowedOn(pathname: string): boolean {
+  return !/^\/(r|login|auth)(\/|$)/.test(pathname);
 }

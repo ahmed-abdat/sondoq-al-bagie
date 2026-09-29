@@ -43,6 +43,7 @@ async function chromeOffersInstall(page: Page, outcome: "accepted" | "dismissed"
   }, outcome);
 }
 
+/** The install banner above the bottom nav. */
 const card = (page: Page) => page.getByRole("region", { name: "تثبيت التطبيق" });
 
 test("the event caught before the app shell exists opens Chrome's dialog on tap", async ({
@@ -117,5 +118,104 @@ test("thanks the member once the app is installed", async ({ page }) => {
   await page.waitForLoadState("networkidle");
   await page.evaluate(() => window.dispatchEvent(new Event("appinstalled")));
   await expect(page.getByText("تم تثبيت التطبيق. تجده الآن على الشاشة الرئيسية.")).toBeVisible();
+  await expect(card(page)).toHaveCount(0);
+});
+
+test.describe("the banner comes back with growing gaps", () => {
+  const T0 = new Date("2026-09-28T10:00:00Z").getTime();
+  const HOUR = 60 * 60 * 1000;
+
+  test("«✕» hides it; still hidden 12 hours later, back after a day", async ({ context }) => {
+    const open = async (at: number) => {
+      const page = await context.newPage(); // a new tab = a new session
+      await page.clock.install({ time: at });
+      await returning(page);
+      await page.goto("/");
+      await page.waitForLoadState("networkidle");
+      return page;
+    };
+    const first = await open(T0);
+    await expect(card(first)).toBeVisible();
+    await card(first).getByRole("button", { name: "ليس الآن" }).click();
+    await expect(card(first)).toHaveCount(0);
+    const [count, nextAt] = (
+      (await first.evaluate(() => localStorage.getItem("sondoq:install-backoff"))) ?? ""
+    )
+      .split(",")
+      .map(Number);
+    expect(count).toBe(1);
+    expect(Math.abs(nextAt - (T0 + 24 * HOUR))).toBeLessThan(60_000); // one day after the tap
+
+    await expect(card(await open(T0 + 12 * HOUR))).toHaveCount(0);
+    await expect(card(await open(T0 + 25 * HOUR))).toBeVisible();
+  });
+
+  test("«ليس الآن» in the steps sheet snoozes it too", async ({ page }) => {
+    await returning(page);
+    await page.goto("/");
+    await card(page).getByRole("button", { name: "تثبيت" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "ليس الآن" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(card(page)).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem("sondoq:install-backoff"))).toMatch(
+      /^1,\d+$/,
+    );
+  });
+});
+
+test("once per session: not again after a reload", async ({ page }) => {
+  await returning(page);
+  await page.goto("/");
+  await expect(card(page)).toBeVisible();
+  await page.reload();
+  await page.waitForLoadState("networkidle");
+  await expect(card(page)).toHaveCount(0);
+});
+
+test("steps aside while the member types", async ({ page }) => {
+  await returning(page);
+  await page.goto("/");
+  await expect(card(page)).toBeVisible();
+  await page.getByPlaceholder("اكتب اسمك أو رقمك").focus();
+  await expect(card(page)).toHaveCount(0);
+  await page.getByPlaceholder("اكتب اسمك أو رقمك").blur();
+  await expect(card(page)).toBeVisible();
+});
+
+test("sits above the bottom nav without covering it", async ({ page }) => {
+  await returning(page);
+  await page.goto("/");
+  const nav = await page.locator(".bq-bnav").boundingBox();
+  // once the slide-in has finished
+  await expect
+    .poll(async () => {
+      const bar = await card(page).boundingBox();
+      return bar ? bar.y + bar.height : Infinity;
+    })
+    .toBeLessThanOrEqual(nav!.y);
+  // and the page keeps room for it at the bottom
+  expect(await page.evaluate(() => document.body.style.paddingBottom)).toMatch(/^\d+px$/);
+});
+
+test("installed app: never", async ({ page }) => {
+  await returning(page);
+  await page.addInitScript(() => {
+    const real = window.matchMedia.bind(window);
+    window.matchMedia = (q: string) =>
+      q.includes("display-mode: standalone")
+        ? ({
+            matches: true,
+            media: q,
+            onchange: null,
+            addEventListener() {},
+            removeEventListener() {},
+            addListener() {},
+            removeListener() {},
+            dispatchEvent: () => false,
+          } as MediaQueryList)
+        : real(q);
+  });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
   await expect(card(page)).toHaveCount(0);
 });
