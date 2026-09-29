@@ -210,7 +210,7 @@ export function PendingSlip({
             type="button"
             className="bq-btn bq-btn-soft bq-press bq-slip-one-wa"
             onClick={() => void shareReceipt(toShareable(done)!)}
-            aria-label={`أرسل وصل ${p.payerName} عبر واتساب`}
+            aria-label={`شارك وصل ${p.payerName}`}
           >
             {/* icon plus a word (audit C19) */}
             {I.wa(20)} الوصل

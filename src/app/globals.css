@@ -1284,7 +1284,7 @@
   }
   .bq-facts {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px 20px;
     margin-block: 24px;
   }
@@ -5882,6 +5882,17 @@
   .bq-facts dd,
   .bq-facts dt {
     min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+@layer components {
+  /* QA pass 6: /committee/account at 200% text: facts and long logins wrap in their column */
+  .bq-facts > div {
+    min-width: 0;
+  }
+  .bq-facts .bq-num {
+    white-space: normal;
     overflow-wrap: anywhere;
   }
 }
