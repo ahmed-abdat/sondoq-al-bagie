@@ -165,3 +165,39 @@ test("summary image alone goes to the share sheet as a 1080×1350 PNG", async ({
   expect(f.name).toMatch(/^ملخص-صندوق-الرابطة-\d{4}-\d{2}\.png$/);
   expect(f.size).toBeGreaterThan(30_000);
 });
+
+test("members grid: ● / ○ legend and a ✓ «paid up to now», no status text", async ({ page }) => {
+  await page.goto("/report");
+  const legend = page.locator(".rp-legend");
+  await expect(legend).toContainText("غير مدفوع");
+  await expect(legend).toContainText(/دفع حتى \S+/);
+  await expect(legend).not.toContainText("متأخر");
+  const rows = page.locator(".rp-members li");
+  await expect(rows.first().locator(".rp-dots .rp-d")).toHaveCount(12);
+  for (const list of await page.locator(".rp-members").all())
+    await expect(list).not.toContainText(/منتظم|متأخر/);
+  expect(await page.locator(".rp-ok svg").count()).toBeGreaterThan(0);
+});
+
+test("«✓ يعني» in the share sheet: default up to now, the choice is kept, images follow it", async ({
+  page,
+}) => {
+  await shareSheet(page);
+  await openSheet(page);
+  const now = page.getByRole("radio", { name: "دفع حتى الآن" });
+  const year = page.getByRole("radio", { name: "دفع السنة كاملة" });
+  await expect(now).toHaveAttribute("aria-checked", "true");
+  await year.click();
+  await expect(year).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".rp-check-k")).toContainText("✓ دفع السنة كاملة");
+
+  await page.getByRole("button", { name: /صور التقرير/ }).click();
+  await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).not.toHaveLength(0);
+
+  await page.reload();
+  await page.getByRole("button", { name: "مشاركة التقرير" }).click();
+  await expect(page.getByRole("radio", { name: "دفع السنة كاملة" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+});
