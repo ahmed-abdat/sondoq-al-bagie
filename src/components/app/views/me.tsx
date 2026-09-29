@@ -21,13 +21,17 @@ import type { SendAgain } from "../record";
 import { Num } from "../num";
 import { verifyPath } from "../receipt-model";
 import { SITE_URL } from "../site";
+import { askLinkHref } from "../money";
 
 export function MeView({
   home,
   history: server,
+  whatsapp = null,
 }: {
   home: MemberHome | null;
   history: MemberHistoryItem[];
+  /** the fund's WhatsApp: «اطلب رابطًا جديدًا في واتساب» when this phone has no link */
+  whatsapp?: string | null;
 }) {
   const demo = useMemberDemo();
   const [again, setAgain] = useState<{ key: string; rows: SendAgain } | null>(null);
@@ -41,9 +45,23 @@ export function MeView({
           <div className="bq-empty">
             <span className="bq-disc">{I.lock(22)}</span>
             <p className="bq-empty-t">هذه الصفحة لمن فتح رابطه الخاص</p>
-            <p className="bq-hint">اطلب رابطك من اللجنة وافتحه على هذا الهاتف لترى دفعاتك.</p>
+            <p className="bq-hint">افتح رسالة اللجنة في واتساب، ثم اضغط الرابط.</p>
           </div>
           <MemberLinkPaste />
+          {askLinkHref(whatsapp) && (
+            <div className="bq-small-top">
+              <p className="bq-hint">ليس معك رسالة اللجنة؟</p>
+              <a
+                className="bq-btn bq-btn-soft bq-btn-lg bq-press"
+                href={askLinkHref(whatsapp)!}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {I.wa(20)} اطلب رابطًا جديدًا في واتساب
+              </a>
+              <p className="bq-hint">افتح الرابط الجديد على هذا الهاتف.</p>
+            </div>
+          )}
           <Link className="bq-link bq-press" href="/" transitionTypes={["tab-back"]}>
             إلى الصفحة الرئيسية {I.go(18)}
           </Link>

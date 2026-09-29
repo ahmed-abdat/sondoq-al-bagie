@@ -98,7 +98,10 @@ export function Amount({
   return <Num className={className}>{`${sign}${fmt(v)}`}</Num>;
 }
 
-const ASK_TEXT = "السلام عليكم، أريد رابطي الخاص في صندوق الرابطة.";
+const ASK_TEXT = "السلام عليكم، أريد رابطًا جديدًا لصندوق الرابطة.";
+/** «اطلب رابطًا جديدًا في واتساب»: a message to the fund's WhatsApp (null without a number). */
+export const askLinkHref = (whatsapp?: string | null) =>
+  whatsapp ? waLink(whatsapp, ASK_TEXT) : null;
 const HINT = "الأرقام للأعضاء واللجنة. افتح رابطك الخاص لتراها.";
 
 /** «لديك رابط؟»: what to do, the paste box (installed app), and «اطلب رابطك». */
@@ -109,7 +112,7 @@ function LinkHelp({
   dlg: React.RefObject<HTMLDialogElement | null>;
   whatsapp?: string | null;
 }) {
-  const ask = whatsapp ? waLink(whatsapp, ASK_TEXT) : null;
+  const ask = askLinkHref(whatsapp);
   return (
     <dialog ref={dlg} className="bq-mdlg" aria-labelledby="bq-mdlg-h">
       <h2 id="bq-mdlg-h">افتح رابطك الخاص</h2>
@@ -125,7 +128,7 @@ function LinkHelp({
           target="_blank"
           rel="noreferrer"
         >
-          {I.wa(20)} ليس لديك رابط؟ اطلبه من اللجنة
+          {I.wa(20)} اطلب رابطًا جديدًا في واتساب
         </a>
       )}
       <button
@@ -179,7 +182,7 @@ export function MoneyCard({
   children?: ReactNode;
 }) {
   const dlg = useRef<HTMLDialogElement>(null);
-  const ask = whatsapp ? waLink(whatsapp, ASK_TEXT) : null;
+  const ask = askLinkHref(whatsapp);
   return (
     <div className="bq-money-card">
       <span className="bq-money-key" aria-hidden="true">
@@ -198,7 +201,7 @@ export function MoneyCard({
           </button>
           {ask && (
             <a className="bq-link bq-press" href={ask} target="_blank" rel="noreferrer">
-              {I.wa(18)} اطلب رابطك
+              {I.wa(18)} اطلب رابطًا جديدًا
             </a>
           )}
         </div>

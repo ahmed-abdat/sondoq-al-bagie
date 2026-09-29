@@ -7,7 +7,7 @@ import * as src from "./source";
 
 export async function heroData(note?: HeroData["note"]): Promise<HeroData> {
   // amount-free (money privacy): the figures arrive in the browser for members and the committee
-  const s = await src.fundStats();
+  const [s, info] = await Promise.all([src.fundStats(), src.fundInfo()]);
   const term =
     s.termNumber && s.termStartedOn
       ? // public pages: no committee word «الدورة» (audit V7)
@@ -15,6 +15,7 @@ export async function heroData(note?: HeroData["note"]): Promise<HeroData> {
       : null;
   return {
     term,
+    whatsapp: info.whatsappContact,
     note:
       note ??
       (s.lastActivityAt

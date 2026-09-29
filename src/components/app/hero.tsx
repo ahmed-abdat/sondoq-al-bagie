@@ -13,6 +13,8 @@ export type HeroData = {
   note: ReactNode;
   /** «منذ 1 يناير 2026» */
   term?: string | null;
+  /** the fund's WhatsApp, for «اطلب رابطًا جديدًا في واتساب» in the hint */
+  whatsapp?: string | null;
 };
 
 /**
@@ -68,7 +70,7 @@ export function Hero({ data, variant }: { data: HeroData; variant: "band" | "pan
           </div>
         </dl>
       )}
-      <MoneyHint tone="green" />
+      <MoneyHint tone="green" whatsapp={data.whatsapp} />
       {!band && (
         <p className="bq-hero-t">
           {data.note}

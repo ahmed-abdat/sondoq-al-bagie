@@ -8,10 +8,14 @@ export const metadata: Metadata = { title: "دفعاتي · صندوق الرا�
 
 // Private: read from the member cookie on every request, never cached or saved offline.
 export default async function MePage() {
-  const [home, history] = await Promise.all([memberHome(), src.memberHistory()]);
+  const [home, history, info] = await Promise.all([
+    memberHome(),
+    src.memberHistory(),
+    src.fundInfo(),
+  ]);
   return (
     <Tab>
-      <MeView home={home} history={home ? history : []} />
+      <MeView home={home} history={home ? history : []} whatsapp={info.whatsappContact} />
     </Tab>
   );
 }
