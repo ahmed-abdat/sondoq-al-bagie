@@ -5658,3 +5658,96 @@
     border-block-start: 1px solid var(--n2);
   }
 }
+
+/* ───── donations, owner pick «a» (r31): wallet steps first, a small flat progress box ───── */
+@layer components {
+  .bq-give {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .bq-give-step {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .bq-give-t {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 1.6;
+    margin-block-end: 8px;
+  }
+  .bq-give-wallets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .bq-give-wallet {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 84px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+    background: var(--n1);
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 2px transparent;
+  }
+  .bq-give-wallet[aria-checked="true"] {
+    background: var(--g1);
+    box-shadow: inset 0 0 0 2px var(--g8);
+  }
+  .bq-give-num {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--r-md);
+    background: var(--n1);
+  }
+  .bq-give-n {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .bq-give-trust {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-block-start: 8px;
+  }
+  .bq-give-trust svg {
+    flex: none;
+    margin-block-start: 3px;
+  }
+  .bq-give-prog {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-radius: var(--r-lg);
+    background: var(--g0);
+  }
+  .bq-give-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .bq-give-sum {
+    font-family: var(--font-display);
+    font-size: 22px;
+  }
+  .bq-give-sum small {
+    font-size: 14px;
+    color: var(--muted);
+  }
+}

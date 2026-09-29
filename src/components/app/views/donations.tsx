@@ -1,14 +1,32 @@
 "use client";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { CampaignPublic, ContributorPublic, FundAccount } from "@/lib/data/types";
 import { waLink } from "@/lib/whatsapp";
-import { Track } from "../bits";
+import { METHOD_LABELS } from "@/lib/methods";
+import { MethodBadge, Track } from "../bits";
 import { dayWords, fmt } from "../derive";
 import { I } from "../icons";
 import { Num } from "../num";
-import { PayTo } from "../pay-to";
+import { radioKeys, radioTab } from "../radio-keys";
+import { useSnack } from "../shell";
 import { ConfirmedMark } from "../mark";
-import { Amount, Dots, useMoney } from "../money";
+import { Amount, Dots, MoneyHint, useMoney } from "../money";
+
+const AMOUNTS = [500, 1000, 2000, 5000];
+
+function Step({ n, t, children }: { n: number; t: string; children: ReactNode }) {
+  return (
+    <li className="bq-give-step">
+      <span className="bq-step-n">
+        <Num>{n}</Num>
+      </span>
+      <div className="bq-grow-1">
+        <p className="bq-give-t">{t}</p>
+        {children}
+      </div>
+    </li>
+  );
+}
 
 export function DonationsView({
   campaign,
@@ -31,10 +49,16 @@ export function DonationsView({
   const target = cm?.targetAmount ?? 0;
   const pct = cm && target > 0 ? Math.min(100, Math.round((cm.collected / target) * 100)) : null;
   const shown = all ? contributions : contributions.slice(0, 4);
+  const say = useSnack();
+  const live = accounts.filter((a) => a.active);
+  const [accId, setAccId] = useState<string | null>(null);
+  const acc = live.find((a) => a.id === accId) ?? live[0] ?? null;
+  const [amount, setAmount] = useState<number | "other" | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
   const wa = c
     ? waLink(
         whatsapp,
-        `السلام عليكم، أرسلت مساهمة لحملة «${c.title}». هذه صورة التحويل.\nالاسم: \nالمبلغ: `,
+        `السلام عليكم، أرسلت مساهمة لحملة «${c.title}»${acc ? ` عبر ${METHOD_LABELS[acc.method]}` : ""}. هذه صورة التحويل.\nالاسم: \nالمبلغ: ${typeof amount === "number" ? `${fmt(amount)} أوقية` : ""}`,
       )
     : null;
   return (
@@ -54,11 +78,7 @@ export function DonationsView({
         </section>
       ) : (
         <>
-          <section
-            className="bq-sec bq-sec-first bq-rv"
-            data-rv="don-camp"
-            aria-labelledby="bq-camp-h"
-          >
+          <section className="bq-sec bq-sec-first" aria-labelledby="bq-camp-h">
             <header className="bq-camp-head">
               <h2 id="bq-camp-h">{c.title}</h2>
               {c.purpose && <p className="bq-lead">{c.purpose}</p>}
@@ -68,91 +88,109 @@ export function DonationsView({
                 </span>
               )}
             </header>
-            {!cm ? (
-              <p className="bq-big bq-camp-amt">
-                <Dots /> <span>أوقية</span>
-              </p>
-            ) : cm.collected > 0 ? (
-              <>
-                <p className="bq-big bq-camp-amt">
-                  <Num>{fmt(cm.collected)}</Num> <span>أوقية</span>
-                </p>
-                {target > 0 && (
-                  <p className="bq-of">
-                    جُمعت من هدف <Num className="bq-strong">{fmt(target)}</Num> أوقية
-                  </p>
-                )}
-                {pct !== null && (
-                  <div className="bq-track-row">
-                    <Track f={pct / 100} label={`${pct}% من الهدف`} />
-                    <Num className="bq-track-p">{pct}%</Num>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="bq-camp-none">
-                لم تُجمع مساهمات بعد.
-                {target > 0 && (
-                  <>
-                    {" "}
-                    الهدف <Num className="bq-strong">{fmt(target)}</Num> أوقية.
-                  </>
-                )}
-              </p>
-            )}
-            <ul className="bq-facts3">
-              <li>
-                {I.people(20)}
-                <span className="bq-f3-k">المساهمون</span>
-                <span className="bq-f3-v">
-                  <Num>{c.participantsPaid}</Num>
-                </span>
-              </li>
-              {!!cm && target > 0 && cm.collected > 0 && (
-                <li>
-                  {I.coins(20)}
-                  <span className="bq-f3-k">الباقي</span>
-                  <span className="bq-f3-v">
-                    <Num>{fmt(Math.max(0, target - cm.collected))}</Num>
-                  </span>
-                </li>
-              )}
-              {c.deadline && (
-                <li>
-                  {I.calendar(20)}
-                  <span className="bq-f3-k">ينتهي</span>
-                  <span className="bq-f3-v">{dayWords(c.deadline)}</span>
-                </li>
-              )}
-            </ul>
-            <p className="bq-hint">يمكن لكل الأعضاء وأهل القرية المساهمة.</p>
           </section>
 
-          <section className="bq-sec bq-rv" data-rv="don-how" aria-labelledby="bq-how-h">
+          {/* owner pick «a» (r31): the way to give first, as wallet steps; the figures after */}
+          <section className="bq-sec" aria-labelledby="bq-how-h">
             <h2 id="bq-how-h">كيف أساهم؟</h2>
-            {accounts.some((x) => x.active) ? (
-              <ol className="bq-steps">
-                <li>
-                  <span className="bq-step-n">
-                    <Num>1</Num>
-                  </span>
-                  <div className="bq-grow-1">
-                    <p>أرسل مساهمتك إلى أحد أرقام الصندوق.</p>
-                    <PayTo accounts={accounts} />
+            {live.length ? (
+              <ol className="bq-give">
+                <Step n={1} t="اختر محفظتك">
+                  <div
+                    className="bq-give-wallets"
+                    role="radiogroup"
+                    aria-label="المحفظة"
+                    onKeyDown={radioKeys}
+                  >
+                    {live.map((a, i) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={acc?.id === a.id}
+                        tabIndex={radioTab(acc?.id === a.id, i, !!acc)}
+                        className="bq-give-wallet bq-press"
+                        onClick={() => setAccId(a.id)}
+                      >
+                        <MethodBadge method={a.method} size={40} label={false} decorative />
+                        <span>{METHOD_LABELS[a.method]}</span>
+                      </button>
+                    ))}
                   </div>
-                </li>
-                <li>
-                  <span className="bq-step-n">
-                    <Num>2</Num>
-                  </span>
-                  <p>أرسل صورة التحويل في مجموعة الواتساب أو لأحد أعضاء اللجنة.</p>
-                </li>
-                <li>
-                  <span className="bq-step-n">
-                    <Num>3</Num>
-                  </span>
-                  <p>يؤكدها أمين الصندوق ويظهر اسمك هنا.</p>
-                </li>
+                </Step>
+                <Step n={2} t="حوّل إلى هذا الرقم">
+                  {acc && (
+                    <div className="bq-give-num">
+                      <span className="bq-row-m">
+                        <bdi dir="ltr" className="bq-num bq-give-n">
+                          {acc.accountNumber}
+                        </bdi>
+                        <span className="bq-row-s">باسم {acc.holderName}</span>
+                      </span>
+                      <button
+                        type="button"
+                        className="bq-copy bq-press"
+                        aria-label={`نسخ رقم ${METHOD_LABELS[acc.method]}`}
+                        onClick={() => {
+                          navigator.clipboard?.writeText(acc.accountNumber).catch(() => {});
+                          setCopied(acc.id);
+                          say(`نُسخ رقم ${METHOD_LABELS[acc.method]}`);
+                        }}
+                      >
+                        {copied === acc.id ? I.check(18) : I.copy(18)}{" "}
+                        {copied === acc.id ? "نُسخ" : "نسخ"}
+                      </button>
+                    </div>
+                  )}
+                </Step>
+                <Step n={3} t="كم تساهم؟ (أوقية)">
+                  <div
+                    className="bq-chips"
+                    role="radiogroup"
+                    aria-label="المبلغ"
+                    onKeyDown={radioKeys}
+                  >
+                    {AMOUNTS.map((n, i) => (
+                      <button
+                        key={n}
+                        type="button"
+                        role="radio"
+                        aria-checked={amount === n}
+                        tabIndex={radioTab(amount === n, i, amount !== null)}
+                        className="bq-chip bq-press"
+                        onClick={() => setAmount(n)}
+                      >
+                        <Num>{fmt(n)}</Num>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={amount === "other"}
+                      tabIndex={radioTab(amount === "other", AMOUNTS.length, amount !== null)}
+                      className="bq-chip bq-press"
+                      onClick={() => setAmount("other")}
+                    >
+                      مبلغ آخر
+                    </button>
+                  </div>
+                </Step>
+                <Step n={4} t="أرسل صورة التحويل للجنة">
+                  {wa && (
+                    <a
+                      className="bq-btn bq-btn-primary bq-btn-lg bq-press"
+                      href={wa}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {I.wa(22)} أرسل صورة التحويل
+                    </a>
+                  )}
+                  <p className="bq-hint bq-give-trust">
+                    {I.lock(16)}
+                    <span>لا يرى صورتك إلا اللجنة. التطبيق لا يحوّل المال؛ التحويل من محفظتك.</span>
+                  </p>
+                </Step>
               </ol>
             ) : (
               <p className="bq-lead-body">
@@ -169,19 +207,28 @@ export function DonationsView({
                 )}
               </p>
             )}
-            {wa && (
-              <div className="bq-btn-col">
-                <a
-                  className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-                  href={wa}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {I.wa(22)} أرسل صورة التحويل عبر واتساب
-                </a>
-              </div>
-            )}
-            <p className="bq-hint bq-small-top">التطبيق لا يحوّل المال؛ التحويل من محفظتك.</p>
+          </section>
+
+          <section className="bq-sec" aria-label="ما جُمع">
+            <div className="bq-give-prog">
+              <p className="bq-give-row">
+                <span className="bq-row-s">جُمع حتى الآن</span>
+                <strong className="bq-give-sum">
+                  {cm ? <Num>{fmt(cm.collected)}</Num> : <Dots />} <small>أوقية</small>
+                </strong>
+              </p>
+              {pct !== null && <Track f={pct / 100} label={`${pct}% من الهدف`} />}
+              <p className="bq-row-s">
+                {pct !== null && (
+                  <>
+                    <Num>{pct}%</Num> من هدف <Num>{fmt(target)}</Num> أوقية ·{" "}
+                  </>
+                )}
+                <Num>{c.participantsPaid}</Num> مساهمًا
+                {c.deadline && <> · حتى {dayWords(c.deadline)}</>}
+              </p>
+              <MoneyHint whatsapp={whatsapp} />
+            </div>
           </section>
 
           <section className="bq-sec bq-rv" data-rv="don-last" aria-labelledby="bq-last-h">
