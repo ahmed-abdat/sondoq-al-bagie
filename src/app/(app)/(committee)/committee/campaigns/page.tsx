@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "حملات التبرع · اللج�
 
 export default async function Campaigns() {
   await src.requireCommittee("/committee/campaigns", { roles: src.MANAGERS });
-  const [campaigns, pending] = await Promise.all([src.campaigns(), src.pendingPayments()]);
+  const [campaigns, pending] = await Promise.all([src.moneyCampaigns(), src.pendingPayments()]);
   return (
     <Tab>
       <CampaignsPage campaigns={campaigns} pending={pending} />

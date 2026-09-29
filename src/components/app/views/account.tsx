@@ -3,6 +3,7 @@
 // their own membership; notifications; sign out (here or everywhere). Settings stay fund-only.
 // Linking to one's own membership happens once; after that only the admin changes it.
 import { setCanceller, setCommitteeViewer } from "../viewer";
+import { clearMoney } from "../money";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
@@ -224,6 +225,7 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
                   // nothing of the committee stays on this phone
                   setCommitteeViewer(false);
                   setCanceller(null);
+                  clearMoney();
                   try {
                     await createIdbPersister().removeClient();
                   } catch {

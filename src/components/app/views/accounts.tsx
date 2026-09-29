@@ -2,14 +2,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { InstallEntry } from "@/components/providers";
-import type {
-  ExpenseCategory,
-  FundAccount,
-  FundSummary,
-  MonthlyCollection,
-  Term,
-} from "@/lib/data/types";
-import { categoryLabel, dayWords, fmt } from "../derive";
+import type { FundAccount, FundSummary, Term, TermInfo } from "@/lib/data/types";
+import { categoryLabel, dayWords, fmt, MONTHS } from "../derive";
 import dynamic from "next/dynamic";
 import { EntryRow } from "../entry-row";
 
@@ -18,6 +12,8 @@ const EntrySheetBody = dynamic(() => import("../entries").then((m) => m.EntryShe
   ssr: false,
 });
 import { I } from "../icons";
+import { Amount, Dots, MoneyCard, useMoney } from "../money";
+import { Track } from "../bits";
 import { MonthRail } from "../month-rail";
 import { Num, Roll } from "../num";
 import { PayTo } from "../pay-to";
@@ -28,37 +24,48 @@ import type { LedgerEntry } from "../types";
 const RAMP = ["var(--g8)", "var(--g7)", "var(--g5)", "var(--n3)"];
 
 export function AccountsView({
-  summary,
   accounts,
-  monthly,
   payers,
+  membersActive,
   currentMonth,
-  spentBy,
-  ledger,
+  year,
+  ledger: publicLedger,
   term,
-  pastTerms,
+  pastTerms: publicTerms,
+  whatsapp,
 }: {
-  summary: FundSummary;
   accounts: FundAccount[];
-  monthly: MonthlyCollection[];
+  /** members who paid each month (index 0 = January) */
   payers: number[];
+  membersActive: number;
   currentMonth: number;
-  /** this year's spending per category, largest first */
-  spentBy: { category: ExpenseCategory; total: number }[];
+  year: number;
+  /** amount-free (money privacy); the figures come from useMoney() */
   ledger: LedgerEntry[];
   /** «منذ 1 يناير 2026» */
   term: string | null;
-  pastTerms: Term[];
+  pastTerms: TermInfo[];
+  whatsapp: string | null;
 }) {
+  const m = useMoney();
+  const ledger = m ? m.ledger : publicLedger;
   const [f, setF] = useState<"all" | "in" | "out">("all");
-  const termYear = monthly[0]?.year ?? new Date().getFullYear();
   const sheet = useSheet<LedgerEntry>();
+  const spentBy = m
+    ? m.expenseTotals
+        .filter((t) => t.year === year && t.total > 0)
+        .sort((a, b) => b.total - a.total)
+        .map(({ category, total }) => ({ category, total }))
+    : [];
   const color = Object.fromEntries(spentBy.map((x, i) => [x.category, RAMP[i] ?? "var(--n3)"]));
   const spent = spentBy.reduce((s, x) => s + x.total, 0);
   const shown = ledger.filter(
     (e) => f === "all" || (f === "out" ? e.kind === "expense" : e.kind !== "expense"),
   );
   const expenses = ledger.filter((e) => e.kind === "expense");
+  const pastTerms: (TermInfo | Term)[] = m
+    ? m.terms.filter((t) => t.endedOn)
+    : publicTerms.filter((t) => t.endedOn);
   const open = (e: LedgerEntry, el: HTMLElement) => sheet.open(e, e.receipt ? el : null, "bq-rc");
   const s = sheet.state;
   return (
@@ -75,79 +82,19 @@ export function AccountsView({
         aria-labelledby="bq-sum-h"
       >
         <h2 id="bq-sum-h">كيف حُسب الرصيد؟</h2>
-        <dl className="bq-sum">
-          <div>
-            <dt>
-              <span className="bq-op" aria-hidden="true" />
-              <span>
-                رصيد مُرحَّل من السنوات السابقة
-                <span className="bq-sum-sub">ما كان في الصندوق قبل بداية {termYear}</span>
-              </span>
-            </dt>
-            <dd>
-              <Num>{fmt(summary.openingBalance)}</Num>
-            </dd>
-          </div>
-          <div>
-            <dt>
-              <span className="bq-op" aria-hidden="true">
-                +
-              </span>
-              جُمع من الرسوم الشهرية
-            </dt>
-            <dd>
-              <Roll value={summary.moneyIn} />
-            </dd>
-          </div>
-          {summary.transfersIn > 0 && (
-            <div>
-              <dt>
-                <span className="bq-op" aria-hidden="true">
-                  +
-                </span>
-                حُوّل من الحملات
-              </dt>
-              <dd>
-                <Num>{fmt(summary.transfersIn)}</Num>
-              </dd>
+        {m ? (
+          <SumList s={m.summary} year={year} />
+        ) : (
+          <>
+            {/* strangers: the card (variant C); a maybe-allowed browser sees dots until it loads */}
+            <div className="bq-money-stranger">
+              <MoneyCard whatsapp={whatsapp} />
             </div>
-          )}
-          <div>
-            <dt>
-              <span className="bq-op" aria-hidden="true">
-                −
-              </span>
-              صُرف على الأنشطة
-            </dt>
-            <dd>
-              <Num>{fmt(summary.moneyOut)}</Num>
-            </dd>
-          </div>
-          {summary.adjustments !== 0 && (
-            <div>
-              <dt>
-                <span className="bq-op" aria-hidden="true">
-                  {summary.adjustments > 0 ? "+" : "−"}
-                </span>
-                فرق عند التسليم
-              </dt>
-              <dd>
-                <Num>{fmt(Math.abs(summary.adjustments))}</Num>
-              </dd>
+            <div className="bq-money-wait">
+              <SumList s={null} year={year} />
             </div>
-          )}
-          <div className="is-total">
-            <dt>
-              <span className="bq-op" aria-hidden="true">
-                =
-              </span>
-              في الصندوق الآن
-            </dt>
-            <dd>
-              <Roll value={summary.balance} /> <span className="bq-unit">أوقية</span>
-            </dd>
-          </div>
-        </dl>
+          </>
+        )}
         <p className="bq-hint">تبرعات الحملات تُحفظ في حسابها الخاص، ولا تدخل هنا.</p>
         {/* one link: sharing lives on the report itself (audit V9) */}
         <Link href="/report" prefetch={false} className="bq-link bq-press">
@@ -162,31 +109,43 @@ export function AccountsView({
       </section>
 
       <section className="bq-sec bq-rv" data-rv="acc-month" aria-labelledby="bq-mon-h">
-        <h2 id="bq-mon-h">ما جُمع كل شهر</h2>
-        <MonthRail months={monthly} payers={payers} current={currentMonth} />
+        {m ? (
+          <>
+            <h2 id="bq-mon-h">ما جُمع كل شهر</h2>
+            <MonthRail months={m.monthly} payers={payers} current={currentMonth} />
+          </>
+        ) : (
+          <>
+            <h2 id="bq-mon-h">من دفع كل شهر</h2>
+            <PayersList payers={payers} total={membersActive} current={currentMonth} />
+          </>
+        )}
       </section>
 
-      {spent > 0 && (
+      {(m ? spent > 0 : expenses.length > 0) && (
         <section className="bq-sec bq-rv" data-rv="acc-where" aria-labelledby="bq-where-h">
           <h2 id="bq-where-h">المصاريف</h2>
           <>
             <p className="bq-lead">
-              صُرف هذا العام <Num className="bq-strong">{fmt(spent)}</Num> أوقية على:
+              صُرف هذا العام <Amount v={m ? spent : null} className="bq-strong" /> أوقية
+              {m ? " على:" : "."}
             </p>
-            <div
-              className="bq-stack bq-grow"
-              role="img"
-              aria-label={spentBy
-                .map((x) => `${categoryLabel(x.category)} ${fmt(x.total)}`)
-                .join("، ")}
-            >
-              {spentBy.map((x) => (
-                <span
-                  key={x.category}
-                  style={{ flexGrow: x.total, background: color[x.category] }}
-                />
-              ))}
-            </div>
+            {m && (
+              <div
+                className="bq-stack bq-grow"
+                role="img"
+                aria-label={spentBy
+                  .map((x) => `${categoryLabel(x.category)} ${fmt(x.total)}`)
+                  .join("، ")}
+              >
+                {spentBy.map((x) => (
+                  <span
+                    key={x.category}
+                    style={{ flexGrow: x.total, background: color[x.category] }}
+                  />
+                ))}
+              </div>
+            )}
             <ul className="bq-list">
               {expenses.map((e) => (
                 <li key={e.id}>
@@ -207,7 +166,7 @@ export function AccountsView({
                       </span>
                     </span>
                     <span className="bq-row-e">
-                      <Num className="bq-amt">{`−${fmt(e.amount)}`}</Num>
+                      <Amount v={e.amount} sign="−" className="bq-amt" />
                     </span>
                   </button>
                 </li>
@@ -242,25 +201,27 @@ export function AccountsView({
                         </>
                       ) : null}
                     </span>
-                    {/* plain words, no committee jargon (audit V8) */}
-                    <span className="bq-row-s">
-                      جُمع <Num>{fmt(t.collected)}</Num> · صُرف <Num>{fmt(t.spent)}</Num>
-                      {t.closingBalance !== null ? (
-                        <>
-                          {" "}
-                          · سُلّم للجنة الجديدة <Num>{fmt(t.closingBalance)}</Num> أوقية
-                          {t.adjustment ? (
-                            <>
-                              {" "}
-                              ({t.adjustment > 0 ? "زيادة" : "نقص"}{" "}
-                              <Num>{fmt(Math.abs(t.adjustment))}</Num>)
-                            </>
-                          ) : null}
-                        </>
-                      ) : (
-                        " أوقية"
-                      )}
-                    </span>
+                    {/* plain words, no committee jargon (audit V8); figures for members only */}
+                    {"collected" in t && (
+                      <span className="bq-row-s">
+                        جُمع <Num>{fmt(t.collected)}</Num> · صُرف <Num>{fmt(t.spent)}</Num>
+                        {t.closingBalance !== null ? (
+                          <>
+                            {" "}
+                            · سُلّم للجنة الجديدة <Num>{fmt(t.closingBalance)}</Num> أوقية
+                            {t.adjustment ? (
+                              <>
+                                {" "}
+                                ({t.adjustment > 0 ? "زيادة" : "نقص"}{" "}
+                                <Num>{fmt(Math.abs(t.adjustment))}</Num>)
+                              </>
+                            ) : null}
+                          </>
+                        ) : (
+                          " أوقية"
+                        )}
+                      </span>
+                    )}
                   </span>
                 </div>
               </li>
@@ -313,5 +274,112 @@ export function AccountsView({
         </Sheet>
       )}
     </>
+  );
+}
+
+/** «كيف حُسب الرصيد؟»: the figures, or the dots while a member's figures load. */
+function SumList({ s, year }: { s: FundSummary | null; year: number }) {
+  return (
+    <dl className="bq-sum">
+      <div>
+        <dt>
+          <span className="bq-op" aria-hidden="true" />
+          <span>
+            رصيد مُرحَّل من السنوات السابقة
+            <span className="bq-sum-sub">ما كان في الصندوق قبل بداية {year}</span>
+          </span>
+        </dt>
+        <dd>
+          <Amount v={s?.openingBalance} />
+        </dd>
+      </div>
+      <div>
+        <dt>
+          <span className="bq-op" aria-hidden="true">
+            +
+          </span>
+          جُمع من الرسوم الشهرية
+        </dt>
+        <dd>{s ? <Roll value={s.moneyIn} /> : <Dots />}</dd>
+      </div>
+      {!!s && s.transfersIn > 0 && (
+        <div>
+          <dt>
+            <span className="bq-op" aria-hidden="true">
+              +
+            </span>
+            حُوّل من الحملات
+          </dt>
+          <dd>
+            <Num>{fmt(s.transfersIn)}</Num>
+          </dd>
+        </div>
+      )}
+      <div>
+        <dt>
+          <span className="bq-op" aria-hidden="true">
+            −
+          </span>
+          صُرف على الأنشطة
+        </dt>
+        <dd>
+          <Amount v={s?.moneyOut} />
+        </dd>
+      </div>
+      {!!s && s.adjustments !== 0 && (
+        <div>
+          <dt>
+            <span className="bq-op" aria-hidden="true">
+              {s.adjustments > 0 ? "+" : "−"}
+            </span>
+            فرق عند التسليم
+          </dt>
+          <dd>
+            <Num>{fmt(Math.abs(s.adjustments))}</Num>
+          </dd>
+        </div>
+      )}
+      <div className="is-total">
+        <dt>
+          <span className="bq-op" aria-hidden="true">
+            =
+          </span>
+          في الصندوق الآن
+        </dt>
+        <dd>
+          {s ? <Roll value={s.balance} /> : <Dots />} <span className="bq-unit">أوقية</span>
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+/** Strangers: «من دفع كل شهر» as counts («دفع 18 من 21»), no amounts (variant C). */
+function PayersList({
+  payers,
+  total,
+  current,
+}: {
+  payers: number[];
+  total: number;
+  current: number;
+}) {
+  return (
+    <ul className="bq-payers">
+      {MONTHS.map((name, i) => (
+        <li key={name} className={i + 1 > current ? "is-future" : ""}>
+          <span className="bq-payers-t">
+            <span className="bq-payers-n">
+              {name}
+              {i + 1 === current && <span className="bq-now">هذا الشهر</span>}
+            </span>
+            <Track f={total ? payers[i] / total : 0} />
+          </span>
+          <span className="bq-payers-c">
+            دفع <Num>{payers[i]}</Num> من <Num>{total}</Num>
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -5135,3 +5135,184 @@
   }
 }
 /* ───── end Lane C «روابط الأعضاء» ───── */
+
+/* ───── money privacy (docs/MONEY-PRIVACY.md): strangers see «••• •••» (owner, variant A / C) ───── */
+@layer components {
+  .bq-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.34em;
+    height: 0.72em;
+    vertical-align: baseline;
+    direction: ltr;
+  }
+  .bq-dots > span {
+    display: inline-flex;
+    gap: 0.13em;
+  }
+  .bq-dots i {
+    width: 0.24em;
+    height: 0.24em;
+    border-radius: 999px;
+    background: currentColor;
+  }
+  .bq-dots-hero {
+    font-size: clamp(40px, 14vw, 56px);
+  }
+  .bq-dots-hero i {
+    width: 0.2em;
+    height: 0.2em;
+  }
+  .bq-hero-lock {
+    display: inline-grid;
+    margin-inline-start: 6px;
+    vertical-align: -2px;
+    opacity: 0.85;
+  }
+  .bq-money-hint {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-block: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .bq-money-hint.is-green {
+    margin-block: 18px 0;
+    padding-block-start: 14px;
+    box-shadow: inset 0 1px 0 rgba(238, 245, 239, 0.22);
+    color: var(--on-g);
+  }
+  .bq-money-hint-i {
+    flex: none;
+    margin-block-start: 2px;
+  }
+  .bq-money-hint-a {
+    display: inline;
+    padding: 10px 0;
+    margin: -10px 0;
+    color: var(--g8);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1.5px;
+  }
+  .bq-money-hint.is-green .bq-money-hint-a {
+    color: #fff;
+    text-decoration-color: var(--gold);
+  }
+  /* a maybe-allowed browser (member link, session): no hint, dots until the figures arrive */
+  html[data-money] .bq-money-hint,
+  html[data-money] .bq-money-stranger,
+  html:not([data-money]) .bq-money-wait {
+    display: none;
+  }
+  .bq-money-card {
+    display: flex;
+    gap: 14px;
+    padding: 18px;
+    border-radius: var(--r-lg);
+    background: var(--g0);
+    box-shadow: inset 0 0 0 1px var(--g1);
+    margin-block-end: 12px;
+  }
+  .bq-money-key {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--gold-tint, #f6efd9);
+    color: var(--gold-ink, #6e5410);
+  }
+  .bq-money-card-t {
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .bq-money-card .bq-hint {
+    margin-block-start: 2px;
+    line-height: 1.6;
+  }
+  .bq-money-card-acts {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 18px;
+  }
+  .bq-payers {
+    display: flex;
+    flex-direction: column;
+  }
+  .bq-payers li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 64px;
+    padding-block: 10px;
+    box-shadow: inset 0 -1px 0 var(--n2);
+  }
+  .bq-payers li:last-child {
+    box-shadow: none;
+  }
+  .bq-payers li.is-future {
+    color: var(--muted);
+  }
+  .bq-payers-t {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+  .bq-payers-t .bq-track {
+    height: 8px;
+  }
+  .bq-payers-n {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 17px;
+  }
+  .bq-payers-c {
+    flex: none;
+    font-size: 15px;
+    color: var(--muted);
+  }
+  .bq-payers-c .bq-num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--g8);
+  }
+  .bq-mdlg {
+    margin: auto auto 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 24px 20px calc(20px + var(--safe-b));
+    border: 0;
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+    background: var(--paper);
+    color: var(--ink);
+    text-align: start;
+  }
+  .bq-mdlg[open] {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bq-mdlg::backdrop {
+    background: rgba(14, 58, 27, 0.4);
+  }
+  .bq-mdlg h2 {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .bq-mdlg p {
+    margin-block: 0 8px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+}

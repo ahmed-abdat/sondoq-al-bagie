@@ -4,7 +4,7 @@ import { MethodBadge } from "./bits";
 import { fmt } from "./derive";
 import { I } from "./icons";
 import { ConfirmedMark } from "./mark";
-import { Num } from "./num";
+import { Amount } from "./money";
 import type { LedgerEntry } from "./types";
 
 export function EntryRow({
@@ -22,7 +22,11 @@ export function EntryRow({
         type="button"
         className="bq-row bq-press"
         onClick={(ev) => onOpen(e, ev.currentTarget)}
-        aria-label={`${e.title}، ${fmt(e.amount)} أوقية. افتح التفاصيل`}
+        aria-label={
+          e.amount === null
+            ? `${e.title}. افتح التفاصيل`
+            : `${e.title}، ${fmt(e.amount)} أوقية. افتح التفاصيل`
+        }
       >
         <span className={`bq-disc ${inn ? "is-in" : ""}`}>
           {e.kind === "donation" ? I.heart(22) : inn ? I.coins(22) : I.bag(22)}
@@ -38,9 +42,7 @@ export function EntryRow({
           {st?.kind === "confirmed" && <ConfirmedMark date={st.at} size={22} />}
         </span>
         <span className="bq-row-e">
-          <Num
-            className={`bq-amt ${inn ? "a-in" : ""}`}
-          >{`${inn ? "+" : "−"}${fmt(e.amount)}`}</Num>
+          <Amount v={e.amount} sign={inn ? "+" : "−"} className={`bq-amt ${inn ? "a-in" : ""}`} />
           <span className={`bq-kind ${inn ? "is-in" : ""}`}>{inn ? "دخل" : "مصروف"}</span>
         </span>
       </button>

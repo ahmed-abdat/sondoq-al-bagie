@@ -18,7 +18,7 @@ export default async function CommitteePage({ searchParams }: PageProps<"/commit
     memberCtx(),
     src.fundAccounts(),
     src.arrears(),
-    src.campaigns(),
+    src.moneyCampaigns(),
   ]);
   return (
     <Tab>

@@ -13,6 +13,7 @@ import { MemberLinkPaste } from "@/components/providers";
 import { forgetMemberOnThisDevice, MemberPushToggle } from "@/components/providers/member-push";
 import { useMemberAct, useMemberDemo } from "../member-act";
 import { forgetMemberCard, MemberCard } from "../member-card";
+import { clearMoney } from "../money";
 import { coverLines, historySections } from "../member-model";
 import type { MemberHistoryItem } from "@/lib/data/member-types";
 import type { MemberHome } from "../member-view-action";
@@ -256,6 +257,7 @@ function SignOut({ name, others }: { name: string; others: number }) {
             setBusy(false);
             if (!r.ok) return setErr(r.message);
             forgetMemberCard();
+            clearMoney();
             router.replace("/");
             router.refresh();
           }}

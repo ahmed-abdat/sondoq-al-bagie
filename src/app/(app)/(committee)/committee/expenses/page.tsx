@@ -9,8 +9,8 @@ export default async function Expenses() {
   await src.requireCommittee("/committee/expenses");
   const [expenses, campaigns, summary] = await Promise.all([
     src.expensesAdmin(),
-    src.campaigns(),
-    src.fundSummary(),
+    src.moneyCampaigns(),
+    src.committeeSummary(),
   ]);
   return (
     <Tab>

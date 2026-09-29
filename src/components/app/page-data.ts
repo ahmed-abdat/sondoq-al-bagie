@@ -6,7 +6,8 @@ import type { MemberCtx } from "./member";
 import * as src from "./source";
 
 export async function heroData(note?: HeroData["note"]): Promise<HeroData> {
-  const s = await src.fundSummary();
+  // amount-free (money privacy): the figures arrive in the browser for members and the committee
+  const s = await src.fundStats();
   const term =
     s.termNumber && s.termStartedOn
       ? // public pages: no committee word «الدورة» (audit V7)
@@ -14,9 +15,6 @@ export async function heroData(note?: HeroData["note"]): Promise<HeroData> {
       : null;
   return {
     term,
-    balance: s.balance,
-    collected: s.collectedThisYear,
-    spent: s.spentThisYear,
     note:
       note ??
       (s.lastActivityAt

@@ -2,9 +2,10 @@
 // Operations (payments, donations, expenses): list row, detail sheet, share buttons.
 import { useState } from "react";
 import { saveReceiptPng, shareReceipt } from "@/lib/share-receipt";
-import { categoryLabel, dayWords, fmt } from "./derive";
+import { categoryLabel, dayWords } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
+import { Amount } from "./money";
 import { ReceiptSheetBody } from "./cancel-payment";
 import { toShareable, type ReceiptView } from "./receipt-model";
 import type { LedgerEntry } from "./types";
@@ -59,7 +60,7 @@ export function EntrySheetBody({ e, vt }: { e: LedgerEntry; vt: boolean }) {
         <p className="bq-hint">{e.category ? categoryLabel(e.category) : "مصروف"}</p>
         <h2>{e.title}</h2>
         <p className="bq-big">
-          <Num>{fmt(e.amount)}</Num> <span>أوقية</span>
+          <Amount v={e.amount} /> <span>أوقية</span>
         </p>
         <dl className="bq-facts">
           <div>
@@ -80,7 +81,7 @@ export function EntrySheetBody({ e, vt }: { e: LedgerEntry; vt: boolean }) {
       <p className="bq-hint">{e.kind === "donation" ? "مساهمة في حملة" : "دفعة رسوم"}</p>
       <h2>{e.title}</h2>
       <p className="bq-big">
-        <Num>{fmt(e.amount)}</Num> <span>أوقية</span>
+        <Amount v={e.amount} /> <span>أوقية</span>
       </p>
       <p className="bq-hint">
         {e.sub} · {e.when}
