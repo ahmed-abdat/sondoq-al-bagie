@@ -248,7 +248,10 @@ function StrangerShare({
   wallet: FundAccount | null;
   amount: number | null;
 }) {
-  const text = `السلام عليكم، أرسلت مساهمة لحملة «${campaign.title}»${wallet ? ` عبر ${METHOD_LABELS[wallet.method]}` : ""}.${amount ? `\nالمبلغ: ${fmt(amount)} أوقية` : ""}\nالاسم: `;
+  // present/intent tense: nothing is sent until the person taps «إرسال» in WhatsApp (QA pass 5)
+  const details = `${wallet ? ` عبر ${METHOD_LABELS[wallet.method]}` : ""}.${amount ? `\nالمبلغ: ${fmt(amount)} أوقية` : ""}\nالاسم: `;
+  const text = `السلام عليكم، هذه صورة تحويل مساهمتي في «${campaign.title}»${details}`;
+  const draft = `السلام عليكم، سأرفق هنا صورة تحويل مساهمتي في «${campaign.title}»${details}`;
   const file = new File([dataUrlToBlob(picked.url)], "transfer.jpg", { type: "image/jpeg" });
   const canShare =
     typeof navigator !== "undefined" &&
@@ -270,14 +273,14 @@ function StrangerShare({
               .catch(() => {})
           }
         >
-          {I.wa(22)} شارك الصورة في واتساب
+          {I.wa(22)} شارك الصورة
         </button>
         <p className="bq-hint">
           {shared
-            ? "إن أرسلتها، تراجعها اللجنة ثم يظهر اسمك في المساهمين."
+            ? "إن أرسلتها في واتساب، تراجعها اللجنة ثم يظهر اسمك في المساهمين."
             : whatsapp
-              ? `اختر واتساب، ثم محادثة اللجنة ${whatsapp}.`
-              : "اختر واتساب، ثم محادثة أحد أعضاء اللجنة."}
+              ? `اختر واتساب ثم محادثة اللجنة ${whatsapp}، ثم اضغط إرسال.`
+              : "اختر واتساب ثم اضغط إرسال."}
         </p>
       </div>
     );
@@ -285,7 +288,7 @@ function StrangerShare({
     <div className="bq-give-send">
       <a
         className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-        href={waLink(whatsapp, text)}
+        href={waLink(whatsapp, draft)}
         target="_blank"
         rel="noopener noreferrer"
       >

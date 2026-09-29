@@ -37,9 +37,12 @@ test("stranger: the image itself goes to the share sheet when the phone can shar
   });
   await page.goto("/donations");
   await page.locator(".bq-give-proof input[type=file]").setInputFiles(SHOT);
-  await page.getByRole("button", { name: /شارك الصورة في واتساب/ }).click();
+  await page.getByRole("button", { name: /^شارك الصورة$/ }).click();
   const shared = await page.evaluate(() => (window as unknown as { __shared?: unknown }).__shared);
   expect(shared).toMatchObject({ file: true, type: "image/jpeg" });
+  // intent/present tense: nothing claims it was sent (QA pass 5)
+  expect((shared as { text: string }).text).toContain("هذه صورة تحويل مساهمتي في");
+  expect((shared as { text: string }).text).not.toContain("أرسلت");
 });
 
 test("stranger without file sharing: WhatsApp opens with the text and the page says to attach", async ({
