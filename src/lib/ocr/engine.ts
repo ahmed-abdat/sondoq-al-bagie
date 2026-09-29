@@ -2,6 +2,7 @@
 // copied from node_modules by scripts/ocr-assets.mts). The library is imported dynamically, so
 // it never enters the public bundle; the worker is shared and shut down after a minute idle.
 import type { Worker } from "tesseract.js";
+import { allowsBackgroundDownload, type NetworkInfo } from "@/lib/offline/data-saver";
 
 const IDLE_MS = 60_000;
 
@@ -36,8 +37,13 @@ function scheduleIdle() {
   idleTimer = setTimeout(() => void terminateOcr(), IDLE_MS);
 }
 
-/** Call when the record-payment screen opens: downloads (once, then cached) and starts the engine. */
+/**
+ * Call when the record-payment screen opens: downloads (once, then cached, about 8 MB) and starts
+ * the engine. In data-saver mode or on 2G it waits for the first picked photo instead.
+ */
 export function warmOcr(): void {
+  const conn = (navigator as Navigator & { connection?: NetworkInfo }).connection;
+  if (!allowsBackgroundDownload(conn)) return;
   void getWorker().then(scheduleIdle, () => undefined);
 }
 

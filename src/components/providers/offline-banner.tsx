@@ -1,10 +1,12 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { WifiOffIcon } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { HistoryIcon, WifiOffIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { PUBLIC_KEY } from "@/lib/offline/persister";
 import { OFFLINE_WRITE_HINT, offlineMessage } from "@/lib/offline/relative-time";
+import { savedCopyMessage, SERVED_QUERY } from "@/lib/offline/served-from-cache";
 import { useOnline } from "./online";
 
 function useLastUpdated(): number | null {
@@ -23,6 +25,33 @@ function useLastUpdated(): number | null {
   );
 }
 
+let firstAsk = true;
+
+/**
+ * Asks the service worker whether the page on screen came from its saved copy (offline, or the
+ * network was too slow); returns that copy's date (ms), else null.
+ */
+function useSavedCopyDate(): number | null {
+  const pathname = usePathname();
+  const [answer, setAnswer] = useState<{ path: string; at: number | null }>({
+    path: "",
+    at: null,
+  });
+  useEffect(() => {
+    const worker = navigator.serviceWorker?.controller;
+    if (!worker) return;
+    // the page load itself, or an in-app navigation (network timeout 6 s)
+    const since = firstAsk ? performance.timeOrigin : Date.now() - 8_000;
+    firstAsk = false;
+    const channel = new MessageChannel();
+    channel.port1.onmessage = (e) =>
+      setAnswer({ path: pathname, at: typeof e.data === "number" ? e.data : null });
+    worker.postMessage({ type: SERVED_QUERY, path: pathname, since }, [channel.port2]);
+    return () => channel.port1.close();
+  }, [pathname]);
+  return answer.path === pathname ? answer.at : null;
+}
+
 /** Current time rounded to the minute, ticking while `active`, so "قبل 5 دقائق" stays true. */
 function useMinute(active: boolean): number {
   return useSyncExternalStore(
@@ -36,20 +65,38 @@ function useMinute(active: boolean): number {
   );
 }
 
-/** Thin bar at the top while offline: «غير متصل. آخر تحديث قبل …». */
+const BAR =
+  "bg-warn-soft text-warn border-line sticky top-0 z-50 flex items-center justify-center gap-2 border-b px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-sm font-medium";
+
+/**
+ * Thin bar at the top when what is on screen may be old: offline («غير متصل. آخر تحديث قبل …»),
+ * or online but the page came from the saved copy because the network was too slow
+ * («هذه نسخة محفوظة قبل …» + «تحديث»).
+ */
 export function OfflineBanner() {
   const online = useOnline();
   const last = useLastUpdated();
-  const now = useMinute(!online);
+  const saved = useSavedCopyDate();
+  const now = useMinute(!online || saved !== null);
+  if (online && saved !== null)
+    return (
+      <div role="status" aria-live="polite" className={BAR}>
+        <HistoryIcon aria-hidden className="size-4 shrink-0" />
+        <span>{savedCopyMessage(saved, now)}</span>
+        <button
+          type="button"
+          className="min-h-11 px-2 font-bold underline underline-offset-4"
+          onClick={() => window.location.reload()}
+        >
+          تحديث
+        </button>
+      </div>
+    );
   if (online) return null;
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="bg-warn-soft text-warn border-line sticky top-0 z-50 flex items-center justify-center gap-2 border-b px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-sm font-medium"
-    >
+    <div role="status" aria-live="polite" className={BAR}>
       <WifiOffIcon aria-hidden className="size-4 shrink-0" />
-      <span>{offlineMessage(last, now)}</span>
+      <span>{offlineMessage(saved ?? last, now)}</span>
     </div>
   );
 }

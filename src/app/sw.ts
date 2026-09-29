@@ -17,6 +17,12 @@ import {
 } from "@/lib/offline/cache-rules";
 import { nextBadgeCount, syncAppBadge } from "@/lib/offline/app-badge";
 import { notificationOptions, parsePushPayload, safePath } from "@/lib/offline/push-payload";
+import {
+  lookupServed,
+  recordServed,
+  SERVED_QUERY,
+  type Served,
+} from "@/lib/offline/served-from-cache";
 
 declare const self: ServiceWorkerGlobalScope &
   SerwistGlobalConfig & { __SW_MANIFEST: (PrecacheEntry | string)[] | undefined };
@@ -25,6 +31,21 @@ const DAY = 24 * 60 * 60;
 const ok = new CacheableResponsePlugin({ statuses: [0, 200] });
 const expire = (maxEntries: number, maxAgeSeconds: number) =>
   new ExpirationPlugin({ maxEntries, maxAgeSeconds, purgeOnQuotaError: true });
+
+// Pages answered from the saved copy, so the page can tell the member how old it is.
+const served = new Map<string, Served>();
+const markServed = {
+  cachedResponseWillBeUsed: async ({
+    request,
+    cachedResponse,
+  }: {
+    request: Request;
+    cachedResponse?: Response;
+  }) => {
+    if (cachedResponse) recordServed(served, request.url, cachedResponse.headers.get("date"));
+    return cachedResponse;
+  },
+};
 
 // Order matters: the first match wins. Nothing private or written is ever stored.
 const runtimeCaching: RuntimeCaching[] = [
@@ -71,7 +92,7 @@ const runtimeCaching: RuntimeCaching[] = [
     handler: new NetworkFirst({
       cacheName: "pages",
       networkTimeoutSeconds: 6,
-      plugins: [ok, expire(48, 14 * DAY)],
+      plugins: [ok, expire(48, 14 * DAY), markServed],
     }),
   },
   { matcher: /.*/, handler: new NetworkOnly() },
@@ -93,6 +114,9 @@ const serwist = new Serwist({
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") void self.skipWaiting();
+  // «was this page shown from the saved copy?» → its date, or null
+  if (event.data?.type === SERVED_QUERY)
+    event.ports[0]?.postMessage(lookupServed(served, event.data.path, event.data.since));
 });
 
 // Web Push (committee): show the notification; a tap opens its page in the app.

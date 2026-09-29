@@ -71,6 +71,21 @@ describe("readReceipt", () => {
     });
   });
 
+  it("data saver: no warm-up download; the first photo starts the engine", async () => {
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: { saveData: true },
+    });
+    createWorker.mockClear();
+    warmOcr();
+    expect(createWorker).not.toHaveBeenCalled();
+    recognize.mockResolvedValue(text(F.BANKILY));
+    await readReceipt(photo, opts);
+    expect(createWorker).toHaveBeenCalledTimes(1);
+    await terminateOcr();
+    Object.defineProperty(navigator, "connection", { configurable: true, value: undefined });
+  });
+
   it("warms one shared worker and frees it", async () => {
     warmOcr();
     warmOcr();

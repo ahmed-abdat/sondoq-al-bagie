@@ -157,3 +157,26 @@ test("in data-saver mode, visited pages are not downloaded again for offline", a
     await page.evaluate(async () => !!(await (await caches.open("pages")).match("/members"))),
   ).toBe(false);
 });
+
+test("a page shown from the saved copy says how old it is", async ({ page, context }) => {
+  await page.goto("/members");
+  await waitForServiceWorker(page);
+  await page.reload(); // through the worker: now saved
+  await expect(page.getByText(/هذه نسخة محفوظة/)).toHaveCount(0); // fresh from the network
+
+  // offline: the banner dates what is on screen
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole("status").filter({ hasText: "غير متصل" })).toContainText(
+    "آخر تحديث قبل لحظات",
+  );
+
+  // back online, the page on screen is still the saved copy (as when the network is too slow):
+  // said so, with «تحديث», which brings the fresh page
+  await context.setOffline(false);
+  const bar = page.getByRole("status").filter({ hasText: "هذه نسخة محفوظة" });
+  await expect(bar).toContainText("هذه نسخة محفوظة قبل لحظات.");
+  await bar.getByRole("button", { name: "تحديث" }).click();
+  await page.waitForLoadState("load");
+  await expect(page.getByText(/هذه نسخة محفوظة/)).toHaveCount(0);
+});
