@@ -37,8 +37,13 @@ export const L = {
   /** the month key line «1 = يناير … 12 = ديسمبر» above the grid */
   legend: 52,
   head: 44,
-  /** one member row, tight like the paper sheet (28 rows on a phone page, 35 on A4) */
-  row: 32,
+  /**
+   * one member row on an image page: room to read a name with weak eyes (owner, r31: the old
+   * 32 px rows crowded); 20 rows on a phone page. The PDF uses rowPrint.
+   */
+  row: 44,
+  /** one member row in the A4 PDF: 52 px ≈ 9.2 mm printed; 21 rows per page */
+  rowPrint: 52,
   /** «المجموع: … أوقية» and the legend under the grid */
   total: 56,
   foot: 92,
@@ -81,9 +86,14 @@ const listLabel = (code: string) => {
 /** Left / deceased members are hidden, as on the public lists. */
 const isShown = (m: Pick<ReportMember, "status">) => m.status !== "left" && m.status !== "deceased";
 
+/** Member row height: taller in the A4 PDF, which is printed or read zoomed out. */
+export const rowHeight = (size: PageSize) => (size.h === A4_PAGE.h ? L.rowPrint : L.row);
+
 /** Rows per members page; the total line under the grid always has its room. */
 export function membersPerPage(size: PageSize): number {
-  return Math.floor((size.h - L.band - L.gap - L.legend - L.head - L.total - L.foot) / L.row);
+  return Math.floor(
+    (size.h - L.band - L.gap - L.legend - L.head - L.total - L.foot) / rowHeight(size),
+  );
 }
 
 /** Split into the fewest pages of at most `max`, as even as possible (45 by 20 → 15, 15, 15). */
@@ -274,7 +284,7 @@ function okMark(p: Pen, cx: number, cy: number, r: number) {
  */
 export function memberCols(w: number) {
   const R = w - L.pad;
-  const nameR = R - 14;
+  const nameR = R - 22;
   const cell = 40;
   const badge = 12;
   const monthsR = L.pad + 12 * cell;
@@ -295,8 +305,10 @@ export function membersWord(n: number) {
   return n >= 3 && n <= 10 ? `${n} أعضاء` : `${n} عضوًا`;
 }
 
-/** Table lines: a soft brand grey green (r25), the outer border a step darker. */
+/** Table lines: a soft brand grey green (r25), the outer border a step darker; the lines between
+ *  rows softer still, so the names breathe (r31). */
 const LINE = "#B3C5B9";
+const ROW_LINE = "#D4DFD7";
 const EDGE = "#7F9A88";
 const CORNER = 14;
 
@@ -323,7 +335,7 @@ function drawMembers(
   p.text(`1 = ${monthName(1)} … 12 = ${monthName(12)}`, R, ty, { size: 20, color: T.slate });
 
   const { nameR, nameW, cx, badge, cell } = memberCols(w);
-  const row = L.row;
+  const row = rowHeight(o.size);
   const hy = L.band + L.gap + L.legend;
   const rowsTop = hy + L.head;
   const rowsEnd = rowsTop + page.rows.length * row;
@@ -341,18 +353,21 @@ function drawMembers(
   // white rows like paper: the name, a ✓ in each paid month, empty otherwise
   page.rows.forEach((m, i) => {
     const mid = rowsTop + i * row + row / 2;
-    p.text(m.fullName, nameR, mid + 9, { size: 25, weight: 600, max: nameW });
+    p.text(m.fullName, nameR, mid + 10, { size: 28, weight: 600, max: nameW });
     for (let k = 1; k <= 12; k++) if (monthPaid(m.months[k - 1])) okMark(p, cx(k), mid, badge);
   });
 
   // a fully bordered table like the paper: crisp soft lines, rounded outer corners (r25)
-  x.strokeStyle = LINE;
+  x.strokeStyle = ROW_LINE;
   x.lineWidth = 1.5;
   x.beginPath();
   for (let i = 0; i < page.rows.length; i++) {
     x.moveTo(P, rowsTop + i * row);
     x.lineTo(R, rowsTop + i * row);
   }
+  x.stroke();
+  x.strokeStyle = LINE;
+  x.beginPath();
   for (const vx of Array.from({ length: 12 }, (_, i) => P + (i + 1) * cell)) {
     x.moveTo(vx, hy);
     x.lineTo(vx, rowsEnd);

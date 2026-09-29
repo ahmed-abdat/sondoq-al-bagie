@@ -14,6 +14,7 @@ import {
   paginateBlocks,
   paginateReport,
   PHONE_PAGE,
+  rowHeight,
   type Block,
 } from "./report-pages";
 
@@ -52,9 +53,10 @@ const report = (members: ReportMember[], expenses: ReportExpense[] = []): Report
     generatedAt: "2026-09-28T10:00:00.000Z",
   }) as ReportData;
 
-it("fits 28 member rows on a phone page and 35 on A4 (paper: 27), total included", () => {
-  expect(membersPerPage(PHONE_PAGE)).toBe(28);
-  expect(membersPerPage(A4_PAGE)).toBe(35);
+it("fits 20 roomy member rows on a phone page and 21 on A4 (≈ 9 mm each), total included", () => {
+  expect(membersPerPage(PHONE_PAGE)).toBe(20);
+  expect(membersPerPage(A4_PAGE)).toBe(21);
+  expect(rowHeight(A4_PAGE) * (190 / A4_PAGE.w)).toBeGreaterThanOrEqual(9); // mm on paper
 });
 
 it("chunkEven balances pages", () => {
@@ -114,13 +116,21 @@ describe("paginateReport", () => {
 
   it("cover, then each list in pages (gone members hidden), then money", () => {
     const pages = paginateReport(report(members, [expense(1)]));
-    expect(pages.map((p) => p.kind)).toEqual(["cover", "members", "members", "members", "money"]);
+    expect(pages.map((p) => p.kind)).toEqual([
+      "cover",
+      "members",
+      "members",
+      "members",
+      "members",
+      "money",
+    ]);
     const lists = pages.flatMap((p) =>
       p.kind === "members" ? [[p.list, p.rows.length, p.part, p.parts]] : [],
     );
     expect(lists).toEqual([
-      ["A", 23, 1, 2],
-      ["A", 22, 2, 2],
+      ["A", 15, 1, 3],
+      ["A", 15, 2, 3],
+      ["A", 15, 3, 3],
       ["B", 19, 1, 1],
     ]);
     const refs = pages.flatMap((p) => (p.kind === "members" ? p.rows.map((m) => m.memberRef) : []));
@@ -130,7 +140,7 @@ describe("paginateReport", () => {
   });
 
   it("A4 pages hold more rows", () => {
-    const many = Array.from({ length: 30 }, (_, i) => member(`A-${i + 1}`));
+    const many = Array.from({ length: 21 }, (_, i) => member(`A-${i + 1}`));
     const count = (size?: typeof A4_PAGE) =>
       paginateReport(report(many), size).filter((p) => p.kind === "members").length;
     expect(count(A4_PAGE)).toBe(1);
