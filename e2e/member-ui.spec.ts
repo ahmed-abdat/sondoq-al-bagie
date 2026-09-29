@@ -143,6 +143,35 @@ test("late member who sends proof for someone else keeps «ادفع الآن» (
   await expect(page.locator('.bq-bnav [aria-current="page"]')).toHaveCount(0);
 });
 
+test("paying more for someone else names them on the debt and the rest (QA pass 5)", async ({
+  page,
+}) => {
+  await page.goto("/m/demo2");
+  const card = page.locator("section.bq-you");
+  await card.getByRole("button", { name: "ادفع عن شخص آخر" }).click();
+  const sheet = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
+  const pick = sheet.getByRole("button", { name: /لم يدفع هذا العام$/ }).first();
+  const name = (await pick.locator(".bq-row-t").textContent())!.trim();
+  await pick.click();
+  await sheet.locator('input[type="file"]').setInputFiles(SHOT);
+  const btn = sheet.locator(".bq-rec-foot").getByRole("button").first();
+  await expect(btn).not.toHaveText("أرفق صورة التحويل");
+  if ((await btn.textContent())?.includes("كيف")) {
+    await btn.click();
+    await sheet.getByRole("radio", { name: "بنكيلي" }).click();
+  }
+  const more = sheet.getByRole("button", { name: /تفاصيل أخرى/ });
+  if (await more.count()) await more.click();
+  const amount = sheet.getByRole("textbox", { name: /المبلغ المحوّل/ });
+  const total = Number((await amount.getAttribute("placeholder"))!.replace(/\D/g, ""));
+  await amount.fill(String(total + 5000));
+  const check = sheet.locator(".bq-rec-check");
+  await expect(check).toContainText(`على ${name}`);
+  await expect(check).toContainText(`باسم ${name}`);
+  await expect(check).not.toContainText("عليك");
+  await expect(check).not.toContainText("يبقى لك");
+});
+
 test("«إزالة … من هذا الهاتف» forgets the link here", async ({ page }) => {
   await page.goto("/m/demo");
   await expect(page.locator("section.bq-you")).toBeVisible();

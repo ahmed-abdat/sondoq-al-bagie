@@ -139,7 +139,7 @@ test("PDF without a share sheet is downloaded", async ({ page }) => {
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /ملف PDF/ }).click();
   expect((await download).suggestedFilename()).toMatch(/^تقرير-صندوق-الرابطة-.+\.pdf$/);
-  await expect(page.getByRole("status")).toHaveText(/حفظ الملف في التنزيلات/);
+  await expect(page.getByRole("status")).toHaveText(/حُفظ الملف في التنزيلات/);
 });
 
 test("report images without a share sheet fall back to WhatsApp text with the link", async ({
