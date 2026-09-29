@@ -15,8 +15,11 @@ export function SetupForm({
   name: initial,
   linked,
   members,
+  confirmer = false,
 }: {
   name: string;
+  /** admin/treasurer/deputy: must pick their membership («لست عضوًا» is for the admin to say) */
+  confirmer?: boolean;
   linked: Pickable | null;
   members: Pickable[];
 }) {
@@ -94,22 +97,30 @@ export function SetupForm({
                 </span>
                 {!member && <span className="bq-chev">{I.go(18)}</span>}
               </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={who === "none"}
-                className="bq-role bq-press"
-                onClick={() => setWho("none")}
-              >
-                <span className="bq-role-dot" aria-hidden="true" />
-                <span className="bq-role-t">
-                  <strong>لست عضوًا</strong>
-                  <span>لا تُحسب عليّ رسوم في الصندوق</span>
-                </span>
-              </button>
+              {!confirmer && (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={who === "none"}
+                  className="bq-role bq-press"
+                  onClick={() => setWho("none")}
+                >
+                  <span className="bq-role-dot" aria-hidden="true" />
+                  <span className="bq-role-t">
+                    <strong>لست عضوًا</strong>
+                    <span>لا تُحسب عليّ رسوم في الصندوق</span>
+                  </span>
+                </button>
+              )}
             </div>
           )}
-          {!linked && <p className="bq-hint">حتى لا تؤكد دفعة تخصك.</p>}
+          {!linked && (
+            <p className="bq-hint">
+              {confirmer
+                ? "من يؤكد الدفعات يُربط بعضويته حتى لا يؤكد دفعة تخصه. إن لم تكن عضوًا في الصندوق، اطلب من المسؤول أن يسجّل ذلك."
+                : "حتى لا تؤكد دفعة تخصك."}
+            </p>
+          )}
         </fieldset>
 
         <PasswordField value={pw} onChange={setPw} label="كلمة سر جديدة، بدل التي أرسلها المسؤول" />

@@ -34,6 +34,7 @@ export default async function SetupPage() {
       </header>
       <SetupForm
         name={s.displayName}
+        confirmer={src.MANAGERS.includes(s.role)}
         linked={linked ? pick(linked) : null}
         members={linked ? [] : rows.filter((m) => m.status === "active").map(pick)}
       />
