@@ -16,6 +16,18 @@ async function waitForServiceWorker(page: Page) {
   });
 }
 
+/**
+ * On a first visit the page is saved for offline only after the worker takes control AND the
+ * browser is idle (SaveVisitedPages); until then offline shows /offline.html, by design.
+ */
+async function waitForSaved(page: Page, path: string) {
+  await expect
+    .poll(() =>
+      page.evaluate(async (p) => !!(await (await caches.open("pages-v2")).match(p)), path),
+    )
+    .toBe(true);
+}
+
 test("manifest is valid and the app is installable", async ({ page, request }) => {
   const res = await request.get("/manifest.webmanifest");
   expect(res.ok()).toBe(true);
@@ -101,6 +113,7 @@ test("committee pages are never served from the cache", async ({ page, context }
 test("offline banner shows while offline and hides when back", async ({ page, context }) => {
   await page.goto("/");
   await waitForServiceWorker(page);
+  await waitForSaved(page, "/"); // the offline reload below needs the saved copy
   await expect(page.getByText(/غير متصل/)).toHaveCount(0);
   await context.setOffline(true);
   await expect(page.getByText(/غير متصل/)).toBeVisible();
@@ -127,11 +140,7 @@ test("public pages visited by in-app navigation open offline", async ({ page, co
   for (const path of pages) {
     await page.locator(`a[href="${path}"]:visible`).first().click();
     await page.waitForURL(`**${path}`);
-    await expect
-      .poll(() =>
-        page.evaluate(async (p) => !!(await (await caches.open("pages-v2")).match(p)), path),
-      )
-      .toBe(true);
+    await waitForSaved(page, path);
   }
   await context.setOffline(true);
   for (const path of ["/", ...pages]) {
