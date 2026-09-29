@@ -5,6 +5,7 @@ import "server-only";
 // per request, and member data must never land in the public cache or the offline store.
 import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
+import { readJar } from "@/lib/member-cookies";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -12,6 +13,7 @@ import type {
   MemberHistoryAllocation,
   MemberHistoryItem,
   MemberLinkInfo,
+  MemberProfile,
   MemberSession,
 } from "./member-types";
 import { MEMBER_COOKIE } from "./member-types";
@@ -160,4 +162,49 @@ export async function getMemberLinks(): Promise<Record<string, MemberLinkInfo>> 
         },
       ]),
   );
+}
+
+/** Which of `tokens` are live links, and whose (one RPC for all of them). */
+export async function liveProfiles(
+  tokens: string[],
+): Promise<Map<string, Omit<MemberProfile, "active">>> {
+  const out = new Map<string, Omit<MemberProfile, "active">>();
+  const admin = tryCreateAdminClient();
+  if (!admin || !tokens.length) return out;
+  const byHash = new Map(tokens.map((t) => [hashMemberToken(t), t]));
+  const { data, error } = await admin.rpc("member_sessions", {
+    p_token_hashes: [...byHash.keys()],
+  });
+  if (error || !Array.isArray(data)) return out;
+  for (const r of data as Raw[]) {
+    const token = byHash.get(str(r.token_hash));
+    if (token && typeof r.link_id === "string") {
+      out.set(token, {
+        linkId: r.link_id,
+        memberId: str(r.member_id),
+        memberRef: str(r.member_ref),
+        fullName: str(r.full_name),
+      });
+    }
+  }
+  return out;
+}
+
+/** Another member's link opened on this device and waiting for the choice, or null. */
+export async function memberPending(): Promise<MemberSession | null> {
+  const { pending } = readJar(await cookies());
+  return pending && isMemberToken(pending) ? verifyMemberToken(pending) : null;
+}
+
+/**
+ * The «أنت» switcher: this device's saved profiles (active first, then most recently used),
+ * invalid or revoked ones left out. One RPC for all of them.
+ */
+export async function memberProfiles(): Promise<MemberProfile[]> {
+  const { active, saved } = readJar(await cookies());
+  const live = await liveProfiles(saved.filter(isMemberToken));
+  return saved.flatMap((t) => {
+    const p = live.get(t);
+    return p ? [{ ...p, active: t === active }] : [];
+  });
 }

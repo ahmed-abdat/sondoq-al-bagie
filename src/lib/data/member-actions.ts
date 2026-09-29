@@ -9,17 +9,29 @@ import { pendingPaymentPayload } from "@/lib/push/payload";
 import { notifyConfirmers } from "@/lib/push/send";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { codeOf, failure } from "./errors";
-import { hashMemberToken, memberToken } from "./member";
+import {
+  hashMemberToken,
+  isMemberToken,
+  liveProfiles,
+  memberToken,
+  verifyMemberToken,
+} from "./member";
+import {
+  acceptPending,
+  declinePending,
+  readJar,
+  removeProfile,
+  switchTo,
+  writeJar,
+} from "@/lib/member-cookies";
 import type { MemberSubmitInput, MemberSubmitResult } from "./member-types";
-import { MEMBER_COOKIE, MEMBER_MARKER_COOKIE } from "./member-types";
 import { PROOF_MAX_BYTES, proofPath, sha256Hex, sniffImage } from "./proof";
 import * as s from "./schemas";
 import type { ActionResult } from "./types";
 
 type Admin = NonNullable<ReturnType<typeof tryCreateAdminClient>>;
 type LinkContext =
-  | { ok: true; hash: string; admin: Admin }
-  | { ok: false; error: ReturnType<typeof failure> };
+  { ok: true; hash: string; admin: Admin } | { ok: false; error: ReturnType<typeof failure> };
 
 /** Token hash + admin client, or the failure to return. */
 async function linkContext(): Promise<LinkContext> {
@@ -137,14 +149,19 @@ export async function memberSubmitPayment(
   };
 }
 
-/** «أبلغني عند التأكيد»: this device gets the member's confirm/reject pushes. */
+/**
+ * «أبلغني عند التأكيد»: this device gets the confirm/reject pushes of EVERY profile saved on it
+ * (a family phone follows everyone it holds).
+ */
 export async function memberSavePush(input: s.PushSubscriptionInput): Promise<ActionResult> {
   const parsed = s.pushSubscriptionSchema.safeParse(input);
   if (!parsed.success) return failure("invalid_input");
-  const ctx = await linkContext();
-  if (!ctx.ok) return ctx.error;
-  const { error } = await ctx.admin.rpc("member_save_push", {
-    p_token_hash: ctx.hash,
+  const admin = tryCreateAdminClient();
+  if (!admin) return failure("not_configured");
+  const saved = readJar(await cookies()).saved.filter(isMemberToken);
+  if (!saved.length) return failure("member_link_invalid");
+  const { error } = await admin.rpc("member_save_push", {
+    p_token_hashes: saved.map(hashMemberToken),
     p_endpoint: parsed.data.endpoint,
     p_p256dh: parsed.data.keys.p256dh,
     p_auth: parsed.data.keys.auth,
@@ -152,6 +169,7 @@ export async function memberSavePush(input: s.PushSubscriptionInput): Promise<Ac
   return error ? failure(codeOf(error)) : { ok: true, data: undefined };
 }
 
+/** Stop the active profile's pushes on this device (the other profiles keep theirs). */
 export async function memberDeletePush(input: { endpoint: string }): Promise<ActionResult> {
   const ctx = await linkContext();
   if (!ctx.ok) return { ok: true, data: undefined }; // nothing to remove without a link
@@ -162,11 +180,54 @@ export async function memberDeletePush(input: { endpoint: string }): Promise<Act
   return error ? failure(codeOf(error)) : { ok: true, data: undefined };
 }
 
-/** «خروج من هذا الجهاز»: forget the link here (and this device's member push, if given). */
-export async function memberSignOut(input: { endpoint?: string } = {}): Promise<ActionResult> {
-  if (input?.endpoint) await memberDeletePush({ endpoint: input.endpoint });
-  const jar = await cookies();
-  jar.delete(MEMBER_COOKIE);
-  jar.delete(MEMBER_MARKER_COOKIE);
+/** «أنت» switcher: act as another profile saved on this device (by its link id). */
+export async function memberSwitch(input: { linkId: string }): Promise<ActionResult> {
+  const store = await cookies();
+  const jar = readJar(store);
+  const live = await liveProfiles(jar.saved.filter(isMemberToken));
+  const token = jar.saved.find((t) => live.get(t)?.linkId === input?.linkId);
+  if (!token) return failure("member_link_invalid");
+  writeJar(store, switchTo(jar, token));
   return { ok: true, data: undefined };
+}
+
+/**
+ * «أضف X وانتقل إليه»: the pending link is saved and becomes active (with 5 saved, the least
+ * recently used one drops; `droppedName` says whose, for the page).
+ */
+export async function memberAcceptPending(): Promise<ActionResult<{ droppedName: string | null }>> {
+  const store = await cookies();
+  const jar = readJar(store);
+  if (!jar.pending || !(await verifyMemberToken(jar.pending))) {
+    writeJar(store, declinePending(jar));
+    return failure("member_link_invalid");
+  }
+  const { jar: next, dropped } = acceptPending(jar);
+  const droppedName = dropped
+    ? ((await liveProfiles([dropped])).get(dropped)?.fullName ?? null)
+    : null;
+  writeJar(store, next);
+  return { ok: true, data: { droppedName } };
+}
+
+/** «ابقَ بالاسم الحالي»: forget the pending link. */
+export async function memberDeclinePending(): Promise<ActionResult> {
+  const store = await cookies();
+  writeJar(store, declinePending(readJar(store)));
+  return { ok: true, data: undefined };
+}
+
+/**
+ * «خروج من هذا الجهاز» for the ACTIVE profile only (and its push on this device, if given). The
+ * next saved profile becomes active. `last`: nothing left on this phone (the UI then calls
+ * forgetMemberOnThisDevice).
+ */
+export async function memberSignOut(
+  input: { endpoint?: string } = {},
+): Promise<ActionResult<{ last: boolean }>> {
+  if (input?.endpoint) await memberDeletePush({ endpoint: input.endpoint });
+  const store = await cookies();
+  const { jar, last } = removeProfile(readJar(store));
+  writeJar(store, jar);
+  return { ok: true, data: { last } };
 }

@@ -84,3 +84,13 @@ export type MemberLinkInfo = { memberId: string; createdAt: string; lastUsedAt: 
 
 /** Committee: a new link, shown once (send it on WhatsApp). */
 export type IssuedMemberLink = { memberId: string; url: string };
+
+/** One saved profile on this device (the «أنت» switcher). */
+export type MemberProfile = {
+  linkId: string;
+  memberId: string;
+  memberRef: string;
+  fullName: string;
+  /** the profile this device acts as now */
+  active: boolean;
+};

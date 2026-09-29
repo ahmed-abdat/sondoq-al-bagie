@@ -1,6 +1,9 @@
--- Undo every migration after M1 (m2 … m24, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m25, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- member profiles (m25): dropped with the m24 tables below
+drop function if exists public.member_sessions(text[]), app_private.member_sessions(text[]),
+  public.member_save_push(text[], text, text, text), app_private.member_save_push(text[], text, text, text);
 -- member links (m24); payment_queue and account_has_history are restored by the undos below
 drop function if exists public.create_member_link(uuid, text), public.revoke_member_link(uuid),
   public.member_session(text), public.member_history(text), public.member_recent_beneficiaries(text),
