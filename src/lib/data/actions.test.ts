@@ -26,9 +26,15 @@ const deleteUser = vi.fn(async () => ({}));
 const updateUserById = vi.fn();
 let accountRow: { login?: string; not_member?: boolean } | null = null;
 let secret = true;
+const auditInsert = vi.fn(async () => ({ error: null }));
 vi.mock("@/lib/supabase/admin", () => ({
   tryCreateAdminClient: () =>
-    secret ? { auth: { admin: { createUser, deleteUser, updateUserById } } } : null,
+    secret
+      ? {
+          auth: { admin: { createUser, deleteUser, updateUserById } },
+          from: () => ({ insert: auditInsert }),
+        }
+      : null,
 }));
 const updateUser = vi.fn();
 const getUser = vi.fn();
@@ -308,7 +314,14 @@ describe("actions", () => {
     expect(rpc).toHaveBeenCalledWith(
       "set_committee_member",
       expect.objectContaining({ p_user_id: uid, p_role: "treasurer" }),
-    );
+    ); // audited without secrets (Auth is outside the audited tables)
+    expect(auditInsert).toHaveBeenLastCalledWith({
+      actor: "me",
+      actor_role: "admin",
+      action: "create_committee_account",
+      table_name: "auth.users",
+      row_id: uid,
+    });
   });
 
   it("refuses bad logins, non-admins, taken logins; removes the login if the role fails", async () => {
@@ -355,6 +368,9 @@ describe("actions", () => {
       password: r.ok ? r.data.password : "",
       app_metadata: { setup_pending: true },
     });
+    expect(auditInsert).toHaveBeenLastCalledWith(
+      expect.objectContaining({ action: "reset_committee_password", row_id: uid }),
+    );
   });
 
   describe("deleteCommitteeAccount", () => {
@@ -429,7 +445,10 @@ describe("actions", () => {
         p_display_name: "سيدي",
         p_member_id: member,
       });
-      expect(updateUser).toHaveBeenCalledWith({ password: "new-secret-9" });
+      expect(updateUser).toHaveBeenCalledWith({
+        password: "new-secret-9",
+        data: { setup_password_at: expect.any(String) },
+      });
       expect(updateUserById).toHaveBeenCalledWith(me, { app_metadata: { setup_pending: false } });
     });
 
@@ -469,6 +488,26 @@ describe("actions", () => {
       updateUser.mockResolvedValue({
         error: { message: "New password should be different from the old password." },
       });
+      expect(await completeSetup(input)).toMatchObject({ code: "same_password" });
+      expect(updateUserById).not.toHaveBeenCalled();
+    });
+
+    it("a retry after the last step failed finishes (password already changed), the admin's password does not", async () => {
+      ready();
+      updateUser.mockResolvedValue({
+        error: { message: "New password should be different from the old password." },
+      });
+      getUser.mockResolvedValue({
+        data: { user: { id: me, user_metadata: { setup_password_at: "2026-09-29T08:00:00Z" } } },
+      });
+      expect(await completeSetup(input)).toEqual({ ok: true, data: undefined });
+      expect(updateUserById).toHaveBeenCalledWith(me, { app_metadata: { setup_pending: false } });
+      ready();
+      updateUserById.mockClear();
+      updateUser.mockResolvedValue({
+        error: { message: "New password should be different from the old password." },
+      });
+      getUser.mockResolvedValue({ data: { user: { id: me, user_metadata: {} } } });
       expect(await completeSetup(input)).toMatchObject({ code: "same_password" });
       expect(updateUserById).not.toHaveBeenCalled();
     });

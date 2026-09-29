@@ -662,13 +662,24 @@ export async function proofUrl(input: { path: string }): Promise<ActionResult<st
 
 /** Signed-in user sets a new password («حسابي», first sign-in setup). */
 export async function setPassword(input: { password: string }): Promise<ActionResult> {
+  return changePassword(input);
+}
+
+/**
+ * `mark`: also stamps user_metadata.setup_password_at in the SAME call, so a setup retried after a
+ * later step failed knows the password was already changed (see completeSetup).
+ */
+async function changePassword(input: { password: string }, mark = false): Promise<ActionResult> {
   const parsed = s.passwordSchema.safeParse(input);
   if (!parsed.success) return failure("weak_password");
   const sb = await createClient();
   if (!sb) return failure("not_configured");
   const { data: auth } = await sb.auth.getUser();
   if (!auth.user) return failure("not_signed_in");
-  const { error } = await sb.auth.updateUser({ password: parsed.data.password });
+  const { error } = await sb.auth.updateUser({
+    password: parsed.data.password,
+    ...(mark ? { data: { setup_password_at: new Date().toISOString() } } : {}),
+  });
   if (error)
     return failure(
       /different|same/i.test(error.message)
@@ -728,7 +739,29 @@ export async function createCommitteeAccount(
     await admin.auth.admin.deleteUser(userId).catch(() => undefined); // no orphan login
     return role;
   }
+  await auditAccount(admin, me, "create_committee_account", userId);
   return { ok: true, data: { userId, login: login.display, password } };
+}
+
+/**
+ * Login changes happen in Supabase Auth, outside the audited tables: record who did what (no
+ * secrets). Best effort: a failed audit row never undoes the change the admin already saw.
+ */
+async function auditAccount(
+  admin: NonNullable<ReturnType<typeof tryCreateAdminClient>>,
+  me: { userId?: string; role: string },
+  action: string,
+  userId: string,
+) {
+  await Promise.resolve(
+    admin.from("audit_log").insert({
+      actor: me.userId ?? null,
+      actor_role: me.role,
+      action,
+      table_name: "auth.users",
+      row_id: userId,
+    }),
+  ).catch(() => undefined);
 }
 
 /** Admin gives a committee member a new generated password (shown once). Not for himself. */
@@ -760,10 +793,10 @@ export async function resetCommitteePassword(input: {
   } catch {
     return failure("network");
   }
+  await auditAccount(admin, me, "reset_committee_password", parsed.data.userId);
   return { ok: true, data: { userId: parsed.data.userId, login: row.login ?? "", password } };
 }
 
-/** Deactivate (no more committee access) or reactivate an account. Never deleted. */
 /** Admin: this confirmer is not a member of the fund (no member link expected). */
 export async function setCommitteeNotMember(input: s.SetCommitteeNotMemberInput) {
   return run(
@@ -775,6 +808,7 @@ export async function setCommitteeNotMember(input: s.SetCommitteeNotMemberInput)
   );
 }
 
+/** Deactivate (no more committee access) or reactivate an account. Never deleted. */
 export async function setCommitteeActive(input: s.SetCommitteeActiveInput) {
   return run(
     s.setCommitteeActiveSchema,
@@ -853,6 +887,12 @@ export async function signOutEverywhere(input: { endpoint?: string } = {}): Prom
  * admin) is kept whatever `memberId` says. The password is set before the flag is cleared, so
  * a failed step leaves the setup to do again, never half-done and hidden.
  */
+async function passwordAlreadyChanged(): Promise<boolean> {
+  const sb = await createClient();
+  const { data } = (await sb?.auth.getUser()) ?? { data: { user: null } };
+  return Boolean(data.user?.user_metadata?.setup_password_at);
+}
+
 export async function completeSetup(input: s.CompleteSetupInput): Promise<ActionResult> {
   const parsed = s.completeSetupSchema.safeParse(input);
   if (!parsed.success) {
@@ -879,8 +919,10 @@ export async function completeSetup(input: s.CompleteSetupInput): Promise<Action
     memberId: me.memberId ?? p.memberId ?? null,
   });
   if (!profile.ok) return profile;
-  const pw = await setPassword({ password: p.password });
-  if (!pw.ok) return pw;
+  const pw = await changePassword({ password: p.password }, true);
+  // Retry after the last step failed: the new password is already set (marked by the same call),
+  // so "same password" means done, not the admin's password typed again.
+  if (!pw.ok && !(pw.code === "same_password" && (await passwordAlreadyChanged()))) return pw;
   try {
     const { error } = await admin.auth.admin.updateUserById(me.userId, {
       app_metadata: { setup_pending: false },
