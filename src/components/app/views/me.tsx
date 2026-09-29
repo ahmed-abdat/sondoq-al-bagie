@@ -225,7 +225,7 @@ function SignOut({ name, others }: { name: string; others: number }) {
     return (
       <button
         type="button"
-        className="bq-btn bq-btn-tonal bq-press bq-small-top"
+        className="bq-btn bq-btn-tonal bq-btn-wrap bq-press bq-small-top"
         onClick={() => setAsk(true)}
       >
         {I.out(20)} إزالة {name} من هذا الهاتف

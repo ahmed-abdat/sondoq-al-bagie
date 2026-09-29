@@ -987,6 +987,14 @@
     min-height: 56px;
     width: 100%;
   }
+  /* a label with a person's name may be long: wrap inside the screen (audit B02) */
+  .bq-btn-wrap {
+    max-width: 100%;
+    padding-block: 10px;
+    white-space: normal;
+    text-align: center;
+    text-wrap: balance;
+  }
   .bq-btn-primary {
     background: var(--g8);
     color: #fff;
