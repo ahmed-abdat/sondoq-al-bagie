@@ -5839,3 +5839,23 @@
     min-height: 48px;
   }
 }
+@layer components {
+  /* donations step 4: the picked screenshot and what happens next */
+  .bq-give-proof,
+  .bq-give-send {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bq-give-send {
+    margin-block-start: 6px;
+  }
+  .bq-give-shot {
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+    object-position: top;
+    border-radius: var(--r-md);
+    background: var(--n1);
+  }
+}

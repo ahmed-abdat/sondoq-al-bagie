@@ -1,10 +1,10 @@
 "use client";
 // «روابط الأعضاء» (owner-approved prototype C): every active member's personal link, by group,
-// with a WhatsApp button per row and «أرسل للجميع بالترتيب» (a card pinned on top walks through
+// with a WhatsApp button per row and «جهّز الروابط بالترتيب» (a card pinned on top walks through
 // the members without a link). Sending creates the link (an old one stops; the URL is shown only
 // once) and then opens WhatsApp in this tab: after an await a new window would be blocked on iOS.
 // The app cannot know whether the message was sent (audit B10): rows say «جُهّز الرابط», and a
-// link made on this page can be sent again as is («أرسل مرة أخرى») without stopping it.
+// link made on this page can be sent again as is («افتح الرسالة مرة أخرى») without stopping it.
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
@@ -84,7 +84,7 @@ export function MemberLinksPage({
   const counts = linkCounts(rows);
   const total = linkCounts(all);
   const shown = (() => {
-    // links made on this page stay under «بلا رابط» so «أرسل مرة أخرى» stays at hand
+    // links made on this page stay under «بلا رابط» so «افتح الرسالة مرة أخرى» stays at hand
     const byF =
       f === "all"
         ? rows
@@ -217,8 +217,8 @@ export function MemberLinksPage({
                 {busy === cur.memberId
                   ? "جارٍ الإنشاء…"
                   : urls[cur.memberId] && cur.state !== "none"
-                    ? "أرسل مرة أخرى"
-                    : "أرسل في واتساب"}
+                    ? "افتح الرسالة مرة أخرى"
+                    : "افتح الرسالة في واتساب"}
               </button>
               <button
                 type="button"
@@ -251,7 +251,9 @@ export function MemberLinksPage({
             onClick={start}
           >
             {I.wa(22)}{" "}
-            {g === "all" ? "أرسل للجميع بالترتيب" : `أرسل للمجموعة ${groupLabel(g)} بالترتيب`}
+            {g === "all"
+              ? "جهّز الروابط بالترتيب"
+              : `جهّز روابط المجموعة ${groupLabel(g)} بالترتيب`}
           </button>
         )}
         <OfflineWriteHint />
@@ -307,7 +309,7 @@ export function MemberLinksPage({
                   <button
                     type="button"
                     className="bq-ml-wa bq-press"
-                    aria-label={`أرسل الرابط في واتساب: ${r.fullName}`}
+                    aria-label={`افتح رسالة الرابط في واتساب: ${r.fullName}`}
                     disabled={!!busy || !online}
                     onClick={() => void send(r)}
                   >
@@ -317,11 +319,11 @@ export function MemberLinksPage({
                   <button
                     type="button"
                     className="bq-ml-new bq-press"
-                    aria-label={`أرسل الرابط نفسه مرة أخرى: ${r.fullName}`}
+                    aria-label={`افتح رسالة الرابط نفسه مرة أخرى: ${r.fullName}`}
                     disabled={!!busy}
                     onClick={() => resend(r, urls[r.memberId])}
                   >
-                    {I.wa(18)} أرسل مرة أخرى
+                    {I.wa(18)} افتحها مرة أخرى
                   </button>
                 ) : (
                   <button
@@ -338,7 +340,7 @@ export function MemberLinksPage({
               </div>
               {confirm === r.memberId && (
                 <div className="bq-ml-confirm" role="group" aria-label="رابط جديد">
-                  <p>سيتوقف الرابط القديم. أرسل رابطًا جديدًا؟</p>
+                  <p>سيتوقف الرابط القديم. جهّز رابطًا جديدًا؟</p>
                   <div className="bq-slip-btns">
                     <button
                       type="button"
@@ -346,7 +348,7 @@ export function MemberLinksPage({
                       disabled={!!busy || !online}
                       onClick={() => void send(r)}
                     >
-                      {I.wa(20)} أرسل رابطًا جديدًا
+                      {I.wa(20)} جهّز رابطًا جديدًا
                     </button>
                     <button
                       type="button"

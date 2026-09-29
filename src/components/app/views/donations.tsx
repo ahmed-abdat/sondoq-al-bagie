@@ -1,9 +1,9 @@
 "use client";
 import { useState, type ReactNode } from "react";
 import type { CampaignPublic, ContributorPublic, FundAccount } from "@/lib/data/types";
-import { waLink } from "@/lib/whatsapp";
 import { METHOD_LABELS } from "@/lib/methods";
 import { MethodBadge, Track } from "../bits";
+import { DonateProof } from "../donate-proof";
 import { contributorCount, dayWords, fmt } from "../derive";
 import { I } from "../icons";
 import { Num } from "../num";
@@ -55,12 +55,6 @@ export function DonationsView({
   const acc = live.find((a) => a.id === accId) ?? live[0] ?? null;
   const [amount, setAmount] = useState<number | "other" | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const wa = c
-    ? waLink(
-        whatsapp,
-        `السلام عليكم، أرسلت مساهمة لحملة «${c.title}»${acc ? ` عبر ${METHOD_LABELS[acc.method]}` : ""}. صورة التحويل مرفقة.\nالاسم: \nالمبلغ: ${typeof amount === "number" ? `${fmt(amount)} أوقية` : ""}`,
-      )
-    : null;
   return (
     <>
       <header className="bq-page-h">
@@ -175,18 +169,14 @@ export function DonationsView({
                     </button>
                   </div>
                 </Step>
-                <Step n={4} t="أرسل الصورة للجنة في واتساب">
-                  {wa && (
-                    <a
-                      className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-                      href={wa}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {I.wa(22)} افتح واتساب وأرفق الصورة
-                    </a>
-                  )}
-                  <p className="bq-hint">في واتساب، أرفق صورة التحويل ثم أرسل الرسالة.</p>
+                <Step n={4} t="أرسل صورة التحويل للجنة">
+                  <DonateProof
+                    campaign={{ campaignId: c.campaignId, title: c.title }}
+                    accounts={live}
+                    whatsapp={whatsapp}
+                    wallet={acc}
+                    amount={typeof amount === "number" ? amount : null}
+                  />
                   <p className="bq-hint bq-give-trust">
                     {I.lock(16)}
                     <span>لا يرى صورتك إلا اللجنة. التطبيق لا يحوّل المال؛ التحويل من محفظتك.</span>

@@ -54,7 +54,7 @@ test("late reminders: «ذكّر الجميع بالترتيب» walks the list 
   await page.getByRole("button", { name: "ذكّر الجميع بالترتيب" }).click();
   const walk = page.locator(".bq-ml-walk");
   const first = await walk.locator(".bq-ml-walk-t").textContent();
-  await walk.getByRole("button", { name: /أرسل في واتساب/ }).click();
+  await walk.getByRole("button", { name: /افتح الرسالة في واتساب/ }).click();
   await expect
     .poll(() => page.evaluate(() => (window as unknown as { __opened: string[] }).__opened.length))
     .toBe(1);

@@ -120,7 +120,7 @@ export function LateList({
                   className="bq-btn bq-btn-primary bq-press"
                   onClick={() => remind(cur, true)}
                 >
-                  {I.wa(20)} أرسل في واتساب
+                  {I.wa(20)} افتح الرسالة في واتساب
                 </button>
                 <button
                   type="button"
