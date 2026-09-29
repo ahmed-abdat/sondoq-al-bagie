@@ -392,6 +392,8 @@ const demo = {
     }));
     return ok("demo");
   },
+  cancelLastPeriod: async () => ok("demo"),
+  setJoinMonth: async () => ok("demo"),
   setGroupPrice: async () => ok(undefined),
   savePushSubscription: async () => ok(undefined),
   deletePushSubscription: async () => ok(undefined),

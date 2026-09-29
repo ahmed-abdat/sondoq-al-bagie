@@ -432,6 +432,31 @@ export async function changeMemberStatus(input: s.ChangeMemberStatusInput) {
   );
 }
 
+/** Undo the last status/group change: the previous period is open again. Returns its new id. */
+export async function cancelLastPeriod(input: s.CancelLastPeriodInput) {
+  return run(
+    s.cancelLastPeriodSchema,
+    input,
+    (sb, p) => sb.rpc("cancel_last_period", { p_member_id: p.memberId, p_reason: p.reason }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
+/** Move the start of the member's first period (wrong join month). Returns the period id. */
+export async function setJoinMonth(input: s.SetJoinMonthInput) {
+  return run(
+    s.setJoinMonthSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("set_join_month", {
+        p_member_id: p.memberId,
+        p_from_month: p.fromMonth,
+        p_reason: p.reason,
+      }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
 export async function setGroupPrice(input: s.SetGroupPriceInput) {
   return run(
     s.setGroupPriceSchema,

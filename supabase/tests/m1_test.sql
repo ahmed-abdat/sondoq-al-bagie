@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m18; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m19; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -697,6 +697,45 @@ select tests.login('public');
 select tests.ok((select price is null and state = 'late' from public.member_months
                  where member_id = tests.id('GC') and year = extract(year from current_date)::int - 2 and month = 1),
   'past-year late months are listed with their (missing) price');
+
+/* ───────────── M19: undo a status change, correct a join month ───────────── */
+
+select tests.login('admin');
+select tests.set('D', public.add_member(9002, 'عضو د', 'A', tests.m(-4)));
+select public.change_member_status(tests.id('D'), tests.m(-1), 'left', 'غادر');
+select tests.ok((select state from public.member_months where member_id = tests.id('D')
+                 and year = extract(year from tests.m(-1)) and month = extract(month from tests.m(-1))) = 'not_owed',
+  'a wrong «غادر» makes the month not owed');
+select tests.login('committee');
+select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'not_admin', 'only the admin undoes a period');
+select tests.login('admin');
+select tests.throws($$select public.cancel_last_period(tests.id('D'), '  ')$$, 'reason_required', 'undo needs a reason');
+select public.cancel_last_period(tests.id('D'), 'خطأ في الإدخال');
+select tests.ok((select state from public.member_months where member_id = tests.id('D')
+                 and year = extract(year from tests.m(-1)) and month = extract(month from tests.m(-1))) <> 'not_owed'
+                and (select count(*) = 1 and bool_and(from_month = tests.m(-4) and to_month is null and status = 'active')
+                     from public.membership_periods where member_id = tests.id('D') and cancelled_at is null)
+                and (select count(*) = 2 from public.membership_periods where member_id = tests.id('D') and cancelled_at is not null),
+  'undo: the wrong period and the closed one are cancelled, the previous period is open again');
+select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'no_previous_period', 'the first period cannot be undone');
+select public.record_payment(gen_random_uuid(), 'د', 'cash', 1000, current_date, jsonb_build_array(tests.month('D', -1, 1000)));
+select public.change_member_group(tests.id('D'), tests.m(-1), 'B', 'تغيير');
+select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'period_has_payments',
+  'no undo over a paid month');
+select public.set_join_month(tests.id('D'), tests.m(-6), 'تاريخ الانضمام الصحيح');
+select tests.ok((select state from public.member_months where member_id = tests.id('D')
+                 and year = extract(year from tests.m(-6)) and month = extract(month from tests.m(-6))) = 'late'
+                and (select from_month = tests.m(-6) and to_month = tests.m(-2) from public.membership_periods
+                     where member_id = tests.id('D') and cancelled_at is null order by from_month limit 1),
+  'an earlier join month makes those months owed, the period end is kept');
+select tests.throws($$select public.set_join_month(tests.id('D'), tests.m(-1), 'x')$$, 'join_month_invalid',
+  'the join month cannot move past the first period');
+select public.record_payment(gen_random_uuid(), 'د', 'cash', 1000, current_date, jsonb_build_array(tests.month('D', -5, 1000)));
+select tests.throws($$select public.set_join_month(tests.id('D'), tests.m(-4), 'x')$$, 'period_has_payments',
+  'the join month cannot move past a paid month');
+select tests.ok(public.set_join_month(tests.id('D'), tests.m(-6), 'x')
+                = (select id from public.membership_periods where member_id = tests.id('D') and cancelled_at is null
+                   order by from_month limit 1), 'same join month is a no-op');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

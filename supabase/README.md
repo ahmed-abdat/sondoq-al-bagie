@@ -33,6 +33,7 @@ and every change lands in `audit_log`.
 | `*_m16_backup_snapshot.sql` | `backup_snapshot(tables)` (service role): every backup table in one statement = one snapshot, no paging; `job_runs` (last run / ok / last good file of the weekly backup), committee read-only |
 | `*_m17_month_error_detail.sql` | `month_already_paid` / `month_not_owed` / `wrong_month_amount` carry a JSON DETAIL (member name, ref, month, price) via `app_private.month_error`; the app names the member and month in the message |
 | `*_m18_month_prices.sql` | `member_months.price` = the amount a payment for that month must have (group of that month's period; null = no price for the year); `month_grid.owed` falls back to the group's latest earlier price when a year has none (payments stay strict: `no_price`) |
+| `*_m19_undo_member_period.sql` | admin `cancel_last_period` (cancels the open period and the one before it, re-inserts that one as open) and `set_join_month` (moves the first period's start); append-only, refused over paid/pending months (`period_has_payments`) |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the

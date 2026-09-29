@@ -117,6 +117,12 @@ export const changeMemberStatusSchema = z.object({
     .optional(),
 });
 
+/** Undo the member's last status/group change (admin; refused over paid or pending months). */
+export const cancelLastPeriodSchema = z.object({ memberId: id, reason });
+
+/** Correct the month the member joined (admin; refused past paid or pending months). */
+export const setJoinMonthSchema = z.object({ memberId: id, fromMonth: firstOfMonth, reason });
+
 export const changeMemberGroupSchema = z.object({
   memberId: id,
   fromMonth: firstOfMonth,
@@ -240,6 +246,8 @@ export type LogReminderInput = z.input<typeof logReminderSchema>;
 export type AddMemberInput = z.input<typeof addMemberSchema>;
 export type UpdateMemberInput = z.input<typeof updateMemberSchema>;
 export type ChangeMemberStatusInput = z.input<typeof changeMemberStatusSchema>;
+export type CancelLastPeriodInput = z.input<typeof cancelLastPeriodSchema>;
+export type SetJoinMonthInput = z.input<typeof setJoinMonthSchema>;
 export type SetGroupPriceInput = z.input<typeof setGroupPriceSchema>;
 export type SetCommitteeMemberInput = z.input<typeof setCommitteeMemberSchema>;
 export type UpdateSettingsInput = z.input<typeof updateSettingsSchema>;

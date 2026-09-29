@@ -1274,6 +1274,10 @@ export type Database = {
         }
         Returns: string
       }
+      cancel_last_period: {
+        Args: { p_member_id: string; p_reason: string }
+        Returns: string
+      }
       change_member_status: {
         Args: {
           p_from_month: string
@@ -1354,6 +1358,10 @@ export type Database = {
       update_my_profile: {
         Args: { p_display_name: string; p_member_id?: string }
         Returns: undefined
+      }
+      set_join_month: {
+        Args: { p_from_month: string; p_member_id: string; p_reason: string }
+        Returns: string
       }
       set_committee_active: {
         Args: { p_active: boolean; p_user_id: string }
