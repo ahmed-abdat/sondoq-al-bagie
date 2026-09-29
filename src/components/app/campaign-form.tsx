@@ -7,6 +7,7 @@ import { useAct } from "./act";
 import type { CampaignProgress } from "@/lib/data/types";
 import { parseAmount } from "@/lib/money";
 import { dayWords, fmt } from "./derive";
+import { DateField } from "./date-field";
 import { I } from "./icons";
 import { Num } from "./num";
 
@@ -88,14 +89,7 @@ export function CampaignFormBody({
         aria-label="المبلغ المطلوب"
       />
       <p className="bq-rec-k">آخر يوم (اختياري)</p>
-      <input
-        className="bq-input"
-        type="date"
-        dir="ltr"
-        value={deadline}
-        onChange={(e) => setDeadline(e.target.value)}
-        aria-label="آخر يوم للحملة"
-      />
+      <DateField value={deadline} onChange={setDeadline} label="آخر يوم للحملة" optional />
       <p className="bq-hint bq-small-top">
         المساهمات تُحسب منفصلة عن الرسوم الشهرية، ويراها كل الأعضاء في «التبرعات».
       </p>
