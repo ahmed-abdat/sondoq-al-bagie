@@ -343,6 +343,22 @@ export type CommitteeAccount = {
   canDelete: boolean;
 };
 
+/** «حسابي»: the signed-in committee member's own account. */
+export type MyProfile = {
+  userId: string;
+  displayName: string;
+  role: CommitteeRole;
+  /** "+222XXXXXXXX" for phone logins, else the email */
+  login: string;
+  memberId: string | null;
+  /** "A-12" of the linked member row, null when not linked */
+  memberRef: string | null;
+  lastSignInAt: string | null;
+  createdAt: string;
+  /** false once linked: changing or removing the link is for the admin */
+  canLinkMember: boolean;
+};
+
 /** Shown ONCE after creating an account or resetting its password. */
 export type IssuedCredentials = { userId: string; login: string; password: string };
 

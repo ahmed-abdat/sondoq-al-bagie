@@ -34,6 +34,7 @@ export {
   getExpensesAdmin,
   getFundAccountsAdmin,
   getFundSettings,
+  getMyProfile,
   getCommitteeAccounts,
   getHandover,
   getHandovers,

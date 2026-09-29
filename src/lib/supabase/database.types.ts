@@ -1322,6 +1322,10 @@ export type Database = {
         Args: { p_auth: string; p_endpoint: string; p_p256dh: string; p_user_agent?: string }
         Returns: undefined
       }
+      update_my_profile: {
+        Args: { p_display_name: string; p_member_id?: string }
+        Returns: undefined
+      }
       set_committee_active: {
         Args: { p_active: boolean; p_user_id: string }
         Returns: undefined

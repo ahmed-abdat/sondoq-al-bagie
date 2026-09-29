@@ -781,6 +781,41 @@ export async function deleteCommitteeAccount(input: { userId: string }): Promise
   return res;
 }
 
+/* ───────────── «حسابي» ───────────── */
+
+/**
+ * Edit your own display name, and link your own member row once (memberId null/omitted keeps
+ * no link). Changing or removing an existing link is for the admin (own-membership rule).
+ */
+export async function updateMyProfile(input: s.UpdateMyProfileInput) {
+  return run(
+    s.updateMyProfileSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("update_my_profile", {
+        p_display_name: p.displayName,
+        p_member_id: p.memberId ?? undefined,
+      }),
+    { touchesPublic: false },
+  );
+}
+
+/**
+ * Sign out on every device (all sessions of this login). Pass this browser's push endpoint to
+ * stop its notifications first. The caller then navigates to "/".
+ */
+export async function signOutEverywhere(input: { endpoint?: string } = {}): Promise<ActionResult> {
+  const parsed = s.signOutEverywhereSchema.safeParse(input);
+  if (!parsed.success) return failure("invalid_input");
+  const sb = await createClient();
+  if (!sb) return failure("not_configured");
+  if (parsed.data.endpoint) {
+    await sb.rpc("delete_push_subscription", { p_endpoint: parsed.data.endpoint });
+  }
+  const { error } = await sb.auth.signOut({ scope: "global" });
+  return error ? failure("network") : { ok: true, data: undefined };
+}
+
 /* ───────────── push notifications ───────────── */
 
 /** Save this browser's push subscription for the signed-in committee member. */

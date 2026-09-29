@@ -1,6 +1,8 @@
 -- Undo the M2 migrations (dev/branch only). Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- my profile (m12)
+drop function if exists public.update_my_profile(text, uuid);
 -- delete accounts (m11): committee rows back to never deleted
 drop function if exists public.delete_committee_member(uuid);
 drop trigger if exists a_guard_delete on public.committee;
