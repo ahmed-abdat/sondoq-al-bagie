@@ -18,7 +18,7 @@ test("receipt share falls back to a WhatsApp link when the phone cannot share fi
 
   await page.goto("/");
   await page.getByRole("button", { name: /محمد ولد أحمد، .* افتح التفاصيل/ }).click();
-  await page.getByRole("button", { name: "أرسل الإيصال عبر واتساب" }).click();
+  await page.getByRole("button", { name: "أرسل الوصل عبر واتساب" }).click();
 
   await expect
     .poll(() => page.evaluate(() => (window as unknown as { __opened: string[] }).__opened))
@@ -47,7 +47,7 @@ test("receipt share uses the share sheet with a PNG when available", async ({ pa
 
   await page.goto("/");
   await page.getByRole("button", { name: /محمد ولد أحمد، .* افتح التفاصيل/ }).click();
-  await page.getByRole("button", { name: "أرسل الإيصال عبر واتساب" }).click();
+  await page.getByRole("button", { name: "أرسل الوصل عبر واتساب" }).click();
 
   await expect
     .poll(() => page.evaluate(() => (window as unknown as { __shared: unknown[] }).__shared))

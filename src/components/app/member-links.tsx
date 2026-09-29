@@ -29,7 +29,7 @@ import { SubHead } from "./views/committee";
 const STATE_WORD: Record<LinkState, string> = {
   none: "لم يُرسل",
   sent: "أُرسل",
-  using: "يستخدمه",
+  using: "فتحه",
 };
 
 /** Open WhatsApp in this tab (a popup after an await is blocked on iOS Safari). */
@@ -175,8 +175,11 @@ export function MemberLinksPage({
                       <span className="bq-ml-name">
                         {r.fullName}
                         {r.state !== "none" && (
-                          <span className="bq-ml-tick" role="img" aria-label={STATE_WORD[r.state]}>
-                            {r.state === "using" ? "✓✓" : "✓"}
+                          // words, not ✓ (audit C6): ✓ means "paid" everywhere else
+                          <span
+                            className={`bq-kind bq-ml-tick ${r.state === "using" ? "is-in" : ""}`}
+                          >
+                            {STATE_WORD[r.state]}
                           </span>
                         )}
                       </span>
@@ -232,7 +235,6 @@ export function MemberLinksPage({
             </ul>
           </section>
         ))}
-        {rows.length > 0 && <p className="bq-hint bq-ml-legend">✓ أُرسل · ✓✓ يستخدمه</p>}
       </section>
     </>
   );

@@ -26,6 +26,7 @@ import type { ReceiptView } from "./receipt-model";
 import {
   fitRow,
   payableMonths,
+  ymKey,
   rowCount,
   rowMonths,
   summarize,
@@ -33,7 +34,7 @@ import {
   type Draft,
   type Step,
 } from "./payment-draft";
-import { Avatar, MethodBadge, StatusTag } from "./bits";
+import { Avatar, MethodBadge, PaidCheck, StatusTag } from "./bits";
 import {
   byMostLate,
   dayWords,
@@ -185,7 +186,7 @@ function MemberPicker({
       <SearchField
         value={q}
         onChange={setQ}
-        placeholder="الاسم أو الرقم، مثل ب 12"
+        placeholder="اكتب الاسم أو الرقم، مثل ب 12"
         label="ابحث عن العضو"
         members={pool}
         onOpen={onPick}
@@ -360,7 +361,10 @@ function RowCard({
                           })
                         }
                       >
-                        {MONTHS[Number(k.slice(5, 7)) - 1]}
+                        <span>
+                          <span className="bq-mpick-on">{I.check(14)}</span>{" "}
+                          {MONTHS[Number(k.slice(5, 7)) - 1]}
+                        </span>
                         <span className="bq-mpick-s">{k.slice(0, 4)}</span>
                       </button>
                     </li>
@@ -392,8 +396,14 @@ function RowCard({
                       })
                     }
                   >
-                    {name}
-                    {isPaid && <span className="bq-mpick-s">مدفوع</span>}
+                    <span>
+                      <span className="bq-mpick-on">{I.check(14)}</span> {name}
+                    </span>
+                    {isPaid && (
+                      <span className="bq-mpick-s">
+                        <PaidCheck size={14} /> مدفوع
+                      </span>
+                    )}
                     {notOwed && <span className="bq-mpick-s">غير مستحق</span>}
                   </button>
                 </li>
@@ -444,7 +454,11 @@ type MemberMode = {
   recent: string[];
   /** «self»: open with the member and their late (or next) months chosen; «others»: no «أنت» */
   start?: "self" | "others";
+  /** «أرسلها من جديد» (audit M7): the rejected payment's members and months, still payable ones */
+  again?: SendAgain;
 };
+/** A rejected submission to send again: who it covered and which months (by year). */
+export type SendAgain = { memberId: string; months: { year: number; month: number }[] }[];
 /** Member mode adds one step: the screenshot is required. */
 type AnyStep = Step | "shot";
 const STEP_CTA: Record<AnyStep, string> = {
@@ -486,6 +500,23 @@ export function RecordBody({
   const { memberUploadProof, memberSubmitPayment } = useMemberAct();
   const once = useOnceId();
   const [rows, setRows] = useState<Row[]>(() => {
+    if (member?.again?.length) {
+      const again = member.again.flatMap((a): Row[] => {
+        const m = members.find((x) => x.memberId === a.memberId);
+        if (!m) return [];
+        const { open } = payableMonths(m.months, ctx.dueMonth);
+        const want = a.months.filter((k) => k.year === ctx.year).map((k) => k.month);
+        const pastWant = new Set(
+          a.months.filter((k) => k.year < ctx.year).map((k) => ymKey(k.year, k.month)),
+        );
+        const months = open.filter((k) => want.includes(k));
+        const past = (m.pastLate ?? []).filter((k) => pastWant.has(k));
+        return months.length || past.length
+          ? [{ m, months, past, edit: false }]
+          : [{ m, months: defaultMonths(ctx, m), past: m.pastLate ?? [], edit: false }];
+      });
+      if (again.length) return again;
+    }
     const self = member?.start === "self" && members.find((m) => m.memberId === member.selfId);
     return self
       ? [{ m: self, months: defaultMonths(ctx, self), past: self.pastLate ?? [], edit: false }]
@@ -506,6 +537,8 @@ export function RecordBody({
   const [more, setMore] = useState(false);
   const [reading, setReading] = useState(false);
   const [checks, setChecks] = useState<ReceiptChecks | null>(null);
+  /** a recipient number or name was read at all (a failed read is not a wrong wallet) */
+  const [recipientRead, setRecipientRead] = useState(false);
   const [read, setRead] = useState<{ ok: boolean } | null>(null);
   const [fromShot, setFromShot] = useState<Set<ShotField>>(() => new Set());
   const [busy, setBusy] = useState(false);
@@ -641,6 +674,7 @@ export function RecordBody({
         }
         setFromShot(got);
         setChecks(r.checks);
+        setRecipientRead(!!(r.recipientNumber || r.recipientName));
         setRead({ ok: got.size > 0 });
       })
       .catch(() => seq === readSeq.current && setRead({ ok: false }))
@@ -791,6 +825,7 @@ export function RecordBody({
           date={confirmed.r.status.kind === "confirmed" ? confirmed.r.status.at : paidOn}
           size={112}
           press
+          role={me?.role ?? ""}
         />
         <h2>سُجّلت وأُكّدت</h2>
         <p className="bq-lead">{confirmed.text}</p>
@@ -838,7 +873,8 @@ export function RecordBody({
   const methods = [
     ...MAIN_METHODS,
     ...(moreMeth || (meth && !MAIN_METHODS.includes(meth)) ? OTHER_METHODS : []),
-  ];
+    // a member sends a transfer screenshot: cash is handed to the committee instead (audit M9)
+  ].filter((k) => !member || k !== "cash");
 
   return (
     <div className="bq-rec">
@@ -847,7 +883,7 @@ export function RecordBody({
         <p className="bq-hint">اختر من دفعت عنه. تؤكد اللجنة الدفعة بعد مطابقة الصورة.</p>
       )}
 
-      <p className="bq-rec-k">{rows.length > 1 ? "الأعضاء في هذا التحويل" : "عن من هذه الدفعة؟"}</p>
+      <p className="bq-rec-k">{rows.length > 1 ? "الأعضاء في هذا التحويل" : "لمن هذه الدفعة؟"}</p>
       {rows.map((row, i) => (
         <RowCard
           key={row.m.memberId}
@@ -947,7 +983,12 @@ export function RecordBody({
             />
           </label>
           {checks && !checks.recipient && (
-            <p className="bq-hint">{I.search(16)} تحقق: المستلم في الصورة ليس من أرقام الصندوق.</p>
+            <p className="bq-hint">
+              {I.search(16)}{" "}
+              {recipientRead
+                ? "تحقق: المستلم في الصورة ليس من أرقام الصندوق."
+                : "لم نقرأ رقم المستلم. تأكد أنه أحد أرقام الصندوق."}
+            </p>
           )}
 
           <div className="bq-rec-sec" ref={methodRef}>
@@ -1070,6 +1111,20 @@ export function RecordBody({
                     سجّل {monthCount(fitMonths)} فقط
                   </button>
                 )}
+                {!fitMonths &&
+                  rows.length > 1 &&
+                  diff < 0 &&
+                  sent !== null &&
+                  sent * 10 !== total && (
+                    // several members, short transfer: open the first row's months (audit C9)
+                    <button
+                      type="button"
+                      className="bq-chip bq-press bq-rec-fit"
+                      onClick={() => setRows((rs) => rs.map((r, i) => ({ ...r, edit: i === 0 })))}
+                    >
+                      قلّل الأشهر
+                    </button>
+                  )}
                 {diff > 0 && (
                   <div className="bq-rec-credit bq-rec-in" ref={creditRef}>
                     {rows.length === 1 ? (

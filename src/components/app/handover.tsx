@@ -189,7 +189,13 @@ export function HandoverView({
   const text = minutesText(h, next);
   return (
     <section className="bq-sec bq-sec-first bq-rec-done">
-      <Stamp variant="confirmed" date={h.acceptedAt ?? new Date().toISOString()} size={112} press />
+      <Stamp
+        variant="confirmed"
+        date={h.acceptedAt ?? new Date().toISOString()}
+        size={112}
+        press
+        role="أمين الصندوق"
+      />
       <h2>بدأت الدورة {next}</h2>
       <p className="bq-lead">
         استلم {h.acceptedByName ?? "المسؤول الجديد"} الصندوق

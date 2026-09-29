@@ -9,7 +9,8 @@ export async function heroData(note?: HeroData["note"]): Promise<HeroData> {
   const s = await src.fundSummary();
   const term =
     s.termNumber && s.termStartedOn
-      ? `الدورة ${s.termNumber} · منذ ${dayWords(s.termStartedOn)} ${s.termStartedOn.slice(0, 4)}`
+      ? // public pages: no committee word «الدورة» (audit V7)
+        `منذ ${dayWords(s.termStartedOn)} ${s.termStartedOn.slice(0, 4)}`
       : null;
   return {
     term,

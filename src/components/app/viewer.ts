@@ -2,7 +2,7 @@
 // Is the viewer a committee member who may cancel payments? Seeded by the committee layout, or
 // asked once from the server when a Supabase session cookie exists. Public visitors never ask.
 import { useEffect, useSyncExternalStore } from "react";
-import { whoCanCancel } from "./viewer-action";
+import { isCommitteeViewer, whoCanCancel } from "./viewer-action";
 
 export type Canceller = { by: string; role: string };
 
@@ -35,4 +35,35 @@ export function useCanceller(): Canceller | null {
       .finally(() => (asking = false));
   }, []);
   return v ?? null;
+}
+
+/* Any signed-in committee member (every role): «مشاركة التقرير» is theirs only (owner rule). */
+let committee: boolean | undefined;
+let askingCommittee = false;
+const csubs = new Set<() => void>();
+
+export function setCommitteeViewer(v: boolean) {
+  if (committee === v) return;
+  committee = v;
+  csubs.forEach((cb) => cb());
+}
+
+/** false until known (visitors never see a flash of committee-only controls). */
+export function useCommitteeViewer(): boolean {
+  const v = useSyncExternalStore(
+    (cb) => {
+      csubs.add(cb);
+      return () => csubs.delete(cb);
+    },
+    () => committee,
+    () => undefined,
+  );
+  useEffect(() => {
+    if (committee !== undefined || askingCommittee || !signedIn()) return;
+    askingCommittee = true;
+    isCommitteeViewer()
+      .then(setCommitteeViewer, () => {})
+      .finally(() => (askingCommittee = false));
+  }, []);
+  return v === true;
 }

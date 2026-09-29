@@ -16,6 +16,7 @@ import { forgetMemberCard, MemberCard } from "../member-card";
 import { coverLines, historySections } from "../member-model";
 import type { MemberHistoryItem } from "@/lib/data/member-types";
 import type { MemberHome } from "../member-view-action";
+import type { SendAgain } from "../record";
 import { Num } from "../num";
 import { verifyPath } from "../receipt-model";
 import { SITE_URL } from "../site";
@@ -28,6 +29,7 @@ export function MeView({
   history: MemberHistoryItem[];
 }) {
   const demo = useMemberDemo();
+  const [again, setAgain] = useState<{ key: string; rows: SendAgain } | null>(null);
   if (!home)
     return (
       <>
@@ -49,21 +51,27 @@ export function MeView({
     );
 
   const me = home.s.memberId;
-  const who = { me, myName: home.s.fullName };
+  const who = {
+    me,
+    myName: home.s.fullName,
+    onAgain: (x: MemberHistoryItem) => setAgain(againOf(x)),
+  };
   const all = [...demo.sent.filter((x) => !server.some((y) => y.id === x.id)), ...server];
   const s = historySections(all);
   return (
     <>
       <header className="bq-page-h">
         <h1>دفعاتي</h1>
-        <p className="bq-lead">لا يراها غيرك.</p>
+        <p className="bq-lead">هذه الصفحة لك وحدك.</p>
       </header>
-      <MemberCard initial={home} onMe />
+      <MemberCard initial={home} onMe again={again} onAgainDone={() => setAgain(null)} />
 
       {s.waiting.length > 0 && (
         <Group id="bq-me-wait" title="بانتظار التأكيد" items={s.waiting} {...who} />
       )}
-      {s.rejected.length > 0 && <Group id="bq-me-rej" title="مرفوضة" items={s.rejected} {...who} />}
+      {s.rejected.length > 0 && (
+        <Group id="bq-me-rej" title="لم تُقبل" items={s.rejected} {...who} />
+      )}
       <Group
         id="bq-me-mine"
         title="دفعاتي المؤكَّدة"
@@ -90,6 +98,7 @@ function Group({
   items,
   me,
   myName,
+  onAgain,
   empty,
 }: {
   id: string;
@@ -97,6 +106,7 @@ function Group({
   items: MemberHistoryItem[];
   me: string;
   myName: string;
+  onAgain: (x: MemberHistoryItem) => void;
   empty?: string;
 }) {
   return (
@@ -105,7 +115,7 @@ function Group({
       {items.length ? (
         <ul className="bq-list">
           {items.map((x) => (
-            <HistoryRow key={x.id} x={x} me={me} myName={myName} />
+            <HistoryRow key={x.id} x={x} me={me} myName={myName} onAgain={onAgain} />
           ))}
         </ul>
       ) : (
@@ -115,7 +125,17 @@ function Group({
   );
 }
 
-function HistoryRow({ x, me, myName }: { x: MemberHistoryItem; me: string; myName: string }) {
+function HistoryRow({
+  x,
+  me,
+  myName,
+  onAgain,
+}: {
+  x: MemberHistoryItem;
+  me: string;
+  myName: string;
+  onAgain: (x: MemberHistoryItem) => void;
+}) {
   const lines = coverLines(x, me);
   const code = x.receiptCode;
   const url = code ? `${SITE_URL}${verifyPath(code)}` : "";
@@ -142,9 +162,18 @@ function HistoryRow({ x, me, myName }: { x: MemberHistoryItem; me: string; myNam
         ))}
         {x.status === "rejected" && (
           <span className="bq-me-rej">
-            <span className="bq-kind is-rej">مرفوض</span>
-            {x.rejectReason ? `السبب: ${x.rejectReason}` : "رفضتها اللجنة."}
+            <span className="bq-kind">لم تُقبل</span>
+            {x.rejectReason ? `السبب: ${x.rejectReason}` : "لم تقبلها اللجنة."}
           </span>
+        )}
+        {x.status === "rejected" && x.sentByMe && (
+          <button
+            type="button"
+            className="bq-btn bq-btn-soft bq-press bq-small-top"
+            onClick={() => onAgain(x)}
+          >
+            {I.image(20)} أرسلها من جديد
+          </button>
         )}
         {x.status === "pending" && (
           <span className="bq-row-s">تؤكدها اللجنة بعد مطابقة الصورة.</span>
@@ -171,6 +200,18 @@ function HistoryRow({ x, me, myName }: { x: MemberHistoryItem; me: string; myNam
   );
 }
 
+/** A rejected payment → the send sheet's rows (members and their months), for «أرسلها من جديد». */
+function againOf(x: MemberHistoryItem): { key: string; rows: SendAgain } {
+  const by = new Map<string, SendAgain[number]>();
+  for (const a of x.allocations)
+    if (a.kind === "months" && a.memberId && a.year && a.month) {
+      const r = by.get(a.memberId) ?? { memberId: a.memberId, months: [] };
+      r.months.push({ year: a.year, month: a.month });
+      by.set(a.memberId, r);
+    }
+  return { key: `${x.id}:${Date.now()}`, rows: [...by.values()] };
+}
+
 /** «خروج من هذا الجهاز»: this browser forgets the link (the link itself keeps working). */
 function SignOut({ name, others }: { name: string; others: number }) {
   const router = useRouter();
@@ -192,8 +233,8 @@ function SignOut({ name, others }: { name: string; others: number }) {
   return (
     <div className="bq-rej bq-small-top">
       <p className="bq-lead">
-        لن يظهر {name} على هذا الهاتف.{others > 0 ? " يبقى الآخرون." : ""} يمكن فتح رابطه من جديد
-        متى شاء.
+        سيُزال {name} من هذا الهاتف فقط.{others > 0 ? " يبقى الآخرون." : ""} يمكنه فتح رابطه من
+        جديد.
       </p>
       {err && (
         <p className="bq-alert" role="alert">

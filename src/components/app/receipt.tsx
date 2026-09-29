@@ -57,10 +57,13 @@ export function Stamp({
   size = 120,
   press = false,
   seed = 3,
+  role = "",
   className = "",
 }: {
   variant?: "confirmed" | "rejected" | "cancelled";
   date: string;
+  /** the dater band: who stamped it (أمين الصندوق / نائب أمين الصندوق / المسؤول); empty = none */
+  role?: string;
   size?: number;
   press?: boolean;
   seed?: number;
@@ -177,7 +180,7 @@ export function Stamp({
             fontWeight="600"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            أمين الصندوق
+            {role}
           </text>
         </g>
       </svg>
@@ -288,13 +291,19 @@ export function Proof({
 }) {
   const dlg = useRef<HTMLDialogElement>(null);
   const [src, setSrc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const { proofUrl } = useAct();
   useEffect(() => {
     if (!path) return;
     let live = true;
     proofUrl({ path })
-      .then((r) => live && r.ok && setSrc(safeReceiptSrc(r.data)))
-      .catch(() => {});
+      .then((r) => {
+        if (!live) return;
+        const u = r.ok ? safeReceiptSrc(r.data) : null;
+        if (u) setSrc(u);
+        else setFailed(true);
+      })
+      .catch(() => live && setFailed(true));
     return () => {
       live = false;
     };
@@ -329,11 +338,11 @@ export function Proof({
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL
           <img src={src} alt="صورة التحويل" className="rc-shot-l" />
+        ) : failed ? (
+          // the error replaces the picture, never both (audit C20)
+          <p className="rc-dlg-n">تعذّر تحميل الصورة الآن. حاول مرة أخرى بعد الاتصال.</p>
         ) : (
-          <>
-            <ShotMock amount={amount} method={label} large />
-            <p className="rc-dlg-n">تعذّر تحميل الصورة الآن. حاول مرة أخرى بعد الاتصال.</p>
-          </>
+          <ShotMock amount={amount} method={label} large />
         )}
         <button
           type="button"
@@ -462,6 +471,7 @@ function StatusBlock({ r, press }: { r: ReceiptView; press: boolean }) {
           date={st.at}
           press={press}
           seed={Number((r.no ?? "").slice(-2)) || 3}
+          role={"role" in st ? st.role : ""}
           className="rc-st-stamp"
         />
       )}

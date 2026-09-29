@@ -54,7 +54,6 @@ export default async function ReportPage() {
   const paidNow = active.filter((m) => monthPaid(m.months[month - 1])).length;
   const payers = (k: number) => shown.filter((m) => monthPaid(m.months[k - 1])).length;
   const current = r.term;
-  const termLabel = summary.termNumber ? `الدورة ${summary.termNumber}` : null;
   const monthly = r.monthly;
   const yearExpenses = r.expenses;
   const campaigns = r.campaigns.filter((c) => !isEmptyClosedCampaign(c));
@@ -90,8 +89,9 @@ export default async function ReportPage() {
           <h1>تقرير صندوق رابطة شباب البقيع</h1>
           <p>
             سنة <Num>{year}</Num>
-            {termLabel ? ` · ${termLabel}` : ""}
-            {current ? ` منذ ${dayWords(current.startedOn)} ${current.startedOn.slice(0, 4)}` : ""}
+            {current
+              ? ` · منذ ${dayWords(current.startedOn)} ${current.startedOn.slice(0, 4)}`
+              : ""}
           </p>
           <p className="rp-sub">حتى {dayDate(today)}</p>
         </div>
@@ -137,7 +137,13 @@ export default async function ReportPage() {
               const m = monthly.find((x) => x.month === i + 1);
               return (
                 <tr key={name}>
-                  <td>{name}</td>
+                  <td>
+                    {name}
+                    {/* a future month with money in it was paid ahead (audit V10) */}
+                    {i + 1 > month && (m?.collected ?? 0) > 0 ? (
+                      <span className="rp-cat"> (مدفوع مقدَّمًا)</span>
+                    ) : null}
+                  </td>
                   <td>
                     <Num>{fmt(m?.expected ?? 0)}</Num>
                   </td>

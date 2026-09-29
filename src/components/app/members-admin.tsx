@@ -9,6 +9,7 @@ import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { type MemberAdmin, type SettableStatus } from "@/lib/data/types";
 import { useAct, useDemoState } from "./act";
 import { MemberLinkSection } from "./member-link-admin";
+import { MemberMonths } from "./member";
 import type { MemberLinkInfo } from "@/lib/data/member-types";
 import { sendOnce, useOnceId } from "./once-id";
 import { Avatar, MemberNo, StatusTag } from "./bits";
@@ -191,9 +192,14 @@ export function MemberAdminBody({
   credit,
   price = 0,
   link = null,
+  months,
+  monthsCtx,
   onDone,
 }: {
   m: MemberAdmin;
+  /** this year's month code (same cells as the public member sheet) */
+  months?: string;
+  monthsCtx?: { year: number; dueMonth: number };
   /** «رابط العضو»: the member's active personal link, or null */
   link?: MemberLinkInfo | null;
   /** admin only: «تراجع عن آخر تغيير», «تصحيح شهر الانضمام» */
@@ -271,21 +277,33 @@ export function MemberAdminBody({
           </p>
         </div>
       </div>
-      <p className="bq-mline">
-        {m.status === "active" ? (
-          <>
-            دفع رسوم <Num className="bq-strong">{m.monthsPaidThisYear}</Num> من 12 شهرًا هذا العام
-            {m.monthsBehind > 0 && (
-              <span className="bq-row-s">
-                متأخر {monthsWord(m.monthsBehind)} · عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num>{" "}
-                أوقية
-              </span>
-            )}
-          </>
-        ) : (
-          "لا تُحسب عليه رسوم الآن."
-        )}
-      </p>
+      {months !== undefined && monthsCtx ? (
+        // the same count line and month cells as the public member sheet (audit C7)
+        <>
+          <MemberMonths m={{ ...m, months }} ctx={monthsCtx} />
+          {m.status === "active" && m.monthsBehind > 0 && (
+            <p className="bq-hint bq-small-top">
+              عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num> أوقية
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="bq-mline">
+          {m.status === "active" ? (
+            <>
+              دفع رسوم <Num className="bq-strong">{m.monthsPaidThisYear}</Num> من 12 شهرًا هذا العام
+              {m.monthsBehind > 0 && (
+                <span className="bq-row-s">
+                  متأخر {monthsWord(m.monthsBehind)} · عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num>{" "}
+                  أوقية
+                </span>
+              )}
+            </>
+          ) : (
+            "لا تُحسب عليه رسوم الآن."
+          )}
+        </p>
+      )}
       {!!m.formerDebtMonths?.length && (
         <p className="bq-mline">
           عليه رسوم شهرية سابقة لم تُدفع: {monthCount(m.formerDebtMonths.length)} ·{" "}
@@ -371,27 +389,36 @@ export function MemberAdminBody({
         </div>
       )}
       {mode === "view" && (
-        <button type="button" className="bq-link bq-link-quiet bq-press" onClick={() => go("move")}>
-          نقله إلى رسوم المجموعة {groupLabel(other)}
-        </button>
-      )}
-      {mode === "view" && admin && (
-        <>
-          <button
-            type="button"
-            className="bq-link bq-link-quiet bq-press"
-            onClick={() => go("undo")}
-          >
-            تراجع عن آخر تغيير
-          </button>
-          <button
-            type="button"
-            className="bq-link bq-link-quiet bq-press"
-            onClick={() => go("join")}
-          >
-            تصحيح شهر الانضمام
-          </button>
-        </>
+        // rare changes as clear 44px rows, not small run-together links (audit C7)
+        <section className="bq-madm-more" aria-labelledby="bq-madm-more-h">
+          <h3 id="bq-madm-more-h" className="bq-pick-h">
+            تعديلات أخرى
+          </h3>
+          <ul className="bq-list bq-menu">
+            <li>
+              <button type="button" className="bq-row bq-press" onClick={() => go("move")}>
+                <span className="bq-row-t">نقله إلى رسوم المجموعة {groupLabel(other)}</span>
+                <span className="bq-chev">{I.go(18)}</span>
+              </button>
+            </li>
+            {admin && (
+              <>
+                <li>
+                  <button type="button" className="bq-row bq-press" onClick={() => go("undo")}>
+                    <span className="bq-row-t">تراجع عن آخر تغيير</span>
+                    <span className="bq-chev">{I.go(18)}</span>
+                  </button>
+                </li>
+                <li>
+                  <button type="button" className="bq-row bq-press" onClick={() => go("join")}>
+                    <span className="bq-row-t">تصحيح شهر الانضمام</span>
+                    <span className="bq-chev">{I.go(18)}</span>
+                  </button>
+                </li>
+              </>
+            )}
+          </ul>
+        </section>
       )}
 
       {mode === "undo" && (
@@ -742,12 +769,17 @@ export function MembersAdmin({
   admin = false,
   credit = {},
   links = {},
+  months = {},
+  monthsCtx,
 }: {
   members: MemberAdmin[];
   prices: Record<string, number>;
   thisMonth: string;
   admin?: boolean;
   credit?: Record<string, MemberCredit>;
+  /** month codes this year by member id, for the sheet's month cells */
+  months?: Record<string, string>;
+  monthsCtx?: { year: number; dueMonth: number };
   /** active personal links by member id */
   links?: Record<string, MemberLinkInfo>;
 }) {
@@ -806,7 +838,7 @@ export function MembersAdmin({
       <SearchField
         value={q}
         onChange={setQ}
-        placeholder="الاسم أو الرقم، مثل ب 12"
+        placeholder="اكتب الاسم أو الرقم، مثل ب 12"
         label="ابحث عن عضو"
         members={members}
         onOpen={(m) => setSheet({ t: "member", id: m.memberId })}
@@ -818,6 +850,15 @@ export function MembersAdmin({
           value={st}
           onChange={setSt}
           items={[
+            // «الكل» first, like the public list (audit C15)
+            {
+              k: "all",
+              l: (
+                <>
+                  الكل <Num className="bq-seg-n">{count("all")}</Num>
+                </>
+              ),
+            },
             {
               k: "active",
               l: (
@@ -839,14 +880,6 @@ export function MembersAdmin({
               l: (
                 <>
                   غادروا <Num className="bq-seg-n">{count("gone")}</Num>
-                </>
-              ),
-            },
-            {
-              k: "all",
-              l: (
-                <>
-                  الكل <Num className="bq-seg-n">{count("all")}</Num>
                 </>
               ),
             },
@@ -922,6 +955,8 @@ export function MembersAdmin({
             credit={creditOf(open.memberId, open.groupCode)}
             price={prices[open.groupCode] ?? 0}
             link={linkOf(open.memberId)}
+            months={months[open.memberId]}
+            monthsCtx={monthsCtx}
             onDone={done}
           />
         </Sheet>

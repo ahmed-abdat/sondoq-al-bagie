@@ -15,13 +15,18 @@ export function youStatus(s: Pick<MemberSession, "status" | "monthsBehind" | "am
  * What the «أنت» card says and offers (owner, r24): the whole year paid → thanks, no pay button;
  * paid up to a month → «دفعت حتى سبتمبر»; late → «عليك …» and one «ادفع الآن»; exempt.
  */
-export type YouKind = "full" | "upto" | "late" | "exempt";
+export type YouKind = "full" | "upto" | "late" | "pending" | "exempt";
 export function youCard(
   s: Pick<MemberSession, "status" | "monthsBehind" | "amountOwed">,
   code: string,
   year: number,
+  /** payments sent from this link, waiting for the committee */
+  waiting = 0,
 ): { kind: YouKind; text: string } {
   if (s.status === "exempt") return { kind: "exempt", text: "أنت معفى من الرسوم الشهرية" };
+  // late but proof already sent (audit M1): say it arrived, no second big «ادفع الآن»
+  if (s.monthsBehind > 0 && waiting > 0)
+    return { kind: "pending", text: "أرسلت صورة التحويل. تنتظر تأكيد اللجنة." };
   if (s.monthsBehind > 0) return { kind: "late", text: youStatus(s).text };
   const dots = youDots(code);
   const owed = dots.filter((d) => d.state !== "off");

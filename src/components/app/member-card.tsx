@@ -6,7 +6,7 @@
 // and «ادفع الآن» (amount due, the fund's wallets, then «دفعت؟ أرسل صورة التحويل»).
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MemberLinkPaste } from "@/components/providers";
 import { useIsDemo } from "./act";
 import { Avatar, MemberNo, PaidCheck } from "./bits";
@@ -22,7 +22,7 @@ import {
 } from "./member-view-action";
 import { Num } from "./num";
 import { PayTo } from "./pay-to";
-import { RecordBody } from "./record";
+import { RecordBody, type SendAgain } from "./record";
 import { Sheet } from "./sheet";
 import { useSnack } from "./shell";
 import { cardCache, forgetMemberCard } from "./member-card-cache";
@@ -49,16 +49,24 @@ function useMemberHome(initial?: MemberHome | null) {
   return [d, () => setTick((n) => n + 1)] as const;
 }
 
-type SheetKind = "self" | "others" | "pay";
+type SheetKind = "self" | "others" | "pay" | "again";
 
 export function MemberCard({
   initial,
   onMe = false,
+  again = null,
+  onAgainDone,
+  welcome = false,
 }: {
   /** from a dynamic page that already read the session (/me) */
   initial?: MemberHome | null;
   /** on «دفعاتي» itself: no link to it */
   onMe?: boolean;
+  /** «أرسلها من جديد» on /me: open the send sheet with this rejected payment's rows */
+  again?: { key: string; rows: SendAgain } | null;
+  onAgainDone?: () => void;
+  /** home, first open of the personal link (/?welcome=1) */
+  welcome?: boolean;
 }) {
   const [d, refresh] = useMemberHome(initial);
   const isDemo = useIsDemo();
@@ -83,6 +91,28 @@ export function MemberCard({
     if (isDemo && d) rememberDemoMember(d.s);
   }, [isDemo, d]);
 
+  // first open of the personal link (audit M5): greet once and bring the card into view
+  const cardRef = useRef<HTMLElement>(null);
+  const loaded = d !== undefined && d !== null;
+  useEffect(() => {
+    if (!welcome || !loaded) return;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    cardRef.current?.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+  }, [welcome, loaded]);
+
+  // «أرسلها من جديد» on /me: open the send sheet once per tap (state adjusted during render)
+  const [againKey, setAgainKey] = useState<string | null>(null);
+  if (again && again.key !== againKey) {
+    setAgainKey(again.key);
+    setSheet("again");
+  }
+  useEffect(() => {
+    if (sheet !== "again" || data !== undefined) return;
+    memberSheetData()
+      .then(setData)
+      .catch(() => setData(null));
+  }, [sheet, data]);
+
   const open = (k: SheetKind) => {
     setSheet(k);
     if (data) return;
@@ -95,12 +125,17 @@ export function MemberCard({
   if (d === null) return onMe ? null : <MemberLinkPaste />;
 
   const { s } = d;
-  const st = youCard(s, d.months, d.year);
+  const waiting = d.waiting + (isDemo ? demo.sent.filter((x) => x.status === "pending").length : 0);
+  const st = youCard(s, d.months, d.year, waiting);
   const dots = youDots(d.months);
   const paidNames = dots.filter((x) => x.state === "paid").map((x) => x.name);
-  const waiting = d.waiting + (isDemo ? demo.sent.filter((x) => x.status === "pending").length : 0);
   return (
-    <section className="bq-sec bq-you" aria-labelledby="bq-you-h">
+    <section className="bq-sec bq-you" aria-labelledby="bq-you-h" ref={cardRef}>
+      {welcome && (
+        <p className="bq-you-hi">
+          أهلًا {s.fullName.split(" ")[0]}. هذا رابطك الخاص: تجد هنا أشهرك وترسل صورة تحويلك.
+        </p>
+      )}
       <div className="bq-you-head">
         <Avatar m={s} size={48} />
         <div className="bq-row-m">
@@ -115,7 +150,7 @@ export function MemberCard({
       </div>
       {d.profiles.length > 1 && (
         <div className="bq-you-sw" role="group" aria-label="أشخاص آخرون على هذا الهاتف">
-          <span className="bq-hint">تبديل:</span>
+          <span className="bq-hint">على هذا الهاتف أيضًا:</span>
           {d.profiles
             .filter((p) => !p.active && p.memberId !== s.memberId)
             .map((p) => (
@@ -134,7 +169,7 @@ export function MemberCard({
         </div>
       )}
       <p className={`bq-you-st ${st.kind === "late" ? "is-late" : "is-ok"}`}>
-        {st.kind === "late" ? I.clock(20) : I.check(20)}
+        {st.kind === "late" || st.kind === "pending" ? I.clock(20) : I.check(20)}
         <span>{st.text}</span>
       </p>
       {st.kind === "full" && <p className="bq-hint">شكرًا لك</p>}
@@ -203,8 +238,15 @@ export function MemberCard({
         </Link>
       )}
 
-      {(sheet === "self" || sheet === "others") && (
-        <Sheet key={sheet} label="أرسل صورة التحويل" onDone={() => setSheet(null)}>
+      {(sheet === "self" || sheet === "others" || sheet === "again") && (
+        <Sheet
+          key={sheet}
+          label="أرسل صورة التحويل"
+          onDone={() => {
+            setSheet(null);
+            if (sheet === "again") onAgainDone?.();
+          }}
+        >
           {data ? (
             <RecordBody
               members={data.members}
@@ -215,9 +257,11 @@ export function MemberCard({
                 selfId: s.memberId,
                 selfName: s.fullName,
                 recent: data.recent,
-                start: sheet,
+                start: sheet === "again" ? "self" : sheet,
+                again: sheet === "again" ? (again?.rows ?? undefined) : undefined,
               }}
               onDone={(t) => {
+                if (sheet === "again") onAgainDone?.();
                 setSheet(null);
                 say(t);
                 refresh();

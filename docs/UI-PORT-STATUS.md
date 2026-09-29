@@ -425,6 +425,29 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - e2e `report.spec.ts` members grid test rewritten (both widths, no «الرقم», no circle). 65/65.
 - Shots `/private/tmp/claude-502/sondoq-shots/r25/` (before-*/after-*: 390, 1280, img-2, member).
 
+## UX audit, Lane C items (r26, docs/UX-AUDIT.md)
+- P0 done: M2/C1 (unread recipient: «لم نقرأ رقم المستلم…», the wrong-wallet warning only when a
+  recipient was read), M1 (card after sending proof: «أرسلت صورة التحويل. تنتظر تأكيد اللجنة.»,
+  clock, no «ادفع الآن»; `youCard(…, waiting)` kind "pending").
+- P1 done: V1 (search lifts above the keyboard), V2 (search uses StatusTag from the months),
+  V3 («شهر واحد», `lateCount`), V4 (member sheet months = report cells + words), M3/M4 (r24/r25),
+  M5 (welcome line + card in view, read in MemberSlot), M6 (r24 preselects «أنت»), M7 («أرسلها من
+  جديد» on /me, `RecordBody member.again`), C2 (stamp prints the confirmer's role, `Stamp role`),
+  C3 (FAB slides away over slip buttons), C4 (new slip first, scrolled into view), C5 (late walk
+  «ذكّر الجميع بالترتيب»), C6 (links «أُرسل / فتحه»), C7 (admin sheet: public months via
+  `MemberMonths`, «تعديلات أخرى» rows), C8 (expense button names the missing step).
+- P2 done: V5, V6, V7, V8, V9 (share link removed; install entry kept: only persistent one for
+  visitors), V10, V12, V14 (C part), V16, V17, M8, M9, M10 (grey «لم تُقبل», intro), M11, M12,
+  C9, C10, C11, C12, C13, C14, C15, C16, C17, C19, C20; token grey + gate radius; DESIGN.md month
+  language. C18 was already a disabled button.
+- Skipped: V11 (owner: no current-month emphasis; sticky header done r25), V13/V15 (Lane B), V18
+  (member contribution-only send needs a flow check with Lane A), C21 (decorative thumb text), M10
+  icon and /me nav state (shell-wide), `.bq-sheet` outline (dialog container, false positive).
+- Owner rule: «مشاركة التقرير» only for a signed-in committee member (any role):
+  `useCommitteeViewer` (viewer.ts, seeded by the committee layout, asked once when a Supabase
+  cookie exists), reset on sign-out; visitors and members get the report and «طباعة» only.
+- e2e 68/68 on fixtures. Shots `/private/tmp/claude-502/sondoq-shots/r26/`.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.

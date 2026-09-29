@@ -2,6 +2,7 @@
 // «حسابي»: the signed-in committee member's own page. Name, role, login; password; the link to
 // their own membership; notifications; sign out (here or everywhere). Settings stay fund-only.
 // Linking to one's own membership happens once; after that only the admin changes it.
+import { setCanceller, setCommitteeViewer } from "../viewer";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
@@ -103,7 +104,7 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
             <dd>{ROLE_LABEL[me.role]}</dd>
           </div>
           <div>
-            <dt>رقم الدخول</dt>
+            <dt>البريد أو الهاتف للدخول</dt>
             <dd>
               <bdi dir="ltr" className="bq-num">
                 {me.login || "غير معروف"}
@@ -221,6 +222,8 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
                     return say(r.message);
                   }
                   // nothing of the committee stays on this phone
+                  setCommitteeViewer(false);
+                  setCanceller(null);
                   try {
                     await createIdbPersister().removeClient();
                   } catch {

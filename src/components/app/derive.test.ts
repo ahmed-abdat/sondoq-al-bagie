@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { MemberStatus } from "@/lib/data/types";
 import {
+  lateCount,
+  namesCount,
   amountInWords,
   contributionCount,
   imageOpenError,
@@ -221,4 +223,17 @@ describe("imageOpenError", () => {
       "تعذّر فتح الصورة. جرّب صورة أخرى.",
     );
   });
+});
+
+it("lateCount after «متأخر عن رسوم»", () => {
+  expect(["1", "2", "3", "11"].map((n) => lateCount(Number(n)))).toEqual([
+    "شهر واحد",
+    "شهرين",
+    "3 أشهر",
+    "11 شهرًا",
+  ]);
+});
+
+it("namesCount", () => {
+  expect([6, 10, 11, 34].map(namesCount)).toEqual(["6 أسماء", "10 أسماء", "11 اسمًا", "34 اسمًا"]);
 });

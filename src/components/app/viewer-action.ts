@@ -10,3 +10,9 @@ export async function whoCanCancel(): Promise<{ by: string; role: string } | nul
   if (!s || s.role === "committee") return null;
   return { by: s.displayName, role: ROLE_LABEL[s.role] };
 }
+
+/** Any signed-in committee member (every role), for «مشاركة التقرير» on the public report. */
+export async function isCommitteeViewer(): Promise<boolean> {
+  const s = await src.anyCommitteeSession().catch(() => null);
+  return !!s && !s.setupPending;
+}

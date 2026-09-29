@@ -3,9 +3,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { markInstallEngaged } from "@/components/providers";
-import type { MemberIndex } from "@/lib/data/types";
+import type { MemberIndex, MemberStatus } from "@/lib/data/types";
 import { Track } from "../bits";
-import { memberLabel, searchMembers } from "../derive";
+import { memberLabel, namesCount, searchMembers } from "../derive";
 import dynamic from "next/dynamic";
 import { EntryRow } from "../entry-row";
 
@@ -15,7 +15,7 @@ const EntrySheetBody = dynamic(() => import("../entries").then((m) => m.EntryShe
 });
 import { Hero, type HeroData } from "../hero";
 import { I } from "../icons";
-import { Avatar } from "../bits";
+import { Avatar, StatusTag } from "../bits";
 import { Num } from "../num";
 import { rememberMember, useRecentMembers } from "../recent-members";
 import { MemberSlot } from "../member-slot";
@@ -25,10 +25,8 @@ import type { LedgerEntry } from "../types";
 
 type S = { t: "entry"; e: LedgerEntry };
 /** Only what a search result shows; keeps the home payload small. */
-export type IndexMember = Pick<
-  MemberIndex["members"][number],
-  "memberRef" | "fullName" | "statusLabel"
->;
+export type IndexMember = Pick<MemberIndex["members"][number], "memberRef" | "fullName"> &
+  Pick<MemberStatus, "status" | "monthsBehind" | "monthsPaidThisYear">;
 
 export function HomeView({
   hero,
@@ -72,9 +70,10 @@ export function HomeView({
         <SearchField
           value={q}
           onChange={setQ}
-          placeholder="اكتب اسمك أو رقمك"
+          placeholder="اكتب الاسم أو الرقم، مثل ب 12"
           label="ابحث باسمك أو رقم عضويتك"
           members={members}
+          onFocus={liftSearch}
           onOpen={(m) => {
             rememberMember(m.memberRef);
             markInstallEngaged();
@@ -92,9 +91,7 @@ export function HomeView({
                 ))}
               </ul>
               {res.length > 5 && (
-                <p className="bq-hint">
-                  وجدنا <Num>{res.length}</Num> أسماء. اكتب الاسم كاملًا ليظهر اسمك.
-                </p>
+                <p className="bq-hint">وجدنا {namesCount(res.length)}. اكتب اسمك كاملًا أو رقمك.</p>
               )}
             </>
           ) : (
@@ -202,9 +199,24 @@ export function HomeView({
   );
 }
 
+/**
+ * Audit V1: on a phone the keyboard covers the results under the hero; bring the question and
+ * the field to the top once the keyboard is opening.
+ */
+function liftSearch() {
+  if (!matchMedia("(max-width: 599.98px)").matches) return;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  setTimeout(
+    () =>
+      document
+        .getElementById("bq-find-h")
+        ?.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" }),
+    250,
+  );
+}
+
 /** A search result: tap to open the member's months on /members. */
 function IndexRow({ m }: { m: IndexMember }) {
-  const late = m.statusLabel === "متأخر";
   return (
     <li>
       <Link
@@ -221,10 +233,7 @@ function IndexRow({ m }: { m: IndexMember }) {
         <span className="bq-row-m">
           <span className="bq-row-t">{m.fullName}</span>
         </span>
-        <span className={`bq-tag ${late ? "is-late" : "is-ok"}`}>
-          {late ? I.clock(16) : I.check(16)}
-          {m.statusLabel}
-        </span>
+        <StatusTag m={m} />
       </Link>
     </li>
   );

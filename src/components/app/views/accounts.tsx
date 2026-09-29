@@ -46,7 +46,7 @@ export function AccountsView({
   /** this year's spending per category, largest first */
   spentBy: { category: ExpenseCategory; total: number }[];
   ledger: LedgerEntry[];
-  /** «الدورة 2 · منذ …» */
+  /** «منذ 1 يناير 2026» */
   term: string | null;
   pastTerms: Term[];
 }) {
@@ -149,14 +149,10 @@ export function AccountsView({
           </div>
         </dl>
         <p className="bq-hint">تبرعات الحملات تُحفظ في حسابها الخاص، ولا تدخل هنا.</p>
-        <div className="bq-link-row">
-          <Link href="/report#share" prefetch={false} className="bq-link bq-press">
-            {I.wa(18)} مشاركة التقرير
-          </Link>
-          <Link href="/report" prefetch={false} className="bq-link bq-press">
-            التقرير كاملًا {I.go(18)}
-          </Link>
-        </div>
+        {/* one link: sharing lives on the report itself (audit V9) */}
+        <Link href="/report" prefetch={false} className="bq-link bq-press">
+          التقرير كاملًا {I.go(18)}
+        </Link>
       </section>
 
       <section className="bq-sec bq-rv" id="bq-pay" data-rv="acc-pay" aria-labelledby="bq-pay-h">
@@ -246,17 +242,24 @@ export function AccountsView({
                         </>
                       ) : null}
                     </span>
+                    {/* plain words, no committee jargon (audit V8) */}
                     <span className="bq-row-s">
-                      رصيد سابق <Num>{fmt(t.openingBalance)}</Num> · سُلّمت بـ{" "}
-                      <Num>{fmt(t.closingBalance ?? 0)}</Num> أوقية · جُمع{" "}
-                      <Num>{fmt(t.collected)}</Num> · صُرف <Num>{fmt(t.spent)}</Num>
-                      {t.adjustment ? (
+                      جُمع <Num>{fmt(t.collected)}</Num> · صُرف <Num>{fmt(t.spent)}</Num>
+                      {t.closingBalance !== null ? (
                         <>
                           {" "}
-                          · فرق عند التسليم{" "}
-                          <Num>{`${t.adjustment > 0 ? "+" : "−"}${fmt(Math.abs(t.adjustment))}`}</Num>
+                          · سُلّم للجنة الجديدة <Num>{fmt(t.closingBalance)}</Num> أوقية
+                          {t.adjustment ? (
+                            <>
+                              {" "}
+                              ({t.adjustment > 0 ? "زيادة" : "نقص"}{" "}
+                              <Num>{fmt(Math.abs(t.adjustment))}</Num>)
+                            </>
+                          ) : null}
                         </>
-                      ) : null}
+                      ) : (
+                        " أوقية"
+                      )}
                     </span>
                   </span>
                 </div>

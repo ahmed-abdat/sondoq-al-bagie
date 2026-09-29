@@ -176,9 +176,9 @@ test("steps aside while the member types", async ({ page }) => {
   await returning(page);
   await page.goto("/");
   await expect(card(page)).toBeVisible();
-  await page.getByPlaceholder("اكتب اسمك أو رقمك").focus();
+  await page.getByPlaceholder("اكتب الاسم أو الرقم، مثل ب 12").focus();
   await expect(card(page)).toHaveCount(0);
-  await page.getByPlaceholder("اكتب اسمك أو رقمك").blur();
+  await page.getByPlaceholder("اكتب الاسم أو الرقم، مثل ب 12").blur();
   await expect(card(page)).toBeVisible();
 });
 

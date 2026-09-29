@@ -86,7 +86,7 @@ export function MembersView({
         <SearchField
           value={q}
           onChange={setQ}
-          placeholder="اكتب رقمًا أو اسمًا"
+          placeholder="اكتب الاسم أو الرقم، مثل ب 12"
           label="ابحث عن عضو بالرقم أو الاسم"
           members={members}
           onOpen={(m) => pick(m, null)}
@@ -117,7 +117,7 @@ export function MembersView({
                 </>
               ),
             },
-            ...groups.map((g) => ({ k: `g:${g}` as Filter, l: `مجموعة ${groupLabel(g)}` })),
+            ...groups.map((g) => ({ k: `g:${g}` as Filter, l: `المجموعة ${groupLabel(g)}` })),
             ...(initial === "none"
               ? [
                   {

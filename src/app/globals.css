@@ -455,6 +455,14 @@
   .bq-find {
     margin-block-start: 32px;
   }
+  /* clear of the compact balance bar that takes over from the hero */
+  .bq-mhead-fee {
+    display: block;
+    white-space: nowrap;
+  }
+  .bq-find > h2 {
+    scroll-margin-block-start: calc(var(--safe-t) + 68px);
+  }
   .bq-desk-only {
     display: none;
   }
@@ -508,7 +516,8 @@
     outline: none;
   }
   .bq-search input::placeholder {
-    color: #5e6a63;
+    color: var(--muted);
+    opacity: 0.85;
   }
   .bq-search input::-webkit-search-cancel-button {
     display: none;
@@ -1332,7 +1341,7 @@
   .bq-gate-i {
     width: 64px;
     height: 64px;
-    border-radius: 22px;
+    border-radius: var(--r-lg);
     display: grid;
     place-items: center;
     background: var(--g1);
@@ -1510,6 +1519,12 @@
     padding-inline: 4px;
     animation: bq-fade 200ms var(--ease-out) both;
   }
+  .bq-slip-one-wa {
+    flex: none;
+    min-height: 44px;
+    padding-inline: 14px;
+    font-size: 15px;
+  }
   .bq-slip-one .bq-row-t {
     flex: 1;
     min-width: 0;
@@ -1588,9 +1603,18 @@
     font-weight: 600;
     line-height: 1.3;
   }
+  /* chosen = forest outline + ✓, never the filled green that reads "paid" (audit C10) */
   .bq-mpick[aria-pressed="true"] {
-    background: var(--g8);
-    color: #fff;
+    background: var(--g1);
+    color: var(--g9);
+    box-shadow: inset 0 0 0 2px var(--g8);
+  }
+  .bq-mpick-on {
+    display: none;
+    color: var(--g8);
+  }
+  .bq-mpick[aria-pressed="true"] .bq-mpick-on {
+    display: inline-flex;
   }
   .bq-mpick.is-paid {
     background: transparent;
@@ -1808,6 +1832,16 @@
       clip-path 260ms var(--ease-out),
       transform 420ms var(--spring);
     animation: bq-fab-in 260ms var(--ease-out) both;
+  }
+  /* a slip's buttons are under it (audit C3): slide out of the thumb's way */
+  .bq-fab.is-away {
+    animation: none;
+    transform: translateY(calc(100% + 24px));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 220ms var(--ease-out),
+      opacity 160ms var(--ease-out);
   }
   .bq-fab.is-mini {
     clip-path: inset(0 calc(100% - 56px) 0 0 round 20px);
@@ -2042,18 +2076,24 @@
   .bq-mstatus.is-late {
     color: var(--muted);
   }
+  /* one month language (audit V4): the report's cells, white, bordered, a green ✓ when paid,
+     plus the month word so a member reads their own months */
   .bq-months {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid #7f9a88;
+    border-radius: 14px;
+    background: #b3c5b9;
   }
   .bq-mo {
-    border-radius: var(--r-md);
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-height: 64px;
+    background: var(--paper);
   }
   .bq-mo-n {
     font-family: var(--font-display);
@@ -2066,32 +2106,22 @@
     align-items: center;
     gap: 4px;
     font-size: 14px;
+    color: var(--muted);
   }
-  .mo-paid {
-    background: var(--g7);
-    color: #fff;
-  }
-  .mo-owed {
-    background: repeating-linear-gradient(135deg, var(--n2) 0 6px, var(--n1) 6px 12px);
-    color: var(--ink);
-  }
-  .mo-owed .bq-mo-s {
-    color: #3f4b45;
+  .mo-paid .bq-mo-s,
+  .mo-ahead .bq-mo-s {
+    color: var(--g8);
+    font-weight: 600;
   }
   .mo-future,
   .mo-none {
-    background: var(--n1);
     color: var(--muted);
-  }
-  /* paid in advance is PAID: the same solid green, with a small «مقدَّمًا» tag */
-  .mo-ahead {
-    background: var(--g7);
-    color: #fff;
   }
   .bq-mo-tag {
     padding: 0 6px;
     border-radius: 999px;
-    background: var(--g9);
+    background: var(--g1);
+    color: var(--g8);
     font-size: 14px;
   }
   .bq-owed {
@@ -4884,6 +4914,27 @@
     color: var(--muted);
     font-variant-numeric: tabular-nums;
   }
+  .bq-madm-more {
+    margin-block-start: 20px;
+  }
+  .bq-madm-more .bq-row {
+    min-height: 52px;
+  }
+  .bq-madm-more .bq-row-t {
+    flex: 1;
+  }
+  .bq-you-hi {
+    margin-block-end: 12px;
+    padding: 12px 14px;
+    border-radius: var(--r-md);
+    background: var(--g1);
+    color: var(--g9);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .bq-you {
+    scroll-margin-block-start: calc(var(--safe-t) + 68px);
+  }
   .bq-you-key {
     display: flex;
     align-items: center;
@@ -5041,10 +5092,9 @@
     overflow-wrap: anywhere;
   }
   .bq-ml-tick {
-    margin-inline-start: 6px;
-    color: var(--g7);
-    font-weight: 700;
+    margin-inline-start: 8px;
     white-space: nowrap;
+    vertical-align: 1px;
   }
   .bq-ml-wa {
     flex: none;
@@ -5082,9 +5132,6 @@
     padding: 14px;
     border-radius: var(--r-md);
     background: var(--n1);
-  }
-  .bq-ml-legend {
-    margin-block-start: 16px;
   }
 }
 /* ───── end Lane C «روابط الأعضاء» ───── */

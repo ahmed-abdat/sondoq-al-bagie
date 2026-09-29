@@ -12,6 +12,24 @@ import { I } from "./icons";
 import { Num, useNow } from "./num";
 import { IDLE, runSave, SaveNote, type SaveState } from "./views/settings";
 
+/** This year's fees, read only, every day of the year (audit C14). */
+export function CurrentPrices({ year, prices }: { year: number; prices: Record<string, number> }) {
+  const groups = Object.keys(prices).sort();
+  if (!groups.length) return null;
+  return (
+    <section className="bq-sec" aria-labelledby="bq-cp-h">
+      <h2 id="bq-cp-h">الرسوم الشهرية {year}</h2>
+      <p className="bq-lead">
+        {groups.map((g, i) => (
+          <span key={g} className="bq-nowrap">
+            {i ? " · " : ""}المجموعة {groupLabel(g)} <Num>{fmt(prices[g])}</Num> أوقية
+          </span>
+        ))}
+      </p>
+    </section>
+  );
+}
+
 export function YearPrices({
   year,
   groups,

@@ -11,7 +11,7 @@ import type { LedgerEntry } from "./types";
 
 export { EntryRow } from "./entry-row";
 
-/** «أرسل الإيصال عبر واتساب» + «حفظ صورة الوصل». */
+/** «أرسل الوصل عبر واتساب» + «حفظ صورة الوصل». */
 export function ShareBtns({ r, phone }: { r: ReceiptView; phone?: string | null }) {
   const sh = toShareable(r);
   const [busy, setBusy] = useState(false);
@@ -31,7 +31,7 @@ export function ShareBtns({ r, phone }: { r: ReceiptView; phone?: string | null 
           }
         }}
       >
-        {I.wa(20)} أرسل الإيصال عبر واتساب
+        {I.wa(20)} أرسل الوصل عبر واتساب
       </button>
       <button
         type="button"

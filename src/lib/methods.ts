@@ -29,7 +29,7 @@ export const METHOD_LABELS: Record<Method, string> = {
   bim: "BIM",
   amanty: "أمانتي",
   bamis: "BAMIS",
-  cash: "نقداً",
+  cash: "نقدًا",
   // Imported from the 2026 paper sheets (see docs/HANDOFF.md).
   paper: "سجل ورقي",
   other: "أخرى",
