@@ -114,7 +114,18 @@ export type MemberStatus = {
 
 /** A public list row: the member card plus this year's months as a 12-letter code
  * ("PPPPPPPPLLUU", see month-code.ts: monthStates / decodeMonths). */
-export type MemberRow = MemberStatus & { months: string };
+export type MemberRow = MemberStatus & {
+  /** this year's 12 months as a code (see month-code.ts) */
+  months: string;
+  /** late months of earlier years, "YYYY-MM" oldest first; absent when none */
+  pastLate?: string[];
+  /**
+   * Price of a payable month ("YYYY-MM": late or upcoming this year, or in `pastLate`) when it is
+   * NOT the member's current-group price of this year (group changed, older year, no price set =
+   * null). Absent when every payable month costs the current-group price.
+   */
+  prices?: Record<string, number | null>;
+};
 
 /** Home search and counts: no months, no money. */
 export type MemberIndex = {
@@ -130,7 +141,14 @@ export type MemberIndex = {
 /** paid · late (due and unpaid) · upcoming (not due yet) · not_owed (exempt/away/left/deceased). */
 export type MonthState = "paid" | "late" | "upcoming" | "not_owed";
 
-export type MemberMonth = { memberId: string; year: number; month: number; state: MonthState };
+export type MemberMonth = {
+  memberId: string;
+  year: number;
+  month: number;
+  state: MonthState;
+  /** MRO a payment for this month must have (the group of that month's period); null = no price set for the year */
+  price?: number | null;
+};
 
 /** «ما جُمع كل شهر»: expected from active members vs collected. */
 export type MonthlyCollection = {

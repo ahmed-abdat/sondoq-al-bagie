@@ -1141,6 +1141,7 @@ export type Database = {
         Row: {
           member_id: string | null
           month: number | null
+          price: number | null
           state: string | null
           year: number | null
         }

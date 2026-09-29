@@ -80,7 +80,13 @@ const MONTH_STATES: readonly MonthState[] = ["paid", "late", "upcoming", "not_ow
 
 export function toMemberMonth(r: Row<"member_months">): MemberMonth {
   const state = MONTH_STATES.find((s) => s === r.state) ?? "upcoming";
-  return { memberId: str(r.member_id), year: num(r.year), month: num(r.month), state };
+  return {
+    memberId: str(r.member_id),
+    year: num(r.year),
+    month: num(r.month),
+    state,
+    price: r.price ?? null,
+  };
 }
 
 export function toMonthlyCollection(r: Row<"monthly_collection">): MonthlyCollection {

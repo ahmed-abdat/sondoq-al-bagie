@@ -1,6 +1,7 @@
--- Undo every migration after M1 (m2 … m17, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m18, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- month prices (m18): member_months/month_grid are dropped by the m1 undo; its body stays harmless until then
 -- month error detail (m17): other bodies are dropped or restored by the undos below
 drop function if exists app_private.month_error(text, uuid, integer, integer, integer);
 -- backup snapshot and job runs (m16)

@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m17; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m18; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -679,6 +679,24 @@ select tests.ok((select (d ->> 'price')::int = 1000 and d ->> 'ym' = to_char(tes
                  from (select tests.detail($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 999, current_date,
                    jsonb_build_array(tests.month('K', 1, 999)))$$) d) x),
   'wrong_month_amount gives the month and its price');
+
+/* ───────────── M18: month prices, price fallback for owed ───────────── */
+
+select tests.login('public');
+select tests.ok((select price from public.member_months where member_id = tests.id('K') and year = extract(year from current_date)
+                 and month = extract(month from current_date)) = 1000, 'member_months gives the price a month must be paid with');
+select tests.login('server');
+insert into public.groups (code, name) values ('C', 'C');
+insert into public.group_prices (group_id, year, monthly_amount)
+select id, extract(year from current_date)::int - 3, 700 from public.groups where code = 'C';
+select tests.set('GC', public.add_member(9001, 'عضو ج', 'C', make_date(extract(year from current_date)::int - 2, 1, 1), null, null, 'active', 'A'));
+select tests.ok((select price is null and owed = 700 from app_private.month_grid()
+                 where member_id = tests.id('GC') and year = extract(year from current_date)::int - 2 and month = 1),
+  'a year without prices: no payable price, but owed uses the latest earlier price');
+select tests.login('public');
+select tests.ok((select price is null and state = 'late' from public.member_months
+                 where member_id = tests.id('GC') and year = extract(year from current_date)::int - 2 and month = 1),
+  'past-year late months are listed with their (missing) price');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

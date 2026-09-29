@@ -93,6 +93,22 @@ export async function memberMonths(c: Client, year: number = thisYear()) {
   return rows.map(map.toMemberMonth);
 }
 
+/** Late months of years before `year` (paying last year's arrears after 1 January). */
+export async function pastLateMonths(c: Client, year: number = thisYear()) {
+  const rows = await paged("member_months", (from, to) =>
+    c
+      .from("member_months")
+      .select("*")
+      .lt("year", year)
+      .eq("state", "late")
+      .order("member_id")
+      .order("year")
+      .order("month")
+      .range(from, to),
+  );
+  return rows.map(map.toMemberMonth);
+}
+
 export async function monthlyCollection(c: Client, year: number = thisYear()) {
   return many(
     "monthly_collection",
