@@ -7,6 +7,7 @@ import * as map from "./map";
 import type {
   ActivityItem,
   BackupStatus,
+  PublicActivityItem,
   CommitteeAccount,
   ExpenseAdmin,
   FundAccountAdmin,
@@ -319,4 +320,56 @@ export async function fundAccountsAdmin(c: Client): Promise<FundAccountAdmin[]> 
     active: r.active,
     note: r.note,
   }));
+}
+
+/* ───────────── amount-free public reads (m26: what strangers get) ───────────── */
+
+export async function fundStats(c: Client) {
+  return map.toFundStats(must("fund_stats", await c.from("fund_stats").select("*").maybeSingle()));
+}
+
+export async function membersPublic(c: Client) {
+  return many(
+    "member_status_public",
+    await c.from("member_status_public").select("*").order("list_code").order("number"),
+  ).map(map.toMemberStatusPublic);
+}
+
+export async function activityPublic(c: Client) {
+  return many(
+    "activity_public",
+    await c.from("activity_public").select("*").order("at", { ascending: false }),
+  )
+    .map(map.toPublicActivityItem)
+    .filter((a): a is PublicActivityItem => a !== null);
+}
+
+export async function campaignsPublic(c: Client) {
+  return many("campaigns_public", await c.from("campaigns_public").select("*")).map(
+    map.toCampaignPublic,
+  );
+}
+
+export async function expensesPublic(c: Client) {
+  return many("expenses_public", await c.from("expenses_public").select("*")).map(
+    map.toExpensePublic,
+  );
+}
+
+export async function termsInfo(c: Client) {
+  return many("terms_info", await c.from("terms_info").select("*").order("number")).map(
+    map.toTermInfo,
+  );
+}
+
+export async function contributorsPublic(c: Client, campaignId: string, limit = 20) {
+  return many(
+    "campaign_contributors_public",
+    await c
+      .from("campaign_contributors_public")
+      .select("*")
+      .eq("campaign_id", campaignId)
+      .order("at", { ascending: false })
+      .limit(limit),
+  ).map(map.toContributorPublic);
 }

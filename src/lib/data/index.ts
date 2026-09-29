@@ -21,7 +21,17 @@ export {
   getReport,
   getMemberRows,
   getMemberIndex,
+  // money privacy: amount-free public variants (the old money getters above are deprecated for
+  // public pages and go with m27)
+  getFundStats,
+  getActivityPublic,
+  getCampaignsPublic,
+  getExpensesPublic,
+  getTermsInfo,
+  getContributorsPublic,
+  getReportShell,
 } from "./public";
+export { getMoney, getMoneyContributions, getReportForViewer } from "./money";
 export {
   getArrears,
   getBackupStatus,

@@ -1028,6 +1028,86 @@ export type Database = {
       }
     }
     Views: {
+      activity_public: {
+        Row: {
+          at: string | null
+          category: Database["public"]["Enums"]["expense_category"] | null
+          kind: string | null
+          member_names: string | null
+          method: Database["public"]["Enums"]["payment_method"] | null
+          months: number | null
+          payment_id: string | null
+          receipt_code: string | null
+        }
+        Relationships: []
+      }
+      campaign_contributors_public: {
+        Row: {
+          at: string | null
+          campaign_id: string | null
+          contributor_name: string | null
+          payment_id: string | null
+        }
+        Relationships: []
+      }
+      campaigns_public: {
+        Row: {
+          amount_mode: Database["public"]["Enums"]["campaign_mode"] | null
+          campaign_id: string | null
+          deadline: string | null
+          participants: number | null
+          participants_paid: number | null
+          purpose: string | null
+          status: Database["public"]["Enums"]["campaign_status"] | null
+          title: string | null
+        }
+        Relationships: []
+      }
+      expenses_public: {
+        Row: {
+          campaign_id: string | null
+          category: Database["public"]["Enums"]["expense_category"] | null
+          id: string | null
+          note: string | null
+          spent_on: string | null
+        }
+        Relationships: []
+      }
+      fund_stats: {
+        Row: {
+          last_activity_at: string | null
+          members_active: number | null
+          members_behind: number | null
+          members_ok: number | null
+          term_number: number | null
+          term_started_on: string | null
+        }
+        Relationships: []
+      }
+      member_status_public: {
+        Row: {
+          full_name: string | null
+          group_code: string | null
+          list_code: string | null
+          member_id: string | null
+          member_ref: string | null
+          member_status: Database["public"]["Enums"]["membership_status"] | null
+          months_behind: number | null
+          months_paid_this_year: number | null
+          number: number | null
+          status_label: string | null
+        }
+        Relationships: []
+      }
+      terms_info: {
+        Row: {
+          ended_on: string | null
+          number: number | null
+          started_on: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
       activity_feed: {
         Row: {
           amount: number | null

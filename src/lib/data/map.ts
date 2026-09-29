@@ -25,6 +25,12 @@ import type {
   PaymentMethod,
   PendingPayment,
   VerifiedReceipt,
+  CampaignPublic,
+  ContributorPublic,
+  ExpensePublic,
+  FundStats,
+  PublicActivityItem,
+  TermInfo,
 } from "./types";
 
 type Row<V extends keyof Database["public"]["Views"]> = Database["public"]["Views"][V]["Row"];
@@ -402,4 +408,87 @@ export function toHandover(r: Row<"handovers_admin">): Handover {
     cancelledAt: r.cancelled_at,
     cancelReason: r.cancel_reason,
   };
+}
+
+/* ───────────── amount-free public rows (m26) ───────────── */
+
+export function toFundStats(r: Row<"fund_stats"> | null | undefined): FundStats {
+  return {
+    membersOk: num(r?.members_ok),
+    membersBehind: num(r?.members_behind),
+    membersActive: num(r?.members_active),
+    lastActivityAt: r?.last_activity_at ?? null,
+    termNumber: r?.term_number ?? null,
+    termStartedOn: r?.term_started_on ?? null,
+  };
+}
+
+/** Unknown kinds are dropped, like toActivityItem. */
+export function toPublicActivityItem(r: Row<"activity_public">): PublicActivityItem | null {
+  const at = str(r.at);
+  switch (r.kind) {
+    case "payment_confirmed":
+      return {
+        kind: r.kind,
+        at,
+        paymentId: str(r.payment_id),
+        memberNames: str(r.member_names),
+        months: num(r.months),
+        method: r.method ?? "other",
+        receiptCode: r.receipt_code,
+      };
+    case "expense":
+      return { kind: r.kind, at, category: r.category ?? "other" };
+    case "campaign_opened":
+    case "balance_adjustment":
+      return { kind: r.kind, at };
+    default:
+      return null;
+  }
+}
+
+export function toCampaignPublic(r: Row<"campaigns_public">): CampaignPublic {
+  return {
+    campaignId: str(r.campaign_id),
+    title: str(r.title),
+    purpose: r.purpose,
+    deadline: r.deadline,
+    status: r.status ?? "open",
+    amountMode: r.amount_mode ?? "open",
+    participants: num(r.participants),
+    participantsPaid: num(r.participants_paid),
+  };
+}
+
+export function toExpensePublic(r: Row<"expenses_public">): ExpensePublic {
+  return {
+    id: str(r.id),
+    spentOn: str(r.spent_on),
+    category: r.category ?? "other",
+    note: r.note,
+    campaignId: r.campaign_id,
+  };
+}
+
+export function toTermInfo(r: Row<"terms_info">): TermInfo {
+  return {
+    number: num(r.number),
+    title: r.title ?? `الدورة ${num(r.number)}`,
+    startedOn: str(r.started_on),
+    endedOn: r.ended_on,
+  };
+}
+
+export function toContributorPublic(r: Row<"campaign_contributors_public">): ContributorPublic {
+  return {
+    paymentId: str(r.payment_id),
+    campaignId: str(r.campaign_id),
+    at: str(r.at),
+    contributorName: str(r.contributor_name),
+  };
+}
+
+/** member_status_public → the usual MemberStatus with no amount owed. */
+export function toMemberStatusPublic(r: Row<"member_status_public">): MemberStatus {
+  return toMemberStatus({ ...r, amount_owed: null });
 }

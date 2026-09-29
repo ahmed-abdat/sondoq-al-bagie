@@ -13,6 +13,7 @@ import type {
   MonthlyCollection,
   ReportData,
   ReportMember,
+  ReportShell,
   ReportMonthState,
   Term,
 } from "./types";
@@ -148,4 +149,118 @@ export async function loadReport(
     prices,
     now,
   });
+}
+
+/**
+ * The report for strangers and link previews (docs/MONEY-PRIVACY.md): same grid and structure as
+ * assembleReport, built from the amount-free public views, with every money field removed.
+ */
+export async function loadReportShell(
+  c: read.Client,
+  opts: ReportOptions = {},
+  now: Date = new Date(),
+): Promise<ReportShell> {
+  const year = opts.year ?? now.getUTCFullYear();
+  const [stats, terms, members, months, expenses, campaigns, info, prices] = await Promise.all([
+    read.fundStats(c),
+    read.termsInfo(c),
+    read.membersPublic(c),
+    read.memberMonths(c, year),
+    read.expensesPublic(c),
+    read.campaignsPublic(c),
+    read.fundInfo(c),
+    read.groupPrices(c, year),
+  ]);
+  return toReportShell(
+    assembleReport({
+      year,
+      term: opts.term,
+      summary: { ...emptySummary(), ...stats },
+      terms: terms.map((t) => ({
+        ...t,
+        openingBalance: 0,
+        closingBalance: null,
+        collected: 0,
+        spent: 0,
+        adjustment: 0,
+      })),
+      monthly: [],
+      members,
+      months,
+      expenses: expenses.map((e) => ({ ...e, amount: 0 })),
+      campaigns: campaigns.map((x) => ({
+        ...x,
+        targetAmount: null,
+        collected: 0,
+        spent: 0,
+        transferred: 0,
+        balance: 0,
+      })),
+      info: { ...info, showAmountOwed: false },
+      prices,
+      now,
+    }),
+    stats,
+  );
+}
+
+function emptySummary(): FundSummary {
+  return {
+    openingBalance: 0,
+    moneyIn: 0,
+    moneyOut: 0,
+    transfersIn: 0,
+    balance: 0,
+    collectedThisYear: 0,
+    spentThisYear: 0,
+    membersOk: 0,
+    membersBehind: 0,
+    lastActivityAt: null,
+    membersActive: 0,
+    adjustments: 0,
+    termNumber: null,
+    termStartedOn: null,
+  };
+}
+
+/** Keep only what strangers may see (explicit picks: a new money field never leaks by default). */
+export function toReportShell(r: ReportData, stats: ReportShell["stats"]): ReportShell {
+  return {
+    year: r.year,
+    stats,
+    term: r.term
+      ? {
+          number: r.term.number,
+          title: r.term.title,
+          startedOn: r.term.startedOn,
+          endedOn: r.term.endedOn,
+        }
+      : null,
+    members: r.members.map((m) => ({
+      memberId: m.memberId,
+      memberRef: m.memberRef,
+      fullName: m.fullName,
+      groupCode: m.groupCode,
+      status: m.status,
+      statusLabel: m.statusLabel,
+      months: m.months,
+      monthsPaid: m.monthsPaid,
+      monthsBehind: m.monthsBehind,
+    })),
+    expenses: r.expenses.map((e) => ({
+      spentOn: e.spentOn,
+      category: e.category,
+      categoryLabel: e.categoryLabel,
+      note: e.note,
+      campaignId: e.campaignId,
+    })),
+    expensesComplete: r.expensesComplete,
+    campaigns: r.campaigns.map((x) => ({
+      campaignId: x.campaignId,
+      title: x.title,
+      status: x.status,
+    })),
+    groupPrices: r.groupPrices,
+    generatedAt: r.generatedAt,
+  };
 }
