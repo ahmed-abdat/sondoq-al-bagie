@@ -33,8 +33,17 @@ export const getCommitteeSession = cache(async (): Promise<CommitteeSession | nu
     role: data.role,
     memberId: data.member_id,
     canConfirm: CONFIRMERS.includes(data.role),
+    setupPending: isSetupPending(user.app_metadata),
   };
 });
+
+/**
+ * Set by the admin actions that hand out a password (new account, password reset) in the login's
+ * app_metadata, which the user cannot change; cleared by completeSetup. Absent = done.
+ */
+export function isSetupPending(appMetadata: Record<string, unknown> | null | undefined): boolean {
+  return appMetadata?.setup_pending === true;
+}
 
 /** Committee reads for Server Components. Never cached across users (RLS decides the rows). */
 function committee<A extends unknown[], R>(
@@ -100,5 +109,6 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     lastSignInAt: user.last_sign_in_at ?? null,
     createdAt: row.created_at,
     canLinkMember: row.member_id === null,
+    setupPending: isSetupPending(user.app_metadata),
   };
 }

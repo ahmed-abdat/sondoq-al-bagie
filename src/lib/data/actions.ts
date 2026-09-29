@@ -641,7 +641,11 @@ export async function setPassword(input: { password: string }): Promise<ActionRe
   const { error } = await sb.auth.updateUser({ password: parsed.data.password });
   if (error)
     return failure(
-      /weak|short|pwned|characters/i.test(error.message) ? "weak_password" : "unknown",
+      /different|same/i.test(error.message)
+        ? "same_password"
+        : /weak|short|pwned|characters/i.test(error.message)
+          ? "weak_password"
+          : "unknown",
     );
   return { ok: true, data: undefined };
 }
@@ -686,6 +690,7 @@ export async function createCommitteeAccount(
   let userId: string;
   try {
     const { data, error } = await admin.auth.admin.createUser({
+      app_metadata: { setup_pending: true },
       email: login.authEmail,
       password,
       email_confirm: true,
@@ -735,7 +740,10 @@ export async function resetCommitteePassword(input: {
   if (!admin) return failure("not_configured");
   const password = generatePassword();
   try {
-    const { error } = await admin.auth.admin.updateUserById(parsed.data.userId, { password });
+    const { error } = await admin.auth.admin.updateUserById(parsed.data.userId, {
+      password,
+      app_metadata: { setup_pending: true },
+    });
     if (error) return failure("unknown");
   } catch {
     return failure("network");
@@ -814,6 +822,42 @@ export async function signOutEverywhere(input: { endpoint?: string } = {}): Prom
   }
   const { error } = await sb.auth.signOut({ scope: "global" });
   return error ? failure("network") : { ok: true, data: undefined };
+}
+
+/**
+ * First sign-in setup (also after an admin password reset): display name, own member row (or
+ * none: «لست عضوًا»), a new password. Only while setupPending. An existing link (set by the
+ * admin) is kept whatever `memberId` says. The password is set before the flag is cleared, so
+ * a failed step leaves the setup to do again, never half-done and hidden.
+ */
+export async function completeSetup(input: s.CompleteSetupInput): Promise<ActionResult> {
+  const parsed = s.completeSetupSchema.safeParse(input);
+  if (!parsed.success) {
+    const pw = parsed.error.issues.some((i) => i.path[0] === "password");
+    return failure(pw ? "weak_password" : "invalid_input");
+  }
+  const me = await getCommitteeSession();
+  if (!me) return failure("not_signed_in");
+  if (!me.setupPending) return failure("setup_done");
+  const admin = tryCreateAdminClient();
+  if (!admin) return failure("not_configured");
+  const p = parsed.data;
+  const profile = await updateMyProfile({
+    displayName: p.displayName,
+    memberId: me.memberId ?? p.memberId ?? null,
+  });
+  if (!profile.ok) return profile;
+  const pw = await setPassword({ password: p.password });
+  if (!pw.ok) return pw;
+  try {
+    const { error } = await admin.auth.admin.updateUserById(me.userId, {
+      app_metadata: { setup_pending: false },
+    });
+    if (error) return failure("unknown");
+  } catch {
+    return failure("network");
+  }
+  return { ok: true, data: undefined };
 }
 
 /* ───────────── push notifications ───────────── */

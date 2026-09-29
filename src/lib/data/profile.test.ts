@@ -42,6 +42,7 @@ describe("getMyProfile", () => {
       lastSignInAt: "2026-09-29T01:00:00Z",
       createdAt: "2026-09-01",
       canLinkMember: false,
+      setupPending: false,
     });
   });
 
@@ -50,5 +51,13 @@ describe("getMyProfile", () => {
     expect(await getMyProfile()).toBeNull();
     user = null;
     expect(await getMyProfile()).toBeNull();
+  });
+
+  it("reads the setup flag from app_metadata only", async () => {
+    const { isSetupPending } = await import("./committee");
+    expect(isSetupPending({ setup_pending: true })).toBe(true);
+    expect(isSetupPending({ setup_pending: false })).toBe(false);
+    expect(isSetupPending({})).toBe(false);
+    expect(isSetupPending(undefined)).toBe(false);
   });
 });

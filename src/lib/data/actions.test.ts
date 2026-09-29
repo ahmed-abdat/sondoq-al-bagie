@@ -13,7 +13,12 @@ vi.mock("@/lib/push/send", () => ({
   notifyConfirmers: (...a: unknown[]) => notifyConfirmers(...a),
 }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ host: "app.test" }) }));
-let session: { role: string; userId?: string } | null = null;
+let session: {
+  role: string;
+  userId?: string;
+  setupPending?: boolean;
+  memberId?: string | null;
+} | null = null;
 vi.mock("./committee", () => ({ getCommitteeSession: async () => session }));
 const inviteUserByEmail = vi.fn();
 const createUser = vi.fn();
@@ -69,6 +74,7 @@ const {
   resetCommitteePassword,
   deleteCommitteeAccount,
   signOutEverywhere,
+  completeSetup,
 } = await import("./actions");
 
 const id = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
@@ -335,6 +341,7 @@ describe("actions", () => {
         email: "22236123456@phone.sondoq.invalid",
         email_confirm: true,
         password: data?.password,
+        app_metadata: { setup_pending: true },
       }),
     );
     expect(rpc).toHaveBeenCalledWith(
@@ -383,7 +390,10 @@ describe("actions", () => {
     updateUserById.mockResolvedValue({ error: null });
     const r = await resetCommitteePassword({ userId: uid });
     expect(r).toMatchObject({ ok: true, data: { userId: uid, login: "+22236123456" } });
-    expect(updateUserById).toHaveBeenCalledWith(uid, { password: r.ok ? r.data.password : "" });
+    expect(updateUserById).toHaveBeenCalledWith(uid, {
+      password: r.ok ? r.data.password : "",
+      app_metadata: { setup_pending: true },
+    });
   });
 
   describe("deleteCommitteeAccount", () => {
@@ -438,5 +448,68 @@ describe("actions", () => {
     rpc.mockClear();
     await signOutEverywhere();
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  describe("completeSetup", () => {
+    const me = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
+    const input = { displayName: " سيدي ", memberId: member, password: "new-secret-9" };
+    const ready = () => {
+      session = { role: "committee", userId: me, setupPending: true, memberId: null };
+      rpc.mockResolvedValue({ data: null, error: null });
+      getUser.mockResolvedValue({ data: { user: { id: me } } });
+      updateUser.mockResolvedValue({ error: null });
+      updateUserById.mockResolvedValue({ error: null });
+    };
+
+    it("saves the name and member, sets the password, then clears the flag", async () => {
+      ready();
+      expect(await completeSetup(input)).toEqual({ ok: true, data: undefined });
+      expect(rpc).toHaveBeenCalledWith("update_my_profile", {
+        p_display_name: "سيدي",
+        p_member_id: member,
+      });
+      expect(updateUser).toHaveBeenCalledWith({ password: "new-secret-9" });
+      expect(updateUserById).toHaveBeenCalledWith(me, { app_metadata: { setup_pending: false } });
+    });
+
+    it("finishes with «لست عضوًا», and keeps a link the admin already set", async () => {
+      ready();
+      await completeSetup({ ...input, memberId: null });
+      expect(rpc).toHaveBeenCalledWith("update_my_profile", {
+        p_display_name: "سيدي",
+        p_member_id: undefined,
+      });
+      ready();
+      session = { ...session!, memberId: "9b2e5c1a-3d4f-4a6b-8c7d-0e1f2a3b4c5d" };
+      rpc.mockClear();
+      await completeSetup({ ...input, memberId: null });
+      expect(rpc).toHaveBeenCalledWith(
+        "update_my_profile",
+        expect.objectContaining({ p_member_id: "9b2e5c1a-3d4f-4a6b-8c7d-0e1f2a3b4c5d" }),
+      );
+    });
+
+    it("stops early: weak password, setup already done, member taken, same password", async () => {
+      ready();
+      expect(await completeSetup({ ...input, password: "short" })).toMatchObject({
+        code: "weak_password",
+      });
+      expect(rpc).not.toHaveBeenCalled();
+      session = { role: "committee", userId: me, setupPending: false };
+      expect(await completeSetup(input)).toMatchObject({ code: "setup_done" });
+      ready();
+      rpc.mockResolvedValue({
+        data: null,
+        error: { code: "P0001", hint: "member_taken", message: "x" },
+      });
+      expect(await completeSetup(input)).toMatchObject({ code: "member_taken" });
+      expect(updateUser).not.toHaveBeenCalled();
+      ready();
+      updateUser.mockResolvedValue({
+        error: { message: "New password should be different from the old password." },
+      });
+      expect(await completeSetup(input)).toMatchObject({ code: "same_password" });
+      expect(updateUserById).not.toHaveBeenCalled();
+    });
   });
 });

@@ -139,6 +139,7 @@ export async function myProfile(): Promise<MyProfile | null> {
       lastSignInAt: fx.FX_TODAY.toISOString(),
       createdAt: "2026-01-01T09:00:00Z",
       canLinkMember: true,
+      setupPending: false,
       canConfirm: s.canConfirm,
     };
   }

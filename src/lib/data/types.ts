@@ -357,6 +357,8 @@ export type MyProfile = {
   createdAt: string;
   /** false once linked: changing or removing the link is for the admin */
   canLinkMember: boolean;
+  /** see CommitteeSession.setupPending */
+  setupPending: boolean;
 };
 
 /** Shown ONCE after creating an account or resetting its password. */
@@ -371,6 +373,8 @@ export type CommitteeSession = {
   memberId: string | null;
   /** may confirm/reject payments (admin, treasurer, deputy) — except ones covering memberId */
   canConfirm: boolean;
+  /** first sign-in (or after an admin password reset): show the setup (name, member, password) */
+  setupPending: boolean;
 };
 
 /* ───────────── receipts (/r/[code]) ───────────── */
