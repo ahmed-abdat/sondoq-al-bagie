@@ -21,7 +21,7 @@ test("manifest is valid and the app is installable", async ({ page, request }) =
   expect(res.ok()).toBe(true);
   const m = await res.json();
   expect(m).toMatchObject({
-    short_name: "صندوق الشباب",
+    short_name: "صندوق الرابطة",
     lang: "ar",
     dir: "rtl",
     display: "standalone",

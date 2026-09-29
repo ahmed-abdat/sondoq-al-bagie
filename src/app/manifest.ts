@@ -6,9 +6,9 @@ const SITE = process.env.NEXT_PUBLIC_SITE_ORIGIN ?? "";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "صندوق الشباب",
-    short_name: "صندوق الشباب",
-    description: "صندوق الشباب، رابطة شباب قرية البقيع: الرسوم الشهرية والمصاريف بشفافية",
+    name: "صندوق الرابطة",
+    short_name: "صندوق الرابطة",
+    description: "صندوق الرابطة، رابطة شباب قرية البقيع: الرسوم الشهرية والمصاريف بشفافية",
     lang: "ar",
     dir: "rtl",
     start_url: "/",
@@ -35,7 +35,7 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "1920x1080",
         type: "image/jpeg",
         form_factor: "wide" as const,
-        label: "صندوق الشباب على الحاسوب",
+        label: "صندوق الرابطة على الحاسوب",
       },
     ],
     icons: [

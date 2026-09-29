@@ -82,7 +82,7 @@ it("status pills: up to date, late with months, exempt, other", () => {
 
 it("footer is the same on every page", () => {
   expect(footerLabel(4, 7, "28 سبتمبر 2026")).toBe(
-    "صندوق الشباب · الصفحة 4 من 7 · حتى 28 سبتمبر 2026",
+    "صندوق الرابطة · الصفحة 4 من 7 · حتى 28 سبتمبر 2026",
   );
 });
 

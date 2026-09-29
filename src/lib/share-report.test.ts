@@ -40,8 +40,8 @@ const D: ReportSummaryData = {
 it("paidLine / url / file name", () => {
   expect(paidLine(D)).toBe(`38 من 70 دفعوا رسوم ${monthName(9)}`);
   expect(reportUrl("https://x.app/")).toBe("https://x.app/report");
-  expect(reportFileName(2026, 9)).toBe("ملخص-صندوق-الشباب-2026-09.png");
-  expect(reportFileBase("2026-09-28T10:25:00Z")).toBe("تقرير-صندوق-الشباب-2026-09-28");
+  expect(reportFileName(2026, 9)).toBe("ملخص-صندوق-الرابطة-2026-09.png");
+  expect(reportFileBase("2026-09-28T10:25:00Z")).toBe("تقرير-صندوق-الرابطة-2026-09-28");
 });
 
 describe("monthBars", () => {
@@ -108,7 +108,7 @@ describe("drawReportSummary", () => {
         "المجموعة أ: 11 من 20",
         "ابحث عن اسمك:",
         "x.app/report",
-        "صندوق الشباب · حتى 5 أكتوبر 2026",
+        "صندوق الرابطة · حتى 5 أكتوبر 2026",
       ]),
     );
     expect(texts).not.toContain("12");

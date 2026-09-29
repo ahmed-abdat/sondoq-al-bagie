@@ -105,7 +105,7 @@ test("report images: every page as a 1080×1350 PNG in one share", async ({ page
   expect(files.length).toBeGreaterThanOrEqual(4); // cover, members, money
   files.forEach((f, i) => {
     expect(f).toMatchObject({ type: "image/png", w: 1080, h: 1350 });
-    expect(f.name).toMatch(new RegExp(`^تقرير-صندوق-الشباب-\\d{4}-\\d{2}-\\d{2}-${i + 1}\\.png$`));
+    expect(f.name).toMatch(new RegExp(`^تقرير-صندوق-الرابطة-\\d{4}-\\d{2}-\\d{2}-${i + 1}\\.png$`));
   });
   expect(await win(page, "__text")).toMatch(/التفاصيل: https:\/\/\S+\/report/);
   await expect(page.getByRole("status")).toHaveText(/أُرسل التقرير/);
@@ -120,7 +120,7 @@ test("PDF: one A4 file to the share sheet", async ({ page }) => {
   const [f] = await win(page, "__shared");
   expect(f.type).toBe("application/pdf");
   expect(f.head).toBe("%PDF-");
-  expect(f.name).toMatch(/^تقرير-صندوق-الشباب-\d{4}-\d{2}-\d{2}\.pdf$/);
+  expect(f.name).toMatch(/^تقرير-صندوق-الرابطة-\d{4}-\d{2}-\d{2}\.pdf$/);
   expect(f.size).toBeLessThan(1_500_000);
 });
 
@@ -129,7 +129,7 @@ test("PDF without a share sheet is downloaded", async ({ page }) => {
   await openSheet(page);
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /ملف PDF/ }).click();
-  expect((await download).suggestedFilename()).toMatch(/^تقرير-صندوق-الشباب-.+\.pdf$/);
+  expect((await download).suggestedFilename()).toMatch(/^تقرير-صندوق-الرابطة-.+\.pdf$/);
   await expect(page.getByRole("status")).toHaveText(/حفظ الملف في التنزيلات/);
 });
 
@@ -144,7 +144,7 @@ test("report images without a share sheet fall back to WhatsApp text with the li
   const [url] = await win(page, "__opened");
   expect(url).toMatch(/^https:\/\/wa\.me\/\?text=/);
   const text = decodeURIComponent(url.split("text=")[1]);
-  expect(text).toContain("ملخص صندوق الشباب");
+  expect(text).toContain("ملخص صندوق الرابطة");
   expect(text).toMatch(/في الصندوق الآن: .+ أوقية/);
   expect(text).toMatch(/\d+ من \d+ دفعوا رسوم \S+/);
   expect(text).toMatch(/التفاصيل: https:\/\/\S+\/report$/);
@@ -159,6 +159,6 @@ test("summary image alone goes to the share sheet as a 1080×1350 PNG", async ({
   await expect.poll(() => win(page, "__shared")).toHaveLength(1);
   const [f] = await win(page, "__shared");
   expect(f).toMatchObject({ type: "image/png", w: 1080, h: 1350 });
-  expect(f.name).toMatch(/^ملخص-صندوق-الشباب-\d{4}-\d{2}\.png$/);
+  expect(f.name).toMatch(/^ملخص-صندوق-الرابطة-\d{4}-\d{2}\.png$/);
   expect(f.size).toBeGreaterThan(30_000);
 });
