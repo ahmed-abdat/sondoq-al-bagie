@@ -12,7 +12,7 @@ export interface Served {
 export const SERVED_QUERY = "SERVED_FROM_CACHE?";
 
 /** Pages and their RSC payloads share a key: the path. */
-export const servedKey = (url: string) => new URL(url, "http://x").pathname;
+const servedKey = (url: string) => new URL(url, "http://x").pathname;
 
 export function recordServed(
   map: Map<string, Served>,
