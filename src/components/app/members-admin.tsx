@@ -1,4 +1,5 @@
 "use client";
+import { failure } from "@/lib/data/errors";
 import { toWesternDigits } from "@/lib/money";
 // Committee «الأعضاء»: find a member, add one, edit details, change state, move between lists.
 // Two lists, each numbered from 1 (A-12, B-12). States: نشط · معفى · غادر.
@@ -202,8 +203,9 @@ export function MemberAdminBody({
   const run = async (f: () => Promise<{ ok: boolean; message?: string }>, done: string) => {
     setBusy(true);
     setErr("");
-    const r = await f();
-    setBusy(false);
+    const r = await f()
+      .catch(() => failure("network"))
+      .finally(() => setBusy(false));
     if (!r.ok) return setErr(r.message ?? "");
     router.refresh();
     onDone(done);

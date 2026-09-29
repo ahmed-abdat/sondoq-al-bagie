@@ -15,6 +15,7 @@ import type {
 } from "@/lib/data/types";
 import { generatePassword, parseLogin } from "@/lib/data/logins";
 import { DEMO_USER } from "./demo";
+import { safeAct } from "./safe-act";
 
 type Actions = typeof real;
 
@@ -411,18 +412,30 @@ export function DemoProvider({ demo: on, children }: { demo: boolean; children: 
 }
 export const useIsDemo = () => useContext(DemoCtx);
 
+const safeAll = (acts: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(acts).map(([k, f]) => [
+      k,
+      typeof f === "function" ? safeAct(f as () => Promise<ActionResult<unknown>>) : f,
+    ]),
+  ) as Actions;
+
 // built once (stable identities); a key with no decision fails loudly instead of calling the server
-const DEMO_ACTIONS = Object.fromEntries(
-  Object.keys(real).map((k) => {
-    const d = (demo as Record<string, unknown>)[k];
-    const fail = () => {
-      throw new Error(`demo: no simulation for ${k}`);
-    };
-    return [k, d === "real" ? real[k as keyof Actions] : (d ?? fail)];
-  }),
-) as Actions;
+const DEMO_ACTIONS = safeAll(
+  Object.fromEntries(
+    Object.keys(real).map((k) => {
+      const d = (demo as Record<string, unknown>)[k];
+      const fail = () => {
+        console.error(`demo: no simulation for ${k}`);
+        throw new Error(`demo: no simulation for ${k}`);
+      };
+      return [k, d === "real" ? real[k as keyof Actions] : (d ?? fail)];
+    }),
+  ),
+);
+const REAL_ACTIONS = safeAll(real);
 
 /** Committee actions: real server actions, or simulated ones in demo mode (stable identities). */
 export function useAct(): Actions {
-  return useContext(DemoCtx) ? DEMO_ACTIONS : real;
+  return useContext(DemoCtx) ? DEMO_ACTIONS : REAL_ACTIONS;
 }

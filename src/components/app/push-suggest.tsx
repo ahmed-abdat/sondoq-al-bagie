@@ -44,8 +44,9 @@ export function PushSuggest() {
             setBusy(true);
             const s = await subscribePush((d) =>
               savePushSubscription({ ...d, userAgent: navigator.userAgent.slice(0, 300) }),
-            );
-            setBusy(false);
+            )
+              .catch(() => "error" as const)
+              .finally(() => setBusy(false));
             if (s === "on") {
               say("فُعّلت الإشعارات على هذا الهاتف");
               done();

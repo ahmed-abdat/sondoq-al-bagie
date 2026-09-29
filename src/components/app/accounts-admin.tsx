@@ -2,6 +2,7 @@
 // «حسابات اللجنة» (admin): one row per account; tapping it opens everything about it (new password,
 // role, membership, stop/restart, delete). No email: the admin hands the login details over once
 // (WhatsApp or copy); the password is never shown again.
+import { failure } from "@/lib/data/errors";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -276,8 +277,9 @@ function AccountSheet({
   const act = async (f: () => Promise<{ ok: boolean; code?: string; message?: string }>) => {
     setBusy(true);
     setErr("");
-    const r = await f();
-    setBusy(false);
+    const r = await f()
+      .catch(() => failure("network"))
+      .finally(() => setBusy(false));
     if (!r.ok) setErr(say({ code: r.code ?? "", message: r.message ?? "" }));
     return r.ok;
   };

@@ -2,6 +2,7 @@
 // «تسليم الصندوق»: the outgoing committee counts the money it hands over (per wallet + cash),
 // says who stays on the committee, and submits; an admin who did not submit accepts, which
 // starts the next term («الدورة N»). One page, calm steps, no red for a difference.
+import { failure } from "@/lib/data/errors";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
@@ -88,8 +89,9 @@ export function HandoverView({
   const run = async (f: () => Promise<{ ok: boolean; message?: string }>) => {
     setBusy(true);
     setErr("");
-    const r = await f();
-    setBusy(false);
+    const r = await f()
+      .catch(() => failure("network"))
+      .finally(() => setBusy(false));
     if (!r.ok) {
       setErr(r.message ?? "");
       return false;
