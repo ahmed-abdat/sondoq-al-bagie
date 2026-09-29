@@ -25,7 +25,7 @@ const phone = z
   .pipe(z.string().regex(/^\+?[0-9]{8,15}$/));
 const firstOfMonth = day.refine((d) => d.endsWith("-01"), "first day of a month");
 
-export const allocationSchema = z.discriminatedUnion("kind", [
+const allocationSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("months"),
     memberId: id,
@@ -59,7 +59,7 @@ export const recordPaymentSchema = z
   });
 
 export const paymentIdSchema = z.object({ id });
-export const paymentReasonSchema = z.object({ id, reason });
+export const idReasonSchema = z.object({ id, reason });
 
 export const recordExpenseSchema = z.object({
   id,
@@ -70,7 +70,6 @@ export const recordExpenseSchema = z.object({
   campaignId: id.optional(),
   receiptPath: optText(200),
 });
-export const cancelExpenseSchema = paymentReasonSchema;
 
 export const logReminderSchema = z.object({
   kind: z.enum(E.reminder_kind),

@@ -29,7 +29,7 @@ function vapid() {
 }
 
 /** Active admin/treasurer/deputy accounts, except `exclude` (who recorded the payment). */
-export async function confirmerIds(admin: Admin, exclude: string | null): Promise<string[]> {
+async function confirmerIds(admin: Admin, exclude: string | null): Promise<string[]> {
   const { data, error } = await admin
     .from("committee")
     .select("user_id")
@@ -93,7 +93,7 @@ export async function sendPush(
 }
 
 /** How many payments are waiting for confirmation, or undefined if it cannot be read. */
-export async function pendingCount(admin: Admin): Promise<number | undefined> {
+async function pendingCount(admin: Admin): Promise<number | undefined> {
   const { count, error } = await admin
     .from("payments")
     .select("id", { count: "exact", head: true })

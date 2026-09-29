@@ -167,7 +167,7 @@ export async function confirmPayment(input: { id: string }) {
 
 export async function rejectPayment(input: { id: string; reason: string }) {
   return run(
-    s.paymentReasonSchema,
+    s.idReasonSchema,
     input,
     (sb, p) => sb.rpc("reject_payment", { p_payment_id: p.id, p_reason: p.reason }),
     { touchesPublic: false },
@@ -176,7 +176,7 @@ export async function rejectPayment(input: { id: string; reason: string }) {
 
 export async function cancelPayment(input: { id: string; reason: string }) {
   return run(
-    s.paymentReasonSchema,
+    s.idReasonSchema,
     input,
     (sb, p) => sb.rpc("cancel_payment", { p_payment_id: p.id, p_reason: p.reason }),
     { touchesPublic: true },
@@ -212,7 +212,7 @@ export async function recordExpense(input: s.RecordExpenseInput) {
 
 export async function cancelExpense(input: { id: string; reason: string }) {
   return run(
-    s.cancelExpenseSchema,
+    s.idReasonSchema,
     input,
     (sb, p) => sb.rpc("cancel_expense", { p_expense_id: p.id, p_reason: p.reason }),
     { touchesPublic: true },

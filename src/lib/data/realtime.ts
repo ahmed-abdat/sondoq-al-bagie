@@ -92,7 +92,7 @@ export function backoffMs(attempt: number) {
   return Math.min(30_000, 1000 * 2 ** Math.max(0, attempt));
 }
 
-export const CATCH_UP_MIN_MS = 60_000;
+const CATCH_UP_MIN_MS = 60_000;
 
 /**
  * Refresh when the app comes back to the foreground? Only after ≥ 60 s hidden or if the channel
@@ -132,7 +132,7 @@ export function invalidateAfterPaymentChange(qc: Pick<QueryClient, "invalidateQu
   void qc.invalidateQueries({ queryKey: [PUBLIC_KEY] });
 }
 
-export const REFRESH_COALESCE_MS = 400;
+const REFRESH_COALESCE_MS = 400;
 
 /**
  * Mount once in the committee area. `onRefresh` runs once per burst of changes and after every

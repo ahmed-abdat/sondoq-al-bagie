@@ -239,7 +239,7 @@ type RawAllocation = {
   amount?: number | null;
 };
 
-export function toAllocation(a: RawAllocation): Allocation | null {
+function toAllocation(a: RawAllocation): Allocation | null {
   const amount = num(a.amount);
   switch (a.kind) {
     case "months":

@@ -24,7 +24,7 @@ export function cleanText(raw: string): string {
 
 const N = String.raw`(\d{1,3}(?:[.,\s]\d{3})*(?:[.,]\d{2})?|\d+(?:[.,]\d{2})?)`;
 
-export function detectWallet(t: string): Wallet | null {
+function detectWallet(t: string): Wallet | null {
   if (/SEDAD|السداد|رقم المعاملة/i.test(t)) return "sedad";
   if (/Masr|المرجع|MRU\s*\d+[.,]\d\d\s*\(/i.test(t)) return "masrvi";
   if (/معرف المعاملة|المستفيد|النقل ناجح|Bankily|بنكيلي/i.test(t)) return "bankily";
