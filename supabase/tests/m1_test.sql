@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m26; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m27; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -137,17 +137,23 @@ select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'cash
   'anon cannot call record_payment');
 select tests.throws($$select app_private.month_grid()$$, '42501', 'anon cannot call internal helpers');
 select tests.ok((select count(*) from storage.objects where bucket_id = 'proofs') = 0, 'anon sees no proof images');
-select tests.ok((select count(*) from public.member_status where number between 1001 and 1005) = 5, 'anon reads member_status');
+select tests.login('server');
+select tests.ok((select count(*) from public.member_status where number between 1001 and 1005) = 5, 'the server reads member_status');
+select tests.login('public');
 select tests.ok((select ok from public.keepalive), 'anon reads the keepalive view');
-select tests.ok((select count(*) from public.fund_summary) = 1, 'anon reads fund_summary');
-select tests.ok((select count(*) from public.monthly_collection) > 0, 'anon reads monthly_collection');
+select tests.login('server');
+select tests.ok((select count(*) from public.fund_summary) = 1, 'the server reads fund_summary');
+select tests.ok((select count(*) from public.monthly_collection) > 0, 'the server reads monthly_collection');
+select tests.login('public');
 select tests.ok(not exists (
   select 1 from information_schema.columns
   where table_schema = 'public' and table_name in ('member_status','member_months','fund_summary','monthly_collection',
         'expense_totals','recent_expenses','campaign_progress','activity_feed','campaign_contributions',
         'fund_accounts_public','fund_info')
     and column_name ~ '(phone|proof|txn|payer|receipt_path)'), 'public views expose no phone/proof/txn/payer/receipt image columns');
+select tests.login('server');
 select tests.ok((select bool_and(amount_owed is null) from public.member_status), 'amount owed hidden by default');
+select tests.login('public');
 
 /* ───────────── committee reads, cannot write tables ───────────── */
 
@@ -262,11 +268,13 @@ select tests.ok(not exists (select 1 from public.audit_log where 'phone' = any (
 -- K: -3 paid (k1); -2,-1 owed.     T: -3 paid (own); -2,-1 owed.
 select tests.set('cur', (current_date >= tests.m(0) + 10)::int::text);
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select months_behind from public.member_status where number = 1001) = 1 + tests.get('cur')::int,
   'arrears: paid months and grace period (E)');
 select tests.ok((select months_behind from public.member_status where number = 1002) = 2, 'arrears: exempt months not owed (F)');
 select tests.ok((select months_behind from public.member_status where number = 1003) = 1, 'arrears: deceased months not owed (G)');
 select tests.ok((select status_label from public.member_status where number = 1001) = 'متأخر', 'late member labelled متأخر');
+select tests.login('public');
 select tests.ok((select string_agg(state, ',' order by year, month) from public.member_months
    where member_id = tests.id('F') and make_date(year, month, 1) <= tests.m(0))
   = 'late,late,not_owed,not_owed', 'member_months shows exempt months as not_owed');
@@ -276,8 +284,10 @@ select tests.ok((select state from public.member_months where member_id = tests.
 select tests.login('server');
 update public.settings set grace_days = 0, show_amount_owed = true where id;
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select months_behind from public.member_status where number = 1001) = 2, 'grace 0: this month is owed at once');
 select tests.ok((select amount_owed from public.member_status where number = 1002) = 1000, 'amount owed shown once enabled (2 × 500)');
+select tests.login('public');
 select tests.login('server');
 update public.settings set grace_days = 10, show_amount_owed = false where id;
 
@@ -289,14 +299,18 @@ select tests.ok(not exists (select 1 from public.arrears where number = 1003 and
 /* ───────────── money totals ───────────── */
 
 select tests.login('public');
+select tests.login('server');
 select tests.set('bal', (select balance::text from public.fund_summary));
+select tests.login('public');
 select tests.ok(tests.get('bal')::int = 3000 + 1000, 'balance = confirmed payments (p1, k1, own, p4) − 0');
 select tests.login('committee');
 select public.record_expense(gen_random_uuid(), current_date, 'sports', 300, 'كرة');
 select public.log_reminder('individual', tests.id('K'));
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select balance from public.fund_summary) = tests.get('bal')::int - 300, 'expense lowers the balance');
 select tests.ok((select kind from public.activity_feed order by at desc limit 1) is not null, 'activity feed readable');
+select tests.login('public');
 select tests.login('committee');
 select tests.ok((select last_reminded_at is not null from public.arrears where number = 1005), 'reminders are logged');
 
@@ -366,8 +380,10 @@ select tests.ok(not exists (select 1 from public.payment_months where payment_id
 select tests.login('server');
 select tests.set('n_conf', (select count(*) from public.payments where status = 'confirmed' and method <> 'paper'));
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select count(*) from public.activity_feed where kind = 'payment_confirmed') = least(30, tests.get('n_conf')::int),
   'activity feed lists confirmed payments only (undone/cancelled ones drop out)');
+select tests.login('public');
 select tests.login('deputy');
 select tests.ok((public.record_payment(gen_random_uuid(), 'دافع', 'cash', 1000, current_date,
   jsonb_build_array(tests.month('E', 0, 1000))) ->> 'status') = 'confirmed', 'the released month can be paid again');
@@ -399,8 +415,10 @@ select tests.ok(tests.get('v')::jsonb -> 'members' -> 0 ->> 'number' = '1005', '
 select tests.ok(jsonb_array_length(tests.get('v')::jsonb -> 'members' -> 0 -> 'months') = 1, 'receipt lists the months');
 select tests.ok(not (tests.get('v')::jsonb ? 'phone') and not (tests.get('v')::jsonb ? 'proof_path'), 'no phone or proof on a receipt');
 select tests.ok(tests.get('v')::jsonb ->> 'confirmed_by_name' = 'الأمين', 'receipt names the confirmer');
+select tests.login('server');
 select tests.ok((select receipt_code from public.activity_feed where payment_id = tests.id('r1')) = tests.get('r1_code')
   and (select amount from public.activity_feed where payment_id = tests.id('r1')) = 1000, 'feed shows amount and receipt code');
+select tests.login('public');
 select tests.ok(public.verify_receipt('BQ-ZZZZ-9999') ->> 'status' = 'not_found', 'unknown code → not_found');
 select tests.throws('select * from public.receipt_counters', '42501', 'anon cannot read receipt counters');
 select tests.login('treasurer');
@@ -415,11 +433,13 @@ select tests.login('treasurer');
 select public.record_payment(gen_random_uuid(), 'متبرع من الخارج', 'bankily', 2000, current_date,
   jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('camp2'), 'member_id', null, 'amount', 2000)), 'TXN-C1234');
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select contributor_name from public.campaign_contributions where campaign_id = tests.id('camp2')) = 'متبرع من الخارج'
   and (select amount from public.campaign_contributions where campaign_id = tests.id('camp2')) = 2000,
   'campaign contributions list the donor and amount');
 select tests.ok(public.verify_receipt((select receipt_code from public.activity_feed where amount = 2000 and kind = 'payment_confirmed' limit 1))
   ->> 'txn_ref_last4' = '1234', 'receipt shows only the last 4 of the transaction number');
+select tests.login('public');
 
 select tests.login('server');
 select tests.ok((public.record_payment(gen_random_uuid(), 'سجل', 'paper', 1000, current_date,
@@ -444,9 +464,11 @@ select tests.ok((public.record_payment(gen_random_uuid(), 'دافع', 'bankily',
 select public.update_campaign(tests.id('c6'), 'ترميم المسجد', 'السقف', 25000, current_date + 30);
 select public.record_expense(gen_random_uuid(), current_date, 'other', 1000, 'مواد', tests.id('c6'));
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select collected = 3000 and spent = 1000 and balance = 2000 and participants_paid = 1 and target_amount = 25000
                  from public.campaign_progress where campaign_id = tests.id('c6')), 'campaign progress after split payment, edit and expense');
 select tests.set('bal6', (select balance from public.fund_summary));
+select tests.login('public');
 -- a pending contribution blocks closing (audit C1)
 select tests.login('committee');
 select tests.pay('cp6', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)));
@@ -473,8 +495,10 @@ select tests.throws($$select public.confirm_payment(tests.id('cp7'))$$, 'campaig
   'a contribution to a closed campaign cannot be confirmed');
 select public.reject_payment(tests.id('cp7'), 'الحملة مغلقة');
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select balance from public.fund_summary) = tests.get('bal6')::int + 2000, 'main fund balance grows by the surplus');
 select tests.ok((select balance from public.campaign_progress where campaign_id = tests.id('c6')) = 0, 'campaign balance is zero after transfer');
+select tests.login('public');
 -- owner decision: closing always moves the leftover to the fund, even when an old client sends 'keep'
 select tests.login('treasurer');
 select tests.set('c8', public.create_campaign('00000000-0000-0000-0000-00000000c008', 'حملة ثامنة'));
@@ -510,12 +534,14 @@ select tests.login('committee');
 select tests.ok(not exists (select 1 from public.arrears where member_id = tests.id('LA')), 'a member who left is not in arrears');
 select tests.ok((select member_ref from public.members_admin where member_id = tests.id('LA')) = 'A-7', 'members_admin shows A-7');
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select member_ref || ' ' || status_label from public.member_status where member_id = tests.id('LA')) = 'A-7 غادر',
   'public status shows list reference and «غادر»');
 select tests.ok((select members_active from public.fund_summary)
                 = (select count(*) from public.member_status where member_status = 'active'), 'active count');
 select tests.ok((select members_ok + members_behind from public.fund_summary) = (select members_active from public.fund_summary),
   'up to date + late = active members');
+select tests.login('public');
 select tests.throws('select * from public.members_admin', '42501', 'anon cannot read members_admin');
 select tests.login('former');   -- signed in but not an active committee member
 select tests.ok((select count(*) from public.members_admin) = 0 and (select count(*) from public.arrears) = 0
@@ -805,10 +831,12 @@ select tests.ok((public.apply_credit(tests.id('cr1'), tests.id('F'), '[]'::jsonb
 select tests.login('public');
 select tests.ok((select count(*) from public.member_months where member_id = tests.id('F') and state = 'paid'
                  and make_date(year, month, 1) in (tests.m(-3), tests.m(-2))) = 2, 'the months show paid');
+select tests.login('server');
 select tests.ok((select balance from public.fund_summary) = tests.get('bal21')::bigint
                 and (select money_in from public.fund_summary) = tests.get('in21')::bigint,
   'the fund does not count credit money twice');
 select tests.ok(not exists (select 1 from public.activity_feed where payment_id = tests.id('cr1')), 'credit use is not in the public feed');
+select tests.login('public');
 select tests.login('server');
 select tests.ok((select credit from app_private.member_credit() where member_id = tests.id('F')) = 500, 'credit left after use');
 select tests.login('treasurer');
@@ -984,6 +1012,7 @@ select tests.ok(not exists (select 1 from information_schema.columns where table
                              and table_name = 'activity_public' and column_name = 'receipt_code'),
   'no receipt codes for strangers (a code opens /r/<code>, which shows the amount)');
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select members_active > 0 from public.fund_stats)
                 and (select count(*) from public.member_status_public) = (select count(*) from public.member_status)
                 and (select count(*) from public.activity_public) = (select count(*) from public.activity_feed)
@@ -992,12 +1021,32 @@ select tests.ok((select members_active > 0 from public.fund_stats)
                 and (select count(*) from public.terms_info) = (select count(*) from public.terms_public)
                 and (select count(*) from public.campaign_contributors_public) = (select count(*) from public.campaign_contributions),
   'strangers read the same rows without amounts');
+select tests.login('public');
 select tests.login('server');
 select tests.ok(app_private.can_see_money(), 'the server may read money (members, after the link check)');
 select tests.login('committee');
 select tests.ok(app_private.can_see_money(), 'the committee may read money');
 select tests.login('former');
 select tests.ok(not app_private.can_see_money(), 'a signed-in account that is not active committee may not');
+
+/* ───────────── M27: money is private ───────────── */
+
+select tests.login('server');
+select tests.ok(tests.money_columns((select array_agg(c.relname::text) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                                     where n.nspname = 'public' and c.relkind in ('v', 'r', 'm')
+                                       and has_table_privilege('anon', c.oid, 'select'))) = '{}',
+  'no relation strangers can read has a money column');
+select tests.login('public');
+select tests.throws('select balance from public.fund_summary', '42501', 'strangers cannot read the balance');
+select tests.throws('select amount from public.activity_feed', '42501', 'strangers cannot read activity amounts');
+select tests.throws('select * from public.member_status', '42501', 'strangers read member_status_public instead');
+select tests.login('former');
+select tests.ok((select count(*) from public.fund_summary) = 0 and (select count(*) from public.activity_feed) = 0,
+  'a signed-in account that is not active committee sees no money');
+select tests.login('committee');
+select tests.ok((select count(*) from public.fund_summary) = 1, 'the committee reads the money');
+select tests.login('service');
+select tests.ok((select count(*) from public.fund_summary) = 1, 'our server reads money for members');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
@@ -1022,8 +1071,10 @@ select tests.throws('select * from public.job_runs', '42501', 'anon cannot read 
 /* ───────────── M8: terms and handover (keep last: it deactivates committee accounts) ───────────── */
 
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select term_number from public.fund_summary) = 1, 'the fund is in term 1');
-select tests.ok((select count(*) from public.terms_public) = 1, 'anon reads the terms list');
+select tests.ok((select count(*) from public.terms_public) = 1, 'the server reads the terms list');
+select tests.login('public');
 select tests.throws('select * from public.handovers', '42501', 'anon cannot read handovers');
 select tests.throws('select * from public.handovers_admin', '42501', 'anon cannot read the handover view');
 select tests.login('server');
@@ -1053,6 +1104,7 @@ select tests.login('admin');
 select tests.ok(public.accept_handover(tests.id('h1'), 'الدورة الثانية') = 2, 'the incoming admin accepts: term 2 opens');
 select tests.ok(public.accept_handover(tests.id('h1')) = 2, 'accepting twice is a no-op');
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select term_number from public.fund_summary) = 2, 'fund is now in term 2');
 select tests.ok((select balance from public.fund_summary) = tests.get('bal8')::int - 500 + 1000,
   'balance = counted money + the payment confirmed after submit (difference booked at submit)');
@@ -1062,6 +1114,7 @@ select tests.ok((select closing_balance from public.terms_public where number = 
   'term 1 closes at the balance at acceptance; term 2 opens with it');
 select tests.ok((select amount from public.activity_feed where kind = 'balance_adjustment') = -500,
   'the handover difference is public as «فرق عند التسليم»');
+select tests.login('public');
 select tests.login('server');
 select tests.ok((select difference from public.handovers where id = tests.id('h1')) = -500, 'difference recorded');
 select tests.ok((select array_agg(display_name order by display_name) from public.committee where active) = array['المدير', 'النائب'],

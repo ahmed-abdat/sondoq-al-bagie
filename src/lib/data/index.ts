@@ -4,25 +4,15 @@ import "server-only";
 
 export * from "./types";
 export {
-  getActivity,
-  getCampaignContributions,
-  getCampaigns,
-  getExpenseTotals,
   getFundAccounts,
   getFundInfo,
-  getFundSummary,
   getGroupPrices,
   getMemberMonths,
   getMembers,
-  getMonthlyCollection,
   getReceipt,
-  getRecentExpenses,
-  getTerms,
-  getReport,
   getMemberRows,
   getMemberIndex,
-  // money privacy: amount-free public variants (the old money getters above are deprecated for
-  // public pages and go with m27)
+  // money privacy: amount-free public variants (money only via ./money)
   getFundStats,
   getActivityPublic,
   getCampaignsPublic,

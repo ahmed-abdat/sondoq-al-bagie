@@ -1,6 +1,17 @@
--- Undo every migration after M1 (m2 … m26, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m27, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- money is private (m27): the money views without the guard, readable by strangers again
+create or replace view public.fund_summary with (security_invoker = true) as select * from app_private.public_fund_summary();
+create or replace view public.monthly_collection with (security_invoker = true) as select * from app_private.public_monthly_collection();
+create or replace view public.expense_totals with (security_invoker = true) as select * from app_private.public_expense_totals();
+create or replace view public.recent_expenses with (security_invoker = true) as select * from app_private.public_recent_expenses();
+create or replace view public.campaign_progress with (security_invoker = true) as select * from app_private.public_campaign_progress();
+create or replace view public.campaign_contributions with (security_invoker = true) as select * from app_private.public_campaign_contributions();
+create or replace view public.activity_feed with (security_invoker = true) as select * from app_private.public_activity_feed();
+create or replace view public.terms_public with (security_invoker = true) as select * from app_private.public_terms();
+create or replace view public.member_status with (security_invoker = true) as select * from app_private.public_member_status();
+grant select on public.fund_summary, public.monthly_collection, public.expense_totals, public.recent_expenses, public.campaign_progress, public.campaign_contributions, public.activity_feed, public.terms_public, public.member_status to anon;
 -- public views without money (m26)
 drop view if exists public.fund_stats, public.activity_public, public.campaigns_public, public.expenses_public,
   public.terms_info, public.campaign_contributors_public, public.member_status_public;

@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- M27 · money privacy, phase 2 (docs/MONEY-PRIVACY.md). DRAFT: apply only after the release
+-- M27 · money privacy, phase 2 (docs/MONEY-PRIVACY.md). Applied after the release
 -- that reads the m26 public views and getMoney() is live (lead's go).
 --
 -- Strangers lose every money view; the views also return rows only to the committee or our

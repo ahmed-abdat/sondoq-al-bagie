@@ -1,4 +1,5 @@
-// The shareable fund report: one read of public data only (no phones, no proofs).
+// The fund report: loadReport (with money, for the committee or a member via ./money) and
+// loadReportShell (amount-free, for strangers). No phones, no proofs.
 // assembleReport is pure (unit tested); loadReport fetches with any client.
 import { CATEGORY_LABELS, STATUS_LABELS } from "./labels";
 import * as read from "./read";

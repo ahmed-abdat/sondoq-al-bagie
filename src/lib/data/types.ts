@@ -485,7 +485,7 @@ export type ReportCampaign = {
   balance: number;
 };
 
-/** Everything a fund report shows, in one read (getReport). Amounts in MRO. */
+/** Everything a fund report shows, in one read (getReportForViewer). Amounts in MRO. */
 export type ReportData = {
   year: number;
   /** live fund totals (all time, like the home page) */
