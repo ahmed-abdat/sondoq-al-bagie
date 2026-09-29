@@ -16,6 +16,22 @@ function vapid() {
   return publicKey && privateKey && subject ? { publicKey, privateKey, subject } : null;
 }
 
+/** Full name of the member a link belongs to (null when unknown). */
+async function linkMemberName(admin: Admin, linkId: string): Promise<string | null> {
+  const { data: link } = await admin
+    .from("member_links")
+    .select("member_id")
+    .eq("id", linkId)
+    .maybeSingle();
+  if (!link?.member_id) return null;
+  const { data: m } = await admin
+    .from("members")
+    .select("full_name")
+    .eq("id", link.member_id)
+    .maybeSingle();
+  return m?.full_name ?? null;
+}
+
 /** The member payload for a decided payment, or null when no member link sent it. */
 export async function memberPayloadFor(
   admin: Admin,
@@ -27,13 +43,14 @@ export async function memberPayloadFor(
     .eq("id", paymentId)
     .maybeSingle();
   if (error || !p?.submitted_via_link) return null;
+  if (p.status !== "rejected" && p.status !== "confirmed") return null;
+  const memberName = await linkMemberName(admin, p.submitted_via_link);
   if (p.status === "rejected") {
     return {
       linkId: p.submitted_via_link,
-      payload: memberRejectedPayload({ id: p.id, reason: p.reject_reason }),
+      payload: memberRejectedPayload({ id: p.id, memberName, reason: p.reject_reason }),
     };
   }
-  if (p.status !== "confirmed") return null;
   const { data: allocs } = await admin
     .from("payment_allocations")
     .select("kind, year, month")
@@ -47,6 +64,7 @@ export async function memberPayloadFor(
     linkId: p.submitted_via_link,
     payload: memberConfirmedPayload({
       id: p.id,
+      memberName,
       amount: p.amount,
       receiptCode: p.receipt_code,
       allocations,

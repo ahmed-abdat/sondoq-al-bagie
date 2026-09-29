@@ -1324,8 +1324,12 @@ export type Database = {
         Returns: Json
       }
       member_save_push: {
-        Args: { p_auth: string; p_endpoint: string; p_p256dh: string; p_token_hash: string }
-        Returns: undefined
+        Args: { p_auth: string; p_endpoint: string; p_p256dh: string; p_token_hashes: string[] }
+        Returns: number
+      }
+      member_sessions: {
+        Args: { p_token_hashes: string[] }
+        Returns: Json
       }
       member_session: {
         Args: { p_token_hash: string }

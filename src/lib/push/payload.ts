@@ -41,9 +41,14 @@ export function pendingPaymentPayload(p: {
   };
 }
 
-/** To the member who sent the payment through their link: «تم تأكيد دفعتك» → the receipt. */
+/**
+ * To the devices of the link that sent the payment. A family phone holds several profiles, so the
+ * title says whose: «تم تأكيد دفعة محمد» (→ the receipt).
+ */
 export function memberConfirmedPayload(p: {
   id: string;
+  /** the link's member (first name is enough on a lock screen) */
+  memberName?: string | null;
   amount: number;
   receiptCode: string | null;
   allocations: Alloc[];
@@ -58,19 +63,28 @@ export function memberConfirmedPayload(p: {
   const parts = [`${formatNumber(p.amount)} أوقية`];
   if (yms.length) parts.push(monthsList(yms));
   return {
-    title: "تم تأكيد دفعتك",
+    title: p.memberName ? `تم تأكيد دفعة ${firstName(p.memberName)}` : "تم تأكيد دفعتك",
     body: parts.join(" · "),
     url: p.receiptCode ? `/r/${p.receiptCode}` : "/me",
     tag: `member-${p.id}`,
   };
 }
 
-/** To the member: «رُفضت الدفعة» with the committee's reason. */
-export function memberRejectedPayload(p: { id: string; reason: string | null }): PushPayload {
+/** To the member: «رُفضت دفعة محمد» with the committee's reason. */
+export function memberRejectedPayload(p: {
+  id: string;
+  memberName?: string | null;
+  reason: string | null;
+}): PushPayload {
   return {
-    title: "رُفضت الدفعة",
+    title: p.memberName ? `رُفضت دفعة ${firstName(p.memberName)}` : "رُفضت الدفعة",
     body: p.reason?.trim() || "راجع اللجنة لمعرفة السبب.",
     url: "/me",
     tag: `member-${p.id}`,
   };
+}
+
+/** «محمد» from «محمد ولد أحمد»: short enough for a notification title. */
+function firstName(full: string): string {
+  return full.trim().split(/\s+/)[0] ?? full.trim();
 }

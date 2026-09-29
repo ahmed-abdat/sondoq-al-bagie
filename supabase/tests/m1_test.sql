@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m24; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m25; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -924,9 +924,26 @@ select tests.msub(tests.get('h1'), 'ms4', jsonb_build_array(jsonb_build_object('
 select tests.msub(tests.get('h1'), 'ms5', jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)), 100, 5);
 select tests.throws($$select tests.msub(tests.get('h1'), 'ms6', jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)), 100, 6)$$,
   'member_rate_limited', 'at most 5 pending submissions per link');
-select public.member_save_push(tests.get('h1'), 'https://push.test/m1', 'p', 'a');
+select public.member_save_push(array[tests.get('h1')], 'https://push.test/m1', 'p', 'a');
 select tests.ok((select count(*) from public.member_push_subscriptions where link_id = tests.id('lk1')) = 1, 'member push saved');
 
+-- m25: several profiles on one phone
+select tests.login('committee');
+select tests.set('lkF', public.create_member_link(tests.id('F'), repeat('3', 64)));
+select tests.login('service');
+select tests.ok((select jsonb_array_length(x) = 2
+                        and x @> jsonb_build_array(jsonb_build_object('member_ref', 'A-9004', 'token_hash', repeat('3', 64)))
+                 from (select public.member_sessions(array[tests.get('h1'), repeat('3', 64), repeat('e', 64)]) x) s),
+  'member_sessions returns the valid profiles of a phone in one call');
+select tests.ok(public.member_save_push(array[tests.get('h1'), repeat('3', 64)], 'https://push.test/m2', 'p', 'a') = 2,
+  'one device follows every saved profile');
+select public.member_delete_push(repeat('3', 64), 'https://push.test/m2');
+select tests.ok((select count(*) from public.member_push_subscriptions where endpoint = 'https://push.test/m2') = 1,
+  'signing one profile out keeps the others on this device');
+select tests.throws($$select public.member_save_push(array[repeat('e', 64)], 'https://push.test/m3', 'p', 'a')$$,
+  'member_link_invalid', 'no valid profile, no subscription');
+select tests.login('public');
+select tests.throws($$select public.member_sessions(array['x'])$$, '42501', 'anon cannot list profiles');
 select tests.login('treasurer');
 select tests.ok((select submitted_by_member ->> 'member_ref' from public.payment_queue where id = tests.id('ms1')) = 'A-1005'
                 and (select created_by is null from public.payment_queue where id = tests.id('ms1')),
@@ -943,7 +960,7 @@ select tests.throws($$select tests.msub(tests.get('h2'), 'mx', jsonb_build_array
   'member_link_invalid', 'a revoked link cannot submit');
 select tests.login('server');
 select tests.ok((select count(*) from public.member_links where member_id = tests.id('K') and revoked_at is null) = 0
-                and (select count(*) from public.audit_log where action in ('create_member_link', 'revoke_member_link')) = 3,
+                and (select count(*) from public.audit_log where action in ('create_member_link', 'revoke_member_link')) = 4,
   'links are revoked, never deleted, and audited');
 -- leave no pending member payments behind for later sections
 update public.payments set status = 'rejected', reject_reason = 'test', decided_at = now()

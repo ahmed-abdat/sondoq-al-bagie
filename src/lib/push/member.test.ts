@@ -42,6 +42,19 @@ describe("member push", () => {
         ],
       }),
     ).toMatchObject({ title: "تم تأكيد دفعتك", url: "/r/BQ-ABCD-1234", tag: "member-p1" });
+    // a family phone holds several profiles: say whose
+    expect(
+      memberConfirmedPayload({
+        id: "p1",
+        memberName: "محمد ولد أحمد",
+        amount: 1000,
+        receiptCode: null,
+        allocations: [],
+      }),
+    ).toMatchObject({ title: "تم تأكيد دفعة محمد", url: "/me" });
+    expect(memberRejectedPayload({ id: "p1", memberName: "سيدي", reason: null })).toMatchObject({
+      title: "رُفضت دفعة سيدي",
+    });
     expect(memberRejectedPayload({ id: "p1", reason: "صورة غير واضحة" })).toMatchObject({
       title: "رُفضت الدفعة",
       body: "صورة غير واضحة",
