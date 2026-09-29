@@ -4,6 +4,7 @@ import {
   coalesce,
   invalidateAfterPaymentChange,
   isOwnChange,
+  shouldCatchUp,
   toastFor,
   toPaymentChange,
 } from "./realtime";
@@ -95,5 +96,14 @@ describe("realtime", () => {
     run.cancel();
     vi.advanceTimersByTime(1000);
     expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("catches up on return only after 60 s hidden or a dropped channel, once per minute", () => {
+    const base = { now: 100_000, hiddenAt: 90_000, droppedWhileHidden: false, lastCatchUpAt: null };
+    expect(shouldCatchUp(base)).toBe(false); // 10 s app switch
+    expect(shouldCatchUp({ ...base, hiddenAt: 40_000 })).toBe(true); // 60 s away
+    expect(shouldCatchUp({ ...base, droppedWhileHidden: true })).toBe(true);
+    expect(shouldCatchUp({ ...base, droppedWhileHidden: true, lastCatchUpAt: 70_000 })).toBe(false);
+    expect(shouldCatchUp({ ...base, hiddenAt: null })).toBe(false);
   });
 });

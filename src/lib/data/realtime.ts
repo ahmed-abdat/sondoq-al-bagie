@@ -92,6 +92,22 @@ export function backoffMs(attempt: number) {
   return Math.min(30_000, 1000 * 2 ** Math.max(0, attempt));
 }
 
+export const CATCH_UP_MIN_MS = 60_000;
+
+/**
+ * Refresh when the app comes back to the foreground? Only after ≥ 60 s hidden or if the channel
+ * dropped meanwhile, and at most once per 60 s (egress on the free plan). Pure; unit tested.
+ */
+export function shouldCatchUp(s: {
+  now: number;
+  hiddenAt: number | null;
+  droppedWhileHidden: boolean;
+  lastCatchUpAt: number | null;
+}) {
+  if (s.lastCatchUpAt !== null && s.now - s.lastCatchUpAt < CATCH_UP_MIN_MS) return false;
+  return s.droppedWhileHidden || (s.hiddenAt !== null && s.now - s.hiddenAt >= CATCH_UP_MIN_MS);
+}
+
 /** Calls `fn` once, `ms` after the last of a burst of calls. */
 export function coalesce(fn: () => void, ms: number) {
   let t: ReturnType<typeof setTimeout> | null = null;
@@ -154,8 +170,12 @@ export function usePaymentsRealtime(
     let disposed = false;
     let live = false;
     let userId: string | null = null;
+    let hiddenAt: number | null = null;
+    let droppedWhileHidden = false;
+    let lastCatchUpAt: number | null = null;
     const set = (next: RealtimeStatus) => {
       live = next === "live";
+      if (!live && hiddenAt !== null) droppedWhileHidden = true;
       setStatus(next);
     };
 
@@ -200,7 +220,10 @@ export function usePaymentsRealtime(
         if (state === "SUBSCRIBED") {
           attempt = 0;
           set("live");
-          if (everLive) soon(); // catch up on what was missed while disconnected
+          if (everLive) {
+            lastCatchUpAt = Date.now();
+            soon(); // catch up on what was missed while disconnected
+          }
           everLive = true;
         } else if (state === "CHANNEL_ERROR" || state === "TIMED_OUT" || state === "CLOSED") {
           set("offline");
@@ -210,9 +233,20 @@ export function usePaymentsRealtime(
     };
 
     const wake = () => {
-      if (document.visibilityState !== "visible") return;
-      soon(); // events may have been dropped while in the background, even if the socket survived
-      if (!channel || !live) void connect();
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        droppedWhileHidden = !live;
+        return;
+      }
+      const now = Date.now();
+      const down = !channel || !live;
+      if (!down && shouldCatchUp({ now, hiddenAt, droppedWhileHidden, lastCatchUpAt })) {
+        lastCatchUpAt = now;
+        soon(); // events may have been missed while in the background
+      }
+      hiddenAt = null;
+      droppedWhileHidden = false;
+      if (down) void connect(); // the reconnect does its own catch-up once subscribed
     };
     const online = () => {
       attempt = 0;
