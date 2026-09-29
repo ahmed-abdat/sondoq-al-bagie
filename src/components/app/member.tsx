@@ -2,7 +2,7 @@
 // Member row (list) and the member sheet body (twelve months in words).
 import { decodeMonths } from "@/lib/data/month-code";
 import type { MemberRow, MemberStatus } from "@/lib/data/types";
-import { Avatar, MemberNo, StatusTag } from "./bits";
+import { Avatar, MemberNo, PaidCheck, StatusTag } from "./bits";
 import {
   fmt,
   groupLabel,
@@ -10,7 +10,7 @@ import {
   memberState,
   monthCells,
   monthsLabel,
-  monthsWord,
+  lateCount,
   MONTHS,
 } from "./derive";
 import { I } from "./icons";
@@ -108,7 +108,7 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberRow; ctx: MemberCtx; 
             ? "لا تُستحق عليه رسوم الآن"
             : m.monthsPaidThisYear === 0
               ? "لم يدفع هذا العام"
-              : `متأخر عن رسوم ${monthsWord(owed.length || m.monthsBehind)}${owed.length ? `: ${monthsLabel(owed)}` : ""}`}
+              : `متأخر عن رسوم ${lateCount(owed.length || m.monthsBehind)}${owed.length ? `: ${monthsLabel(owed)}` : ""}`}
         </p>
       )}
       <ol className="bq-months" aria-label={`أشهر ${year}`}>
@@ -117,13 +117,15 @@ export function MemberSheetBody({ m, ctx, vt }: { m: MemberRow; ctx: MemberCtx; 
             <span className="bq-mo-n">{MONTHS[c.month - 1]}</span>
             <span className="bq-mo-s">
               {c.state === "paid" ? (
-                <>{I.check(16)} مدفوع</>
+                <>
+                  <PaidCheck size={16} /> مدفوع
+                </>
               ) : c.state === "ahead" ? (
                 <>
-                  {I.check(16)} مدفوع <span className="bq-mo-tag">مقدَّمًا</span>
+                  <PaidCheck size={16} /> مدفوع <span className="bq-mo-tag">مقدَّمًا</span>
                 </>
               ) : c.state === "owed" ? (
-                <>{I.clock(16)} متأخر</>
+                "لم يُدفع"
               ) : c.state === "off" ? (
                 "غير مستحق"
               ) : (

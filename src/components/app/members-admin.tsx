@@ -806,7 +806,7 @@ export function MembersAdmin({
       <SearchField
         value={q}
         onChange={setQ}
-        placeholder="الاسم أو الرقم، مثل ب 12"
+        placeholder="اكتب الاسم أو الرقم، مثل ب 12"
         label="ابحث عن عضو"
         members={members}
         onOpen={(m) => setSheet({ t: "member", id: m.memberId })}

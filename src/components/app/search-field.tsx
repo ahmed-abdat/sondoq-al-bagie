@@ -19,6 +19,7 @@ export function SearchField<T extends Findable>({
   onOpen,
   small = false,
   autoFocus,
+  onFocus,
   className = "",
 }: {
   value: string;
@@ -31,6 +32,8 @@ export function SearchField<T extends Findable>({
   onOpen?: (m: T) => void;
   small?: boolean;
   autoFocus?: boolean;
+  /** e.g. home: bring the field up above the phone keyboard */
+  onFocus?: () => void;
   className?: string;
 }) {
   const [pad, setPad] = useState(false);
@@ -53,6 +56,7 @@ export function SearchField<T extends Findable>({
           type="search"
           enterKeyHint="search"
           autoFocus={autoFocus}
+          onFocus={onFocus}
         />
         {value && !listening && (
           <button

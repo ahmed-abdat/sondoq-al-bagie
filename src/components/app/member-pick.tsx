@@ -27,7 +27,7 @@ export function MemberPick<T extends Pickable>({
       <SearchField
         value={q}
         onChange={setQ}
-        placeholder="الاسم أو الرقم، مثل أ 12"
+        placeholder="اكتب الاسم أو الرقم، مثل ب 12"
         label="ابحث عن العضو"
         members={members}
         onOpen={onPick}

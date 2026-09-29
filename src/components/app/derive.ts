@@ -35,6 +35,14 @@ export function monthCount(n: number) {
   return n <= 10 ? `${n} أشهر` : `${n} شهرًا`;
 }
 
+/** «3 أسماء» … «10 أسماء», «34 اسمًا» (audit V5). */
+export function namesCount(n: number) {
+  return n >= 3 && n <= 10 ? `${n} أسماء` : `${n} اسمًا`;
+}
+
+/** After «متأخر عن رسوم»: «شهر واحد / شهرين / 3 أشهر» (audit V3: not «شهرًا»). */
+export const lateCount = (n: number) => (n === 2 ? "شهرين" : monthCount(n));
+
 /** Why a picked image could not be opened: HEIC/HEIF photos need a screenshot instead. */
 export function imageOpenError(f: { type: string; name: string }) {
   return /hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name)

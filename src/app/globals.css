@@ -455,6 +455,9 @@
   .bq-find {
     margin-block-start: 32px;
   }
+  .bq-find > h2 {
+    scroll-margin-block-start: calc(var(--safe-t) + 12px);
+  }
   .bq-desk-only {
     display: none;
   }
@@ -2042,18 +2045,24 @@
   .bq-mstatus.is-late {
     color: var(--muted);
   }
+  /* one month language (audit V4): the report's cells, white, bordered, a green ✓ when paid,
+     plus the month word so a member reads their own months */
   .bq-months {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid #7f9a88;
+    border-radius: 14px;
+    background: #b3c5b9;
   }
   .bq-mo {
-    border-radius: var(--r-md);
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-height: 64px;
+    background: var(--paper);
   }
   .bq-mo-n {
     font-family: var(--font-display);
@@ -2066,32 +2075,22 @@
     align-items: center;
     gap: 4px;
     font-size: 14px;
+    color: var(--muted);
   }
-  .mo-paid {
-    background: var(--g7);
-    color: #fff;
-  }
-  .mo-owed {
-    background: repeating-linear-gradient(135deg, var(--n2) 0 6px, var(--n1) 6px 12px);
-    color: var(--ink);
-  }
-  .mo-owed .bq-mo-s {
-    color: #3f4b45;
+  .mo-paid .bq-mo-s,
+  .mo-ahead .bq-mo-s {
+    color: var(--g8);
+    font-weight: 600;
   }
   .mo-future,
   .mo-none {
-    background: var(--n1);
     color: var(--muted);
-  }
-  /* paid in advance is PAID: the same solid green, with a small «مقدَّمًا» tag */
-  .mo-ahead {
-    background: var(--g7);
-    color: #fff;
   }
   .bq-mo-tag {
     padding: 0 6px;
     border-radius: 999px;
-    background: var(--g9);
+    background: var(--g1);
+    color: var(--g8);
     font-size: 14px;
   }
   .bq-owed {
