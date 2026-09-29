@@ -59,7 +59,7 @@ describe("canStartPull", () => {
   it("not while a sheet/dialog/drawer is open, nor from inputs", () => {
     let doc = setup('<main><p id="t">x</p></main><div role="dialog">sheet</div>');
     expect(canStartPull({ ...base, doc, target: doc.getElementById("t") })).toBe(false);
-    doc = setup('<main><p id="t">x</p></main><div data-vaul-drawer>d</div>');
+    doc = setup('<main><p id="t">x</p></main><div aria-modal="true">d</div>');
     expect(canStartPull({ ...base, doc, target: doc.getElementById("t") })).toBe(false);
     doc = setup('<main><input id="t" /></main>');
     expect(canStartPull({ ...base, doc, target: doc.getElementById("t") })).toBe(false);

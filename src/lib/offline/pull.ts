@@ -21,7 +21,7 @@ export function pullProgress(distance: number, threshold = PULL_THRESHOLD): numb
 }
 
 /** Overlays that own their own gestures: never start a pull while one is open. */
-export const BLOCKING_OVERLAYS = '[role="dialog"], [aria-modal="true"], [data-vaul-drawer]';
+export const BLOCKING_OVERLAYS = '[role="dialog"], [aria-modal="true"]';
 
 /** Elements where a downward drag means something else (typing, selecting). */
 const BLOCKING_TARGETS = 'input, textarea, select, [contenteditable="true"], [data-no-pull]';
