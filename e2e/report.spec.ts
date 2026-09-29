@@ -144,7 +144,7 @@ test("report images without a share sheet fall back to WhatsApp text with the li
   const [url] = await win(page, "__opened");
   expect(url).toMatch(/^https:\/\/wa\.me\/\?text=/);
   const text = decodeURIComponent(url.split("text=")[1]);
-  expect(text).toContain("ملخص صندوق الشباب");
+  expect(text).toContain("ملخص صندوق الرابطة");
   expect(text).toMatch(/في الصندوق الآن: .+ أوقية/);
   expect(text).toMatch(/\d+ من \d+ دفعوا رسوم \S+/);
   expect(text).toMatch(/التفاصيل: https:\/\/\S+\/report$/);

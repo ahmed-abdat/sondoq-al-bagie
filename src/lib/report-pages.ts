@@ -198,7 +198,7 @@ export function paginateReport(r: ReportData, size: PageSize = PHONE_PAGE): Repo
   return pages;
 }
 
-/** Footer text, the same on every page: «صندوق الشباب · الصفحة 2 من 7 · حتى …». */
+/** Footer text, the same on every page: «صندوق الرابطة · الصفحة 2 من 7 · حتى …». */
 export function footerLabel(no: number, of: number, asOf: string): string {
   return `${FUND_NAME} · الصفحة ${no} من ${of} · حتى ${asOf}`;
 }
