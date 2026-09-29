@@ -6,7 +6,7 @@ import * as src from "./source";
 
 /** Name + role label when the viewer may cancel payments (admin, treasurer, deputy), else null. */
 export async function whoCanCancel(): Promise<{ by: string; role: string } | null> {
-  const s = await src.committeeSession().catch(() => null);
+  const s = await src.anyCommitteeSession().catch(() => null);
   if (!s || s.role === "committee") return null;
   return { by: s.displayName, role: ROLE_LABEL[s.role] };
 }

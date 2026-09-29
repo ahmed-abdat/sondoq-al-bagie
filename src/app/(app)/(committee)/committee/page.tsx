@@ -8,7 +8,9 @@ import { CommitteeView } from "@/components/app/views/committee";
 
 export const metadata: Metadata = { title: "اللجنة · صندوق الرابطة" };
 
-export default async function CommitteePage() {
+export default async function CommitteePage({ searchParams }: PageProps<"/committee">) {
+  // demo only: try the first sign-in setup
+  if (src.demoMode && (await searchParams).setup === "1") redirect("/committee/setup");
   const [session, pending, members, ctx, accounts, arrears, campaigns] = await Promise.all([
     src.committeeSession(),
     src.pendingPayments(),

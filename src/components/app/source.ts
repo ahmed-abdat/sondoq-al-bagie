@@ -1,4 +1,5 @@
 import "server-only";
+import { redirect } from "next/navigation";
 // The UI's one door to data (Server Components only). Reads the real Lane A layer; with
 // SONDOQ_FIXTURES=1 it serves the fictional fixtures instead (screenshots, dev without a seeded
 // database). This is the ONLY file that imports ./fixtures.
@@ -119,15 +120,25 @@ export async function ledger(): Promise<LedgerEntry[]> {
 
 /* ───────────── committee (RLS decides; fixtures show a demo treasurer) ───────────── */
 /** Demo: a fake admin. Otherwise always the real signed-in session (even with fixtures). */
-export const committeeSession = () =>
+export const anyCommitteeSession = () =>
   demoMode
     ? Promise.resolve({ ...fx.fxSession(), displayName: DEMO_USER, role: "admin" as const })
     : data.getCommitteeSession();
+/**
+ * Committee pages: the session, but a first sign-in (or a password reset by the admin) goes to
+ * the setup first. The setup page itself, the nav badge and the viewer check use
+ * anyCommitteeSession() so they never loop.
+ */
+export async function committeeSession() {
+  const s = await anyCommitteeSession();
+  if (s?.setupPending) redirect("/committee/setup");
+  return s;
+}
 export const pendingPayments = () => pick(fx.fxPending, () => data.getPendingPayments());
 /** «حسابي»: the signed-in committee user (demo: the fake admin, not linked yet). */
 export async function myProfile(): Promise<MyProfile | null> {
   if (demoMode) {
-    const s = await committeeSession();
+    const s = await anyCommitteeSession();
     if (!s) return null;
     return {
       userId: s.userId,
@@ -144,6 +155,7 @@ export async function myProfile(): Promise<MyProfile | null> {
     };
   }
   const [p, s] = await Promise.all([data.getMyProfile(), data.getCommitteeSession()]);
+  if (s?.setupPending) redirect("/committee/setup");
   return p && s ? { ...p, canConfirm: s.canConfirm } : null;
 }
 /** Latest payments (any status), newest first: the committee finds one to fix here. */
