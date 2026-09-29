@@ -33,6 +33,7 @@ import {
   unpaidSince,
   contributorCount,
   memberCount,
+  linkCount,
 } from "./derive";
 
 const m = (p: Partial<MemberStatus>): MemberStatus => ({
@@ -142,6 +143,12 @@ describe("member state", () => {
       "103 أعضاء",
     ]);
     expect(memberCount(2, "obl")).toBe("عضوين");
+    expect([1, 2, 3, 11].map((n) => linkCount(n))).toEqual([
+      "رابط واحد",
+      "رابطان",
+      "3 روابط",
+      "11 رابطًا",
+    ]);
   });
   it("contributorCount agrees with the number", () => {
     expect([0, 1, 2, 3, 10, 11, 31, 99, 100, 101].map(contributorCount)).toEqual([

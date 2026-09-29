@@ -6,14 +6,14 @@
 // The app cannot know whether the message was sent (audit B10): rows say «جُهّز الرابط», and a
 // link made on this page can be sent again as is («أرسل مرة أخرى») without stopping it.
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import type { MemberLinkInfo } from "@/lib/data/member-types";
 import type { MemberAdmin } from "@/lib/data/types";
 import { waLink } from "@/lib/whatsapp";
 import { useAct, useDemoState } from "./act";
 import { MemberNo, Track } from "./bits";
-import { groupLabel, searchMembers } from "./derive";
+import { groupLabel, linkCount, searchMembers } from "./derive";
 import { I } from "./icons";
 import { linkMessage } from "./member-link-admin";
 import {
@@ -64,6 +64,7 @@ export function MemberLinksPage({
   const [skipped, setSkipped] = useState<ReadonlySet<string>>(new Set());
   // P9: the walk moves on when the page is back from WhatsApp; «تراجع» returns to that person
   const later = useAfterReturn();
+  const preparedInWalk = useRef(0);
   const [last, setLast] = useState<{ id: string; name: string } | null>(null);
   const moveOn = (r: LinkRow) =>
     later(() => {
@@ -97,7 +98,13 @@ export function MemberLinksPage({
   const advance = (from: string, skip: ReadonlySet<string>) => {
     const next = nextInWalk(rows, from, skip);
     setWalk(next);
-    if (!next) say("انتهى الإرسال بالترتيب");
+    // skipped names got nothing: only say how many links were prepared (QA pass 4)
+    if (!next)
+      say(
+        preparedInWalk.current
+          ? `انتهت القائمة · جُهّز ${linkCount(preparedInWalk.current)}`
+          : "انتهت القائمة",
+      );
   };
 
   const send = async (r: LinkRow, inWalk = false) => {
@@ -115,7 +122,10 @@ export function MemberLinksPage({
       [r.memberId]: { memberId: r.memberId, createdAt: new Date().toISOString(), lastUsedAt: null },
     }));
     setUrls((x) => ({ ...x, [r.memberId]: res.data.url }));
-    if (inWalk) moveOn(r);
+    if (inWalk) {
+      preparedInWalk.current++;
+      moveOn(r);
+    }
     router.refresh();
     openWhatsApp(waLink(r.phone, linkMessage(r.fullName, res.data.url)));
   };
@@ -124,6 +134,7 @@ export function MemberLinksPage({
     openWhatsApp(waLink(r.phone, linkMessage(r.fullName, url)));
 
   const start = () => {
+    preparedInWalk.current = 0;
     setLast(null);
     const fresh = new Set<string>();
     setSkipped(fresh);

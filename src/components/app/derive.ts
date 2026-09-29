@@ -63,6 +63,16 @@ const MEMBER_F: Forms = {
 
 /** «شهر واحد / شهران / 3 أشهر / 12 شهرًا»; `obl` after «رسوم / عن / سجّل»: «شهرين». */
 export const monthCount = (n: number, c: "subj" | "obl" = "subj") => arCount(n, MONTH_F, c);
+const LINK_F: Forms = {
+  one: "رابط واحد",
+  two: "رابطان",
+  twoObl: "رابطين",
+  few: "روابط",
+  many: "رابطًا",
+  bare: "رابط",
+};
+/** «رابط واحد / رابطان / 3 روابط / 11 رابطًا». */
+export const linkCount = (n: number, c: "subj" | "obl" = "subj") => arCount(n, LINK_F, c);
 /** The noun alone after a shown number («من 88 عضوًا», «من 100 عضو», «من 7 أعضاء»). */
 export const memberNoun = (n: number) => memberCount(n, "obl").replace(/^\d+ /, "");
 /** «عضو واحد / عضوان / 3 أعضاء / 11 عضوًا / 100 عضو»; `obl`: «عضوين». */

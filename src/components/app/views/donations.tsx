@@ -58,14 +58,14 @@ export function DonationsView({
   const wa = c
     ? waLink(
         whatsapp,
-        `السلام عليكم، أرسلت مساهمة لحملة «${c.title}»${acc ? ` عبر ${METHOD_LABELS[acc.method]}` : ""}. هذه صورة التحويل.\nالاسم: \nالمبلغ: ${typeof amount === "number" ? `${fmt(amount)} أوقية` : ""}`,
+        `السلام عليكم، أرسلت مساهمة لحملة «${c.title}»${acc ? ` عبر ${METHOD_LABELS[acc.method]}` : ""}. صورة التحويل مرفقة.\nالاسم: \nالمبلغ: ${typeof amount === "number" ? `${fmt(amount)} أوقية` : ""}`,
       )
     : null;
   return (
     <>
       <header className="bq-page-h">
         <h1>التبرعات</h1>
-        <p className="bq-lead">التبرعات لنشاط واحد، غير رسوم الشهور.</p>
+        <p className="bq-lead">هذه التبرعات للحملة، ولا تُحسب من رسومك الشهرية.</p>
       </header>
 
       {!c ? (
@@ -175,7 +175,7 @@ export function DonationsView({
                     </button>
                   </div>
                 </Step>
-                <Step n={4} t="أرسل صورة التحويل للجنة">
+                <Step n={4} t="أرسل الصورة للجنة في واتساب">
                   {wa && (
                     <a
                       className="bq-btn bq-btn-primary bq-btn-lg bq-press"
@@ -183,9 +183,10 @@ export function DonationsView({
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {I.wa(22)} أرسل صورة التحويل
+                      {I.wa(22)} افتح واتساب وأرفق الصورة
                     </a>
                   )}
+                  <p className="bq-hint">في واتساب، أرفق صورة التحويل ثم أرسل الرسالة.</p>
                   <p className="bq-hint bq-give-trust">
                     {I.lock(16)}
                     <span>لا يرى صورتك إلا اللجنة. التطبيق لا يحوّل المال؛ التحويل من محفظتك.</span>
