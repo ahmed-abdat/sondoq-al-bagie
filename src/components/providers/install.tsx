@@ -193,16 +193,48 @@ function waitForPrompt(ms: number): Promise<boolean> {
 /** Browsers that can give the install dialog but have not (yet): Chrome/Edge/Samsung, desktop. */
 const mayStillPrompt = (m: InstallMode) => m === "android" || m === "samsung" || m === "desktop";
 
-/** Call after a meaningful action (found one's name, opened a receipt): the invite may show. */
+/**
+ * Call after a meaningful action (found one's name, opened a receipt, sent a proof): the invite
+ * may show, but not at once: the person first reads what the action changed (the card's new
+ * «دفعة بانتظار التأكيد», its buttons), so the invite waits for their next scroll, tap or key.
+ */
 export function markInstallEngaged() {
+  engage(true);
+}
+
+function engage(waitForNextMove: boolean) {
   engagedNow = true;
   safeStorage.setItem(ENGAGED_KEY, "1");
+  if (waitForNextMove) holdUntilNextMove();
   emit();
+}
+
+let moveHold = false;
+let dropMoveHold: (() => void) | null = null;
+function holdUntilNextMove() {
+  dropMoveHold?.();
+  moveHold = true;
+  const since = Date.now();
+  const kinds = ["scroll", "pointerdown", "keydown"] as const;
+  const onMove = () => {
+    // the action's own tap and the page settling right after it do not count
+    if (Date.now() - since < 1_000) return;
+    stop();
+    moveHold = false;
+    emit();
+  };
+  const stop = () => {
+    kinds.forEach((k) => window.removeEventListener(k, onMove, true));
+    dropMoveHold = null;
+  };
+  kinds.forEach((k) => window.addEventListener(k, onMove, { capture: true, passive: true }));
+  dropMoveHold = stop;
 }
 
 function inviteNow(): boolean {
   return (
     !welcomeHold &&
+    !moveHold &&
     shouldInvite({
       visitDays: safeStorage.getItem(VISITS_KEY),
       sessions: Number(safeStorage.getItem(SESSIONS_KEY)) || 0,
@@ -264,7 +296,7 @@ export function InstallWatcher() {
     // in this browser, and drop the marker from the address
     const url = new URL(window.location.href);
     if (url.searchParams.get("welcome") === "1") {
-      markInstallEngaged();
+      engage(false); // its own hold: until the «أنت» card was seen
       holdUntilCardSeen();
       url.searchParams.delete("welcome");
       window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
