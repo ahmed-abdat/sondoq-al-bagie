@@ -244,7 +244,8 @@ export type UpdateHandoverDraftInput = z.input<typeof updateHandoverDraftSchema>
 export type AcceptHandoverInput = z.input<typeof acceptHandoverSchema>;
 export type CancelHandoverInput = z.input<typeof cancelHandoverSchema>;
 
-export const passwordSchema = z.object({ password: z.string().min(8).max(72) });
+// trimmed like the login form does, so a password set with a stray space still signs in
+export const passwordSchema = z.object({ password: z.string().trim().min(8).max(72) });
 
 export const createCommitteeAccountSchema = z.object({
   displayName: text(80),

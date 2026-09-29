@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m22; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m23; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -843,6 +843,31 @@ select tests.ok((select cardinality(former_debt_months) >= 3 and former_debt_amo
 select tests.ok((select former_debt_months is null and former_debt_amount is null from public.members_admin where member_id = tests.id('K')),
   'active members have no «former» debt (it is arrears)');
 select tests.ok(not exists (select 1 from public.arrears where member_id = tests.id('D2')), 'former debt stays out of reminders');
+
+/* ───────────── M23: P2 guards ───────────── */
+
+select tests.login('admin');
+select tests.set('G', public.add_member(9005, 'عضو ز', 'A', tests.m(-3)));
+select tests.login('committee');
+select tests.ok(not (tests.pay('g1', 1000, jsonb_build_array(tests.month('G', -3, 1000))) ->> 'pending_overlap')::boolean,
+  'first pending payment: no overlap');
+select tests.ok((tests.pay('g2', 1000, jsonb_build_array(tests.month('G', -3, 1000))) ->> 'pending_overlap')::boolean,
+  'a second pending payment for the same month is flagged');
+select tests.pay('g3', 500, jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('G'), 'amount', 500)), '00AB 123');
+select tests.throws($$select tests.pay('g4', 500, jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('G'), 'amount', 500)), 'ab123')$$,
+  'duplicate_txn_ref', 'the same transaction reference with other spacing, case or leading zeros is a duplicate');
+
+select tests.login('admin');
+select public.change_member_status(tests.id('G'), tests.m(0), 'left', 'غادر');
+select tests.throws($$select public.set_committee_member('00000000-0000-0000-0000-0000000000a4', 'مشرف', 'committee', tests.id('G'))$$,
+  'member_not_active', 'the admin cannot link a member who left');
+
+select tests.set('c9', public.create_campaign('00000000-0000-0000-0000-00000000c009', 'حملة تاسعة'));
+select tests.set('cp9', public.record_payment(gen_random_uuid(), 'متبرع', 'cash', 300, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c9'), 'member_id', null, 'amount', 300))) ->> 'id');
+select public.close_campaign(tests.id('c9'), 'to_fund');
+select tests.throws($$select public.cancel_payment(tests.id('cp9'), 'خطأ')$$, 'campaign_closed',
+  'a contribution already moved to the fund cannot be cancelled');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

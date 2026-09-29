@@ -55,4 +55,21 @@ describe("login", () => {
     signInWithPassword.mockResolvedValue({ data: { user: null }, error: { message: "bad" } });
     expect((await login({}, form("36123456", "x"))).error).toMatch(/غير صحيحة/);
   });
+
+  it("tells a rate limit and a dropped connection apart from a wrong password", async () => {
+    signInWithPassword.mockResolvedValue({
+      data: { user: null },
+      error: {
+        message: "Request rate limit reached",
+        status: 429,
+        code: "over_request_rate_limit",
+      },
+    });
+    expect((await login({}, form("36123456", "x"))).error).toMatch(/محاولات كثيرة/);
+    signInWithPassword.mockResolvedValue({
+      data: { user: null },
+      error: { message: "TypeError: fetch failed", status: 0 },
+    });
+    expect((await login({}, form("36123456", "x"))).error).toMatch(/تعذّر الاتصال/);
+  });
 });
