@@ -177,10 +177,16 @@ export const fundSettings = () =>
     }),
     () => data.getFundSettings(),
   );
+/** Committee settings: the last weekly backup (null = never ran). */
+export const backupStatus = () => pick(fx.fxBackupStatus, () => data.getBackupStatus());
 /** /members (and the committee record sheet): members with this year's months as a 12-letter code. */
 export const memberRows = (year = thisYear()) =>
   pick(
-    () => toMemberRows(fx.fxMembers(), fx.fxMemberMonths(), year),
+    () =>
+      toMemberRows(fx.fxMembers(), fx.fxMemberMonths(), year, {
+        pastLate: fx.fxPastLate(),
+        groupPrices: fx.FX_PRICE,
+      }),
     () => data.getMemberRows(year),
   );
 /** Home: search index and «X من N دفعوا» for this month. */

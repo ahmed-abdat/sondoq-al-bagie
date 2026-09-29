@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { payableMonths, summarize, toRecordInput, type Draft } from "./payment-draft";
+import { fitRow, payableMonths, summarize, toRecordInput, type Draft } from "./payment-draft";
 
 const A1 = { memberId: "m-a1", groupCode: "A" };
 const B2 = { memberId: "m-b2", groupCode: "B" };
@@ -24,11 +24,8 @@ describe("summarize: the first thing still missing, in order", () => {
     expect(summarize(d({ rows: [{ m: A1, months: [] }] })).block?.step).toBe("months");
   });
   it("missing price", () => {
-    const b = summarize(
-      // reachable only when a contribution makes the total non-zero
-      d({ prices: { B: 500 }, campaignId: "c1", campaignText: "1000" }),
-    ).block;
-    expect(b?.msg).toContain("لا نعرف الرسوم الشهرية");
+    const b = summarize(d({ prices: { B: 500 } })).block;
+    expect(b?.msg).toBe("حدد الرسوم الشهرية لسنة 2026 أولًا.");
     expect(b?.step).toBeUndefined();
   });
   it("no method", () => {
@@ -149,5 +146,39 @@ describe("payableMonths: only owed months", () => {
   });
   it("everything paid or not owed", () => {
     expect(payableMonths("NNNNNNNNNNNN", 9)).toEqual({ open: [], late: [] });
+  });
+});
+
+describe("earlier years and per-month prices", () => {
+  const withPast = {
+    m: { ...A1, prices: { "2025-11": 800, "2025-12": 800 } },
+    months: [9],
+    past: ["2025-11", "2025-12"],
+  };
+  it("each month carries its year and its own price", () => {
+    const input = toRecordInput(
+      { ...d({ rows: [withPast] }), method: "bankily" },
+      { id: "p1", paidOn: "2026-09-28" },
+    );
+    expect(input.amount).toBe(2600);
+    expect(input.allocations).toEqual([
+      { kind: "months", memberId: "m-a1", year: 2025, month: 11, amount: 800 },
+      { kind: "months", memberId: "m-a1", year: 2025, month: 12, amount: 800 },
+      { kind: "months", memberId: "m-a1", year: 2026, month: 9, amount: 1000 },
+    ]);
+  });
+  it("a group change mid-year prices the months before it differently", () => {
+    const row = { m: { ...A1, prices: { "2026-07": 500 } }, months: [7, 8] };
+    expect(summarize(d({ rows: [row] })).total).toBe(1500);
+  });
+  it("a year with no price blocks with that year", () => {
+    const row = { m: { ...A1, prices: { "2025-12": null } }, months: [], past: ["2025-12"] };
+    expect(summarize(d({ rows: [row] })).block?.msg).toBe("حدد الرسوم الشهرية لسنة 2025 أولًا.");
+  });
+  it("a short transfer fits the oldest months first", () => {
+    const s = summarize(d({ rows: [withPast], sentText: "1600" }));
+    expect(s.fitMonths).toBe(2);
+    expect(fitRow(withPast, 2)).toMatchObject({ past: ["2025-11", "2025-12"], months: [] });
+    expect(fitRow(withPast, 1)).toMatchObject({ past: ["2025-11"], months: [] });
   });
 });

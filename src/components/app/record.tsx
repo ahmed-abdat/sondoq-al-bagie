@@ -22,7 +22,16 @@ import { failure } from "@/lib/data/errors";
 import { ShareBtns } from "./entries";
 import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
-import { payableMonths, summarize, toRecordInput, type Draft, type Step } from "./payment-draft";
+import {
+  fitRow,
+  payableMonths,
+  rowCount,
+  rowMonths,
+  summarize,
+  toRecordInput,
+  type Draft,
+  type Step,
+} from "./payment-draft";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
 import {
   byMostLate,
@@ -46,7 +55,27 @@ const OTHER_METHODS: PaymentMethod[] = METHODS.filter(
   (m) => !MAIN_METHODS.includes(m) && m !== "paper",
 );
 
-type Row = { m: MemberRow; months: number[]; edit: boolean };
+/** months: this year's chosen months; past: chosen late months of earlier years ("YYYY-MM") */
+type Row = { m: MemberRow; months: number[]; past: string[]; edit: boolean };
+
+/** «نوفمبر وديسمبر 2025» style label for earlier-year months, one run per year. */
+function pastLabel(keys: string[]) {
+  const by = new Map<number, number[]>();
+  for (const k of keys) {
+    const y = Number(k.slice(0, 4));
+    by.set(y, [...(by.get(y) ?? []), Number(k.slice(5, 7))]);
+  }
+  return [...by]
+    .sort(([a], [b]) => a - b)
+    .map(([y, ms]) => `${monthsLabel(ms)} ${y}`)
+    .join("، ");
+}
+/** What a row covers, in words: earlier years first. */
+function rowLabel(r: Row) {
+  return [r.past.length ? pastLabel(r.past) : "", r.months.length ? monthsLabel(r.months) : ""]
+    .filter(Boolean)
+    .join("، ");
+}
 
 /** Default months: the owed ones that are due (late); if none, the whole rest of the year. */
 function defaultMonths(ctx: MemberCtx, m: MemberRow) {
@@ -224,14 +253,15 @@ function forMembers(n: number) {
 function RowCard({
   row,
   ctx,
-  price,
+  amount,
   onChange,
   onRemove,
   headRef,
 }: {
   row: Row;
   ctx: MemberCtx;
-  price: number;
+  /** the row's fees (each month at its own price); null when a year has no price */
+  amount: number | null;
   onChange: (r: Row) => void;
   onRemove?: () => void;
   headRef?: (el: HTMLElement | null) => void;
@@ -253,9 +283,9 @@ function RowCard({
             {row.m.fullName}
           </span>
           <span className="bq-row-s">
-            {row.months.length
-              ? `${monthCount(row.months.length)}: ${monthsLabel(row.months)}`
-              : open.length
+            {rowCount(row)
+              ? `${monthCount(rowCount(row))}: ${rowLabel(row)}`
+              : open.length || row.m.pastLate?.length
                 ? "لم تُختر أشهر"
                 : states.some((x) => x === "paid")
                   ? "دفع رسوم هذا العام كاملة"
@@ -289,6 +319,35 @@ function RowCard({
               </button>
             ))}
           </div>
+          {!!row.m.pastLate?.length && (
+            <>
+              <p className="bq-rec-k bq-rec-past-k">متأخرات السنوات الماضية</p>
+              <ol className="bq-mstrip" aria-label={`متأخرات ${row.m.fullName} السابقة`}>
+                {row.m.pastLate.map((k) => {
+                  const on = row.past.includes(k);
+                  return (
+                    <li key={k}>
+                      <button
+                        type="button"
+                        className="bq-mpick bq-press"
+                        aria-pressed={on}
+                        onClick={() =>
+                          onChange({
+                            ...row,
+                            past: on ? row.past.filter((x) => x !== k) : [...row.past, k].sort(),
+                          })
+                        }
+                      >
+                        {MONTHS[Number(k.slice(5, 7)) - 1]}
+                        <span className="bq-mpick-s">{k.slice(0, 4)}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+              <p className="bq-rec-k bq-rec-past-k">{ctx.year}</p>
+            </>
+          )}
           <ol className="bq-mstrip" aria-label={`أشهر ${row.m.fullName}`}>
             {MONTHS.map((name, i) => {
               const k = i + 1;
@@ -322,7 +381,7 @@ function RowCard({
         </div>
       )}
       <div className="bq-rec-row-f">
-        {open.length > 0 && (
+        {(open.length > 0 || !!row.m.pastLate?.length) && (
           <button
             type="button"
             className="bq-link bq-link-s bq-press"
@@ -332,9 +391,9 @@ function RowCard({
             {row.edit ? "تم" : "تغيير الأشهر"}
           </button>
         )}
-        {row.months.length > 0 && price > 0 && (
+        {rowCount(row) > 0 && !!amount && (
           <span className="bq-rec-row-amt">
-            <Num>{fmt(row.months.length * price)}</Num> أوقية
+            <Num>{fmt(amount)}</Num> أوقية
           </span>
         )}
       </div>
@@ -427,7 +486,6 @@ export function RecordBody({
     el?.scrollIntoView({ block: "nearest", behavior: prefersReduced() ? "auto" : "smooth" });
   }, [rows]);
 
-  const priceOf = (m: MemberRow) => ctx.prices[m.groupCode] ?? 0;
   const openCamps = campaigns.filter((c) => c.status === "open");
   const payerName = (payer ?? rows[0]?.m.fullName ?? "").trim();
   const exclude = useMemo(() => new Set(rows.map((r) => r.m.memberId)), [rows]);
@@ -471,7 +529,7 @@ export function RecordBody({
     if (step === "months") {
       const i = Math.max(
         0,
-        rows.findIndex((r) => !r.months.length),
+        rows.findIndex((r) => !rowCount(r)),
       );
       setRows((rs) => rs.map((x, j) => (j === i ? { ...x, edit: true } : x)));
       show(heads.current.get(rows[i].m.memberId)?.closest<HTMLElement>(".bq-rec-row") ?? null);
@@ -483,7 +541,11 @@ export function RecordBody({
 
   const addRow = (m: MemberRow) => {
     focusNext.current = m.memberId;
-    setRows((rs) => [...rs, { m, months: defaultMonths(ctx, m), edit: false }]);
+    // earlier years' late months are owed first: chosen by default too
+    setRows((rs) => [
+      ...rs,
+      { m, months: defaultMonths(ctx, m), past: m.pastLate ?? [], edit: false },
+    ]);
     setAdding(false);
   };
 
@@ -590,9 +652,16 @@ export function RecordBody({
           no: null,
           code: r.data.receiptCode,
           payer: payerName,
-          covers: rows
-            .filter((x) => x.months.length)
-            .map((x) => ({ name: x.m.fullName, year: ctx.year, months: x.months })),
+          covers: rows.flatMap((x) => [
+            ...[...new Set(x.past.map((k) => Number(k.slice(0, 4))))].map((year) => ({
+              name: x.m.fullName,
+              year,
+              months: x.past
+                .filter((k) => k.startsWith(`${year}-`))
+                .map((k) => Number(k.slice(5, 7))),
+            })),
+            ...(x.months.length ? [{ name: x.m.fullName, year: ctx.year, months: x.months }] : []),
+          ]),
           campaigns:
             camp && campAmt > 0 ? [openCamps.find((c) => c.campaignId === camp)?.title ?? ""] : [],
           amount: total + credit,
@@ -638,13 +707,13 @@ export function RecordBody({
       </div>
     );
 
-  const feeMonths = rows.reduce((s, r) => s + r.months.length, 0);
-  const payingRows = rows.filter((r) => r.months.length);
+  const feeMonths = rows.reduce((s, r) => s + rowCount(r), 0);
+  const payingRows = rows.filter((r) => rowCount(r));
   const creditName = rows.find((r) => r.m.memberId === creditTo)?.m.fullName ?? "";
   const summary = [
     feeMonths > 0 &&
       (payingRows.length === 1
-        ? `رسوم ${monthsLabel(payingRows[0].months)}`
+        ? `رسوم ${rowLabel(payingRows[0])}`
         : `رسوم ${monthCount(feeMonths)} ${forMembers(payingRows.length)}`),
     campAmt > 0 && (
       <>
@@ -682,7 +751,11 @@ export function RecordBody({
           key={row.m.memberId}
           row={row}
           ctx={ctx}
-          price={priceOf(row.m)}
+          amount={
+            rowMonths(draft, row).some((x) => x.price === null)
+              ? null
+              : rowMonths(draft, row).reduce((t, x) => t + (x.price ?? 0), 0)
+          }
           headRef={(el) => {
             if (el) heads.current.set(row.m.memberId, el);
             else heads.current.delete(row.m.memberId);
@@ -886,9 +959,7 @@ export function RecordBody({
                   <button
                     type="button"
                     className="bq-chip bq-press bq-rec-fit"
-                    onClick={() =>
-                      setRows((rs) => [{ ...rs[0], months: rs[0].months.slice(0, fitMonths) }])
-                    }
+                    onClick={() => setRows((rs) => [fitRow(rs[0], fitMonths)])}
                   >
                     سجّل {monthCount(fitMonths)} فقط
                   </button>

@@ -18,6 +18,7 @@ import type {
   FundAccountAdmin,
   FundInfo,
   FundSummary,
+  BackupStatus,
   MemberMonth,
   MemberStatus,
   MonthlyCollection,
@@ -133,6 +134,27 @@ export function fxMembers(showOwed = false): MemberStatus[] {
     amountOwed: showOwed ? owed(m).length * FX_PRICE[m.group] : null,
   }));
 }
+
+/** Late months of 2025 (fictional, 2025 price A = 800): the first member of A with nothing paid. */
+export function fxPastLate(): MemberMonth[] {
+  const m = RAW.find((x) => x.group === "A" && x.status === "active" && !x.paid.length);
+  if (!m) return [];
+  return [11, 12].map((month) => ({
+    memberId: m.id,
+    year: YEAR - 1,
+    month,
+    state: "late" as const,
+    price: 800,
+  }));
+}
+
+/** The weekly backup ran fine on Sunday. */
+export const fxBackupStatus = (): BackupStatus => ({
+  ok: true,
+  lastRunAt: "2026-09-27T03:00:00Z",
+  lastOkAt: "2026-09-27T03:00:00Z",
+  detail: "2026/2026-09-27.json",
+});
 
 export function fxMemberMonths(memberId?: string): MemberMonth[] {
   return RAW.filter((m) => !memberId || m.id === memberId).flatMap((m) =>
