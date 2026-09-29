@@ -1,6 +1,8 @@
--- Undo every migration after M1 (m2 … m13, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m14, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- m14 (handover difference at submit) only replaced app_private.accept_handover/public_terms bodies;
+-- the m8 undo below drops both functions, so it needs no step of its own.
 -- security advisor wrappers (m13): the definer RPCs back into public
 drop function if exists public.accept_handover(p_id uuid, p_new_term_title text);
 alter function app_private.accept_handover(p_id uuid, p_new_term_title text) set schema public;

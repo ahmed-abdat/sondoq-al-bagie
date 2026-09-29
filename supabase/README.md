@@ -28,6 +28,7 @@ and every change lands in `audit_log`.
 | `*_m11_delete_account.sql` | admin deletes a committee account that never did anything (`delete_committee_member`, audited; `committee_accounts.can_delete`); accounts with history are only deactivated |
 | `*_m12_my_profile.sql` | «حسابي»: `update_my_profile` (own display name; link own member row once; changing/removing a link stays admin-only because of the own-membership rule) |
 | `*_m13_rpc_wrappers.sql` | advisor clean-up: every SECURITY DEFINER RPC moved to `app_private`; `public` keeps SECURITY INVOKER wrappers with the same names/params/defaults (API unchanged) |
+| `*_m14_handover_submit_balance.sql` | handover difference = counted − balance **at submit** (activity between submit and accept is normal fund activity, not a «فرق عند التسليم»); the new term opens with the balance at acceptance, which is also the closed term's closing balance |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the

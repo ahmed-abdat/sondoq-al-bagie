@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
--- Schema tests for ALL migrations (m1 … m13; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
+-- Schema tests for ALL migrations (m1 … m14; the name is historical). Plain SQL, no pgTAP. ONE transaction, rolled back at the end: safe on a
 -- scratch or branch database. Never run against production.
 --   local:     supabase/tests/local/run.sh
 --   branch:    psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/m1_test.sql
@@ -649,17 +649,21 @@ select tests.throws($$select public.update_handover_draft(tests.id('h1'), '[{"la
   'negative counted amounts are refused');
 select public.submit_handover(tests.id('h1'));
 select tests.throws($$select public.accept_handover(tests.id('h1'))$$, 'not_admin', 'the treasurer cannot accept');
+-- money confirmed between submit and accept is fund activity, not a handover difference (audit H1)
+select tests.pay('hp', 1000, jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 1000)));
+select tests.login('deputy');
+select public.confirm_payment(tests.id('hp'));
 select tests.login('admin');
 select tests.ok(public.accept_handover(tests.id('h1'), 'الدورة الثانية') = 2, 'the incoming admin accepts: term 2 opens');
 select tests.ok(public.accept_handover(tests.id('h1')) = 2, 'accepting twice is a no-op');
 select tests.login('public');
 select tests.ok((select term_number from public.fund_summary) = 2, 'fund is now in term 2');
-select tests.ok((select balance from public.fund_summary) = tests.get('bal8')::int - 500,
-  'balance equals the counted money (difference booked)');
-select tests.ok((select closing_balance from public.terms_public where number = 1) = tests.get('bal8')::int - 500
+select tests.ok((select balance from public.fund_summary) = tests.get('bal8')::int - 500 + 1000,
+  'balance = counted money + the payment confirmed after submit (difference booked at submit)');
+select tests.ok((select closing_balance from public.terms_public where number = 1) = tests.get('bal8')::int + 500
                 and (select ended_on from public.terms_public where number = 1) is not null
-                and (select opening_balance from public.terms_public where number = 2) = tests.get('bal8')::int - 500,
-  'term 1 closed at the counted balance; term 2 opens with it');
+                and (select opening_balance from public.terms_public where number = 2) = tests.get('bal8')::int + 500,
+  'term 1 closes at the balance at acceptance; term 2 opens with it');
 select tests.ok((select amount from public.activity_feed where kind = 'balance_adjustment') = -500,
   'the handover difference is public as «فرق عند التسليم»');
 select tests.login('server');
