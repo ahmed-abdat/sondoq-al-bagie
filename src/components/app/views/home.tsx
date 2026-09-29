@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { InstallCard, markInstallEngaged } from "@/components/providers";
+import { markInstallEngaged } from "@/components/providers";
 import type { MemberIndex } from "@/lib/data/types";
 import { Track } from "../bits";
 import { memberLabel, searchMembers } from "../derive";
@@ -109,7 +109,6 @@ export function HomeView({
         )}
       </section>
 
-      <InstallCard className="bq-sec-tight" />
 
       {total > 0 && (
         <section className="bq-sec bq-rv" data-rv="home-count" aria-labelledby="bq-count-h">
