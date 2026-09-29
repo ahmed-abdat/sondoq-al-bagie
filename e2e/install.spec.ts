@@ -43,6 +43,23 @@ async function chromeOffersInstall(page: Page, outcome: "accepted" | "dismissed"
   }, outcome);
 }
 
+/** Chrome's event arriving later, as on a real phone (after load and some use of the site). */
+async function fireChromeEvent(page: Page, outcome: "accepted" | "dismissed" = "accepted") {
+  await page.evaluate((outcome) => {
+    const w = window as unknown as Log;
+    const e = new Event("beforeinstallprompt", { cancelable: true }) as Event & {
+      prompt: () => Promise<void>;
+      userChoice: Promise<{ outcome: string }>;
+    };
+    e.prompt = () => {
+      w.__log.push("prompt");
+      return Promise.resolve();
+    };
+    e.userChoice = Promise.resolve({ outcome });
+    window.dispatchEvent(e);
+  }, outcome);
+}
+
 /** The install banner above the bottom nav. */
 const card = (page: Page) => page.getByRole("region", { name: "تثبيت التطبيق" });
 
@@ -75,12 +92,45 @@ test("«ليس الآن» after Chrome's dialog: hidden, and still hidden after 
   await expect(card(page)).toHaveCount(0);
 });
 
+test("Chrome's event after the page is up: the banner waits for it, the tap opens the dialog", async ({
+  page,
+}) => {
+  await returning(page);
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await expect(card(page)).toHaveCount(0); // not yet: Chrome may still offer its dialog
+  await fireChromeEvent(page);
+  await card(page).getByRole("button", { name: "تثبيت" }).click();
+  await expect.poll(() => log(page)).toContain("prompt");
+  await expect(page.getByRole("dialog")).toHaveCount(0); // no steps sheet
+  await expect(card(page)).toHaveCount(0);
+});
+
+test("a tap just before Chrome's event: it waits for it and opens the dialog, no steps", async ({
+  page,
+}) => {
+  await returning(page);
+  await page.goto("/accounts");
+  const entry = page.getByRole("button", { name: /تثبيت التطبيق/ });
+  await entry.click();
+  await expect(entry).toHaveAttribute("aria-busy", "true");
+  await fireChromeEvent(page, "dismissed"); // a moment after the tap
+  await expect.poll(() => log(page)).toEqual(["prompt"]);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  // «إلغاء» in Chrome's dialog: Chrome offers a new event, and the next tap prompts again
+  await fireChromeEvent(page);
+  await entry.click();
+  await expect.poll(() => log(page)).toEqual(["prompt", "prompt"]);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
 test("no dialog from Chrome: the tap opens the steps, never a dead button", async ({ page }) => {
   await returning(page);
   await page.goto("/");
-  await card(page).getByRole("button", { name: "تثبيت" }).click();
+  await card(page).getByRole("button", { name: "تثبيت" }).click(); // after the banner's wait
   const sheet = page.getByRole("dialog", { name: "ثبّت التطبيق من Chrome" });
-  await expect(sheet).toBeVisible();
+  await expect(sheet).toBeVisible({ timeout: 8_000 }); // after the tap's wait for Chrome
   await expect(
     sheet.getByText("اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»."),
   ).toBeVisible();
@@ -107,6 +157,8 @@ test.describe("inside another app's browser", () => {
 });
 
 test("not on the very first visit", async ({ page }) => {
+  await page.addInitScript(() => ((window as unknown as Log).__log = []));
+  await chromeOffersInstall(page, "accepted"); // no waiting for Chrome: the rule itself hides it
   await page.goto("/");
   await page.waitForLoadState("networkidle");
   await expect(card(page)).toHaveCount(0);
@@ -130,6 +182,7 @@ test.describe("the banner comes back with growing gaps", () => {
       const page = await context.newPage(); // a new tab = a new session
       await page.clock.install({ time: at });
       await returning(page);
+      await chromeOffersInstall(page, "dismissed"); // shown at once: the gap is what hides it
       await page.goto("/");
       await page.waitForLoadState("networkidle");
       return page;
@@ -165,6 +218,7 @@ test.describe("the banner comes back with growing gaps", () => {
 
 test("once per session: not again after a reload", async ({ page }) => {
   await returning(page);
+  await chromeOffersInstall(page, "dismissed"); // shown at once: the session is what hides it
   await page.goto("/");
   await expect(card(page)).toBeVisible();
   await page.reload();
@@ -237,13 +291,14 @@ test("desktop wording", async ({ browser, baseURL }) => {
   const page = await ctx.newPage();
   await returning(page);
   await page.goto("/");
-  await expect(card(page)).toContainText("أضف الصندوق إلى جهازك");
+  await expect(card(page)).toContainText("أضف الصندوق إلى جهازك", { timeout: 8_000 });
   await expect(card(page).getByRole("button", { name: "تثبيت" })).toHaveCSS("min-height", "44px");
   await ctx.close();
 });
 
 test("never over the report", async ({ page }) => {
   await returning(page);
+  await chromeOffersInstall(page, "accepted");
   await page.goto("/report");
   await page.waitForLoadState("networkidle");
   await expect(card(page)).toHaveCount(0);

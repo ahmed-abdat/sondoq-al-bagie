@@ -165,6 +165,33 @@ function promptInstall(): Promise<"accepted" | "dismissed" | "unavailable"> {
   );
 }
 
+/**
+ * Chrome offers its dialog a moment after the page loads (and only after some use of the site),
+ * so a tap can come first. Wait for it this long before showing the steps: the tap's activation
+ * lasts about 5 s, so prompt() still opens the dialog.
+ */
+const PROMPT_WAIT_MS = 2500;
+/** The banner, on browsers that may still offer the dialog, waits for it this long. */
+const BANNER_WAIT_MS = 4000;
+
+/** Resolves true as soon as the browser's install event is here, false after `ms`. */
+function waitForPrompt(ms: number): Promise<boolean> {
+  if (win().__bip) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const done = (ok: boolean) => {
+      window.removeEventListener(CHANGE, check);
+      clearTimeout(t);
+      resolve(ok);
+    };
+    const check = () => win().__bip && done(true);
+    const t = window.setTimeout(() => done(false), ms);
+    window.addEventListener(CHANGE, check);
+  });
+}
+
+/** Browsers that can give the install dialog but have not (yet): Chrome/Edge/Samsung, desktop. */
+const mayStillPrompt = (m: InstallMode) => m === "android" || m === "samsung" || m === "desktop";
+
 /** Call after a meaningful action (found one's name, opened a receipt): the invite may show. */
 export function markInstallEngaged() {
   engagedNow = true;
@@ -263,27 +290,37 @@ export function InstallWatcher() {
 
 /* ───────────── UI ───────────── */
 
-/** One tap: the browser's dialog when there is one, else the steps sheet. */
+/**
+ * One tap: the browser's dialog when there is one (or when it arrives within a moment), else the
+ * steps sheet. After «إلغاء» in the dialog Chrome offers a new event, so the next tap prompts again.
+ */
 function useInstallAction(onLater?: () => void) {
   const mode = useInstallMode();
   const [sheet, setSheet] = useState<InstallMode | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  const prompt = (fallback: InstallMode, onOutcome?: (o: "accepted" | "dismissed") => void) =>
+    void promptInstall().then((o) => {
+      if (o === "unavailable") setSheet(fallback);
+      else onOutcome?.(o);
+    });
   const start = (onOutcome?: (o: "accepted" | "dismissed") => void) => {
-    if (mode === "native") {
-      // synchronous in the click: prompt() keeps the tap's user activation
-      void promptInstall().then((o) => {
-        if (o === "unavailable")
-          setSheet(/Android/i.test(navigator.userAgent) ? "android" : "desktop");
-        else onOutcome?.(o);
-      });
-      return;
-    }
-    setSheet(mode);
+    if (waiting) return;
+    const fallback = /Android/i.test(navigator.userAgent) ? "android" : "desktop";
+    // synchronous in the click: prompt() keeps the tap's user activation
+    if (mode === "native") return prompt(fallback, onOutcome);
+    if (!mayStillPrompt(mode)) return setSheet(mode);
+    setWaiting(true);
+    void waitForPrompt(PROMPT_WAIT_MS).then((ok) => {
+      setWaiting(false);
+      if (ok) prompt(mode, onOutcome);
+      else setSheet(mode);
+    });
   };
   const sheetEl =
     sheet && sheet !== "installed" && sheet !== "native" ? (
       <InstallSheet mode={sheet} onDone={() => setSheet(null)} onLater={onLater} />
     ) : null;
-  return { mode, start, sheetEl };
+  return { mode, start, sheetEl, waiting };
 }
 
 /* the banner stays away while a sheet/dialog is open or the member is typing */
@@ -348,8 +385,14 @@ export function InstallBanner() {
     snoozeInvite();
     setClosed(true);
   };
-  const { mode, start, sheetEl } = useInstallAction(later);
+  const { mode, start, sheetEl, waiting } = useInstallAction(later);
   const bar = useRef<HTMLDivElement>(null);
+  // where the browser may still offer its dialog, give it a moment so the tap opens the dialog
+  const [grace, setGrace] = useState(true);
+  useEffect(() => {
+    const t = window.setTimeout(() => setGrace(false), BANNER_WAIT_MS);
+    return () => clearTimeout(t);
+  }, []);
   // leaving the welcome page ends the hold as well
   const firstPath = useRef(pathname);
   useEffect(() => {
@@ -361,6 +404,7 @@ export function InstallBanner() {
     !seenBefore &&
     !closed &&
     ui[0] === "0" &&
+    !(grace && mayStillPrompt(mode)) &&
     bannerAllowedOn(pathname);
 
   useEffect(() => {
@@ -400,6 +444,7 @@ export function InstallBanner() {
           <button
             type="button"
             className="bq-btn bq-btn-primary bq-press"
+            aria-busy={waiting || undefined}
             onClick={() =>
               start((o) => {
                 if (o === "dismissed") later();
@@ -426,11 +471,16 @@ export function InstallBanner() {
 
 /** Quiet permanent entry («تثبيت التطبيق») for a menu or settings list; hidden once installed. */
 export function InstallEntry({ className = "" }: { className?: string }) {
-  const { mode, start, sheetEl } = useInstallAction();
+  const { mode, start, sheetEl, waiting } = useInstallAction();
   if (mode === "installed") return sheetEl;
   return (
     <>
-      <button type="button" className={`bq-row bq-press ${className}`} onClick={() => start()}>
+      <button
+        type="button"
+        className={`bq-row bq-press ${className}`}
+        aria-busy={waiting || undefined}
+        onClick={() => start()}
+      >
         <span className="bq-disc is-in" aria-hidden>
           <DownloadIcon className="size-5" />
         </span>
