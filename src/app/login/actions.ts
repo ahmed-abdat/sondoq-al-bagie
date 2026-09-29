@@ -23,8 +23,23 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const who = parseLogin(raw);
   if (!who) return { error: "أدخل بريداً صحيحاً أو رقم هاتف موريتاني من 8 أرقام." };
 
-  const { error } = await supabase.auth.signInWithPassword({ email: who.authEmail, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: who.authEmail,
+    password,
+  });
   if (error) return { error: "البيانات غير صحيحة. تحقق من البريد أو الرقم وكلمة السر." };
+
+  // The password is right, but the committee pages open only for an active committee account
+  // (RLS shows the row only then). Say so here instead of bouncing back to this page silently.
+  const { data: row } = await supabase
+    .from("committee")
+    .select("active")
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+  if (!row?.active) {
+    await supabase.auth.signOut();
+    return { error: "هذا الحساب موقوف أو ليس من حسابات اللجنة. اطلب من المسؤول تفعيله." };
+  }
 
   const next = String(formData.get("next") ?? "");
   redirect(next.startsWith("/committee") ? next : "/committee");
