@@ -29,7 +29,12 @@ export default async function SettingsPage() {
         openingBalance={settings?.openingBalance ?? summary.openingBalance}
         openingBalanceOn={settings?.openingBalanceOn ?? null}
         committee={people}
-        members={members.map((m) => ({ memberId: m.memberId, memberRef: m.memberRef }))}
+        members={members.map((m) => ({
+          memberId: m.memberId,
+          memberRef: m.memberRef,
+          fullName: m.fullName,
+          status: m.status,
+        }))}
         selfId={session.userId}
         accounts={accounts}
       />
