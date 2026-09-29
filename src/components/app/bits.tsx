@@ -2,30 +2,53 @@
 import Image from "next/image";
 import type { MemberStatus, PaymentMethod } from "@/lib/data/types";
 import { METHOD_LABELS, methodLogo } from "@/lib/methods";
-import { memberState, statusLabel } from "./derive";
+import { memberLabel, memberState, splitRef, statusLabel } from "./derive";
 import { I } from "./icons";
 
-/** The member code («A-12») is the avatar: it is the identifier people already use. */
-export function Avatar({ code, size: s }: { code: string; size?: number }) {
-  // «A-12» needs a little more room than a bare number: 44px for four characters
-  const size = s ?? (code.length >= 4 ? 44 : 40);
-  const k = code.length <= 2 ? 0.44 : code.length <= 3 ? 0.4 : 0.33;
+/**
+ * The paper number is the avatar: big number, small group letter «أ»/«ب» under it. Inside one
+ * group's section (`scoped`) the letter is left out.
+ */
+export function Avatar({
+  m,
+  scoped = false,
+  size = 40,
+  vt = false,
+}: {
+  m: { memberRef: string };
+  scoped?: boolean;
+  size?: number;
+  /** morph source/target for the member sheet */
+  vt?: boolean;
+}) {
+  const { letter, n } = splitRef(m.memberRef);
+  const digits = String(n).length;
+  const k = scoped ? (digits <= 2 ? 0.44 : 0.36) : digits <= 2 ? 0.36 : 0.3;
   return (
     <span
       className="bq-av"
       style={{
         width: size,
         height: size,
-        fontSize: Math.max(14, Math.round(size * k)),
-        letterSpacing: code.length >= 4 ? "-0.03em" : undefined,
+        viewTransitionName: vt ? "bq-av" : undefined,
       }}
       aria-hidden="true"
     >
-      <bdi dir="ltr" className="bq-num">
-        {code}
-      </bdi>
+      <span className="bq-num bq-av-n" style={{ fontSize: Math.max(13, Math.round(size * k)) }}>
+        {n}
+      </span>
+      {!scoped && (
+        <span className="bq-av-l" style={{ fontSize: Math.max(10, Math.round(size * 0.24)) }}>
+          {letter}
+        </span>
+      )}
     </span>
   );
+}
+
+/** «أ 12» (or «12» when `scoped`), isolated so it never reorders in RTL text. */
+export function MemberNo({ m, scoped }: { m: { memberRef: string }; scoped?: boolean }) {
+  return <bdi className="bq-num bq-nowrap">{memberLabel(m, { scoped })}</bdi>;
 }
 
 /** Icon + word. Grey for late (never red), green tint for paid. Counts only, never amounts. */

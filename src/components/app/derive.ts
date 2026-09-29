@@ -150,8 +150,34 @@ export const STATE_CHOICES = ["active", "exempt", "left"] as const;
 /** Hidden from public lists by default. */
 export const isGone = (s: MembershipStatus) => s === "left" || s === "deceased";
 
-/** Two lists, each numbered from 1: «A-12» / «B-12» (the data layer's memberRef). */
-export const memberCode = (m: { memberRef: string }) => m.memberRef;
+/** memberRef «A-12» (internal key) → list letter «أ» and paper number 12. */
+export function splitRef(ref: string) {
+  const [l = "", n = ""] = ref.split("-");
+  return { letter: groupLabel(l), n: Number(n) || 0 };
+}
+
+/**
+ * How people read a member number. Inside one group's section: «12». Where groups mix:
+ * «أ 12» (Arabic letter, thin space, number). Never show memberRef's Latin form.
+ */
+export function memberLabel(
+  m: { memberRef: string },
+  { scoped = false }: { scoped?: boolean } = {},
+) {
+  const { letter, n } = splitRef(m.memberRef);
+  return scoped ? String(n) : `${letter}\u2009${n}`;
+}
+
+const toLatinDigits = (s: string) => s.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+
+/** «أ12» «أ 12» «ب12» «A12» «a-12» (any digits) → memberRef «A-12»; else null. */
+export function parseMemberRef(q: string): string | null {
+  const t = toLatinDigits(q.trim());
+  const c = /^([abأإاب])\s*-?\s*(\d+)$/i.exec(t);
+  if (!c) return null;
+  const l = /^[aأإا]$/i.test(c[1]) ? "A" : "B";
+  return `${l}-${Number(c[2])}`;
+}
 
 /** Next free number in a list: the first gap, else max + 1 (local guess; the server confirms). */
 export function nextFreeNumber(list: { listCode: string; number: number }[], listCode: string) {
@@ -205,27 +231,23 @@ export function normalizeAr(s: string) {
 }
 
 /**
- * Digits search the member number (exact first); «A-12» / «a12» / «أ12» search one list;
- * words search the name.
+ * Digits search the paper number in both groups (exact first); «أ12» / «أ 12» / «A12» / «a-12»
+ * find one member; words search the name.
  */
-export function searchMembers<
-  T extends { fullName: string; number?: number; memberRef?: string },
->(list: T[], q: string): T[] {
-  const t = q.trim().replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+export function searchMembers<T extends { fullName: string; number?: number; memberRef?: string }>(
+  list: T[],
+  q: string,
+): T[] {
+  const t = toLatinDigits(q.trim());
   if (!t) return [];
-  const coded = /^([abأب])\s*-?\s*(\d+)$/i.exec(t);
-  if (coded) {
-    const l = { a: "A", b: "B", أ: "A", ب: "B" }[coded[1].toLowerCase() as "a"] ?? "";
-    const ref = `${l}-${Number(coded[2])}`;
-    return list.filter((m) => (m.memberRef ?? "").toUpperCase() === ref);
-  }
-  if (/^\d+$/.test(t))
+  const ref = parseMemberRef(t);
+  if (ref) return list.filter((m) => (m.memberRef ?? "").toUpperCase() === ref);
+  if (/^\d+$/.test(t)) {
+    const no = (m: T) => m.number ?? splitRef(m.memberRef ?? "").n;
     return list
-      .filter((m) => String(m.number ?? Number(m.memberRef?.split("-")[1] ?? 0)).startsWith(t))
-      .sort(
-        (a, b) =>
-          Number(String(b.number) === t) - Number(String(a.number) === t) || (a.number ?? 0) - (b.number ?? 0),
-      );
+      .filter((m) => String(no(m)).startsWith(t))
+      .sort((a, b) => Number(String(no(b)) === t) - Number(String(no(a)) === t) || no(a) - no(b));
+  }
   const n = normalizeAr(t);
   return list.filter((m) => normalizeAr(m.fullName).includes(n));
 }

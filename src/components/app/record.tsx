@@ -19,15 +19,7 @@ import { ShareBtns } from "./entries";
 import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
 import { Avatar, MethodBadge, StatusTag } from "./bits";
-import {
-  fmt,
-  groupLabel,
-  memberCode,
-  MONTHS,
-  monthsLabel,
-  monthCount,
-  searchMembers,
-} from "./derive";
+import { fmt, groupLabel, MONTHS, monthsLabel, monthCount, searchMembers } from "./derive";
 import { DateField } from "./date-field";
 import { I } from "./icons";
 import type { MemberCtx } from "./member";
@@ -73,10 +65,12 @@ function PickRow({
   m,
   onPick,
   dim,
+  scoped,
 }: {
   m: MemberRow;
   onPick: (m: MemberRow) => void;
   dim?: boolean;
+  scoped?: boolean;
 }) {
   return (
     <li>
@@ -85,7 +79,7 @@ function PickRow({
         className={`bq-row bq-press ${dim ? "is-dim" : ""}`}
         onClick={() => onPick(m)}
       >
-        <Avatar code={memberCode(m)} />
+        <Avatar m={m} scoped={scoped} />
         <span className="bq-row-m">
           <span className="bq-row-t">{m.fullName}</span>
         </span>
@@ -97,7 +91,7 @@ function PickRow({
 
 /**
  * Step 1: the whole member list, ready to scroll and tap; the search at the top filters it
- * (name, «A-12», «ب12», Arabic digits). Active members by group, exempt ones dimmed at the end.
+ * (name, «12», «ب 12», «B12», Arabic digits). Active members by group, exempt ones dimmed at the end.
  */
 function MemberPicker({
   members,
@@ -122,9 +116,7 @@ function MemberPicker({
   const res = useMemo(() => (q.trim() ? searchMembers(pool, q) : pool), [pool, q]);
   const recent = q.trim()
     ? []
-    : recentIds
-        .map((id) => pool.find((m) => m.memberId === id))
-        .filter((m): m is MemberRow => !!m);
+    : recentIds.map((id) => pool.find((m) => m.memberId === id)).filter((m): m is MemberRow => !!m);
   const listOf = (m: MemberRow) => m.memberRef.split("-")[0];
   const lists = [...new Set(res.filter((m) => m.status === "active").map(listOf))].sort();
   const exempt = res.filter((m) => m.status === "exempt");
@@ -135,7 +127,7 @@ function MemberPicker({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="ابحث بالاسم أو الرقم، مثل B-12"
+          placeholder="ابحث بالاسم أو الرقم، مثل ب 12"
           aria-label="ابحث عن العضو"
           type="search"
           autoFocus={autoFocus}
@@ -159,7 +151,7 @@ function MemberPicker({
             {res
               .filter((m) => m.status === "active" && listOf(m) === l)
               .map((m) => (
-                <PickRow key={m.memberId} m={m} onPick={onPick} />
+                <PickRow key={m.memberId} m={m} onPick={onPick} scoped />
               ))}
           </ul>
         </section>
@@ -203,7 +195,7 @@ function RowCard({
   return (
     <div className="bq-rec-row">
       <div className="bq-rec-who">
-        <Avatar code={memberCode(row.m)} />
+        <Avatar m={row.m} />
         <span className="bq-row-m">
           <span className="bq-row-t">{row.m.fullName}</span>
           <span className="bq-row-s">

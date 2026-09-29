@@ -10,7 +10,8 @@ import {
   fmt,
   groupLabel,
   maskTxn,
-  memberCode,
+  memberLabel,
+  parseMemberRef,
   nextFreeNumber,
   memberState,
   monthCells,
@@ -133,7 +134,13 @@ describe("search", () => {
     expect(searchMembers(two, "A-12").map((x) => x.fullName)).toEqual(["س"]);
     expect(searchMembers(two, "b12").map((x) => x.fullName)).toEqual(["ص"]);
     expect(searchMembers(two, "ب 12").map((x) => x.fullName)).toEqual(["ص"]);
-    expect(memberCode({ memberRef: "B-7" })).toBe("B-7");
+    expect(searchMembers(two, "أ١٢").map((x) => x.fullName)).toEqual(["س"]);
+    expect(searchMembers(two, "a-12").map((x) => x.fullName)).toEqual(["س"]);
+    expect(searchMembers(two, "12").map((x) => x.fullName)).toEqual(["س", "ص"]);
+    expect(parseMemberRef("ب 7")).toBe("B-7");
+    expect(parseMemberRef("محمد")).toBeNull();
+    expect(memberLabel({ memberRef: "B-7" })).toBe("ب\u20097");
+    expect(memberLabel({ memberRef: "B-7" }, { scoped: true })).toBe("7");
     expect(
       nextFreeNumber(
         [

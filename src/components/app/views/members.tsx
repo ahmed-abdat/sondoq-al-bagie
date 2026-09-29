@@ -184,7 +184,12 @@ export function MembersView({
                 {open && (
                   <ul className="bq-list">
                     {(g.k === "late" ? [...items].sort(byMostLate) : items).map((m) => (
-                      <MemberRow key={m.memberId} m={m} onPick={pick} />
+                      <MemberRow
+                        key={m.memberId}
+                        m={m}
+                        onPick={pick}
+                        scoped={f === `g:${m.listCode}`}
+                      />
                     ))}
                   </ul>
                 )}
@@ -199,7 +204,7 @@ export function MembersView({
             </p>
             <ul className="bq-list">
               {list.map((m) => (
-                <MemberRow key={m.memberId} m={m} onPick={pick} />
+                <MemberRow key={m.memberId} m={m} onPick={pick} scoped={f === `g:${m.listCode}`} />
               ))}
             </ul>
           </>

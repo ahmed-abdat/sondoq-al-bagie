@@ -7,11 +7,11 @@ import { useMemo, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { type MemberAdmin, type SettableStatus } from "@/lib/data/types";
 import { useAct, useDemoState } from "./act";
-import { Avatar, StatusTag } from "./bits";
+import { Avatar, MemberNo, StatusTag } from "./bits";
 import {
   fmt,
   groupLabel,
-  memberCode,
+  memberLabel,
   monthsWord,
   MONTHS,
   nextFreeNumber,
@@ -211,11 +211,11 @@ export function MemberAdminBody({
   return (
     <div className="bq-rec">
       <div className="bq-mhead">
-        <Avatar code={memberCode(m)} size={56} />
+        <Avatar m={m} size={56} />
         <div>
           <h2>{m.fullName}</h2>
           <p className="bq-hint">
-            <Num>{memberCode(m)}</Num> · المجموعة {groupLabel(m.groupCode)} ·{" "}
+            رقم <MemberNo m={m} /> · المجموعة {groupLabel(m.groupCode)} ·{" "}
             {STATE_LABEL[m.status as State] ?? m.status}
           </p>
         </div>
@@ -433,7 +433,7 @@ export function MemberAdminBody({
       {mode === "move" && (
         <>
           <p className="bq-lead bq-small-top">
-            يبقى رقمه <Num>{memberCode(m)}</Num> كما هو. تتغيّر رسومه الشهرية إلى رسوم المجموعة{" "}
+            يبقى رقمه <MemberNo m={m} /> كما هو. تتغيّر رسومه الشهرية إلى رسوم المجموعة{" "}
             {groupLabel(other)} ابتداءً من الشهر الذي تختاره.
           </p>
           <p className="bq-rec-k">ابتداءً من شهر</p>
@@ -600,9 +600,9 @@ export function MembersAdmin({
                       type="button"
                       className="bq-row bq-press"
                       onClick={() => setSheet({ t: "member", id: m.memberId })}
-                      aria-label={`${memberCode(m)}، ${m.fullName}`}
+                      aria-label={`${memberLabel(m)}، ${m.fullName}`}
                     >
-                      <Avatar code={memberCode(m)} />
+                      <Avatar m={m} scoped={!!l} />
                       <span className="bq-row-m">
                         <span className="bq-row-t">{m.fullName}</span>
                         <span className="bq-row-s">

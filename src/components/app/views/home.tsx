@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { InstallCard } from "@/components/providers";
 import type { MemberIndex } from "@/lib/data/types";
 import { Track } from "../bits";
-import { searchMembers } from "../derive";
+import { memberLabel, searchMembers } from "../derive";
 import dynamic from "next/dynamic";
 import { EntryRow } from "../entry-row";
 
@@ -21,7 +21,10 @@ import type { LedgerEntry } from "../types";
 
 type S = { t: "entry"; e: LedgerEntry };
 /** Only what a search result shows; keeps the home payload small. */
-export type IndexMember = Pick<MemberIndex["members"][number], "memberRef" | "fullName" | "statusLabel">;
+export type IndexMember = Pick<
+  MemberIndex["members"][number],
+  "memberRef" | "fullName" | "statusLabel"
+>;
 
 export function HomeView({
   hero,
@@ -193,9 +196,9 @@ function IndexRow({ m }: { m: IndexMember }) {
         href={`/members?m=${encodeURIComponent(m.memberRef)}`}
         className="bq-row bq-press"
         transitionTypes={["tab-fwd"]}
-        aria-label={`${m.memberRef}، ${m.fullName}`}
+        aria-label={`${memberLabel(m)}، ${m.fullName}`}
       >
-        <Avatar code={m.memberRef} />
+        <Avatar m={m} />
         <span className="bq-row-m">
           <span className="bq-row-t">{m.fullName}</span>
         </span>
