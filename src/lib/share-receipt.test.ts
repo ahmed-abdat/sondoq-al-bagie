@@ -5,6 +5,7 @@ import { THIN } from "./format";
 // Month spelling comes from dates.ts (owner may change it), so tests build names with monthName().
 const M = monthName;
 import {
+  confirmedBy,
   coverLine,
   memberNumber,
   drawReceipt,
@@ -137,4 +138,10 @@ describe("shareReceipt", () => {
     expect(open.mock.calls[0][0]).toMatch(/^https:\/\/wa\.me\/22236123456\?text=/);
     expect(decodeURIComponent(open.mock.calls[0][0])).toContain("BQ-7K2M-0231");
   });
+});
+
+it("confirmedBy never leaves a stray comma", () => {
+  expect(confirmedBy({ by: "أحمد", role: "أمين الصندوق" })).toBe("أحمد، أمين الصندوق");
+  expect(confirmedBy({ by: "أحمد", role: "" })).toBe("أحمد");
+  expect(confirmedBy({ by: "أحمد", role: "  " })).toBe("أحمد");
 });

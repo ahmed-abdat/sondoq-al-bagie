@@ -1,22 +1,41 @@
 // Which requests the service worker may keep for offline use. Pure functions, unit tested,
 // imported by src/app/sw.ts. Rule of thumb: only public, read-only data is ever cached.
 
-/** Public read-only Supabase views (no phones, no proof images). Safe to show offline. */
+/**
+ * Public read-only Supabase views without money (docs/MONEY-PRIVACY.md: no amounts for strangers;
+ * no phones, no proof images). Safe to keep offline. The old money views (fund_summary,
+ * monthly_collection, expense_totals, recent_expenses, campaign_progress, campaign_contributions,
+ * activity_feed, terms_public, member_status) are never stored.
+ */
 const PUBLIC_VIEWS = [
-  "fund_summary",
-  "member_status",
+  "fund_stats",
+  "member_status_public",
   "member_months",
-  "monthly_collection",
-  "expense_totals",
-  "recent_expenses",
-  "campaign_progress",
-  "activity_feed",
+  "activity_public",
+  "campaigns_public",
+  "expenses_public",
+  "terms_info",
+  "campaign_contributors_public",
   "fund_accounts_public",
   "fund_info",
-  "campaign_contributions",
   "group_prices_public",
-  "terms_public",
 ] as const;
+
+/**
+ * Runtime cache names. Renamed when what they may hold changes, so phones drop the old copies
+ * (the old ones held amounts): the worker deletes RETIRED_CACHES when it takes over.
+ */
+export const PAGES_CACHE = "pages-v2";
+export const VIEWS_CACHE = "sb-public-views-v2";
+export const RETIRED_CACHES = ["pages", "sb-public-views"] as const;
+
+/**
+ * Never store a response the server marked as personal or not to keep (Cache-Control no-store or
+ * private): the committee's and a member's pages, and any money read.
+ */
+export function mayStore(cacheControl: string | null): boolean {
+  return !/\b(no-store|private)\b/i.test(cacheControl ?? "");
+}
 
 /**
  * Never cached: pages that need a login (nothing private stays on a shared phone), receipt

@@ -23,6 +23,7 @@ import {
   BACKOFF_KEY,
   bannerAllowedOn,
   chromeIntentUrl,
+  detectPlatform,
   DISMISS_KEY,
   ENGAGED_KEY,
   installMode,
@@ -66,6 +67,49 @@ export function InstallCapture() {
 const win = () => window as InstallWindow;
 let related = false; // getInstalledRelatedApps said the app is installed
 let engagedNow = false;
+/**
+ * First view after a personal link: the banner waits until the member has seen their «أنت» card
+ * (or moves to another page), so it never covers the card's buttons on that first open.
+ */
+let welcomeHold =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("welcome") === "1";
+const releaseHold = () => {
+  if (!welcomeHold) return;
+  welcomeHold = false;
+  emit();
+};
+
+/** Release the hold once the «أنت» card has been on screen for a moment (or after 20 s). */
+function holdUntilCardSeen() {
+  welcomeHold = true;
+  emit();
+  const giveUp = window.setTimeout(done, 20_000);
+  let seen: number | undefined;
+  let io: IntersectionObserver | undefined;
+  const mo = new MutationObserver(watch);
+  function done() {
+    window.clearTimeout(giveUp);
+    if (seen) window.clearTimeout(seen);
+    io?.disconnect();
+    mo.disconnect();
+    releaseHold();
+  }
+  function watch() {
+    const card = document.querySelector(".bq-you");
+    if (!card || io || typeof IntersectionObserver === "undefined") return;
+    io = new IntersectionObserver(
+      ([e]) => {
+        if (seen) window.clearTimeout(seen);
+        seen = e.isIntersecting ? window.setTimeout(done, 2_500) : undefined;
+      },
+      { threshold: 0.6 },
+    );
+    io.observe(card);
+  }
+  mo.observe(document.body, { childList: true, subtree: true });
+  watch();
+}
 
 function emit() {
   window.dispatchEvent(new Event(CHANGE));
@@ -129,13 +173,16 @@ export function markInstallEngaged() {
 }
 
 function inviteNow(): boolean {
-  return shouldInvite({
-    visitDays: safeStorage.getItem(VISITS_KEY),
-    sessions: Number(safeStorage.getItem(SESSIONS_KEY)) || 0,
-    engaged: engagedNow || safeStorage.getItem(ENGAGED_KEY) === "1",
-    backoff: safeStorage.getItem(BACKOFF_KEY),
-    dismissedAt: safeStorage.getItem(DISMISS_KEY),
-  });
+  return (
+    !welcomeHold &&
+    shouldInvite({
+      visitDays: safeStorage.getItem(VISITS_KEY),
+      sessions: Number(safeStorage.getItem(SESSIONS_KEY)) || 0,
+      engaged: engagedNow || safeStorage.getItem(ENGAGED_KEY) === "1",
+      backoff: safeStorage.getItem(BACKOFF_KEY),
+      dismissedAt: safeStorage.getItem(DISMISS_KEY),
+    })
+  );
 }
 
 /** «✕» / «ليس الآن» / the dialog dismissed: next showing after 1, 3, 7, 14, then 30 days. */
@@ -190,6 +237,7 @@ export function InstallWatcher() {
     const url = new URL(window.location.href);
     if (url.searchParams.get("welcome") === "1") {
       markInstallEngaged();
+      holdUntilCardSeen();
       url.searchParams.delete("welcome");
       window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
     }
@@ -277,7 +325,7 @@ animation:bq-ib-in .2s cubic-bezier(.2,.8,.2,1) both}
 .bq-ib[data-nav="1"]{bottom:calc(var(--nav,64px) + var(--safe-b,0px) + 8px)}
 .bq-ib img{width:36px;height:36px;border-radius:10px;flex:none}
 .bq-ib-t{flex:1;min-width:0;font-weight:600;font-size:15px;line-height:1.35}
-.bq-ib .bq-btn{min-height:40px;padding-inline:16px;flex:none}
+.bq-ib .bq-btn{min-height:44px;padding-inline:16px;flex:none}
 @keyframes bq-ib-in{from{transform:translateY(calc(100% + 24px))}}
 @media (prefers-reduced-motion:reduce){.bq-ib{animation:bq-ib-fade .2s both}}
 @keyframes bq-ib-fade{from{opacity:0}}
@@ -302,6 +350,11 @@ export function InstallBanner() {
   };
   const { mode, start, sheetEl } = useInstallAction(later);
   const bar = useRef<HTMLDivElement>(null);
+  // leaving the welcome page ends the hold as well
+  const firstPath = useRef(pathname);
+  useEffect(() => {
+    if (pathname !== firstPath.current) releaseHold();
+  }, [pathname]);
   const visible =
     mode !== "installed" &&
     ready &&
@@ -339,7 +392,11 @@ export function InstallBanner() {
           <style>{BANNER_CSS}</style>
           {/* eslint-disable-next-line @next/next/no-img-element -- tiny local icon */}
           <img src="/icons/icon-192.png" alt="" />
-          <span className="bq-ib-t">ثبّت التطبيق على هاتفك</span>
+          <span className="bq-ib-t">
+            {mode === "desktop" || detectPlatform(navigator.userAgent) === "other"
+              ? "ثبّت التطبيق على جهازك"
+              : "ثبّت التطبيق على هاتفك"}
+          </span>
           <button
             type="button"
             className="bq-btn bq-btn-primary bq-press"
