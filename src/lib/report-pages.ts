@@ -288,11 +288,6 @@ export function memberCols(w: number) {
   };
 }
 
-/** The month after which months are not due yet: the current one, or none (December, past year). */
-export function afterMonth(card: Pick<ReportSummaryData, "month">): number | null {
-  return card.month >= 1 && card.month < 12 ? card.month : null;
-}
-
 /** «عضو واحد» «عضوان» «7 أعضاء» «20 عضوًا». */
 export function membersWord(n: number) {
   if (n === 1) return "عضو واحد";
@@ -367,14 +362,6 @@ function drawMembers(
   x.strokeStyle = EDGE;
   x.beginPath();
   x.roundRect(P, hy, R - P, rowsEnd - hy, CORNER);
-  // a thin divider after the current month (UX V11): an empty cell before it was owed and not
-  // paid, after it is simply not due yet. No other emphasis on the month (owner decision).
-  const split = afterMonth(card);
-  if (split) {
-    const dx = cx(split) - cell / 2;
-    x.moveTo(dx, hy);
-    x.lineTo(dx, rowsEnd);
-  }
   x.stroke();
 
   // under the grid: «المجموع» once (the group's last page) and the legend
@@ -385,14 +372,10 @@ function drawMembers(
       weight: 700,
       face: "display",
     });
-  const key = split
-    ? "مدفوع · خانة فارغة: لم يُدفع · بعد الخط الداكن: لم يحن بعد"
-    : "مدفوع · خانة فارغة: لم يُدفع";
-  const lw = p.text(key, P, fy, {
+  const lw = p.text("مدفوع · خانة فارغة: لم يُدفع", P, fy, {
     size: 20,
     color: T.slate,
     align: "left",
-    max: page.part === page.parts ? w - 2 * L.pad - 330 : w - 2 * L.pad - 30,
   });
   okMark(p, P + lw + 16, fy - 7, 11);
 }

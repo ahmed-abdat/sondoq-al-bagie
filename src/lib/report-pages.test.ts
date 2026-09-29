@@ -214,9 +214,3 @@ it("group band: the group's size, no current-month count", () => {
     "20 عضوًا",
   ]);
 });
-
-it("the divider sits after the current month; none in December or for a past year", async () => {
-  const { afterMonth } = await import("./report-pages");
-  expect(afterMonth({ month: 9 })).toBe(9);
-  expect(afterMonth({ month: 12 })).toBeNull();
-});
