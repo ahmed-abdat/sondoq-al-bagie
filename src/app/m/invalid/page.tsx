@@ -24,7 +24,7 @@ export default function MemberLinkInvalid() {
         <h1>هذا الرابط لم يعد يعمل</h1>
         <p className="bq-lead">اطلب رابطًا جديدًا من اللجنة.</p>
       </section>
-      <p className="bq-hint">يمكنك دائمًا رؤية الصندوق والأعضاء بدون رابط.</p>
+      <p className="bq-hint">يمكنك رؤية الصندوق والأعضاء بدون رابط.</p>
       <Link className="bq-btn bq-btn-soft bq-btn-lg bq-press" href="/">
         افتح صندوق الرابطة
       </Link>

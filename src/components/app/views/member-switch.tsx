@@ -33,8 +33,8 @@ export function MemberSwitchChoice({ current, next }: { current: string; next: s
     return (
       <div className="bq-switch-btns">
         <p className="bq-lead" role="status">
-          أُضيف {next}. أزيل {dropped} من هذا الجهاز لأن الهاتف يحمل 5 أشخاص على الأكثر، ويمكن فتح
-          رابطه من جديد متى شاء.
+          أُضيف {next}. أُزيل {dropped} من هذا الهاتف، فهو يحمل 5 أشخاص فقط. يمكن فتح رابطه من جديد
+          متى شاء.
         </p>
         <button type="button" className="bq-btn bq-btn-primary bq-btn-lg bq-press" onClick={home}>
           متابعة

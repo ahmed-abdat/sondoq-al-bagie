@@ -38,9 +38,7 @@ export function MeView({
           <div className="bq-empty">
             <span className="bq-disc">{I.lock(22)}</span>
             <p className="bq-empty-t">هذه الصفحة لمن فتح رابطه الخاص</p>
-            <p className="bq-hint">
-              اطلب رابطك من اللجنة، ثم افتحه على هذا الجهاز لترى دفعاتك وترسل دفعة جديدة.
-            </p>
+            <p className="bq-hint">اطلب رابطك من اللجنة وافتحه على هذا الهاتف لترى دفعاتك.</p>
           </div>
           <MemberLinkPaste />
           <Link className="bq-link bq-press" href="/" transitionTypes={["tab-back"]}>
@@ -58,7 +56,7 @@ export function MeView({
     <>
       <header className="bq-page-h">
         <h1>دفعاتي</h1>
-        <p className="bq-lead">لا يراها غيرك. الصفحات العامة تبقى كما هي للجميع.</p>
+        <p className="bq-lead">لا يراها غيرك.</p>
       </header>
       <MemberCard initial={home} onMe />
 
@@ -71,10 +69,10 @@ export function MeView({
         title="دفعاتي المؤكَّدة"
         items={s.mine}
         {...who}
-        empty="لا توجد دفعات مؤكَّدة عنك بعد."
+        empty="لا دفعات مؤكَّدة بعد."
       />
       {s.forOthers.length > 0 && (
-        <Group id="bq-me-others" title="دفعات أرسلتها لغيري" items={s.forOthers} {...who} />
+        <Group id="bq-me-others" title="دفعاتي عن غيري" items={s.forOthers} {...who} />
       )}
 
       <section className="bq-sec" aria-labelledby="bq-me-dev">
@@ -149,7 +147,7 @@ function HistoryRow({ x, me, myName }: { x: MemberHistoryItem; me: string; myNam
           </span>
         )}
         {x.status === "pending" && (
-          <span className="bq-row-s">تراجعها اللجنة وتؤكدها بعد مطابقة الصورة.</span>
+          <span className="bq-row-s">تؤكدها اللجنة بعد مطابقة الصورة.</span>
         )}
         {code && (
           <span className="bq-me-acts">
@@ -194,9 +192,8 @@ function SignOut({ name, others }: { name: string; others: number }) {
   return (
     <div className="bq-rej bq-small-top">
       <p className="bq-lead">
-        لن يظهر {name} على هذا الهاتف بعد الآن.
-        {others > 0 ? " يبقى الآخرون كما هم." : ""} تبقى رسالة اللجنة التي فيها الرابط، ويمكن فتحه
-        من جديد.
+        لن يظهر {name} على هذا الهاتف.{others > 0 ? " يبقى الآخرون." : ""} يمكن فتح رابطه من جديد
+        متى شاء.
       </p>
       {err && (
         <p className="bq-alert" role="alert">

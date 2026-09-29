@@ -61,7 +61,7 @@ export type MemberSheetData = {
   recent: string[];
 };
 
-/** What «أرسلت دفعة» and «ادفع الآن» need, loaded when the sheet opens (members only). */
+/** What «أرسل صورة التحويل» and «ادفع الآن» need, loaded when the sheet opens (members only). */
 export async function memberSheetData(): Promise<MemberSheetData | null> {
   const s = await src.memberSession();
   if (!s) return null;
