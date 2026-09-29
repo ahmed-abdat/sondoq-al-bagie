@@ -1,82 +1,72 @@
 # Handoff: how to continue this project
 
-> **بالعربية باختصار:** هذا الملف لأي نسخة من Claude Code تكمل العمل. فيه ما أُنجز، وما بقي بالترتيب، وما يجب طلبه من AHMED، وقواعد المشروع. كل المستندات في مجلد `docs/`.
+Read this, then [DECISIONS.md](DECISIONS.md). Extending the app: [RECIPES.md](RECIPES.md).
 
-## Start here
+## Status (2026-09-29)
 
-1. Read [DECISIONS.md](DECISIONS.md) first. It records what the owner confirmed, the defaults already adopted, and the open questions.
-2. Read the PRD: [prd/PRD-sondoq-al-bagie-v1.md](prd/PRD-sondoq-al-bagie-v1.md) (English). The Arabic version is [prd/PRD-sondoq-al-bagie-v1-ar.md](prd/PRD-sondoq-al-bagie-v1-ar.md).
-3. Read [prd/edge-cases-review.md](prd/edge-cases-review.md) (Arabic). It is not merged into the PRD, but its §13 data-model additions are part of the plan (see M1 below).
-4. Open [design/prototype.html](design/prototype.html) in a browser. It is the clickable mock-up the owner saw and liked: screens, navigation, colours, and the record-payment flow. It uses sample names only.
-5. Read the Next.js 16 docs in `node_modules/next/dist/docs/` before writing Next code (see `AGENTS.md`). Middleware is `src/proxy.ts`.
+- **Live** at https://baqie.vercel.app with the fund's real data.
+- Built: public pages (home, members, accounts, donations, `/r/[code]` receipt check, `/report`),
+  committee (payments queue + record with on-device OCR, late members + WhatsApp reminders,
+  expenses, campaigns, members admin, handover, settings, account, push notifications), installable
+  offline-read PWA, daily keep-alive and weekly backup crons.
+- Database: migrations m1 through m13 applied to Supabase project `vhcdgxgwdlflmxmqnxzf`. Since
+  m13 every write RPC body lives in `app_private` (SECURITY DEFINER) behind a `public` SECURITY
+  INVOKER wrapper of the same name. See [supabase/README.md](../supabase/README.md).
+- UI port details: [UI-PORT-STATUS.md](UI-PORT-STATUS.md). Open review items:
+  [ARCHITECTURE-AUDIT.md](ARCHITECTURE-AUDIT.md) (read its "Lead corrections" first).
 
-## People and communication
+## People
 
-- **Owner:** AHMED (GitHub `ahmed-abdat`), a committee member. Writes in Arabic and English, and prefers **replies in Arabic**.
-- Explain things simply. The committee and members are not technical.
-- Never ask for or commit secrets. From Supabase, ask only for the **Project URL** and the **publishable key**. The database password and the `service_role` key stay with the owner, in Vercel/Supabase settings.
+- Owner: AHMED (`ahmed-abdat`), a committee member. **Reply in English**, concisely (Arabic only
+  if he writes in Arabic). The committee and members are not technical.
+- Never ask for or commit secrets or member data (names with phones, receipt images, paper sheets,
+  `supabase/import/data/`). From Supabase ask only for the URL and publishable key.
+
+## Branches, lanes, shipping
+
+- `main` = **production** (Vercel deploys it). The lead updates it by pushing `m2-app:main`.
+- `m2-app` = integration branch. Lanes work in worktrees `.claude/worktrees/<lane>` on branches
+  cut from `m2-app`, commit small, never push, and tell the lead; the lead merges.
+  - Lane A, backend: `m2-backend` (`supabase/**`, `src/lib/supabase/**`, `src/lib/data/**`, `src/app/api/**`).
+  - Lane B, platform: `m2-pwa` (SW, manifest, `public/**`, `scripts/**`, offline, providers, `e2e/**`, `vercel.json`, `.github/**`).
+  - Lane C, UI: `m2-ui` (`src/components/**`, `src/app/(app)/**`, `globals.css`, DESIGN/PRODUCT).
+  - Full ownership map and contracts: [PLAN-M2.md](PLAN-M2.md).
+- Commits: plain messages, **no Co-Authored-By / AI attribution**.
+- Before handing over a slice:
+  - `pnpm check` (typecheck + lint + unit tests) and `pnpm build`. CI runs the same on pushes to
+    `main` and on PRs ([.github/workflows/ci.yml](../.github/workflows/ci.yml)).
+  - SQL changes: `supabase/tests/local/run.sh` must print `OK` (not in CI yet).
+  - e2e runs on a **fixtures build** only:
+    `SONDOQ_FIXTURES=1 pnpm build && SONDOQ_FIXTURES=1 PORT=3410 pnpm test:e2e`.
+- Migrations: apply through the Supabase MCP, then rename the file to the version the remote
+  recorded and check the md5. Regenerate `src/lib/supabase/database.types.ts` after.
 
 ## Conventions
 
-- UI text is **Arabic, RTL** (`<html lang="ar" dir="rtl">`), with Western digits (`ar-MR-u-nu-latn`). Fonts are IBM Plex Sans Arabic for body text and Reem Kufi for headings.
-- Colours come from the logo: primary green `#237A3B`, gold, and a dark mode. Tokens live in `src/app/globals.css`.
-- **Money:** integers in **old ouguiya (MRO)** everywhere in the DB and code. Receipts show new ouguiya (MRU); convert with `mruToMro()` in `src/lib/money.ts`.
-- Arrears and totals are **computed in SQL views**, never stored.
-- Nothing is hard-deleted. Cancel with a reason, and write every change to `audit_log`.
-- Before pushing, run `npm run lint && npm run typecheck && npm test && npm run build`. CI runs the same.
-- Tailwind v4 (`@theme inline` in `globals.css`). Vitest for unit tests. Add Playwright when the UI flows exist.
+- Tooling: **pnpm only** (Node 22+), never npm or `package-lock.json`. **Next 16**: read
+  `node_modules/next/dist/docs/` before writing Next code; middleware is `src/proxy.ts`.
+- UI: Arabic, RTL, Western digits, IBM Plex Sans Arabic / Reem Kufi. Tokens in
+  `src/app/globals.css` and `DESIGN.md`.
+- Money: integer old ouguiya (MRO) everywhere; receipts show MRU (×10), see `src/lib/money.ts`.
+- Arrears and totals are computed in SQL views, never stored. Nothing is hard-deleted: cancel with
+  a reason; every change lands in `audit_log`. All writes go through RPCs.
+- Pages read data only through `src/components/app/source.ts`; committee writes go through
+  `useAct()` (`src/components/app/act.tsx`).
+- Demo mode: `SONDOQ_FIXTURES=1` on a non-production build serves fictional data and simulates
+  committee writes in the browser (`src/components/app/demo.ts`; never on production).
+- Accounts: **no email flows**. Public sign-up is off; the admin creates committee accounts (email
+  or phone + generated password) and resets passwords in the app. First sign-in (or after a reset)
+  goes to `/committee/setup` (name, own membership, new password). Members need no account.
 
-## Stack
+## What's next
 
-Next.js 16 (App Router, TS, `src/`), Tailwind v4, Supabase (Postgres, RLS, Auth email+password for the committee, Storage for receipt images, Realtime), Serwist for the PWA service worker, TanStack Query persisted to IndexedDB for offline read, react-hook-form + zod, browser-image-compression, Recharts, and Tesseract.js (ara+fra, on-device) for receipt reading. Hosting is free Vercel. A keep-alive cron is needed because Supabase free projects pause after 7 idle days.
+- Guard-rail plans from the audit (SQL harness in CI, migration version guard, error-code drift
+  test, exhaustive demo stubs, one committee page guard).
+- Open questions for the committee: see [DECISIONS.md](DECISIONS.md) "Still open".
+- Idea only, **not approved**: member access to their own history through a personal link. Do not
+  build it without the owner's go-ahead.
 
-## Milestones
+## Background
 
-| # | Deliverable | State |
-|---|---|---|
-| M0 | Repo, Next.js + Supabase setup, RTL layout, logo/manifest, committee login, `proxy.ts`, CI | **Done** (PR #1) |
-| M1 | Schema + RLS + `confirm_payment()` / `cancel_payment()` RPCs, seed groups, import 2026 paper data | Next |
-| M2 | Committee: record payment (with receipt OCR), pending queue, confirm/reject, live updates, audit log | |
-| M3 | Public page: summary cards, charts, member cards + detail sheet, activity feed | |
-| M4 | Arrears screen, WhatsApp reminder / receipt / group-message links, reminder log | |
-| M5 | Expenses, PWA install + offline read cache, keep-alive cron, weekly backup | |
-| M6 | Donation campaigns (PRD §4.7) | |
-| M7 | Pilot with the committee for about 2 weeks, then share the public link | |
-
-## M1 notes (next step)
-
-- Put SQL in `supabase/migrations/` (Supabase CLI format) so it can be applied with `supabase db push`, or pasted into the SQL editor by the owner.
-- Use the PRD §5 model **plus** these edge-case additions, which are adopted defaults (see DECISIONS.md):
-  - `group_prices(group_id, year, monthly_amount)` instead of `groups.monthly_amount`.
-  - `membership_periods(member_id, from, to, status, group_id, reason)`, with status `active | exempt | away | left | deceased`.
-  - On `payments`: `paid_on`, `method`, `txn_ref` with a partial unique index `(method, txn_ref)` on non-rejected/cancelled rows, `proof_path`, `proof_hash`.
-  - `payment_allocations(payment_id, kind 'months'|'campaign'|'credit', member_id, campaign_id, amount)`. The allocations must sum to the payment amount.
-  - `payment_months` is filled only by `confirm_payment()`, with `UNIQUE(member_id, year, month)`. The first confirmation wins, done atomically (`SELECT ... FOR UPDATE`, status must still be `pending`).
-  - A payment that covers the treasurer's own membership cannot be confirmed by the treasurer. Link `committee.member_id` to check this.
-  - Grace period: a month is due after day 10.
-- Roles are `admin`, `treasurer`, `deputy` and `committee`. RLS: the public (anon) can only read views that expose no phone numbers and no proof images. The committee writes through RPCs.
-- Add tests for the SQL, e.g. run Postgres in Docker in CI, or use pgTAP.
-- Import: the 2026 paper sheets become a CSV (`number, name, group, m1..m12`). Each tick becomes a confirmed payment with method `سجل ورقي` and no proof. Ask AHMED for the data; it is not in the repo.
-
-## Receipt reading (for M2)
-
-The recommendation and the benchmark are in [research/receipt-ocr/free-ocr-benchmark-ar.md](research/receipt-ocr/free-ocr-benchmark-ar.md). Earlier results are in `results.md`, and the scripts are in `research/receipt-ocr/`.
-- Tesseract.js **ara+fra**, running in a Web Worker on the phone, reads the receipt. Language data comes from npm `@tesseract.js-data/*`, not the CDN, which was blocked in testing.
-- If the field checks fail, it does a second pass with image preprocessing.
-- Per-wallet rules:
-  - **Bankily:** 19-digit ID, MRU.
-  - **Sedad:** `TR` + 11 digits (OCR may read `TRO`; fix O→0), with the amount like `1.500,00`.
-  - **Masrvi:** 9-digit reference, recipient name only.
-- The result must pass these checks: the amount equals the expected dues, and the recipient is the fund's number or name.
-- Show a confirmation screen before saving. The manual fallback is the amount plus the last 6 digits of the transaction ID.
-- The benchmark scored 164/168 fields on 32 distorted images. On a simulated low-end phone a read takes about 6.5 s.
-- Phone numbers and recipient names in the fixtures are redacted, and the receipt images are not in the repo.
-
-## Where things came from
-
-The work was done in a Claude project with the owner. These files are copies of that project's shared files:
-- `/mnt/project-files/prd/`
-- `/mnt/project-files/research/`
-- `/mnt/project-files/brand/`
-
-The published prototype is at https://claude.ai/artifact/HE1tM5WA2K2XCKGCBodvTX, and the OCR phone-test page at https://claude.ai/artifact/VNohahE5jTJhuy7yHHBoQC. Both are private to the owner's account.
+Product and research history (may not match the app): [prd/](prd/), [context/](context/),
+[design/prototype.html](design/prototype.html), [research/](research/).
