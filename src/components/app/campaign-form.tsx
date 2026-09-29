@@ -157,9 +157,6 @@ export function CloseCampaignBody({
   const router = useRouter();
   const online = useOnline();
   const { closeCampaign } = useAct();
-  const [choice, setChoice] = useState<"to_fund" | "keep" | null>(
-    campaign.balance > 0 ? null : "keep",
-  );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   return (
@@ -187,29 +184,9 @@ export function CloseCampaignBody({
         </div>
       </dl>
       {campaign.balance > 0 && (
-        <>
-          <p className="bq-rec-k">ماذا نفعل بالباقي؟</p>
-          <div className="bq-chips" role="radiogroup" aria-label="الباقي">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={choice === "to_fund"}
-              className="bq-chip bq-press"
-              onClick={() => setChoice("to_fund")}
-            >
-              يُحوَّل إلى الصندوق الرئيسي
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={choice === "keep"}
-              className="bq-chip bq-press"
-              onClick={() => setChoice("keep")}
-            >
-              يبقى في حساب الحملة
-            </button>
-          </div>
-        </>
+        <p className="bq-lead bq-small-top">
+          الباقي (<Num>{fmt(campaign.balance)}</Num> أوقية) يُحوَّل إلى الصندوق الرئيسي عند الإغلاق.
+        </p>
       )}
       <p className="bq-hint bq-small-top">
         بعد الإغلاق لا تُقبل مساهمات جديدة، ولا يمكن فتحها من جديد.
@@ -233,11 +210,13 @@ export function CloseCampaignBody({
         <button
           type="button"
           className="bq-btn bq-btn-tonal bq-btn-lg bq-press"
-          disabled={!choice || busy || !online || pendingCount > 0}
+          disabled={busy || !online || pendingCount > 0}
           onClick={async () => {
-            if (!choice) return;
             setBusy(true);
-            const r = await closeCampaign({ id: campaign.campaignId, surplusAction: choice });
+            setErr("");
+            // owner decision: the leftover always goes to the fund (the server enforces it);
+            // a refusal (e.g. campaign_has_pending) is shown as the server words it
+            const r = await closeCampaign({ id: campaign.campaignId, surplusAction: "to_fund" });
             setBusy(false);
             if (!r.ok) return setErr(r.message);
             router.refresh();
