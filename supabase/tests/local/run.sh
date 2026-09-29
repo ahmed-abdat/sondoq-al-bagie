@@ -4,6 +4,21 @@
 # Needs initdb / pg_ctl / psql (Postgres 15+) with pgcrypto and btree_gist available.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+
+# Migration file versions must be the ones production recorded (supabase db push treats them as
+# applied): no placeholder/future version, no duplicate. Before applying a new one, test it as
+# 29990101000000_mNN_x.sql with ALLOW_PLACEHOLDER=1, then rename it (see supabase/README.md).
+now=$(date -u +%Y%m%d%H%M%S); max=$(( now + 1000000 ))   # about one day ahead
+versions=""
+for f in "$ROOT"/supabase/migrations/*.sql; do
+  v=$(basename "$f" | cut -d_ -f1)
+  if [ "$v" -gt "$max" ] && [ "${ALLOW_PLACEHOLDER:-}" != 1 ]; then
+    echo "FAIL placeholder/future migration version: $(basename "$f") (rename it to the version the remote recorded)"; exit 1
+  fi
+  case " $versions " in *" $v "*) echo "FAIL two migrations share version $v"; exit 1;; esac
+  versions="$versions $v"
+done
+
 PORT="${PGPORT:-55433}"
 DIR="$(mktemp -d /tmp/sbpg.XXXX)"
 cleanup() { pg_ctl -D "$DIR/data" stop -m fast >/dev/null 2>&1 || true; rm -rf "$DIR"; }

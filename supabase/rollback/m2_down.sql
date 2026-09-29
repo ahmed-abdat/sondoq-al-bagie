@@ -1,4 +1,4 @@
--- Undo the M2 migrations (dev/branch only). Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m13, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
 -- security advisor wrappers (m13): the definer RPCs back into public
