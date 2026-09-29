@@ -71,7 +71,8 @@ function useDesktop() {
 
 /**
  * Mount it to open, unmount it (in `onDone`) after it closes. `label` names the dialog for screen
- * readers (the visible heading stays in `children`); `description` is optional.
+ * readers (the visible heading stays in `children`; the hidden title is not a heading, so it is
+ * not announced twice, audit B08); `description` is optional.
  */
 export function Sheet({
   label,
@@ -160,7 +161,9 @@ export function Sheet({
             >
               {inner(
                 <>
-                  <Dialog.Title className="bq-sr-only">{label}</Dialog.Title>
+                  <Dialog.Title className="bq-sr-only" render={<span />}>
+                    {label}
+                  </Dialog.Title>
                   {description && (
                     <Dialog.Description className="bq-sr-only">{description}</Dialog.Description>
                   )}
@@ -192,7 +195,9 @@ export function Sheet({
             <Drawer.Content className="bq-sheet-c">
               {inner(
                 <>
-                  <Drawer.Title className="bq-sr-only">{label}</Drawer.Title>
+                  <Drawer.Title className="bq-sr-only" render={<span />}>
+                    {label}
+                  </Drawer.Title>
                   {description && (
                     <Drawer.Description className="bq-sr-only">{description}</Drawer.Description>
                   )}
