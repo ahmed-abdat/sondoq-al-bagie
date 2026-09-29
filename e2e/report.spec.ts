@@ -166,38 +166,32 @@ test("summary image alone goes to the share sheet as a 1080×1350 PNG", async ({
   expect(f.size).toBeGreaterThan(30_000);
 });
 
-test("members grid: ● / ○ legend and a ✓ «paid up to now», no status text", async ({ page }) => {
-  await page.goto("/report");
-  const legend = page.locator(".rp-legend");
-  await expect(legend).toContainText("غير مدفوع");
-  await expect(legend).toContainText(/دفع حتى \S+/);
-  await expect(legend).not.toContainText("متأخر");
-  const rows = page.locator(".rp-members li");
-  await expect(rows.first().locator(".rp-dots .rp-d")).toHaveCount(12);
-  for (const list of await page.locator(".rp-members").all())
-    await expect(list).not.toContainText(/منتظم|متأخر/);
-  expect(await page.locator(".rp-ok svg").count()).toBeGreaterThan(0);
-});
-
-test("«✓ يعني» in the share sheet: default up to now, the choice is kept, images follow it", async ({
+test("members grid: a ✓ badge in each paid month, empty cells otherwise, no ✓ option", async ({
   page,
 }) => {
-  await shareSheet(page);
-  await openSheet(page);
-  const now = page.getByRole("radio", { name: "دفع حتى الآن" });
-  const year = page.getByRole("radio", { name: "دفع السنة كاملة" });
-  await expect(now).toHaveAttribute("aria-checked", "true");
-  await year.click();
-  await expect(year).toHaveAttribute("aria-checked", "true");
-  await expect(page.locator(".rp-check-k")).toContainText("✓ دفع السنة كاملة");
+  await page.goto("/report");
+  const legend = page.locator(".rp-legend");
+  await expect(legend).toContainText("مدفوع");
+  await expect(legend).toContainText("12 = ديسمبر");
+  await expect(legend).not.toContainText(/غير مدفوع|متأخر|دفع حتى/);
+  await expect(page.locator(".rp-mhead").first().locator(".rp-cells > span")).toHaveCount(12);
+  const rows = page.locator(".rp-members li");
+  const cells = rows.first().locator(".rp-cells > span");
+  await expect(cells).toHaveCount(12);
+  // no circles: every mark in the grid is a ✓ badge, one per paid month
+  const marks = await page.locator(".rp-members .rp-cells svg").count();
+  expect(marks).toBeGreaterThan(0);
+  await expect(page.locator(".rp-members .rp-cells > span:empty").first()).toBeAttached();
+  for (const list of await page.locator(".rp-members").all())
+    await expect(list).not.toContainText(/منتظم|متأخر/);
+  // 12 cells fit a 390px phone row without overflow (group «أ» opened)
+  await page.locator(".rp-coll-h", { hasText: "المجموعة أ" }).first().click();
+  const box = await rows.first().locator(".rp-cells").boundingBox();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(390);
 
-  await page.getByRole("button", { name: /صور التقرير/ }).click();
-  await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).not.toHaveLength(0);
-
-  await page.reload();
   await page.getByRole("button", { name: "مشاركة التقرير" }).click();
-  await expect(page.getByRole("radio", { name: "دفع السنة كاملة" })).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("radio")).toHaveCount(0);
+  await expect(page.getByRole("dialog")).not.toContainText("✓ يعني");
 });

@@ -117,7 +117,7 @@ into production code on the real Lane A data layer. Tokens: DESIGN.md + `src/app
   PDF, summary image, copy link via Lane B's share-report; renders start when the sheet opens
   (prepareReportShare); «retry» shows «اضغط مرة أخرى» on the same option. «طباعة» stays small.
 - /report for phones: big summary cards, collapsible sections, month dots (no «مقدَّمًا»; since
-  r18: ● / ○ and a ✓, see «Report members grid» below). Link preview: /report/opengraph-image (Alexandria from
+  r19: a ✓ badge per paid month, see «Report members grid» below). Link preview: /report/opengraph-image (Alexandria from
   Google Fonts at render; the renderer has no bidi, so words are laid out in reverse order).
 - Date/month pickers: `date-field.tsx` (shadcn calendar in the bottom sheet, Monday first,
   «اليوم»/«أمس», no future where it makes no sense; 12-month grid for from-month).
@@ -338,21 +338,20 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - Tests: `member-model.test.ts`, `demo-member.test.ts`; e2e `e2e/member-ui.spec.ts` (6) next to
   Lane B's `e2e/member.spec.ts`; suite 61/61 on fixtures.
 
-## Report members grid: ✓ instead of status (owner decision, r18)
-Validated on the throwaway branch `proto/report-status` (7926336, variants P/Q; not merged).
-- Shared images, PDF (Lane B's `report-pages.ts`/`share-report.ts`, edited by Lane C for this)
-  and /report on phones: no «الحالة» text («منتظم» / «متأخر 9» / «معفى» pill gone), no
-  current-month highlight. Every row shows 12 months: ● paid (ahead too), ○ unpaid incl. future
-  months; not owed (before joining, exempt, left) blank. A narrow ✓ column at the row's far edge.
-- ✓ meaning is an export option in «مشاركة التقرير»: «✓ يعني:» «دفع حتى الآن» (default) /
-  «دفع السنة كاملة», kept per device (`bq-report-check`, safe-storage). Legend «● مدفوع ○ غير
-  مدفوع ✓ دفع حتى سبتمبر» (month of the report date) or «… ✓ دفع السنة كاملة». /report uses
-  «دفع حتى الآن». Rows with nothing paid this year get no ✓ (exempt all year, joining later).
-- Pure rules in `src/lib/report-check.ts` (`monthMark`, `rowChecked`, `checkLabel`), tested in
-  `report-pages.test.ts`; renders cached per report and ✓ meaning. /report rows drop the status
-  line («… · دفع X من 12»); only «عليه حتى الآن … أوقية» stays when amounts owed are shown.
-- Group header counts unchanged. e2e: 2 new in `report.spec.ts`; suite 63/63 on fixtures.
-  Shots `/private/tmp/claude-502/sondoq-shots/r18/` (before/after, script `shots.mjs`).
+## Report members grid: a ✓ badge per paid month (owner decision, r19; replaces r18's ● / ○ + ✓ column)
+- Shared images, PDF (Lane B's `report-pages.ts`, edited by Lane C for this) and /report on
+  phones: no circles. Each of the 12 month cells (header 1–12, January on the right) shows a
+  green ✓ badge (filled green disc, white check, like the prototype's ✓) when the month is paid
+  (ahead too); empty when unpaid, not owed or still to come. No current-month emphasis in the grid.
+  No status text, no separate ✓ column. Group band counts («11 من 20 دفعوا رسوم سبتمبر»), numbers,
+  names, striping unchanged.
+- Legend «✓ مدفوع» + «1 = يناير … 12 = ديسمبر». The share sheet's «✓ يعني» option and its
+  `bq-report-check` setting are gone; share-report.ts renders once per ReportInput again.
+- Images: 40 px cells, 14 px badge radius (`memberCols`, unit tested for fit, name ≥ 380 px).
+  /report: a 1–12 header per group over 12 grid cells, 18 px badges (12 px in print); row
+  aria-label «مدفوع: يناير، …».
+- `src/lib/report-check.ts` is now just `monthPaid`. e2e: 1 test in `report.spec.ts` (grid + no
+  option), suite 62/62 on fixtures. Shots `/private/tmp/claude-502/sondoq-shots/r19/`.
 
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
