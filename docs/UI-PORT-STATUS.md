@@ -288,7 +288,12 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   `?prices=1`) and «آخر نسخة احتياطية» (getBackupStatus, admin). Member sheet (admin): «تراجع عن
   آخر تغيير» (cancelLastPeriod) and «تصحيح شهر الانضمام» (setJoinMonth), reason required.
   Fixtures: A-4 late Nov/Dec 2025 at 800; backup ok on 27 Sep.
-- Still waiting: credit «ادفع من الرصيد» (M7), confirmer link flag (E6), former members' debt (M14).
+- m2-app 68e8ddc: member sheet «ادفع من الرصيد» (applyCredit, one id per form, the oldest late
+  months the credit covers at the group price; credit from arrears.credit) and «عليه رسوم شهرية
+  سابقة لم تُدفع: N · X أوقية» (formerDebtMonths/Amount). Accounts: «غير مربوط بعضو» when
+  needsMemberLink, admin «ليس عضوًا» / «إلغاء "ليس عضوًا"» (setCommitteeNotMember). Setup hides
+  «لست عضوًا» for admin/treasurer/deputy. Close-campaign sheet has no «keep» option. Fixtures:
+  B-12 credit 2 000, B-33 old debt 2 months. e2e: credit, past-year months, settings cards.
 
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,

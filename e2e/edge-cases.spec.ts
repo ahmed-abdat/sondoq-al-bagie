@@ -66,3 +66,15 @@ test("settings: next year's fees and the last backup (M12/D2)", async ({ page })
   await expect(page.getByRole("heading", { name: "الرسوم الشهرية لسنة 2027" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "آخر نسخة احتياطية" })).toBeVisible();
 });
+
+test("pay late months from a member's credit (M7)", async ({ page }) => {
+  await page.goto("/committee/members");
+  await page.getByLabel("ابحث عن عضو", { exact: false }).first().fill("ب 12");
+  await page.locator("button.bq-row").first().click();
+  const s = page.getByRole("dialog").last();
+  await expect(s).toContainText(/له رصيد 2\s000 أوقية\./);
+  await s.getByRole("button", { name: "ادفع من الرصيد" }).click();
+  await expect(s).toContainText("من يوليو إلى سبتمبر 2026");
+  await s.getByRole("button", { name: "ادفع 3 أشهر" }).click();
+  await expect(page.getByText(/دُفعت رسوم 3 أشهر من رصيد/)).toBeVisible();
+});
