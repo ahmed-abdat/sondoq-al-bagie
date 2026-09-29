@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isEmptyClosedCampaign } from "@/components/app/derive";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { DonationsView } from "@/components/app/views/donations";
@@ -17,7 +18,7 @@ export default async function DonationsPage() {
     <Tab>
       <DonationsView
         campaign={open}
-        past={campaigns.filter((c) => c.status === "closed")}
+        past={campaigns.filter((c) => c.status === "closed" && !isEmptyClosedCampaign(c))}
         contributions={contributions}
         accounts={accounts}
         whatsapp={info.whatsappContact}

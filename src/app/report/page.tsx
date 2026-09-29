@@ -7,6 +7,7 @@ import {
   dayWords,
   fmt,
   groupLabel,
+  isEmptyClosedCampaign,
   isGone,
   MONTHS,
   statusLabel,
@@ -59,7 +60,7 @@ export default async function ReportPage() {
   const termLabel = summary.termNumber ? `الدورة ${summary.termNumber}` : null;
   const monthly = r.monthly;
   const yearExpenses = r.expenses;
-  const campaigns = r.campaigns;
+  const campaigns = r.campaigns.filter((c) => !isEmptyClosedCampaign(c));
 
   // the report shows paid / late / not yet only (owner): paid-ahead months are simply paid
   const dot = (st: string) =>
@@ -160,8 +161,7 @@ export default async function ReportPage() {
       </Collapsible>
 
       <p className="rp-note rp-legend">
-        <span className="rp-d is-paid" /> مدفوع <span className="rp-d is-late" /> متأخر{" "}
-        <span className="rp-d" /> لم يحن بعد
+        <span className="rp-d is-paid" /> مدفوع <span className="rp-d is-late" /> متأخر
       </p>
       {lists.map((l) => {
         const rows = shown.filter((m) => listOf(m) === l);
@@ -194,15 +194,23 @@ export default async function ReportPage() {
                   <span
                     className="rp-dots"
                     aria-label={m.months
-                      .map(
-                        (st, i) =>
-                          `${MONTHS[i]}: ${st === "paid" || st === "prepaid" ? "مدفوع" : st === "late" ? "متأخر" : "لم يحن بعد"}`,
+                      .map((st, i) =>
+                        m.status !== "active" || !dot(st)
+                          ? ""
+                          : `${MONTHS[i]}: ${dot(st) === "is-paid" ? "مدفوع" : "متأخر"}`,
                       )
+                      .filter(Boolean)
                       .join("، ")}
                   >
-                    {m.months.map((st, i) => (
-                      <span key={i} className={`rp-d ${dot(st)}`} title={MONTHS[i]} />
-                    ))}
+                    {/* only paid and late months get a dot; not-due months and exempt rows stay empty */}
+                    {m.months.map((st, i) => {
+                      const d = m.status === "active" ? dot(st) : "";
+                      return d ? (
+                        <span key={i} className={`rp-d ${d}`} title={MONTHS[i]} />
+                      ) : (
+                        <span key={i} className="rp-d is-none" aria-hidden="true" />
+                      );
+                    })}
                   </span>
                 </li>
               ))}
@@ -211,11 +219,11 @@ export default async function ReportPage() {
         );
       })}
 
-      <Collapsible
-        title={`المصاريف${!r.expensesComplete ? " (آخر 50)" : ""}`}
-        count={yearExpenses.length}
-      >
-        {yearExpenses.length ? (
+      {yearExpenses.length > 0 && (
+        <Collapsible
+          title={`المصاريف${!r.expensesComplete ? " (آخر 50)" : ""}`}
+          count={yearExpenses.length}
+        >
           <table className="rp-table">
             <thead>
               <tr>
@@ -239,10 +247,8 @@ export default async function ReportPage() {
               ))}
             </tbody>
           </table>
-        ) : (
-          <p className="rp-note">لم يُصرف شيء هذا العام.</p>
-        )}
-      </Collapsible>
+        </Collapsible>
+      )}
 
       {campaigns.length > 0 && (
         <Collapsible title="حملات التبرع" count={campaigns.length}>

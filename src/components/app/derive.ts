@@ -148,6 +148,10 @@ export const STATE_LABEL: Record<SettableStatus, string> = {
 /** The states the committee can choose: نشط / معفى / غادر. */
 export const STATE_CHOICES = ["active", "exempt", "left"] as const;
 
+/** A closed campaign that collected and spent nothing: not worth a row anywhere public. */
+export const isEmptyClosedCampaign = (c: { status: string; collected: number; spent: number }) =>
+  c.status !== "open" && !c.collected && !c.spent;
+
 /** Hidden from public lists by default. */
 export const isGone = (s: MembershipStatus) => s === "left" || s === "deceased";
 
