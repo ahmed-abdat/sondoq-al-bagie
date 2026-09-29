@@ -24,6 +24,8 @@ export const ASSOC_NAME = "رابطة شباب قرية البقيع";
 export interface ReceiptCover {
   /** Member the months belong to (may differ from the payer, e.g. a father paying for sons). */
   name: string;
+  /** memberRef «A-12» (internal key); shown as «أ 12». */
+  ref?: string | null;
   year: number;
   /** 1–12 */
   months: number[];
@@ -69,9 +71,32 @@ export function monthsInWords(months: number[], year: number): string {
   return `${txt} ${year}`;
 }
 
-/** «عن: رسوم من يوليو إلى سبتمبر 2026», naming the member when it is not (only) the payer. */
-export function coverLine(c: ReceiptCover, payer: string, manyCovers: boolean): string {
-  const who = c.name !== payer || manyCovers ? `${c.name}، ` : "";
+const LETTERS: Record<string, string> = { A: "أ", B: "ب" };
+
+/**
+ * Member number as people know it: «A-12» → «أ 12» (group letter, space, number).
+ * `isolate` wraps it in RIGHT-TO-LEFT ISOLATE … POP (U+2067 … U+2069) for text sent to WhatsApp,
+ * so the letter stays before the number whatever surrounds it.
+ */
+export function memberNumber(ref: string, isolate = false): string {
+  const [list, ...rest] = ref.split("-");
+  const no = rest.join("-");
+  const s = no ? `${LETTERS[list.trim().toUpperCase()] ?? list} ${no}` : ref;
+  return isolate ? `\u2067${s}\u2069` : s;
+}
+
+/**
+ * «عن: رسوم من يوليو إلى سبتمبر 2026», naming the member when it is not (only) the payer;
+ * with the member's number when known: «عن: علي (أ 12)، رسوم …».
+ */
+export function coverLine(
+  c: ReceiptCover,
+  payer: string,
+  manyCovers: boolean,
+  isolate = false,
+): string {
+  const no = c.ref ? memberNumber(c.ref, isolate) : "";
+  const who = c.ref ? `${c.name} (${no})، ` : c.name !== payer || manyCovers ? `${c.name}، ` : "";
   return `عن: ${who}رسوم ${monthsInWords(c.months, c.year)}`;
 }
 
@@ -100,7 +125,7 @@ export function receiptShareText(r: ShareableReceipt, url: string): string {
     `رقم الوصل: ${ltr(r.no)}`,
     `استلمنا من: ${r.payer}`,
     `المبلغ: ${formatNumber(r.amountMro)} أوقية (${formatNumber(mroToMru(r.amountMro))} أوقية جديدة)`,
-    ...r.covers.map((c) => coverLine(c, r.payer, many)),
+    ...r.covers.map((c) => coverLine(c, r.payer, many, true)),
     `الوسيلة: ${r.methodLabel}${r.txnRef ? ` · ${ltr(r.txnRef)}` : ""}`,
   ];
   if (r.dateLabel) lines.push(`التاريخ: ${r.dateLabel}`);

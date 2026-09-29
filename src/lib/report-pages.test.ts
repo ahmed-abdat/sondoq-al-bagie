@@ -6,6 +6,7 @@ import {
   chunkEven,
   L,
   membersPerPage,
+  numberOf,
   moneyBlocks,
   footerLabel,
   statusPill,
@@ -60,6 +61,11 @@ it("chunkEven balances pages", () => {
   expect(chunkEven([...Array(20).keys()], 20).map((c) => c.length)).toEqual([20]);
   expect(chunkEven([...Array(21).keys()], 20).map((c) => c.length)).toEqual([11, 10]);
   expect(chunkEven([], 20)).toEqual([]);
+});
+
+it("numberOf: the number alone on a group page", () => {
+  expect(numberOf({ memberRef: "A-12" })).toBe("12");
+  expect(numberOf({ memberRef: "7" })).toBe("7");
 });
 
 it("status pills: up to date, late with months, exempt, other", () => {
