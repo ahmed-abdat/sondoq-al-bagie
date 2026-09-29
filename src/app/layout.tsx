@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SITE_URL } from "@/components/app/site";
 import { Alexandria, Noto_Sans_Arabic } from "next/font/google";
 import { DemoProvider } from "@/components/app/act";
 import { DEMO_BANNER } from "@/components/app/demo";
@@ -18,17 +19,14 @@ const display = Alexandria({
   weight: ["600", "700", "800"],
 });
 
-const SITE =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "http://localhost:3000");
 const DESCRIPTION = "صندوق رابطة شباب قرية البقيع: الرسوم والمصاريف بشفافية";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE),
+  metadataBase: new URL(SITE_URL),
   title: "صندوق الشباب",
   description: DESCRIPTION,
+  // the owner keeps the whole site out of search engines; WhatsApp previews still work
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
   // WhatsApp link previews
   openGraph: {
     type: "website",

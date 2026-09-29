@@ -4,7 +4,7 @@ import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { CampaignsPage } from "@/components/app/views/committee";
 
-export const metadata: Metadata = { title: "حملات التبرع · اللجنة", robots: { index: false } };
+export const metadata: Metadata = { title: "حملات التبرع · اللجنة" };
 
 export default async function Campaigns() {
   const session = await src.committeeSession();

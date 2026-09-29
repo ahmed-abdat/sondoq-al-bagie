@@ -6,7 +6,6 @@ import { RecentPaymentsPage } from "@/components/app/views/payments";
 
 export const metadata: Metadata = {
   title: "الدفعات الأخيرة · صندوق الشباب",
-  robots: { index: false },
 };
 
 export default async function Payments() {
