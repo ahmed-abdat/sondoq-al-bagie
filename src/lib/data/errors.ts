@@ -86,6 +86,7 @@ export function codeOf(err: DbError): string {
     if (text.includes("members_number_key") || text.includes("members_list_number_key"))
       return "number_taken";
     if (text.includes("fund_accounts_active_uniq")) return "account_exists";
+    if (text.includes("committee_member_id_key")) return "member_taken";
   }
   if (err.code === "42501") return "not_committee";
   if (err.code === "22P02" || err.code === "23514" || err.code === "22023") return "invalid_input";

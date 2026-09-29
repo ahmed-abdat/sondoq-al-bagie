@@ -456,11 +456,41 @@ export async function setCommitteeMember(input: s.SetCommitteeMemberInput) {
         p_user_id: p.userId,
         p_display_name: p.displayName,
         p_role: p.role,
-        p_member_id: p.memberId ?? undefined,
+        // null must reach the database as null: it unlinks (an omitted value would too)
+        p_member_id: p.memberId as string,
         p_active: p.active,
       }),
     { touchesPublic: false },
   );
+}
+
+/**
+ * Admin: link a committee account to its member row, or unlink it (memberId null). Keeps the
+ * account's name, role and active state. Codes: not_admin, not_committee_account, member_taken.
+ */
+export async function linkCommitteeMember(
+  input: s.LinkCommitteeMemberInput,
+): Promise<ActionResult> {
+  const parsed = s.linkCommitteeMemberSchema.safeParse(input);
+  if (!parsed.success) return failure("invalid_input");
+  const me = await getCommitteeSession();
+  if (!me) return failure("not_signed_in");
+  if (me.role !== "admin") return failure("not_admin");
+  const sb = await createClient();
+  if (!sb) return failure("not_configured");
+  const { data: row } = await sb
+    .from("committee")
+    .select("display_name, role, active")
+    .eq("user_id", parsed.data.userId)
+    .maybeSingle();
+  if (!row) return failure("not_committee_account");
+  return setCommitteeMember({
+    userId: parsed.data.userId,
+    displayName: row.display_name,
+    role: row.role,
+    memberId: parsed.data.memberId,
+    active: row.active,
+  });
 }
 
 export async function updateSettings(input: s.UpdateSettingsInput) {

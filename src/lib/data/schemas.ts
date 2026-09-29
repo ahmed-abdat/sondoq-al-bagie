@@ -136,7 +136,8 @@ export const setCommitteeMemberSchema = z.object({
   userId: id,
   displayName: text(80),
   role: z.enum(E.committee_role),
-  memberId: id.nullish(),
+  /** required: null UNLINKS (the database stores exactly this value) */
+  memberId: id.nullable(),
   active: z.boolean().default(true),
 });
 
@@ -272,3 +273,6 @@ export const completeSetupSchema = z.object({
   password: z.string().min(8).max(72),
 });
 export type CompleteSetupInput = z.input<typeof completeSetupSchema>;
+
+export const linkCommitteeMemberSchema = z.object({ userId: id, memberId: id.nullable() });
+export type LinkCommitteeMemberInput = z.input<typeof linkCommitteeMemberSchema>;

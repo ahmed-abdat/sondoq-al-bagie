@@ -149,9 +149,10 @@ const cases: Case[] = [
   ],
   [
     "setCommitteeMember",
-    () => a.setCommitteeMember({ userId: id, displayName: "النائب", role: "deputy" }),
+    () =>
+      a.setCommitteeMember({ userId: id, displayName: "النائب", role: "deputy", memberId: null }),
     "set_committee_member",
-    { p_user_id: id, p_role: "deputy", p_active: true },
+    { p_user_id: id, p_role: "deputy", p_active: true, p_member_id: null },
     false,
   ],
   [
