@@ -194,3 +194,30 @@ export function toRecordInput(
     proofHash: extra.proofHash,
   };
 }
+
+/**
+ * The two money lines of a bigger transfer, naming whose debt and whose rest (QA pass 5: paying
+ * for a relative must not say «عليك / لك»). `selfId` = the member whose link this is (member
+ * mode), null for the committee. Gender-neutral: the name, never «له / لها».
+ */
+export function restLines(p: {
+  selfId: string | null;
+  rows: { memberId: string; fullName: string }[];
+  creditTo: string | null;
+  total: number;
+  credit: number;
+}) {
+  const one = p.rows.length === 1 ? p.rows[0] : null;
+  const owe = !one
+    ? `المطلوب ${fmt(p.total)} أوقية.`
+    : one.memberId === p.selfId
+      ? `عليك ${fmt(p.total)} أوقية.`
+      : `على ${one.fullName} ${fmt(p.total)} أوقية.`;
+  const who = p.rows.find((r) => r.memberId === p.creditTo);
+  const rest = !p.credit
+    ? ""
+    : who && who.memberId === p.selfId
+      ? `يبقى لك ${fmt(p.credit)} أوقية لدفعات قادمة.`
+      : `يبقى ${fmt(p.credit)} أوقية لدفعات قادمة، باسم ${who?.fullName ?? ""}.`;
+  return { owe, rest };
+}

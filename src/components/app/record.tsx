@@ -15,6 +15,7 @@ import { MAIN_METHODS, METHOD_LABELS, METHODS } from "@/lib/methods";
 import { mroToMru, toWesternDigits } from "@/lib/money";
 import { monthStates } from "@/lib/data/month-code";
 import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
+import { pushState } from "@/lib/push";
 import { safeStorage } from "@/lib/safe-storage";
 import { rememberMembers, useAct } from "./act";
 import { useMemberAct } from "./member-act";
@@ -33,6 +34,7 @@ import {
   toRecordInput,
   type Draft,
   type Step,
+  restLines,
 } from "./payment-draft";
 import { Avatar, MethodBadge, PaidCheck, StatusTag } from "./bits";
 import {
@@ -601,6 +603,14 @@ export function RecordBody({
   // an unusually large rest (QA pass 3): say the units and the rest, then ask once
   const [surplusOk, setSurplusOk] = useState<number | null>(null);
   const askSurplus = bigCredit && sent !== null && surplusOk !== sent;
+  // whose debt and whose rest, by name when it is not the member's own (QA pass 5)
+  const lines = restLines({
+    selfId: member?.selfId ?? null,
+    rows: rows.map((r) => ({ memberId: r.m.memberId, fullName: r.m.fullName })),
+    creditTo,
+    total,
+    credit,
+  });
   const block: { msg: string; step?: AnyStep } | null =
     // member mode: the screenshot comes right after who and which months (screen order)
     member && !shot && !(rule && (!rule.step || rule.step === "months"))
@@ -839,8 +849,10 @@ export function RecordBody({
       return;
     }
     router.refresh();
+    // promise only what this phone will really get (QA pass 5): a notification only when on
+    const push = await pushState("member").catch(() => "off" as const);
     onDone(
-      `أُرسلت إلى اللجنة. ستصلك رسالة عند التأكيد.${r.data.pendingOverlap ? " يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر." : ""}`,
+      `أُرسلت إلى اللجنة. تجدها في «دفعاتي» عندما تؤكدها اللجنة.${push === "on" ? " وسيصلك إشعار." : ""}${r.data.pendingOverlap ? " يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر." : ""}`,
     );
   };
 
@@ -1161,19 +1173,8 @@ export function RecordBody({
                 {diff > 0 && (
                   <div className="bq-rec-credit bq-rec-in" ref={creditRef}>
                     {rows.length === 1 ? (
-                      <p className="bq-hint">
-                        {member ? (
-                          <>
-                            سيبقى لك <Num className="bq-strong">{fmt(diff)}</Num> أوقية لدفعات
-                            قادمة. راجع المبلغ قبل الإرسال.
-                          </>
-                        ) : (
-                          <>
-                            سيبقى <Num className="bq-strong">{fmt(diff)}</Num> أوقية لدفعات قادمة لـ{" "}
-                            {rows[0].m.fullName}.
-                          </>
-                        )}
-                      </p>
+                      // the footer check says it when the rest is unusual: not twice
+                      !askSurplus && <p className="bq-hint">{lines.rest}</p>
                     ) : (
                       <>
                         <p className="bq-hint" id="bq-rec-credit">
@@ -1307,7 +1308,7 @@ export function RecordBody({
                 <Num className="bq-rec-amt">{fmt(total + credit)}</Num> أوقية
               </span>
             </p>
-            {summary.length > 0 && (
+            {summary.length > 0 && !askSurplus && (
               <p className="bq-rec-what">
                 {summary.map((s, i) => (
                   <span key={i}>{s}</span>
@@ -1333,11 +1334,8 @@ export function RecordBody({
                 <Num className="bq-strong">{fmt(mroToMru(sent))}</Num> أوقية جديدة، أي{" "}
                 <Num className="bq-strong">{fmt(sent)}</Num> قديمة.
               </p>
-              <p>
-                {member ? "عليك" : "المطلوب"} <Num>{fmt(total)}</Num>.{" "}
-                {member ? "سيبقى لك" : "سيبقى"} <Num>{fmt(credit)}</Num>
-                {member ? " لدفعات قادمة." : ` لدفعات قادمة لـ ${creditName}.`}
-              </p>
+              <p>{lines.owe}</p>
+              <p>{lines.rest}</p>
               <p className="bq-strong">
                 {member ? "هل هذا ما حوّلته؟" : "هل هذا هو المبلغ المحوّل؟"}
               </p>

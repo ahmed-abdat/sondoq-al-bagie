@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { fitRow, payableMonths, summarize, toRecordInput, type Draft } from "./payment-draft";
+import {
+  fitRow,
+  payableMonths,
+  restLines,
+  summarize,
+  toRecordInput,
+  type Draft,
+} from "./payment-draft";
 
 const A1 = { memberId: "m-a1", groupCode: "A" };
 const B2 = { memberId: "m-b2", groupCode: "B" };
@@ -185,5 +192,26 @@ describe("earlier years and per-month prices", () => {
     expect(s.fitMonths).toBe(2);
     expect(fitRow(withPast, 2)).toMatchObject({ past: ["2025-11", "2025-12"], months: [] });
     expect(fitRow(withPast, 1)).toMatchObject({ past: ["2025-11"], months: [] });
+  });
+});
+
+describe("restLines: whose debt, whose rest (QA pass 5)", () => {
+  const me = { memberId: "me", fullName: "سيدي ولد الشيخ" };
+  const rel = { memberId: "rel", fullName: "الشيخ ولد محمد" };
+  it("paying for a relative names the relative on both lines", () => {
+    const r = restLines({ selfId: "me", rows: [rel], creditTo: "rel", total: 4500, credit: 1000 });
+    expect(r.owe).toMatch(/^على الشيخ ولد محمد 4\s500 أوقية\.$/);
+    expect(r.rest).toMatch(/^يبقى 1\s000 أوقية لدفعات قادمة، باسم الشيخ ولد محمد\.$/);
+    expect(r.owe + r.rest).not.toMatch(/عليك|لك /);
+  });
+  it("paying for oneself says «عليك / لك»", () => {
+    const r = restLines({ selfId: "me", rows: [me], creditTo: "me", total: 1500, credit: 500 });
+    expect(r.owe).toMatch(/^عليك 1\s500 أوقية\.$/);
+    expect(r.rest).toMatch(/^يبقى لك 500 أوقية لدفعات قادمة\.$/);
+  });
+  it("several members: the total, and the rest by name", () => {
+    const r = restLines({ selfId: null, rows: [me, rel], creditTo: "rel", total: 2000, credit: 500 });
+    expect(r.owe).toMatch(/^المطلوب 2\s000 أوقية\.$/);
+    expect(r.rest).toContain("باسم الشيخ ولد محمد");
   });
 });

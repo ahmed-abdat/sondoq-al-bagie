@@ -48,7 +48,11 @@ test("whole year paid: thanks, no pay button; «ادفع عن شخص آخر» �
   await expect(sheet.locator(".bq-rec-foot")).toContainText("سيُرسل");
   await expect(btn).toHaveText("أرسل إلى اللجنة");
   await btn.click();
-  await expect(page.getByText("أُرسلت إلى اللجنة. ستصلك رسالة عند التأكيد.")).toBeVisible();
+  // only what is true on this phone: no push here, so no promise of a message (QA pass 5)
+  await expect(
+    page.getByText("أُرسلت إلى اللجنة. تجدها في «دفعاتي» عندما تؤكدها اللجنة."),
+  ).toBeVisible();
+  await expect(page.getByText(/ستصلك رسالة|سيصلك إشعار/)).toHaveCount(0);
   // one small line, linking to «دفعاتي»
   const wait = card.getByRole("link", { name: "دفعة بانتظار التأكيد" });
   await expect(wait).toHaveAttribute("href", "/me");
