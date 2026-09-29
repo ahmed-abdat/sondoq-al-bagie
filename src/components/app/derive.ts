@@ -2,6 +2,7 @@
 import { MONTHS_AR, WEEKDAYS_AR } from "@/lib/dates";
 import { formatNumber } from "@/lib/format";
 import { memberNumber } from "@/lib/share-receipt";
+import { nameRank, toLatinDigits } from "./search-text";
 import type {
   ExpenseCategory,
   MemberMonth,
@@ -172,8 +173,6 @@ export function memberLabel(
   return scoped ? String(splitRef(m.memberRef).n) : memberNumber(m.memberRef);
 }
 
-const toLatinDigits = (s: string) => s.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
-
 /** «أ12» «أ 12» «ب12» «A12» «a-12» (any digits) → memberRef «A-12»; else null. */
 export function parseMemberRef(q: string): string | null {
   const t = toLatinDigits(q.trim());
@@ -223,16 +222,7 @@ export function groupLabel(code: string) {
   return c === "A" ? "أ" : c === "B" ? "ب" : code;
 }
 
-/** Arabic search normalisation: alef forms, taa marbuta, alef maqsura, harakat. */
-export function normalizeAr(s: string) {
-  return s
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي")
-    .replace(/[ً-ْـ]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+export { normalizeAr } from "./search-text";
 
 /**
  * Digits search the paper number in both groups (exact first); «أ12» / «أ 12» / «A12» / «a-12»
@@ -252,8 +242,11 @@ export function searchMembers<T extends { fullName: string; number?: number; mem
       .filter((m) => String(no(m)).startsWith(t))
       .sort((a, b) => Number(String(no(b)) === t) - Number(String(no(a)) === t) || no(a) - no(b));
   }
-  const n = normalizeAr(t);
-  return list.filter((m) => normalizeAr(m.fullName).includes(n));
+  return list
+    .map((m, i) => ({ m, i, r: nameRank(m.fullName, t) }))
+    .filter((x) => x.r >= 0)
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.m);
 }
 
 /** The month (1–12) whose fee is due today: after the grace days, else the previous one. */

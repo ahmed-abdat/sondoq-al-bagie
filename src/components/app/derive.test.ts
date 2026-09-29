@@ -154,8 +154,9 @@ describe("search", () => {
   });
   it("normalises Arabic", () => {
     expect(normalizeAr("أحمد")).toBe("احمد");
-    expect(normalizeAr("عائشة")).toBe("عائشه");
-    expect(searchMembers(list, "احمد").map((x) => x.number)).toEqual([1, 12]);
+    expect(normalizeAr("عائشة")).toBe("عايشه");
+    // a name that starts with the word ranks first
+    expect(searchMembers(list, "احمد").map((x) => x.number)).toEqual([12, 1]);
     expect(searchMembers(list, "  ")).toEqual([]);
   });
 });

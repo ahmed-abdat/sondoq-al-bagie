@@ -4183,3 +4183,112 @@
     gap: 12px;
   }
 }
+@layer components {
+  /* member search: mic + keypad buttons inside the field */
+  .bq-search .bq-mic,
+  .bq-search .bq-padbtn {
+    color: var(--muted);
+  }
+  .bq-search .bq-mic.is-on {
+    color: #fff;
+    background: var(--g7);
+    animation: bq-listen 1.4s var(--ease-out) infinite;
+  }
+  .bq-search.is-listening {
+    background: #fff;
+    box-shadow: var(--sh-focus);
+  }
+  @keyframes bq-listen {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(35, 122, 59, 0.35);
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgba(35, 122, 59, 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bq-search .bq-mic.is-on {
+      animation: none;
+    }
+  }
+  .bq-pick-groups {
+    margin-block: 10px 2px;
+  }
+  .bq-search-note {
+    margin-block-start: 8px;
+  }
+  /* «رقم» keypad sheet */
+  .bq-pad {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-block-end: 8px;
+  }
+  .bq-pad h2 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .bq-pad-letters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .bq-pad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .bq-pad-key {
+    min-height: 56px;
+    border-radius: var(--r-lg);
+    background: var(--n1);
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+  }
+  .bq-pad-key[aria-checked="true"] {
+    background: var(--g7);
+    color: #fff;
+  }
+  .bq-pad-ok {
+    background: var(--g1);
+    color: var(--g7);
+  }
+  .bq-pad-ok:disabled {
+    opacity: 0.45;
+  }
+  .bq-pad-shown {
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 34px;
+    font-weight: 800;
+    min-height: 44px;
+  }
+  .bq-pad-found {
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .bq-pad-hit {
+    min-height: 52px;
+    padding-inline: 16px;
+    border-radius: var(--r-lg);
+    background: var(--g1);
+    color: var(--g7);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-align: start;
+  }
+  .bq-pad-go {
+    margin-inline-start: auto;
+    display: grid;
+  }
+}
