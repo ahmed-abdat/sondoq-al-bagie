@@ -5,7 +5,7 @@ import { Tab } from "@/components/app/tab";
 import { RecentPaymentsPage } from "@/components/app/views/payments";
 
 export const metadata: Metadata = {
-  title: "الدفعات الأخيرة · صندوق الشباب",
+  title: "الدفعات الأخيرة · صندوق الرابطة",
 };
 
 export default async function Payments() {

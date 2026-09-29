@@ -5,7 +5,7 @@ import { dayDate, fmt, isGone, MONTHS } from "@/components/app/derive";
 import * as src from "@/components/app/source";
 
 // Link preview for a pasted /report link (WhatsApp shows it as a rich card).
-export const alt = "ملخص صندوق الشباب: ما في الصندوق الآن ومن دفع رسوم هذا الشهر";
+export const alt = "ملخص صندوق الرابطة: ما في الصندوق الآن ومن دفع رسوم هذا الشهر";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const revalidate = 300;
@@ -48,7 +48,7 @@ export default async function Image() {
   );
   const paidCount = active.filter((m) => paid.has(m.memberId)).length;
 
-  const title = "صندوق الشباب";
+  const title = "صندوق الرابطة";
   const sub = "رابطة شباب قرية البقيع";
   const label = "في الصندوق الآن";
   const amount = fmt(summary.balance).replace(/ /g, " ");

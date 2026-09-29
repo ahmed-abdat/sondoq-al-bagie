@@ -20,14 +20,14 @@ import { ReportShare } from "@/components/app/report-share";
 import * as src from "@/components/app/source";
 
 export const metadata: Metadata = {
-  title: "تقرير الصندوق · صندوق الشباب",
+  title: "تقرير الصندوق · صندوق الرابطة",
   description: "ما في الصندوق الآن، وما جُمع كل شهر، ومن دفع من الأعضاء، والمصاريف والحملات.",
   openGraph: {
-    title: "تقرير صندوق الشباب",
+    title: "تقرير صندوق رابطة شباب البقيع",
     description: "ما في الصندوق الآن، ومن دفع رسوم هذا الشهر. افتح التقرير الكامل.",
     type: "article",
     locale: "ar_MR",
-    siteName: "صندوق الشباب",
+    siteName: "صندوق الرابطة",
   },
 };
 
@@ -276,7 +276,7 @@ export default async function ReportPage() {
       )}
 
       <footer className="rp-foot">
-        صندوق الشباب · {ASSOC} · رابط التحقق: <ReportLink />
+        صندوق الرابطة · {ASSOC} · رابط التحقق: <ReportLink />
       </footer>
     </main>
   );

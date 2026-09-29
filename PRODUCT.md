@@ -1,6 +1,6 @@
 # Product
 
-The app's name is **«صندوق الشباب»** (the fund of رابطة شباب قرية البقيع; owner, 2026-09-28).
+The app's name is **«صندوق الرابطة»** (the fund of رابطة شباب قرية البقيع; owner confirmed, replacing «صندوق الشباب»). The formal report title is «تقرير صندوق رابطة شباب البقيع».
 
 <!-- impeccable:product-schema 1 -->
 

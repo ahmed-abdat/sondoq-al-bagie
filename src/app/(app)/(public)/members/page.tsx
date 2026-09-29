@@ -5,7 +5,7 @@ import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { MembersFromUrl, MembersView } from "@/components/app/views/members";
 
-export const metadata: Metadata = { title: "الأعضاء · صندوق الشباب" };
+export const metadata: Metadata = { title: "الأعضاء · صندوق الرابطة" };
 
 export default async function MembersPage() {
   // members who left are already hidden by getMemberRows

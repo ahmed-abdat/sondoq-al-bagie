@@ -4,7 +4,7 @@ import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { DonationsView } from "@/components/app/views/donations";
 
-export const metadata: Metadata = { title: "التبرعات · صندوق الشباب" };
+export const metadata: Metadata = { title: "التبرعات · صندوق الرابطة" };
 
 export default async function DonationsPage() {
   const [campaigns, accounts, info] = await Promise.all([

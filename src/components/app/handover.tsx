@@ -45,7 +45,7 @@ function initialLines(h: Handover, accounts: FundAccountAdmin[]): Line[] {
 /** «محضر التسليم» as plain text for WhatsApp. */
 function minutesText(h: Handover, termNo: number) {
   return [
-    "*محضر تسليم صندوق الشباب*",
+    "*محضر تسليم صندوق الرابطة*",
     `انتهت الدورة ${h.fromTerm} وبدأت الدورة ${termNo}.`,
     `المبلغ في التطبيق: ${fmt(h.computedBalance ?? h.liveBalance)} أوقية`,
     `المبلغ المسلَّم: ${fmt(h.countedBalance ?? 0)} أوقية`,
