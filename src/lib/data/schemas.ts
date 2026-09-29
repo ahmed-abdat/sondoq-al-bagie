@@ -254,3 +254,15 @@ export type SetCommitteeMemberInput = z.input<typeof setCommitteeMemberSchema>;
 export type UpdateSettingsInput = z.input<typeof updateSettingsSchema>;
 export type AddFundAccountInput = z.input<typeof addFundAccountSchema>;
 export type UpdateFundAccountInput = z.input<typeof updateFundAccountSchema>;
+
+/** PushSubscription.toJSON() from the browser. */
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.url({ protocol: /^https$/ }).max(1000),
+  keys: z.object({
+    p256dh: z.string().min(20).max(200),
+    auth: z.string().min(8).max(100),
+  }),
+  userAgent: z.string().max(300).optional(),
+});
+export const pushEndpointSchema = z.object({ endpoint: z.string().min(1).max(1000) });
+export type PushSubscriptionInput = z.input<typeof pushSubscriptionSchema>;

@@ -524,6 +524,33 @@ select tests.throws($$select public.set_committee_active('00000000-0000-0000-000
 select tests.login('public');
 select tests.throws('select * from public.committee_accounts', '42501', 'anon cannot read committee accounts');
 
+/* ───────────── M10: push subscriptions ───────────── */
+
+select tests.login('treasurer');
+select public.save_push_subscription('https://push.example/t1', repeat('p', 40), 'authauth', 'Android');
+select public.save_push_subscription('https://push.example/t1', repeat('q', 40), 'authauth', 'Android');
+select tests.ok((select count(*) from public.push_subscriptions) = 1, 'a member sees their own subscription, saved once per endpoint');
+select tests.throws($$select public.save_push_subscription('http://insecure', repeat('p', 40), 'authauth')$$, '23514',
+  'only https endpoints');
+select tests.login('deputy');
+select tests.ok((select count(*) from public.push_subscriptions) = 0, 'members do not see each other''s subscriptions');
+select public.delete_push_subscription('https://push.example/t1');
+select tests.login('server');
+select tests.ok((select count(*) from public.push_subscriptions where endpoint = 'https://push.example/t1') = 1,
+  'nobody deletes another member''s subscription');
+select tests.login('deputy');
+select public.save_push_subscription('https://push.example/t1', repeat('d', 40), 'authauth');
+select tests.login('server');
+select tests.ok((select user_id from public.push_subscriptions where endpoint = 'https://push.example/t1')
+  = '00000000-0000-0000-0000-0000000000a3', 'the same browser signed in by another member moves to them');
+select tests.login('deputy');
+select public.delete_push_subscription('https://push.example/t1');
+select tests.ok((select count(*) from public.push_subscriptions) = 0, 'a member removes their own subscription');
+select tests.login('public');
+select tests.throws($$select public.save_push_subscription('https://push.example/x', repeat('p', 40), 'authauth')$$, '42501',
+  'anon cannot save a subscription');
+select tests.throws('select * from public.push_subscriptions', '42501', 'anon cannot read subscriptions');
+
 /* ───────────── M8: terms and handover (keep last: it deactivates committee accounts) ───────────── */
 
 select tests.login('public');

@@ -24,6 +24,7 @@ and every change lands in `audit_log`.
 | `*_m8_terms_handover.sql` | committee terms (one open) and handover: `start/update/submit/accept/cancel_handover` (acceptor = another admin), `balance_adjustments` («فرق عند التسليم»), public `terms_public`, `fund_summary` + term/adjustments, committee `handovers_admin` |
 | `*_m8_admin_confirms.sql` | the admin may confirm/reject payments too (`can_confirm` = admin, treasurer, deputy); own-membership rule unchanged |
 | `*_m9_committee_accounts.sql` | admin view `committee_accounts` (login, last sign-in) and `set_committee_active`; accounts are created in the app (email or phone + generated password), no invitation emails |
+| `*_m10_push.sql` | committee Web Push: `push_subscriptions` (own rows only, no anon), `save_push_subscription` / `delete_push_subscription`; the server sends with the secret key |
 
 Access: `anon` reads only the public views (no phones, no proofs, no base tables). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the

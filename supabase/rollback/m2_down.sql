@@ -1,6 +1,9 @@
 -- Undo the M2 migrations (dev/branch only). Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- push subscriptions (m10)
+drop function if exists public.save_push_subscription(text, text, text, text), public.delete_push_subscription(text);
+drop table if exists public.push_subscriptions;
 -- committee accounts (m9)
 drop view if exists public.committee_accounts;
 drop function if exists app_private.committee_accounts(), public.set_committee_active(uuid, boolean);
