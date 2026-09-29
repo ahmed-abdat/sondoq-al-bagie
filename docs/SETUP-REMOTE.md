@@ -25,7 +25,7 @@ Settings → API Keys: copy the **Project URL**, the **publishable** key (`sb_pu
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` | every page (safe in the browser) |
 | `SUPABASE_SECRET_KEY` | `sb_secret_…` | creating committee accounts, resetting their passwords, the weekly backup; server only |
 | `CRON_SECRET` | any long random string (e.g. from a password manager) | protects the daily keep-alive and weekly backup |
-| `NEXT_PUBLIC_SITE_URL` | `https://sondoq-albaqie.vercel.app` | links inside WhatsApp messages |
+| `NEXT_PUBLIC_SITE_URL` | `https://baqie.vercel.app` | links inside WhatsApp messages and on shared report images |
 
 Do **not** set `SONDOQ_FIXTURES` in production (it switches the app to demo data).
 Redeploy after changing variables. Crons (`vercel.json`, production only): keep-alive daily at

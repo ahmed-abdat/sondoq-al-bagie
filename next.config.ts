@@ -25,10 +25,8 @@ const SITE_ORIGIN = (
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://sondoq-al-bagie-one.vercel.app")
+    : "https://baqie.vercel.app")
 ).replace(/\/$/, "");
-
-const noindex = ["/committee", "/committee/:path*", "/login", "/auth/:path*", "/api/:path*"];
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -45,14 +43,12 @@ const nextConfig: NextConfig = {
           { key: "Content-Type", value: "application/javascript; charset=utf-8" },
         ],
       },
-      // Private areas: never indexed.
-      ...noindex.map((source) => ({
-        source,
-        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
-      })),
       {
         source: "/(.*)",
         headers: [
+          // The whole site stays out of search engines (members' names are on it); link previews
+          // in WhatsApp/Facebook read the page's OG tags and are not affected. See robots.ts.
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
