@@ -73,7 +73,7 @@ describe("youCard", () => {
     // proof sent and waiting: the card says so, the late words give way (audit M1)
     expect(youCard({ ...on, monthsBehind: 3, amountOwed: 3000 }, "PPPPPPLLLUUU", 2026, 1)).toEqual({
       kind: "pending",
-      text: "أرسلت صورة التحويل. تنتظر تأكيد اللجنة.",
+      text: "وصلتنا الصورة. اللجنة تراجعها. لم تُسجّل الدفعة بعد.",
     });
     expect(youCard({ ...on, status: "exempt" }, "NNNNNNNNNNNN", 2026).kind).toBe("exempt");
   });

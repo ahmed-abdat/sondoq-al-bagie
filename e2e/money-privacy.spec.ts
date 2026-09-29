@@ -27,9 +27,9 @@ test("stranger: dots and one hint, no money request, «من دفع كل شهر»
   await page.goto("/");
   await expect(page.locator(".bq-hero .bq-dots").first()).toBeVisible();
   await expect(
-    page.getByText("الأرقام للأعضاء واللجنة. افتح رابطك الخاص لتراها.").first(),
+    page.getByText("مبالغ الصندوق للأعضاء واللجنة. افتح رسالة اللجنة في واتساب لتراها.").first(),
   ).toBeVisible();
-  await page.getByRole("button", { name: "لديك رابط؟" }).first().click();
+  await page.getByRole("button", { name: "افتح رسالة اللجنة" }).first().click();
   await expect(page.getByRole("heading", { name: "افتح رابطك الخاص" })).toBeVisible();
   await page.getByRole("button", { name: "حسنًا" }).click();
 
@@ -50,7 +50,7 @@ test("member (/m/demo): the figures on home, accounts and the report", async ({ 
   await page.goto("/m/demo");
   await page.goto("/");
   await expect(page.locator(".bq-hero .bq-hero-n").first()).toContainText(BALANCE);
-  await expect(page.getByText("الأرقام للأعضاء واللجنة")).toHaveCount(0);
+  await expect(page.getByText("مبالغ الصندوق للأعضاء واللجنة")).toHaveCount(0);
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "ما جُمع كل شهر" })).toBeVisible();
   await expect(page.locator(".bq-sum .is-total")).toContainText(BALANCE);

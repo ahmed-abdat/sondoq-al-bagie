@@ -89,7 +89,7 @@ export function MeView({
         <Group id="bq-me-wait" title="بانتظار التأكيد" items={s.waiting} {...who} />
       )}
       {s.rejected.length > 0 && (
-        <Group id="bq-me-rej" title="لم تُقبل" items={s.rejected} {...who} />
+        <Group id="bq-me-rej" title="لم تعتمدها اللجنة" items={s.rejected} {...who} />
       )}
       <Group
         id="bq-me-mine"
@@ -181,8 +181,8 @@ function HistoryRow({
         ))}
         {x.status === "rejected" && (
           <span className="bq-me-rej">
-            <span className="bq-kind">لم تُقبل</span>
-            {x.rejectReason ? `السبب: ${x.rejectReason}` : "لم تقبلها اللجنة."}
+            <span className="bq-kind">لم تعتمد اللجنة الصورة</span>
+            {x.rejectReason ? `السبب: ${x.rejectReason}` : "صوّر الإيصال مرة ثانية."}
           </span>
         )}
         {x.status === "rejected" && x.sentByMe && (
@@ -191,7 +191,7 @@ function HistoryRow({
             className="bq-btn bq-btn-soft bq-press bq-small-top"
             onClick={() => onAgain(x)}
           >
-            {I.image(20)} أرسلها من جديد
+            {I.image(20)} أرسل صورة جديدة
           </button>
         )}
         {x.status === "pending" && (

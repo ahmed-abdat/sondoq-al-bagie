@@ -4,7 +4,7 @@ import type { CampaignPublic, ContributorPublic, FundAccount } from "@/lib/data/
 import { waLink } from "@/lib/whatsapp";
 import { METHOD_LABELS } from "@/lib/methods";
 import { MethodBadge, Track } from "../bits";
-import { dayWords, fmt } from "../derive";
+import { contributorCount, dayWords, fmt } from "../derive";
 import { I } from "../icons";
 import { Num } from "../num";
 import { radioKeys, radioTab } from "../radio-keys";
@@ -65,7 +65,7 @@ export function DonationsView({
     <>
       <header className="bq-page-h">
         <h1>التبرعات</h1>
-        <p className="bq-lead">حملات لأنشطة محددة، تُحسب منفصلة عن الرسوم الشهرية.</p>
+        <p className="bq-lead">التبرعات لنشاط واحد، غير رسوم الشهور.</p>
       </header>
 
       {!c ? (
@@ -224,7 +224,7 @@ export function DonationsView({
                     <Num>{pct}%</Num> من هدف <Num>{fmt(target)}</Num> أوقية ·{" "}
                   </>
                 )}
-                <Num>{c.participantsPaid}</Num> مساهمًا
+                {contributorCount(c.participantsPaid)}
                 {c.deadline && <> · حتى {dayWords(c.deadline)}</>}
               </p>
               <MoneyHint whatsapp={whatsapp} />

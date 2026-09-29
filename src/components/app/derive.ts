@@ -65,6 +65,15 @@ export function contributionCount(n: number) {
   return n <= 10 ? `${n} مساهمات` : `${n} مساهمة`;
 }
 
+/** «لا مساهمين بعد / مساهم واحد / مساهمان / 3 مساهمين / 31 مساهمًا / 100 مساهم». */
+export function contributorCount(n: number) {
+  if (n <= 0) return "لا مساهمين بعد";
+  if (n === 1) return "مساهم واحد";
+  if (n === 2) return "مساهمان";
+  if (n <= 10) return `${n} مساهمين`;
+  return n % 100 >= 11 && n % 100 <= 99 ? `${n} مساهمًا` : `${n} مساهم`;
+}
+
 /** Pending payments that carry a contribution to this campaign. */
 export function pendingForCampaign(
   pending: { id: string; allocations: { kind: string; campaignId?: string | null }[] }[],

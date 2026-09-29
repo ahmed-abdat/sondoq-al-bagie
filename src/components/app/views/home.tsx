@@ -79,7 +79,7 @@ export function HomeView({
       <MemberSlot />
 
       <section className="bq-sec bq-rv bq-find" data-rv="home-find" aria-labelledby="bq-find-h">
-        <h2 id="bq-find-h">هل أنت منتظم في الدفع؟</h2>
+        <h2 id="bq-find-h">ابحث عن شخص باسمه أو رقمه</h2>
         <SearchField
           value={q}
           onChange={setQ}

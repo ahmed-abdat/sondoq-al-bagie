@@ -78,7 +78,7 @@ export function LateList({
         <span className="bq-row-m">
           <span className="bq-row-t">تذكير في مجموعة الواتساب</span>
           <span className="bq-row-s">
-            {groupAt ? "أُرسل الآن · " : ""}بلا أسماء ولا مبالغ · المتأخرون:{" "}
+            {groupAt ? "فُتحت رسالة واتساب · " : ""}بلا أسماء ولا مبالغ · المتأخرون:{" "}
             <Num>{arrears.length}</Num>
           </span>
         </span>
@@ -96,7 +96,7 @@ export function LateList({
               {last && (
                 <p className="bq-row-s bq-ml-last">
                   <span>
-                    ذُكّر {last.name} · التالي: {cur.fullName}
+                    فُتحت رسالة واتساب لـ {last.name} · التالي: {cur.fullName}
                   </span>
                   <button
                     type="button"
@@ -176,11 +176,13 @@ export function LateList({
                       </span>
                       <span className={`bq-row-s ${sent[a.memberId] ? "is-ok" : ""}`}>
                         {a.phone
-                          ? now
-                            ? remindedLabel(last, now)
-                            : last
-                              ? "ذُكّر من قبل"
-                              : "لم يُذكَّر بعد"
+                          ? sent[a.memberId]
+                            ? "فُتحت رسالة واتساب"
+                            : now
+                              ? remindedLabel(last, now)
+                              : last
+                                ? "ذُكّر من قبل"
+                                : "لم يُذكَّر بعد"
                           : "لا يوجد رقم هاتف"}
                       </span>
                     </span>

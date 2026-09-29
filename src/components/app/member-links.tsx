@@ -3,7 +3,7 @@
 // with a WhatsApp button per row and «أرسل للجميع بالترتيب» (a card pinned on top walks through
 // the members without a link). Sending creates the link (an old one stops; the URL is shown only
 // once) and then opens WhatsApp in this tab: after an await a new window would be blocked on iOS.
-// The app cannot know whether the message was sent (audit B10): rows say «أُنشئ الرابط», and a
+// The app cannot know whether the message was sent (audit B10): rows say «جُهّز الرابط», and a
 // link made on this page can be sent again as is («أرسل مرة أخرى») without stopping it.
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -32,7 +32,7 @@ import { SubHead } from "./views/committee";
 
 const STATE_WORD: Record<LinkState, string> = {
   none: "بلا رابط",
-  made: "أُنشئ الرابط",
+  made: "جُهّز الرابط",
   using: "فتحه",
 };
 
@@ -83,7 +83,7 @@ export function MemberLinksPage({
   const counts = linkCounts(rows);
   const total = linkCounts(all);
   const shown = (() => {
-    // links made on this page stay under «لم يُنشأ لهم رابط» so «أرسل مرة أخرى» stays at hand
+    // links made on this page stay under «بلا رابط» so «أرسل مرة أخرى» stays at hand
     const byF =
       f === "all"
         ? rows
@@ -170,7 +170,7 @@ export function MemberLinksPage({
             {last && (
               <p className="bq-row-s bq-ml-last">
                 <span>
-                  أُنشئ رابط {last.name} · التالي: {cur.fullName}
+                  جُهّز رابط {last.name} · التالي: {cur.fullName}
                 </span>
                 <button
                   type="button"
@@ -257,8 +257,8 @@ export function MemberLinksPage({
         <div className="bq-chips bq-ml-filter" role="group" aria-label="تصفية">
           {(
             [
-              { k: "none", l: "لم يُنشأ لهم رابط", n: counts.left },
-              { k: "made", l: "أُنشئ الرابط", n: counts.made },
+              { k: "none", l: "بلا رابط", n: counts.left },
+              { k: "made", l: "جُهّز الرابط", n: counts.made },
               { k: "all", l: "الكل", n: counts.total },
             ] as const
           ).map((x) => (

@@ -102,7 +102,7 @@ const ASK_TEXT = "السلام عليكم، أريد رابطًا جديدًا �
 /** «اطلب رابطًا جديدًا في واتساب»: a message to the fund's WhatsApp (null without a number). */
 export const askLinkHref = (whatsapp?: string | null) =>
   whatsapp ? waLink(whatsapp, ASK_TEXT) : null;
-const HINT = "الأرقام للأعضاء واللجنة. افتح رابطك الخاص لتراها.";
+const HINT = "مبالغ الصندوق للأعضاء واللجنة. افتح رسالة اللجنة في واتساب لتراها.";
 
 /** «لديك رابط؟»: what to do, the paste box (installed app), and «اطلب رابطك». */
 function LinkHelp({
@@ -165,7 +165,7 @@ export function MoneyHint({
           className="bq-money-hint-a bq-press"
           onClick={() => dlg.current?.showModal()}
         >
-          لديك رابط؟
+          افتح رسالة اللجنة
         </button>
       </p>
       <LinkHelp dlg={dlg} whatsapp={whatsapp} />
@@ -197,7 +197,7 @@ export function MoneyCard({
             className="bq-link bq-press"
             onClick={() => dlg.current?.showModal()}
           >
-            لديك رابط؟ افتحه هنا {I.go(18)}
+            افتح رسالة اللجنة {I.go(18)}
           </button>
           {ask && (
             <a className="bq-link bq-press" href={ask} target="_blank" rel="noreferrer">

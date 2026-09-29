@@ -221,7 +221,7 @@ export function PendingSlip({
       <header className="bq-slip-h">
         <span>
           {st.s === "pending"
-            ? "دفعة بانتظار التأكيد"
+            ? "دفعة تحتاج مراجعة"
             : st.s === "confirmed"
               ? "دفعة مؤكَّدة"
               : "دفعة مرفوضة"}

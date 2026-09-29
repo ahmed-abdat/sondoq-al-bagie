@@ -394,8 +394,8 @@ export function InstallBanner() {
           <img src="/icons/icon-192.png" alt="" />
           <span className="bq-ib-t">
             {mode === "desktop" || detectPlatform(navigator.userAgent) === "other"
-              ? "ثبّت التطبيق على جهازك"
-              : "ثبّت التطبيق على هاتفك"}
+              ? "أضف الصندوق إلى جهازك"
+              : "أضف الصندوق إلى هاتفك"}
           </span>
           <button
             type="button"

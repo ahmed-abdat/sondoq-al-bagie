@@ -237,7 +237,7 @@ test("desktop wording", async ({ browser, baseURL }) => {
   const page = await ctx.newPage();
   await returning(page);
   await page.goto("/");
-  await expect(card(page)).toContainText("ثبّت التطبيق على جهازك");
+  await expect(card(page)).toContainText("أضف الصندوق إلى جهازك");
   await expect(card(page).getByRole("button", { name: "تثبيت" })).toHaveCSS("min-height", "44px");
   await ctx.close();
 });

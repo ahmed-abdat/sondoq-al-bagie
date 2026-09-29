@@ -1161,14 +1161,23 @@ export function RecordBody({
                   <div className="bq-rec-credit bq-rec-in" ref={creditRef}>
                     {rows.length === 1 ? (
                       <p className="bq-hint">
-                        الباقي <Num className="bq-strong">{fmt(diff)}</Num> أوقية يُحفظ رصيدًا لـ{" "}
-                        {rows[0].m.fullName}.
+                        {member ? (
+                          <>
+                            سيبقى لك <Num className="bq-strong">{fmt(diff)}</Num> أوقية لدفعات
+                            قادمة. راجع المبلغ قبل الإرسال.
+                          </>
+                        ) : (
+                          <>
+                            سيبقى <Num className="bq-strong">{fmt(diff)}</Num> أوقية لدفعات قادمة لـ{" "}
+                            {rows[0].m.fullName}.
+                          </>
+                        )}
                       </p>
                     ) : (
                       <>
                         <p className="bq-hint" id="bq-rec-credit">
-                          الباقي <Num className="bq-strong">{fmt(diff)}</Num> أوقية. يُحفظ رصيدًا
-                          لـ:
+                          سيبقى <Num className="bq-strong">{fmt(diff)}</Num> أوقية لدفعات قادمة.
+                          لمن؟
                         </p>
                         <div
                           className="bq-chips"
@@ -1325,8 +1334,8 @@ export function RecordBody({
               </p>
               <p>
                 {member ? "عليك" : "المطلوب"} <Num>{fmt(total)}</Num>.{" "}
-                {member ? "سيبقى لك" : "يبقى رصيدًا"} <Num>{fmt(credit)}</Num>
-                {member ? "." : ` لـ ${creditName}.`}
+                {member ? "سيبقى لك" : "سيبقى"} <Num>{fmt(credit)}</Num>
+                {member ? " لدفعات قادمة." : ` لدفعات قادمة لـ ${creditName}.`}
               </p>
               <p className="bq-strong">
                 {member ? "هل هذا ما حوّلته؟" : "هل هذا هو المبلغ المحوّل؟"}

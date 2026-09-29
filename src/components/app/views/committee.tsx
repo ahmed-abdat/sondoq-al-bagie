@@ -218,7 +218,7 @@ export function CommitteeView({
       {tab === "rev" ? (
         <section className="bq-sec bq-rev-sec" aria-labelledby="bq-wait-h">
           <h2 id="bq-wait-h" className="bq-sr">
-            بانتظار التأكيد <Num>{waiting}</Num>
+            دفعات تحتاج مراجعة <Num>{waiting}</Num>
           </h2>
           {seen.length > 0 && (
             <ul className="bq-rev">
@@ -399,8 +399,6 @@ export function CommitteeView({
           </details>
         </section>
       )}
-
-
 
       {sheet?.t === "record" && (
         <Sheet key="record" label="سجّل دفعة" onDone={() => setSheet(null)}>
@@ -591,4 +589,3 @@ export function CampaignsPage({
     </>
   );
 }
-

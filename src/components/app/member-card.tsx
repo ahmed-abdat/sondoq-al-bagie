@@ -354,7 +354,7 @@ export function MemberCard({
                   {monthCount(s.monthsBehind)}.
                 </p>
               )}
-              <p className="bq-rec-k">كيف أدفع؟ حوّل إلى أحد أرقام الصندوق</p>
+              <p className="bq-rec-k">حوّل إلى أحد أرقام الصندوق</p>
               {data ? <PayTo accounts={data.accounts} /> : <SheetWait failed={data === null} />}
               <button
                 type="button"

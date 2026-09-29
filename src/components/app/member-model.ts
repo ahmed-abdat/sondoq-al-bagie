@@ -40,7 +40,7 @@ export function youCard(
   if (s.status === "exempt") return { kind: "exempt", text: "أنت معفى من الرسوم الشهرية" };
   // late but proof already sent (audit M1): say it arrived, no second big «ادفع الآن»
   if (s.monthsBehind > 0 && waiting > 0)
-    return { kind: "pending", text: "أرسلت صورة التحويل. تنتظر تأكيد اللجنة." };
+    return { kind: "pending", text: "وصلتنا الصورة. اللجنة تراجعها. لم تُسجّل الدفعة بعد." };
   if (s.monthsBehind > 0) return { kind: "late", text: youStatus(s, code).text };
   const dots = youDots(code);
   const owed = dots.filter((d) => d.state !== "off");

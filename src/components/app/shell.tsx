@@ -115,7 +115,7 @@ function NavItems({
         {t.i(24)}
         {i === 4 && badge ? (
           <Num className="bq-badge">
-            <span className="bq-sr">بانتظار التأكيد: </span>
+            <span className="bq-sr">دفعات تحتاج مراجعة: </span>
             {badge}
           </Num>
         ) : null}

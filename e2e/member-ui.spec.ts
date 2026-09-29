@@ -8,7 +8,7 @@ const SHOT = path.join(process.cwd(), "public/logo.jpg");
 
 test("public home has no «أنت» card", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "هل أنت منتظم في الدفع؟" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "ابحث عن شخص باسمه أو رقمه" })).toBeVisible();
   await expect(page.locator(".bq-you")).toHaveCount(0);
 });
 
@@ -59,7 +59,7 @@ test("whole year paid: thanks, no pay button; «ادفع عن شخص آخر» �
   await expect(page.getByRole("heading", { name: "بانتظار التأكيد" })).toBeVisible();
   await expect(page.getByText("السبب: الصورة غير واضحة")).toBeVisible();
   // «أرسلها من جديد» (audit M7): the same member and months, a new screenshot
-  await page.getByRole("button", { name: "أرسلها من جديد" }).click();
+  await page.getByRole("button", { name: "أرسل صورة جديدة" }).click();
   const again = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
   await expect(again).toContainText("الحسن ولد عبد الله");
   await expect(again.locator(".bq-rec-foot").getByRole("button")).toHaveText("أرفق صورة التحويل");
@@ -84,7 +84,7 @@ test("late: one «ادفع الآن» → amount and wallets → «دفعت؟ أ
   await card.getByRole("button", { name: "ادفع الآن" }).click();
   const pay = page.getByRole("dialog", { name: "ادفع الآن" });
   await expect(pay).toContainText(/عليك 1\s500 أوقية عن 3 أشهر/);
-  await expect(pay).toContainText("كيف أدفع؟");
+  await expect(pay).toContainText("حوّل إلى أحد أرقام الصندوق");
   await pay.getByRole("button", { name: /دفعت؟ أرسل صورة التحويل/ }).click();
 
   const sheet = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
@@ -102,7 +102,7 @@ test("late: one «ادفع الآن» → amount and wallets → «دفعت؟ أ
   }
   await expect(btn).toHaveText("أرسل إلى اللجنة");
   await btn.click();
-  await expect(card).toContainText("أرسلت صورة التحويل. تنتظر تأكيد اللجنة.");
+  await expect(card).toContainText("وصلتنا الصورة. اللجنة تراجعها. لم تُسجّل الدفعة بعد.");
   await expect(card).not.toContainText("دفعت حتى يونيو");
   await expect(card.getByRole("button", { name: "ادفع الآن" })).toHaveCount(0);
 });

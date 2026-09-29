@@ -31,6 +31,7 @@ import {
   searchMembers,
   statusLabel,
   unpaidSince,
+  contributorCount,
 } from "./derive";
 
 const m = (p: Partial<MemberStatus>): MemberStatus => ({
@@ -118,6 +119,20 @@ describe("member state", () => {
     );
     for (const code of ["PPPPPPPLLUUU", "LLLLLLLLLUUU", "LLPPPPPPPUUU"])
       expect(c(code)).not.toMatch(/متأخر|من \d|\d+ أشهر/);
+  });
+  it("contributorCount agrees with the number", () => {
+    expect([0, 1, 2, 3, 10, 11, 31, 99, 100, 101].map(contributorCount)).toEqual([
+      "لا مساهمين بعد",
+      "مساهم واحد",
+      "مساهمان",
+      "3 مساهمين",
+      "10 مساهمين",
+      "11 مساهمًا",
+      "31 مساهمًا",
+      "99 مساهمًا",
+      "100 مساهم",
+      "101 مساهم",
+    ]);
   });
   it("unpaidSince: the oldest late month", () => {
     expect(unpaidSince(["2025-11", "2026-01"])).toBe("لم يدفع منذ نوفمبر 2025");
