@@ -76,6 +76,9 @@ export type ReportPage =
 
 /** «A-12» → «A». */
 export const listOf = (m: Pick<ReportMember, "memberRef">) => m.memberRef.split("-")[0];
+/** «A-12» → «12». */
+export const numberOf = (m: Pick<ReportMember, "memberRef">) =>
+  m.memberRef.split("-").slice(1).join("-") || m.memberRef;
 export const listLabel = (code: string) => {
   const c = code.trim().toUpperCase();
   return c === "A" ? "أ" : c === "B" ? "ب" : code;
@@ -419,7 +422,8 @@ function drawMembers(
       // keep the current-month column visible over the zebra
       p.box(cx(now) - mW / 2 + 1, y, mW - 2, row, 0, T.greenTint);
     }
-    p.text(m.memberRef, cRef, mid + 8, {
+    // the page is one group («المجموعة أ»): the number alone
+    p.text(numberOf(m), cRef, mid + 8, {
       size: 24,
       weight: 600,
       face: "display",
