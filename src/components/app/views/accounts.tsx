@@ -170,9 +170,9 @@ export function AccountsView({
         <MonthRail months={monthly} payers={payers} current={currentMonth} />
       </section>
 
-      <section className="bq-sec bq-rv" data-rv="acc-where" aria-labelledby="bq-where-h">
-        <h2 id="bq-where-h">المصاريف</h2>
-        {spent > 0 ? (
+      {spent > 0 && (
+        <section className="bq-sec bq-rv" data-rv="acc-where" aria-labelledby="bq-where-h">
+          <h2 id="bq-where-h">المصاريف</h2>
           <>
             <p className="bq-lead">
               صُرف هذا العام <Num className="bq-strong">{fmt(spent)}</Num> أوقية على:
@@ -218,10 +218,8 @@ export function AccountsView({
               ))}
             </ul>
           </>
-        ) : (
-          <p className="bq-hint">لم يُصرف شيء هذا العام.</p>
-        )}
-      </section>
+        </section>
+      )}
 
       {pastTerms.length > 0 && (
         <section className="bq-sec bq-rv" data-rv="acc-terms" aria-labelledby="bq-terms-h">
@@ -268,28 +266,29 @@ export function AccountsView({
         </section>
       )}
 
-      <section className="bq-sec bq-rv" id="bq-ops" data-rv="acc-ops" aria-labelledby="bq-all-h">
-        <h2 id="bq-all-h">كل العمليات</h2>
-        <Segmented
-          label="نوع العمليات"
-          value={f}
-          onChange={setF}
-          items={[
-            { k: "all", l: "الكل" },
-            { k: "in", l: "دفعات" },
-            { k: "out", l: "مصاريف" },
-          ]}
-        />
-        {shown.length ? (
+      {ledger.length > 0 && (
+        <section className="bq-sec bq-rv" id="bq-ops" data-rv="acc-ops" aria-labelledby="bq-all-h">
+          <h2 id="bq-all-h">كل العمليات</h2>
+          {/* the filter only when there is something to filter: both payments and expenses */}
+          {expenses.length > 0 && expenses.length < ledger.length && (
+            <Segmented
+              label="نوع العمليات"
+              value={f}
+              onChange={setF}
+              items={[
+                { k: "all", l: "الكل" },
+                { k: "in", l: "دفعات" },
+                { k: "out", l: "مصاريف" },
+              ]}
+            />
+          )}
           <ul className="bq-list bq-gap-top">
             {shown.map((e) => (
               <EntryRow key={e.id} e={e} onOpen={open} />
             ))}
           </ul>
-        ) : (
-          <p className="bq-hint bq-gap-top">لا توجد عمليات بعد.</p>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className="bq-sec" aria-label="تثبيت التطبيق">
         <ul className="bq-list">
