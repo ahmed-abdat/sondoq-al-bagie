@@ -1,16 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
-import { useAct } from "@/components/app/act";
 import { login, type LoginState } from "./actions";
 
 export function LoginForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(login, {});
   const online = useOnline();
-  const { requestPasswordReset } = useAct();
-  const [email, setEmail] = useState("");
-  const [reset, setReset] = useState<"idle" | "sending" | "sent">("idle");
 
   return (
     <form action={action} className="bq-login">
@@ -24,8 +20,6 @@ export function LoginForm({ next }: { next?: string }) {
           inputMode="email"
           dir="ltr"
           autoComplete="username"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
           required
         />
       </label>
@@ -53,25 +47,7 @@ export function LoginForm({ next }: { next?: string }) {
         {pending ? "جارٍ الدخول…" : "دخول"}
       </button>
       <OfflineWriteHint />
-      {reset === "sent" ? (
-        <p className="bq-hint" role="status">
-          إن كان لهذا البريد حساب، ستصله رسالة لتغيير كلمة السر.
-        </p>
-      ) : (
-        <button
-          type="button"
-          className="bq-link bq-link-s bq-press"
-          disabled={reset === "sending" || !online}
-          onClick={async () => {
-            if (!email.includes("@")) return; // reset links go to an email; phone logins ask the admin
-            setReset("sending");
-            await requestPasswordReset({ email });
-            setReset("sent");
-          }}
-        >
-          نسيت كلمة السر؟ {email.includes("@") ? "" : "(اكتب بريدك، أو اطلب كلمة جديدة من المسؤول)"}
-        </button>
-      )}
+      <p className="bq-hint">نسيت كلمة السر؟ اطلب من المسؤول كلمة سر جديدة.</p>
     </form>
   );
 }
