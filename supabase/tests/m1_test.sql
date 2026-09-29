@@ -295,7 +295,7 @@ select tests.ok(exists (select 1 from pg_publication_tables where pubname = 'sup
 /* ───────────── M2: fund accounts, contact, payment queue, undo ───────────── */
 
 select tests.login('admin');
-select tests.set('acc', public.add_fund_account('bankily', '2222 3333', 'صندوق الشباب', null, 1));
+select tests.set('acc', public.add_fund_account('bankily', '2222 3333', 'صندوق الرابطة', null, 1));
 select tests.ok((select account_number from public.fund_accounts where id = tests.id('acc')) = '22223333', 'account number stored without spaces');
 select tests.throws($$select public.add_fund_account('bankily', '22223333', 'x')$$, 'account_exists', 'same active wallet number twice');
 select tests.throws($$select public.add_fund_account('cash', '22223333', 'x')$$, 'not_a_wallet', 'cash is not a wallet account');
@@ -523,6 +523,33 @@ select tests.throws($$select public.set_committee_active('00000000-0000-0000-000
   'only the admin (de)activates accounts');
 select tests.login('public');
 select tests.throws('select * from public.committee_accounts', '42501', 'anon cannot read committee accounts');
+
+/* ───────────── M10: push subscriptions ───────────── */
+
+select tests.login('treasurer');
+select public.save_push_subscription('https://push.example/t1', repeat('p', 40), 'authauth', 'Android');
+select public.save_push_subscription('https://push.example/t1', repeat('q', 40), 'authauth', 'Android');
+select tests.ok((select count(*) from public.push_subscriptions) = 1, 'a member sees their own subscription, saved once per endpoint');
+select tests.throws($$select public.save_push_subscription('http://insecure', repeat('p', 40), 'authauth')$$, '23514',
+  'only https endpoints');
+select tests.login('deputy');
+select tests.ok((select count(*) from public.push_subscriptions) = 0, 'members do not see each other''s subscriptions');
+select public.delete_push_subscription('https://push.example/t1');
+select tests.login('server');
+select tests.ok((select count(*) from public.push_subscriptions where endpoint = 'https://push.example/t1') = 1,
+  'nobody deletes another member''s subscription');
+select tests.login('deputy');
+select public.save_push_subscription('https://push.example/t1', repeat('d', 40), 'authauth');
+select tests.login('server');
+select tests.ok((select user_id from public.push_subscriptions where endpoint = 'https://push.example/t1')
+  = '00000000-0000-0000-0000-0000000000a3', 'the same browser signed in by another member moves to them');
+select tests.login('deputy');
+select public.delete_push_subscription('https://push.example/t1');
+select tests.ok((select count(*) from public.push_subscriptions) = 0, 'a member removes their own subscription');
+select tests.login('public');
+select tests.throws($$select public.save_push_subscription('https://push.example/x', repeat('p', 40), 'authauth')$$, '42501',
+  'anon cannot save a subscription');
+select tests.throws('select * from public.push_subscriptions', '42501', 'anon cannot read subscriptions');
 
 /* ───────────── M8: terms and handover (keep last: it deactivates committee accounts) ───────────── */
 

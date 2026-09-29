@@ -6,8 +6,8 @@
 --   select public.set_committee_member('<user id>', 'مدير تجريبي', 'admin');
 
 select public.update_settings(p_opening_balance => 150000, p_whatsapp_contact => '+22200000000');
-select public.add_fund_account('bankily', '22000001', 'رابطة الشباب', null, 1);
-select public.add_fund_account('masrvi', '22000002', 'رابطة الشباب', null, 2);
+select public.add_fund_account('bankily', '22000001', 'الرابطة', null, 1);
+select public.add_fund_account('masrvi', '22000002', 'الرابطة', null, 2);
 select public.add_fund_account('sedad', '22000003', 'أمين الصندوق', 'للتحويل من السداد', 3);
 
 do $$

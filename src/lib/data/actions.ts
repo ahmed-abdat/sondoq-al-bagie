@@ -4,6 +4,9 @@
 // public cache when public numbers change. Never throws for expected failures.
 import { updateTag } from "next/cache";
 import { headers } from "next/headers";
+import { after } from "next/server";
+import { pendingPaymentPayload } from "@/lib/push/payload";
+import { notifyConfirmers } from "@/lib/push/send";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -55,8 +58,27 @@ export type RecordPaymentResult = {
   receiptCode: string | null;
 };
 
-/** Record a payment. Treasurer/deputy/admin recordings are confirmed at once (except their own). */
+/**
+ * Record a payment. Treasurer/deputy/admin recordings are confirmed at once (except their own).
+ * A new pending payment notifies the other confirmers by push, after the response.
+ */
 export async function recordPayment(input: s.RecordPaymentInput) {
+  const res = await record(input);
+  if (res.ok && res.data.status === "pending" && !res.data.replay) {
+    const p = s.recordPaymentSchema.parse(input);
+    const session = await getCommitteeSession();
+    const payload = pendingPaymentPayload({
+      id: res.data.id,
+      payerName: p.payerName,
+      amount: p.amount,
+      allocations: p.allocations,
+    });
+    after(() => notifyConfirmers(session?.userId ?? null, payload));
+  }
+  return res;
+}
+
+async function record(input: s.RecordPaymentInput) {
   return run(
     s.recordPaymentSchema,
     input,
@@ -727,6 +749,34 @@ export async function setCommitteeActive(input: s.SetCommitteeActiveInput) {
     s.setCommitteeActiveSchema,
     input,
     (sb, p) => sb.rpc("set_committee_active", { p_user_id: p.userId, p_active: p.active }),
+    { touchesPublic: false },
+  );
+}
+
+/* ───────────── push notifications ───────────── */
+
+/** Save this browser's push subscription for the signed-in committee member. */
+export async function savePushSubscription(input: s.PushSubscriptionInput) {
+  return run(
+    s.pushSubscriptionSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("save_push_subscription", {
+        p_endpoint: p.endpoint,
+        p_p256dh: p.keys.p256dh,
+        p_auth: p.keys.auth,
+        p_user_agent: p.userAgent,
+      }),
+    { touchesPublic: false },
+  );
+}
+
+/** Forget one of the caller's subscriptions (notifications off, or before signing out). */
+export async function deletePushSubscription(input: { endpoint: string }) {
+  return run(
+    s.pushEndpointSchema,
+    input,
+    (sb, p) => sb.rpc("delete_push_subscription", { p_endpoint: p.endpoint }),
     { touchesPublic: false },
   );
 }
