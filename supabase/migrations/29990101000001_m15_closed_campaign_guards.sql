@@ -6,7 +6,9 @@
 --     refuses while a pending payment contributes to it (`campaign_has_pending`), and confirm_payment
 --     refuses a contribution to a closed campaign (`campaign_closed`; reject it instead).
 -- C2: record_expense accepted an expense on a closed campaign (negative campaign balance). Refused
---     now for every closed campaign, also 'keep' (owner question pending).
+--     now for every closed campaign.
+-- Owner decision (2026-09-29): closing ALWAYS moves what is left to the main fund; 'keep' is no
+-- longer offered. p_surplus_action stays in the signature (old clients) but is stored as 'to_fund'.
 -- Both read the campaign row with FOR SHARE, so they wait for a concurrent close_campaign
 -- (which holds FOR UPDATE) and then see it closed.
 -- ════════════════════════════════════════════════════════════════════════════════════════
@@ -27,10 +29,10 @@ begin
     perform app_private.fail('campaign_has_pending');
   end if;
   perform app_private.set_action('close_campaign');
-  update public.campaigns set status = 'closed', closed_at = now(), closed_by = auth.uid(), surplus_action = p_surplus_action
+  update public.campaigns set status = 'closed', closed_at = now(), closed_by = auth.uid(), surplus_action = 'to_fund'
   where id = p_id;
   select greatest(balance, 0)::integer into left_over from app_private.public_campaign_progress() where campaign_id = p_id;
-  if p_surplus_action = 'to_fund' and left_over > 0 then
+  if left_over > 0 then
     insert into public.transfers (from_campaign_id, amount, created_by) values (p_id, left_over, auth.uid());
     return left_over;
   end if;

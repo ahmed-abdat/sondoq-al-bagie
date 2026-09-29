@@ -475,6 +475,13 @@ select public.reject_payment(tests.id('cp7'), 'الحملة مغلقة');
 select tests.login('public');
 select tests.ok((select balance from public.fund_summary) = tests.get('bal6')::int + 2000, 'main fund balance grows by the surplus');
 select tests.ok((select balance from public.campaign_progress where campaign_id = tests.id('c6')) = 0, 'campaign balance is zero after transfer');
+-- owner decision: closing always moves the leftover to the fund, even when an old client sends 'keep'
+select tests.login('treasurer');
+select tests.set('c8', public.create_campaign('00000000-0000-0000-0000-00000000c008', 'حملة ثامنة'));
+select public.record_payment(gen_random_uuid(), 'متبرع', 'cash', 700, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c8'), 'member_id', null, 'amount', 700)));
+select tests.ok(public.close_campaign(tests.id('c8'), 'keep') = 700, 'closing with keep still moves the leftover to the fund');
+select tests.ok((select surplus_action from public.campaigns where id = tests.id('c8')) = 'to_fund', 'and is stored as to_fund');
 
 select tests.login('public');
 select tests.ok((select monthly_amount from public.group_prices_public
