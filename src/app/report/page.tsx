@@ -17,7 +17,7 @@ import { Engaged } from "@/components/app/engaged";
 import { SITE_URL } from "@/components/app/site";
 import { ReportShare } from "@/components/app/report-share";
 import * as src from "@/components/app/source";
-import { monthCell, monthPaid, paidTotal } from "@/lib/report-check";
+import { monthPaid, paidTotal } from "@/lib/report-check";
 
 export const metadata: Metadata = {
   title: "تقرير الصندوق · صندوق الرابطة",
@@ -156,10 +156,7 @@ export default async function ReportPage() {
 
       <p className="rp-note rp-legend">
         <span>
-          <OkMark /> مدفوع
-        </span>
-        <span>
-          <span className="rp-swatch" aria-hidden="true" /> غير مدفوع
+          <OkMark /> مدفوع · خانة فارغة: لم يُدفع
         </span>
         <span>
           1 = {MONTHS[0]} … 12 = {MONTHS[11]}
@@ -169,7 +166,7 @@ export default async function ReportPage() {
         const rows = shown.filter((m) => listOf(m) === l);
         return (
           <Collapsible key={l} title={`المجموعة ${groupLabel(l)}`} count={rows.length}>
-            {/* month numbers over the cells: paid ✓, owed = sand, not owed = white (r21) */}
+            {/* like the paper sheet (r22): bordered month cells, a ✓ when paid, empty otherwise */}
             <div className="rp-mhead" aria-hidden="true">
               <span className="rp-cells">
                 {MONTHS.map((_, i) => (
@@ -196,14 +193,9 @@ export default async function ReportPage() {
                       role="img"
                       aria-label={paid.length ? `مدفوع: ${paid.join("، ")}` : "لا أشهر مدفوعة"}
                     >
-                      {m.months.map((st, i) => {
-                        const c = monthCell(m.status, st);
-                        return (
-                          <span key={i} className={c === "unpaid" ? "is-unpaid" : undefined}>
-                            {c === "paid" ? <OkMark /> : null}
-                          </span>
-                        );
-                      })}
+                      {m.months.map((st, i) => (
+                        <span key={i}>{monthPaid(st) ? <OkMark /> : null}</span>
+                      ))}
                     </span>
                   </li>
                 );
