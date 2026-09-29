@@ -80,6 +80,11 @@ test("an unvisited page offline shows the Arabic offline page", async ({ page, c
   await context.setOffline(true);
   await page.goto("/never-visited-page");
   await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toBeVisible();
+  // the app's button: a 48px Forest pill
+  const home = page.getByRole("link", { name: "الصفحة الرئيسية" });
+  await expect(home).toHaveCSS("min-height", "48px");
+  await expect(home).toHaveCSS("border-radius", "999px");
+  await expect(home).toHaveCSS("background-color", "rgb(26, 95, 46)");
   await context.setOffline(false);
 });
 
