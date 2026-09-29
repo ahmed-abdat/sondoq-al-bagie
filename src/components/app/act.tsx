@@ -84,6 +84,9 @@ const nextCode = () => `BQ-DEMO-${String(++receiptSeq).padStart(4, "0")}`;
 type Sim = { [K in keyof Actions]: Actions[K] | "real" };
 const demo = {
   async recordPayment(p) {
+    // like the server: the same id again is a replay, not a second payment
+    if (state.pending.some((x) => x.id === p.id))
+      return ok({ id: p.id, status: "pending" as const, replay: true, receiptCode: null });
     const pay: PendingPayment = {
       id: p.id,
       status: "pending",
@@ -149,6 +152,7 @@ const demo = {
     return { ok: false, code: "demo", message: "صورة تجريبية" };
   },
   async recordExpense(p) {
+    if (state.expenses.some((x) => x.id === p.id)) return ok(p.id);
     const e: ExpenseAdmin = {
       id: p.id,
       spentOn: p.spentOn,
@@ -167,6 +171,7 @@ const demo = {
   cancelExpense: async () => ok(undefined),
   logReminder: async () => ok("demo"),
   async createCampaign(p) {
+    if (state.campaigns.some((x) => x.campaignId === p.id)) return ok(p.id);
     const c: CampaignProgress = {
       campaignId: p.id,
       title: p.title,

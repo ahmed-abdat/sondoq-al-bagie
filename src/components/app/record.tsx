@@ -17,6 +17,8 @@ import { monthStates } from "@/lib/data/month-code";
 import { readReceipt, terminateOcr, warmOcr, type ReceiptChecks } from "@/lib/ocr";
 import { safeStorage } from "@/lib/safe-storage";
 import { rememberMembers, useAct } from "./act";
+import { sendOnce, useOnceId } from "./once-id";
+import { failure } from "@/lib/data/errors";
 import { ShareBtns } from "./entries";
 import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
@@ -384,6 +386,7 @@ export function RecordBody({
   const router = useRouter();
   const online = useOnline();
   const { recordPayment, uploadProof } = useAct();
+  const once = useOnceId();
   const [rows, setRows] = useState<Row[]>([]);
   const [adding, setAdding] = useState(true);
   const [payer, setPayer] = useState<string | null>(null); // null = the first member
@@ -538,35 +541,39 @@ export function RecordBody({
     if (block || !meth) return;
     setBusy(true);
     setErr("");
-    const id = crypto.randomUUID();
     let proof: { path: string; hash: string } | undefined;
-    if (shot) {
-      const fd = new FormData();
-      fd.set("file", dataUrlToBlob(shot.url), "proof.jpg");
-      fd.set("kind", "payments");
-      fd.set("id", id);
-      const up = await uploadProof(fd);
-      if (!up.ok) {
-        setErr(up.message);
-        setBusy(false);
-        return;
-      }
-      proof = up.data;
+    let r: Awaited<ReturnType<typeof recordPayment>>;
+    try {
+      // the same id on every retry: the server replays instead of recording twice
+      r = await sendOnce(once, async (id) => {
+        if (shot) {
+          const fd = new FormData();
+          fd.set("file", dataUrlToBlob(shot.url), "proof.jpg");
+          fd.set("kind", "payments");
+          fd.set("id", id);
+          const up = await uploadProof(fd);
+          if (!up.ok) return up;
+          proof = up.data;
+        }
+        rememberMembers(rows.map((r) => r.m));
+        return recordPayment(
+          toRecordInput(
+            { ...draft, method: meth },
+            {
+              id,
+              paidOn,
+              txnRef: txn.trim() || undefined,
+              proofPath: proof?.path,
+              proofHash: proof?.hash,
+            },
+          ),
+        );
+      });
+    } catch {
+      r = failure("network");
+    } finally {
+      setBusy(false);
     }
-    rememberMembers(rows.map((r) => r.m));
-    const r = await recordPayment(
-      toRecordInput(
-        { ...draft, method: meth },
-        {
-          id,
-          paidOn,
-          txnRef: txn.trim() || undefined,
-          proofPath: proof?.path,
-          proofHash: proof?.hash,
-        },
-      ),
-    );
-    setBusy(false);
     if (!r.ok) {
       setErr(r.message);
       return;

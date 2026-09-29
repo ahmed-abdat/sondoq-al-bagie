@@ -10,6 +10,7 @@ import { METHOD_LABELS } from "@/lib/methods";
 import { parseAmount, toWesternDigits } from "@/lib/money";
 import { waLink } from "@/lib/whatsapp";
 import { useAct, useDemoState, useIsDemo } from "./act";
+import { sendOnce, useOnceId } from "./once-id";
 import { dayDate, fmt, ROLE_LABEL } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
@@ -78,6 +79,7 @@ export function HandoverView({
   const router = useRouter();
   const online = useOnline();
   const act = useAct();
+  const once = useOnceId();
   const demo = useDemoState();
   const demoOn = useIsDemo();
   const h = demo.handover ?? server;
@@ -131,7 +133,7 @@ export function HandoverView({
           type="button"
           className="bq-btn bq-btn-primary bq-btn-lg bq-press"
           disabled={busy || !online}
-          onClick={() => run(() => act.startHandover({ id: crypto.randomUUID() }))}
+          onClick={() => run(() => sendOnce(once, (id) => act.startHandover({ id })))}
         >
           ابدأ التسليم
         </button>

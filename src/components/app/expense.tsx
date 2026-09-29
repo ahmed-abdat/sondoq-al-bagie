@@ -5,6 +5,8 @@ import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import { useAct } from "./act";
+import { sendOnce, useOnceId } from "./once-id";
+import { failure } from "@/lib/data/errors";
 import type { CampaignProgress, ExpenseAdmin, ExpenseCategory } from "@/lib/data/types";
 import { todayIso } from "@/lib/dates";
 import { parseAmount } from "@/lib/money";
@@ -26,6 +28,7 @@ export function RecordExpenseBody({
   const router = useRouter();
   const online = useOnline();
   const { recordExpense, uploadProof } = useAct();
+  const once = useOnceId();
   const [cat, setCat] = useState<ExpenseCategory | null>(null);
   const [amountTxt, setAmountTxt] = useState("");
   const [note, setNote] = useState("");
@@ -42,30 +45,35 @@ export function RecordExpenseBody({
     if (!ok || !cat) return;
     setBusy(true);
     setErr("");
-    const id = crypto.randomUUID();
-    let receiptPath: string | undefined;
-    if (shot) {
-      const fd = new FormData();
-      fd.set("file", dataUrlToBlob(shot.url), "invoice.jpg");
-      fd.set("kind", "expenses");
-      fd.set("id", id);
-      const up = await uploadProof(fd);
-      if (!up.ok) {
-        setBusy(false);
-        return setErr(up.message);
-      }
-      receiptPath = up.data.path;
+    let r: Awaited<ReturnType<typeof recordExpense>>;
+    try {
+      // the same id on every retry: the server replays instead of recording twice
+      r = await sendOnce(once, async (id) => {
+        let receiptPath: string | undefined;
+        if (shot) {
+          const fd = new FormData();
+          fd.set("file", dataUrlToBlob(shot.url), "invoice.jpg");
+          fd.set("kind", "expenses");
+          fd.set("id", id);
+          const up = await uploadProof(fd);
+          if (!up.ok) return up;
+          receiptPath = up.data.path;
+        }
+        return recordExpense({
+          id,
+          spentOn: day,
+          category: cat,
+          amount,
+          note: note.trim(),
+          campaignId: from || undefined,
+          receiptPath,
+        });
+      });
+    } catch {
+      r = failure("network");
+    } finally {
+      setBusy(false);
     }
-    const r = await recordExpense({
-      id,
-      spentOn: day,
-      category: cat,
-      amount,
-      note: note.trim(),
-      campaignId: from || undefined,
-      receiptPath,
-    });
-    setBusy(false);
     if (!r.ok) return setErr(r.message);
     router.refresh();
     onDone(`سُجّل مصروف «${note.trim()}».`);

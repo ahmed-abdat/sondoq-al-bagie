@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct } from "./act";
-import type { CampaignProgress } from "@/lib/data/types";
+import type { ActionResult, CampaignProgress } from "@/lib/data/types";
+import { failure } from "@/lib/data/errors";
+import { sendOnce, useOnceId } from "./once-id";
 import { parseAmount } from "@/lib/money";
 import { dayWords, fmt } from "./derive";
 import { DateField } from "./date-field";
@@ -22,6 +24,7 @@ export function CampaignFormBody({
   const router = useRouter();
   const online = useOnline();
   const { createCampaign, updateCampaign } = useAct();
+  const once = useOnceId();
   const [title, setTitle] = useState(campaign?.title ?? "");
   const [purpose, setPurpose] = useState(campaign?.purpose ?? "");
   const [target, setTarget] = useState(campaign?.targetAmount ? String(campaign.targetAmount) : "");
@@ -35,23 +38,32 @@ export function CampaignFormBody({
   const submit = async () => {
     setBusy(true);
     setErr("");
-    const r = campaign
-      ? await updateCampaign({
-          id: campaign.campaignId,
-          title: title.trim(),
-          purpose: purpose.trim() || null,
-          targetAmount: t,
-          deadline: deadline || null,
-        })
-      : await createCampaign({
-          id: crypto.randomUUID(),
-          title: title.trim(),
-          amountMode: "open",
-          purpose: purpose.trim() || undefined,
-          targetAmount: t ?? undefined,
-          deadline: deadline || undefined,
-        });
-    setBusy(false);
+    let r: ActionResult | ActionResult<string>;
+    try {
+      r = campaign
+        ? await updateCampaign({
+            id: campaign.campaignId,
+            title: title.trim(),
+            purpose: purpose.trim() || null,
+            targetAmount: t,
+            deadline: deadline || null,
+          })
+        : // the same id on every retry: the server replays instead of opening it twice
+          await sendOnce(once, (id) =>
+            createCampaign({
+              id,
+              title: title.trim(),
+              amountMode: "open",
+              purpose: purpose.trim() || undefined,
+              targetAmount: t ?? undefined,
+              deadline: deadline || undefined,
+            }),
+          );
+    } catch {
+      r = failure("network");
+    } finally {
+      setBusy(false);
+    }
     if (!r.ok) return setErr(r.message);
     router.refresh();
     onDone(campaign ? "حُفظت الحملة" : `فُتحت حملة «${title.trim()}»`);
