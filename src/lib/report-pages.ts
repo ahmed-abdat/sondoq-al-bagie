@@ -72,7 +72,7 @@ export const BLOCK_H: Record<Block["t"], number> = {
 export type ReportPage =
   | { kind: "cover" }
   | { kind: "members"; list: string; rows: ReportMember[]; part: number; parts: number }
-  | { kind: "money"; blocks: Block[]; part: number; parts: number };
+  | { kind: "money"; title: string; blocks: Block[]; part: number; parts: number };
 
 /** «A-12» → «A». */
 export const listOf = (m: Pick<ReportMember, "memberRef">) => m.memberRef.split("-")[0];
@@ -101,11 +101,16 @@ export function chunkEven<X>(xs: X[], max: number): X[][] {
   );
 }
 
+/** Campaigns worth showing: open ones, and closed ones that moved money. */
+export const shownCampaigns = (r: ReportData) =>
+  r.campaigns.filter((c) => c.status === "open" || c.collected !== 0 || c.spent !== 0);
+
+/** Expenses and campaigns; empty sections are left out, and nothing at all when both are. */
 export function moneyBlocks(r: ReportData): Block[] {
-  const out: Block[] = [{ t: "heading", text: `المصاريف في ${r.year}` }];
-  if (!r.expensesComplete) out.push({ t: "note", text: "تظهر هنا آخر 50 مصروفًا فقط." });
-  if (!r.expenses.length) out.push({ t: "note", text: "لم يُصرف شيء هذا العام." });
-  else {
+  const out: Block[] = [];
+  if (r.expenses.length) {
+    out.push({ t: "heading", text: `المصاريف في ${r.year}` });
+    if (!r.expensesComplete) out.push({ t: "note", text: "تظهر هنا آخر 50 مصروفًا فقط." });
     out.push({ t: "expHead" });
     r.expenses.forEach((e, i) => out.push({ t: "expense", e, zebra: i % 2 === 1 }));
     out.push({
@@ -114,11 +119,13 @@ export function moneyBlocks(r: ReportData): Block[] {
       amount: r.summary.spentThisYear,
     });
   }
-  if (r.campaigns.length) {
-    out.push({ t: "space" }, { t: "heading", text: "حملات التبرع" });
-    for (const c of r.campaigns) out.push({ t: "campaign", c });
+  const campaigns = shownCampaigns(r);
+  if (campaigns.length) {
+    if (out.length) out.push({ t: "space" });
+    out.push({ t: "heading", text: "حملات التبرع" });
+    for (const c of campaigns) out.push({ t: "campaign", c });
   }
-  out.push({ t: "space" }, { t: "cta" });
+  if (out.length) out.push({ t: "space" }, { t: "cta" });
   return out;
 }
 
@@ -180,8 +187,13 @@ export function paginateReport(r: ReportData, size: PageSize = PHONE_PAGE): Repo
   }
   const avail = size.h - L.band - L.gap - L.foot - 16;
   const money = paginateBlocks(moneyBlocks(r), avail);
+  const title = !r.expenses.length
+    ? "حملات التبرع"
+    : shownCampaigns(r).length
+      ? "المصاريف والحملات"
+      : "المصاريف";
   money.forEach((blocks, i) =>
-    pages.push({ kind: "money", blocks, part: i + 1, parts: money.length }),
+    pages.push({ kind: "money", title, blocks, part: i + 1, parts: money.length }),
   );
   return pages;
 }
@@ -260,11 +272,10 @@ function band(
   );
 }
 
-/** The month mark: ● paid (early or not, the same), ○ late, · not due / not owed; exempt: none. */
+/** The month mark: ● paid (early or not, the same), ○ late; anything else stays empty. */
 function mark(p: Pen, s: ReportMonthState | "none" | undefined, cx: number, cy: number) {
   const x = p.x;
   const r = 12;
-  if (s === "none") return;
   if (isPaid(s as ReportMonthState)) return p.dot(cx, cy, r, T.green);
   if (s === "late") {
     x.lineWidth = 3;
@@ -272,9 +283,8 @@ function mark(p: Pen, s: ReportMonthState | "none" | undefined, cx: number, cy: 
     x.beginPath();
     x.arc(cx, cy, r - 1.5, 0, Math.PI * 2);
     x.stroke();
-    return;
   }
-  p.dot(cx, cy, 6, T.pebble);
+  // not due yet, not owed, exempt: empty cell
 }
 
 const PILL = {
@@ -366,17 +376,12 @@ function drawMembers(
   const items: [ReportMonthState, string][] = [
     ["paid", "مدفوع"],
     ["late", "متأخر"],
-    ["upcoming", "لم يحن بعد"],
   ];
   for (const [s, label] of items) {
     mark(p, s, lx - 12, ly - 9);
     lx -= 34;
     lx -= p.text(label, lx, ly, { size: 24, color: T.slate }) + 36;
   }
-  p.x.font = p.font(22, 600);
-  const ew = p.x.measureText("معفى").width + 24;
-  p.box(lx - ew, ly - 29, ew, 34, 17, T.goldTint);
-  p.text("معفى", lx - 12, ly - 3, { size: 22, weight: 600, color: T.goldInk });
   p.text(`1 = ${monthName(1)} … 12 = ${monthName(12)}`, P, ly, {
     size: 20,
     color: T.slate,
@@ -448,7 +453,7 @@ function drawMoney(
   const { w, h: H } = o.size;
   const R = w - L.pad;
   const P = L.pad;
-  band(p, w, card, o.logo, "المصاريف والحملات");
+  band(p, w, card, o.logo, page.title);
   const dateR = R - 8;
   const textR = R - 176;
   const amtR = P + 200; // amount column: digits right-aligned here, «أوقية» at P
