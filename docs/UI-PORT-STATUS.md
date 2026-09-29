@@ -409,6 +409,22 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   passing (Lane B file): its line «أكّدها سيدي محمد،» ends with a comma when the role is empty.
 - Chromium and WebKit shots `/private/tmp/claude-502/sondoq-shots/r23/`.
 
+## Report grid variant A, plain ✓, branded header (owner decisions r25)
+- /report members (`MembersTable` in `report/page.tsx`): ≥600px one bordered table, a line per
+  member «الاسم | 1 … 12» (1 next to the name). <600px one continuous table: each member a
+  full-width name row («عليه حتى الآن …» when shown) with its 12 cells beneath; month header
+  sticky. No «الرقم» column (numbers stay in lists, sheets, receipts).
+- ✓ = plain green stroke check (`PaidCheck` in `bits.tsx`), no disc: /report cells + legend,
+  member «أنت» card months + key. Images/PDF: `okMark` in `report-pages.ts`. ConfirmedMark and
+  stamp unchanged.
+- Polish (lead, "modern but familiar"): header row green tint + forest bold, soft grey-green lines
+  (#B3C5B9), outer border #7F9A88, 14px rounded corners, 40px rows, hover wash on /report.
+- Images/PDF: no number column (name column wider, `memberCols` test ≥460), same header/lines/
+  corners; the extra «صندوق رابطة شباب البقيع 2026» title dropped (the band names the fund), the
+  month key stays on that line. Row heights and pagination unchanged.
+- e2e `report.spec.ts` members grid test rewritten (both widths, no «الرقم», no circle). 65/65.
+- Shots `/private/tmp/claude-502/sondoq-shots/r25/` (before-*/after-*: 390, 1280, img-2, member).
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.
