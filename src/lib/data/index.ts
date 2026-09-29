@@ -15,6 +15,7 @@ export {
   // money privacy: amount-free public variants (money only via ./money)
   getFundStats,
   getActivityPublic,
+  getLedgerPublic,
   getCampaignsPublic,
   getExpensesPublic,
   getTermsInfo,
