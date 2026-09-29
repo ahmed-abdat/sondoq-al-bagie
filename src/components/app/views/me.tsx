@@ -14,7 +14,7 @@ import { forgetMemberOnThisDevice, MemberPushToggle } from "@/components/provide
 import { useMemberAct, useMemberDemo } from "../member-act";
 import { forgetMemberCard, MemberCard } from "../member-card";
 import { coverLines, historySections } from "../member-model";
-import type { MemberHistoryItem } from "../member-types";
+import type { MemberHistoryItem } from "@/lib/data/member-types";
 import type { MemberHome } from "../member-view-action";
 import { Num } from "../num";
 import { verifyPath } from "../receipt-model";

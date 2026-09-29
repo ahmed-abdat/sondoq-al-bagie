@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { coverLines, historySections, waitingLine, youDots, youStatus } from "./member-model";
-import type { MemberHistoryItem } from "./member-types";
+import type { MemberHistoryItem } from "@/lib/data/member-types";
 
 const alloc = (memberId: string, fullName: string, month: number, year = 2026) => ({
   kind: "months" as const,

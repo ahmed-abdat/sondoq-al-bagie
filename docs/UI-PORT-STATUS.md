@@ -323,11 +323,20 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - `/m/invalid` (calm page), `/m/demo` (route handler, demo only: `bq_member=demo` + flag, 303 →
   `/?welcome=1`); `source.memberSession/History/Beneficiaries` serve fixtures for the demo cookie
   (demo member A-3, late July to September; history has a rejected and two confirmed payments).
-- Demo: member writes in `member-act.tsx` (`useMemberAct`), a submission also lands in the demo
-  committee queue (same tab, client navigation). Link create/stop stubs in `act.tsx` (`links`).
-- Tests: `member-model.test.ts`; e2e `e2e/member.spec.ts` (5; suite 56/56 on fixtures).
-- Waiting on Lane B: `MemberPushToggle`, `forgetMemberOnThisDevice` (stand-ins in
-  `lane-b-member.tsx`, swap and delete), the `/m/[token]` route.
+- One phone, up to 5 people (Lane B `src/lib/member-cookies.ts`, Lane A m25): `/m/switch` (another
+  person's link: «هذا الهاتف مفتوح باسم … (أ 3).» / «هذا رابط … (ب 6).», «أضف … وانتقل إليه»,
+  «ابقَ باسم …», «لا يضيع شيء…»; a dropped person when full is said before going home); «تبديل:»
+  chips in the card (memberSwitch); /me «إزالة X من هذا الهاتف» (only the active one;
+  forgetMemberOnThisDevice only when it is the last person).
+- Demo: `/m/demo` (A-3) and `/m/demo2` (B-6) go through the real cookie rules (`demo-link.ts`);
+  switch/accept/decline/remove are demo server actions on those cookies (`member-view-action.ts`).
+  Member writes are simulated in `member-act.tsx` (`useMemberAct`); a submission also lands in the
+  demo committee queue (same tab, client navigation). Link create/stop stubs in `act.tsx` (`links`).
+- Contracts: `@/lib/data/member` (memberSession, memberHistory, memberRecentBeneficiaries,
+  getMemberLinks, memberProfiles, memberPending), `@/lib/data/member-actions`, createMemberLink /
+  revokeMemberLink via useAct, Lane B MemberLinkPaste, MemberPushToggle, forgetMemberOnThisDevice.
+- Tests: `member-model.test.ts`, `demo-member.test.ts`; e2e `e2e/member-ui.spec.ts` (6) next to
+  Lane B's `e2e/member.spec.ts`; suite 61/61 on fixtures.
 
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,

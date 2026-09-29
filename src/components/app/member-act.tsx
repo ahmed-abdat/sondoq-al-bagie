@@ -7,10 +7,8 @@ import { useSyncExternalStore } from "react";
 import { reportActionError } from "@/components/providers";
 import type { ActionResult, PendingPayment } from "@/lib/data/types";
 import { knownMember, pushDemoPending, useIsDemo } from "./act";
-import * as memberActions from "@/lib/data/member-actions";
-// TODO(lane-a): memberSwitch / memberAcceptPending / memberDeclinePending from member-actions
-import * as profileActions from "./lane-a-profiles-actions";
-import type { MemberHistoryItem, MemberSession } from "./member-types";
+import * as real from "@/lib/data/member-actions";
+import type { MemberHistoryItem, MemberSession } from "@/lib/data/member-types";
 import {
   demoMemberAccept,
   demoMemberDecline,
@@ -19,7 +17,6 @@ import {
 } from "./member-view-action";
 import { safeAct } from "./safe-act";
 
-const real = { ...memberActions, ...profileActions };
 type Actions = typeof real;
 
 /* ───────────── demo store ───────────── */

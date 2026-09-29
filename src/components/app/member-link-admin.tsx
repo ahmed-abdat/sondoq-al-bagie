@@ -10,7 +10,7 @@ import { waLink } from "@/lib/whatsapp";
 import { dayWords, relativeAgo } from "./derive";
 import { I } from "./icons";
 import { useAct } from "./act";
-import type { MemberLinkInfo } from "./member-types";
+import type { MemberLinkInfo } from "@/lib/data/member-types";
 import { useNow } from "./num";
 
 /** «آخر استخدام قبل 3 أيام» / «آخر استخدام أمس» / «لم يُستخدم بعد». */

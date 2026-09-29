@@ -14,17 +14,15 @@ import { toLedger } from "./ledger";
 import { assembleReport } from "@/lib/data/report";
 import type { LedgerEntry, MyProfile } from "./types";
 import * as memberData from "@/lib/data/member";
-import * as profileData from "./lane-a-profiles";
 import { readJar } from "@/lib/member-cookies";
-import { demoPhoneOf, type DemoPhone } from "./demo-member";
+import { demoPhoneOf, type DemoPhone, type DemoToken } from "./demo-member";
 import {
   type Beneficiary,
   type MemberHistoryItem,
   type MemberLinkInfo,
   type MemberProfile,
   type MemberSession,
-  type PendingMemberLink,
-} from "./member-types";
+} from "@/lib/data/member-types";
 
 export const usingFixtures = process.env.SONDOQ_FIXTURES === "1";
 /** Fixtures + committee writes simulated in the browser; never on production (see demo.ts). */
@@ -255,18 +253,18 @@ export async function memberProfiles(): Promise<MemberProfile[]> {
     const p = await demoPhone();
     return p ? p.profiles.map((t) => fx.fxMemberProfile(t, t === p.active)) : [];
   }
-  return profileData.memberProfiles();
+  return memberData.memberProfiles();
 }
 /** A link for someone else opened here, waiting for a choice on /m/switch. */
-export async function memberPending(): Promise<PendingMemberLink | null> {
+export async function memberPending(): Promise<MemberSession | null> {
   if (usingFixtures) {
     const t = (await demoPhone())?.pending;
-    if (!t) return null;
-    const { memberId, memberRef, fullName } = fx.fxMemberSession(t);
-    return { memberId, memberRef, fullName };
+    return t ? fx.fxMemberSession(t) : null;
   }
-  return profileData.memberPending();
+  return memberData.memberPending();
 }
+/** Demo: a demo token's member name. */
+export const demoNameOf = (t: DemoToken) => fx.fxMemberSession(t).fullName;
 /** Demo: link id → demo token (the switcher sends link ids). */
 export const demoTokenOf = (linkId: string) => fx.fxDemoTokenOf(linkId);
 /** Committee: the active link of each member who has one. */

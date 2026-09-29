@@ -35,7 +35,7 @@ import { Sheet } from "../sheet";
 import { useSnack } from "../shell";
 import { setPendingCount } from "../pending-count";
 import { PendingSlip } from "../slip";
-import type { MemberLinkInfo } from "../member-types";
+import type { MemberLinkInfo } from "@/lib/data/member-types";
 
 /** Live updates: another committee member recorded or confirmed a payment → refetch the page. */
 export function CommitteeLive() {

@@ -9,7 +9,7 @@ import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { type MemberAdmin, type SettableStatus } from "@/lib/data/types";
 import { useAct, useDemoState } from "./act";
 import { MemberLinkSection } from "./member-link-admin";
-import type { MemberLinkInfo } from "./member-types";
+import type { MemberLinkInfo } from "@/lib/data/member-types";
 import { sendOnce, useOnceId } from "./once-id";
 import { Avatar, MemberNo, StatusTag } from "./bits";
 import {

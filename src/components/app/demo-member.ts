@@ -8,7 +8,11 @@ export type DemoToken = (typeof DEMO_TOKENS)[number];
 export const isDemoToken = (t: string | undefined | null): t is DemoToken =>
   !!t && (DEMO_TOKENS as readonly string[]).includes(t);
 
-export type DemoPhone = { active: DemoToken | null; profiles: DemoToken[]; pending: DemoToken | null };
+export type DemoPhone = {
+  active: DemoToken | null;
+  profiles: DemoToken[];
+  pending: DemoToken | null;
+};
 
 /** The jar as the demo sees it: real tokens (never in demo) are ignored. */
 export function demoPhoneOf(jar: MemberJar): DemoPhone {

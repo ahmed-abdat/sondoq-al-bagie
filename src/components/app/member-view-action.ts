@@ -14,7 +14,8 @@ import {
   writeJar,
   type MemberJar,
 } from "@/lib/member-cookies";
-import type { MemberProfile, MemberSession } from "./member-types";
+import { isDemoToken } from "./demo-member";
+import type { MemberProfile, MemberSession } from "@/lib/data/member-types";
 import { memberCtx } from "./page-data";
 import * as src from "./source";
 
@@ -88,16 +89,23 @@ async function withJar<T>(f: (jar: MemberJar) => { jar: MemberJar; data: T }): P
   if (src.demoMode) writeJar(store, r.jar);
   return { ok: true, data: r.data };
 }
-/** «إزالة … من هذا الهاتف»: only the active profile goes; the next one becomes active. */
+/** «إزالة … من هذا الهاتف»: only the active profile goes; `last` = nobody left here. */
 export async function demoMemberSignOut() {
-  return withJar((j) => ({ jar: removeProfile(j).jar, data: undefined }));
+  return withJar((j) => {
+    const r = removeProfile(j);
+    return { jar: r.jar, data: { last: r.last } };
+  });
 }
 export async function demoMemberSwitch({ linkId }: { linkId: string }) {
   const t = src.demoTokenOf(linkId);
   return withJar((j) => ({ jar: t ? switchTo(j, t) : j, data: undefined }));
 }
 export async function demoMemberAccept() {
-  return withJar((j) => ({ jar: acceptPending(j).jar, data: undefined }));
+  return withJar((j) => {
+    const r = acceptPending(j);
+    const gone = r.dropped && isDemoToken(r.dropped) ? src.demoNameOf(r.dropped) : null;
+    return { jar: r.jar, data: { droppedName: gone } };
+  });
 }
 export async function demoMemberDecline() {
   return withJar((j) => ({ jar: declinePending(j), data: undefined }));

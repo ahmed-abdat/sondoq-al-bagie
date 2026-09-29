@@ -32,7 +32,7 @@ import type {
   MemberLinkInfo,
   MemberProfile,
   MemberSession,
-} from "./member-types";
+} from "@/lib/data/member-types";
 
 export const FX_TODAY = new Date("2026-09-28T10:25:00Z");
 const YEAR = 2026;

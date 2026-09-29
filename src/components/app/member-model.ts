@@ -1,7 +1,7 @@
 // Member link, pure: the «أنت» card's words and the «دفعاتي» sections. Unit tested.
 import { monthStates } from "@/lib/data/month-code";
 import { fmt, monthCount, monthsInWords, MONTHS } from "./derive";
-import type { MemberHistoryItem, MemberSession } from "./member-types";
+import type { MemberHistoryItem, MemberSession } from "@/lib/data/member-types";
 
 /** «أنت منتظم» or «عليك 3 أشهر · 3 000 أوقية» (plus «معفى من الرسوم» for exempt members). */
 export function youStatus(s: Pick<MemberSession, "status" | "monthsBehind" | "amountOwed">) {
