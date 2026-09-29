@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { ReportData, ReportExpense, ReportMember, ReportMonthState } from "./data/types";
-import { monthCell, monthPaid, paidTotal } from "./report-check";
+import { monthPaid, paidTotal } from "./report-check";
 import {
   A4_PAGE,
   BLOCK_H,
   chunkEven,
   L,
   memberCols,
-  memberChunks,
   membersPerPage,
   membersWord,
   numberOf,
@@ -54,23 +53,9 @@ const report = (members: ReportMember[], expenses: ReportExpense[] = []): Report
     generatedAt: "2026-09-28T10:00:00.000Z",
   }) as ReportData;
 
-it("fits 21 member rows on a phone page and 26 on an A4 page", () => {
-  expect(membersPerPage(PHONE_PAGE)).toBe(21);
-  expect(membersPerPage(A4_PAGE)).toBe(26);
-  // the group's last page keeps room for «المجموع»
-  expect(membersPerPage(PHONE_PAGE, true)).toBe(20);
-  expect(membersPerPage(A4_PAGE, true)).toBe(25);
-});
-
-it("memberChunks: even pages, the last one with room for the total", () => {
-  const len = (n: number, size = PHONE_PAGE) =>
-    memberChunks([...Array(n).keys()], size).map((c) => c.length);
-  expect(len(20)).toEqual([20]);
-  expect(len(21)).toEqual([11, 10]);
-  expect(len(40)).toEqual([20, 20]);
-  expect(len(42).at(-1)).toBeLessThanOrEqual(20);
-  expect(len(68)).toEqual([17, 17, 17, 17]);
-  expect(len(26, A4_PAGE)).toEqual([13, 13]);
+it("fits 28 member rows on a phone page and 35 on A4 (paper: 27), total included", () => {
+  expect(membersPerPage(PHONE_PAGE)).toBe(28);
+  expect(membersPerPage(A4_PAGE)).toBe(35);
 });
 
 it("chunkEven balances pages", () => {
@@ -98,25 +83,6 @@ describe("month cells: a ✓ badge when paid, empty otherwise", () => {
     expect(states.map(monthPaid)).toEqual([true, true, false, false, false, false]);
   });
 
-  it("cell: paid ✓, owed by an active member = sand (late or to come), else white", () => {
-    const states: ReportMonthState[] = ["paid", "prepaid", "late", "upcoming", "not_owed"];
-    expect(states.map((s) => monthCell("active", s))).toEqual([
-      "paid",
-      "paid",
-      "unpaid",
-      "unpaid",
-      "none",
-    ]);
-    expect(states.map((s) => monthCell("exempt", s))).toEqual([
-      "paid",
-      "paid",
-      "none",
-      "none",
-      "none",
-    ]);
-    expect(monthCell("left", "late")).toBe("none");
-  });
-
   it("group total: paid months × the member's group fee", () => {
     const m = (groupCode: string, months: ReportMonthState[]) => ({ groupCode, months });
     expect(
@@ -131,7 +97,7 @@ describe("month cells: a ✓ badge when paid, empty otherwise", () => {
     const c = memberCols(PHONE_PAGE.w);
     expect(c.cx(12) - c.badge).toBeGreaterThanOrEqual(L.pad);
     expect(c.cell - 2 * c.badge).toBeGreaterThanOrEqual(10); // gap between two badges
-    expect(2 * c.badge).toBeLessThan(L.row - 8); // row striping still shows around them
+    expect(2 * c.badge).toBeLessThanOrEqual(L.row - 8); // white space around the ✓ in its cell
     expect(c.cx(1) + c.badge).toBeLessThan(c.nameR - c.nameW);
     expect(c.nameW).toBeGreaterThanOrEqual(380);
   });
@@ -159,16 +125,14 @@ describe("paginateReport", () => {
       "members",
       "members",
       "members",
-      "members",
       "money",
     ]);
     const lists = pages.flatMap((p) =>
       p.kind === "members" ? [[p.list, p.rows.length, p.part, p.parts]] : [],
     );
     expect(lists).toEqual([
-      ["A", 15, 1, 3],
-      ["A", 15, 2, 3],
-      ["A", 15, 3, 3],
+      ["A", 23, 1, 2],
+      ["A", 22, 2, 2],
       ["B", 19, 1, 1],
     ]);
     const refs = pages.flatMap((p) => (p.kind === "members" ? p.rows.map((m) => m.memberRef) : []));
@@ -178,7 +142,7 @@ describe("paginateReport", () => {
   });
 
   it("A4 pages hold more rows", () => {
-    const many = Array.from({ length: 25 }, (_, i) => member(`A-${i + 1}`));
+    const many = Array.from({ length: 30 }, (_, i) => member(`A-${i + 1}`));
     const count = (size?: typeof A4_PAGE) =>
       paginateReport(report(many), size).filter((p) => p.kind === "members").length;
     expect(count(A4_PAGE)).toBe(1);
