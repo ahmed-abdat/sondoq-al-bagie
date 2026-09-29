@@ -7,7 +7,7 @@ import * as sr from "@/lib/share-report";
 import { I } from "./icons";
 import { Sheet } from "./sheet";
 
-type Result = "shared" | "whatsapp" | "cancelled" | "saved" | "copied";
+type Result = "shared" | "whatsapp" | "cancelled" | "saved" | "copied" | "downloaded" | "retry";
 type Fn = (d: ReportData) => Promise<Result | void>;
 // optional renderers (Lane B): used when present
 const lib = sr as unknown as Record<string, unknown>;
@@ -20,6 +20,8 @@ const DONE: Record<Result, string> = {
   cancelled: "",
   saved: "حُفظ الملف في هاتفك.",
   copied: "نُسخ الرابط. الصقه في مجموعة الواتساب.",
+  downloaded: "حُفظ الملف في التنزيلات.",
+  retry: "الملف جاهز الآن. اضغط مرة أخرى.",
 };
 
 export function ReportShare({ data, autoOpen = false }: { data: ReportData; autoOpen?: boolean }) {
