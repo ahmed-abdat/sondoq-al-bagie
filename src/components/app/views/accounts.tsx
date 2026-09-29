@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { InstallEntry } from "@/components/providers";
 import type {
   ExpenseCategory,
   FundAccount,
@@ -288,6 +289,14 @@ export function AccountsView({
         ) : (
           <p className="bq-hint bq-gap-top">لا توجد عمليات بعد.</p>
         )}
+      </section>
+
+      <section className="bq-sec" aria-label="تثبيت التطبيق">
+        <ul className="bq-list">
+          <li>
+            <InstallEntry />
+          </li>
+        </ul>
       </section>
 
       {s && (

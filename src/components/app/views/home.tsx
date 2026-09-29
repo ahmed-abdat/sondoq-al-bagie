@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { InstallCard } from "@/components/providers";
+import { InstallCard, markInstallEngaged } from "@/components/providers";
 import type { MemberIndex } from "@/lib/data/types";
 import { Track } from "../bits";
 import { memberLabel, searchMembers } from "../derive";
@@ -194,6 +194,7 @@ function IndexRow({ m }: { m: IndexMember }) {
     <li>
       <Link
         href={`/members?m=${encodeURIComponent(m.memberRef)}`}
+        onClick={() => markInstallEngaged()}
         className="bq-row bq-press"
         transitionTypes={["tab-fwd"]}
         aria-label={`${memberLabel(m)}، ${m.fullName}`}
