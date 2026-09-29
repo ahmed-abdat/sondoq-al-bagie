@@ -183,13 +183,9 @@ export function paginateReport(r: ReportData, size: PageSize = PHONE_PAGE): Repo
   return pages;
 }
 
-/** Footer text of page `no` of `of`, naming the part of a split list. */
-export function footerLabel(page: ReportPage, no: number, of: number, asOf: string): string {
-  const part =
-    page.kind !== "cover" && page.parts > 1 ? `الجزء ${page.part} من ${page.parts}` : null;
-  return [part ? null : FUND_NAME, `الصفحة ${no} من ${of}`, part, `حتى ${asOf}`]
-    .filter(Boolean)
-    .join(" · ");
+/** Footer text, the same on every page: «صندوق الشباب · الصفحة 2 من 7 · حتى …». */
+export function footerLabel(no: number, of: number, asOf: string): string {
+  return `${FUND_NAME} · الصفحة ${no} من ${of} · حتى ${asOf}`;
 }
 
 /** The status pill of a member row. */
@@ -261,10 +257,11 @@ function band(
   );
 }
 
-/** The month mark: ● paid (early or not, the same), ○ late, · not due / not owed. */
+/** The month mark: ● paid (early or not, the same), ○ late, · not due / not owed; exempt: none. */
 function mark(p: Pen, s: ReportMonthState | "none" | undefined, cx: number, cy: number) {
   const x = p.x;
   const r = 12;
+  if (s === "none") return;
   if (isPaid(s as ReportMonthState)) return p.dot(cx, cy, r, T.green);
   if (s === "late") {
     x.lineWidth = 3;
@@ -354,7 +351,7 @@ function drawMembers(
   const all = r.members.filter((m) => isShown(m) && listOf(m) === page.list);
   const active = all.filter((m) => m.status === "active");
   const paid = active.filter((m) => isPaid(m.months[card.month - 1])).length;
-  const fee = r.groupPrices?.[page.list];
+  const fee = (r.groupPrices as Record<string, number | undefined>)[page.list];
   band(p, w, card, o.logo, `المجموعة ${listLabel(page.list)}`, [
     `${paid} من ${active.length} دفعوا رسوم ${monthName(card.month)}`,
     ...(fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : []),
@@ -571,7 +568,7 @@ export function drawReportPage(
   o: PageDrawOptions,
 ): void {
   const card = reportSummary(r);
-  const footer = footerLabel(page, o.no, o.of, card.asOfLabel);
+  const footer = footerLabel(o.no, o.of, card.asOfLabel);
   if (page.kind === "cover") {
     drawReportSummary(x, card, {
       url: o.url,
@@ -588,7 +585,9 @@ export function drawReportPage(
   x.fillRect(0, 0, o.size.w, o.size.h);
   if (page.kind === "members") drawMembers(p, page, r, card, o);
   else drawMoney(p, page, card, o);
-  p.footer(o.size.w, o.size.h, footer, o.url, L.pad);
+  // the last page's «ابحث عن اسمك» panel already shows the link
+  const cta = page.kind === "money" && page.blocks.some((b) => b.t === "cta");
+  p.footer(o.size.w, o.size.h, footer, cta ? "" : o.url, L.pad);
 }
 
 /* ─────────────── browser ─────────────── */
