@@ -189,22 +189,30 @@ footer, cancel payment, add member, admin member, add account, «المزيد…
 campaign form, «حسابي» pick + nested keypad, report share. All: aria-labelledby = label, scroll
 locked, Escape closes, focus returns to the opener.
 
-Left:
-1. Run the same script at 1280 (`node r14.mjs 1280`) and look at the shots; not done yet.
-2. Swipe-down to dismiss on a real phone / CDP touch drag: not verified (Base UI handles it;
-   scrollable sheets need a check that swiping inside scrolled content does not dismiss).
-3. Lane B's e2e suite (`pnpm build && pnpm test:e2e`): not run after the rebuild.
-4. Handover sheets, reject flow, date pickers in expenses/campaigns, receipt cancel after confirm
-   on home: not individually re-tested.
-5. View-transition morph (member avatar, receipt) — check it still morphs (`.is-vt`).
-Known issues / differences:
-- Sheets now render in a portal on <body> (not inside `.bq-app`); the snackbar under `.bq-app`
-  is inert while a sheet is open.
-- Base UI sets no `aria-modal` on the popup (uses inert on the background); pull-to-refresh and
-  install banner still detect `[role="dialog"]`. `src/lib/offline/pull.ts` still lists
-  `[data-vaul-drawer]` (Lane B's file; harmless).
-- Install steps sheet (providers/install.tsx) did not return focus to the opener in the test.
-- Initial focus is Base UI's default (first tabbable, usually «إغلاق»), was the sheet itself.
+Closed (26a51af, 473dbd5; scripts `r14.mjs 390|1280`, `r15.mjs`, shots in `r14/`, `r15/`):
+- 1280: every sheet is a centred dialog, sticky footers hold, nested dialogs stack; the lower
+  dialog now dims (`[data-nested-dialog-open]`, brightness 0.88) since nested ones have no scrim.
+- Swipe (CDP touch drag, 390): from the handle or on content at the top closes; inside scrolled
+  content (record sheet at scrollTop 400) it scrolls the content (400 → 159) and stays open.
+- Lane B e2e: 39/39 green against a fixtures build (`SONDOQ_FIXTURES=1 pnpm build`, then
+  `SONDOQ_FIXTURES=1 PORT=3410 pnpm test:e2e`; port 3100 default may be taken). The share spec
+  needs fixtures (it fails on a real-data build by design).
+- Reject flow (inline, «تراجع» shows), date pickers in expenses/campaigns (nested, Escape closes
+  only the top), handover page (no sheets), home receipt → «إلغاء هذه الدفعة» → cancelled stamp.
+- View-transition morphs: member avatar and home receipt open with `.is-vt`, close cleanly.
+- Snackbar: portalled to <body> (not under the aria-hidden `.bq-app`), so a snack raised while a
+  sheet stays open (cancel on home) is tappable; with a sheet open it sits at the top in the scrim.
+- Initial focus: the sheet itself (screen readers read its title; Tab → «إغلاق»), unless a field
+  inside autofocused. Focus returns to the opener everywhere, incl. install steps (the old test
+  tagged the row's inner span, not the button: false alarm).
+Notes:
+- Base UI hides the background with aria-hidden (not inert) and keeps `[aria-live]` regions and
+  their ancestors visible, so on settings/account `.bq-app` itself is not hidden (by design);
+  the scrim blocks pointers.
+- Lane B (not changed): `src/lib/offline/pull.ts` still lists `[data-vaul-drawer]`; can be
+  dropped (Base UI popups carry `role="dialog"`, already matched).
+- A phone tap does not focus a button on iOS Safari, so focus return there lands on <body>.
+- Swipe was checked with CDP touch in Chromium only; a pass on a real iPhone/Android is still worth doing.
 
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
