@@ -164,7 +164,10 @@ function MemberPicker({
       ),
     [pool, q, g],
   );
-  const self = member && !q.trim() ? pool.find((m) => m.memberId === member.selfId) : undefined;
+  const self =
+    member && member.start !== "others" && !q.trim()
+      ? pool.find((m) => m.memberId === member.selfId)
+      : undefined;
   const recent = q.trim()
     ? []
     : recentIds
@@ -439,6 +442,8 @@ type MemberMode = {
   selfName: string;
   /** «دفعت لهم سابقًا»: member ids, newest first */
   recent: string[];
+  /** «self»: open with the member and their late (or next) months chosen; «others»: no «أنت» */
+  start?: "self" | "others";
 };
 /** Member mode adds one step: the screenshot is required. */
 type AnyStep = Step | "shot";
@@ -469,7 +474,7 @@ export function RecordBody({
   /** who records: printed on the receipt when the payment is confirmed at once */
   me?: { by: string; role: string };
   /**
-   * «أرسلت دفعة» from a member's personal link: the same flow, sent to the committee to confirm
+   * «أرسل صورة التحويل» from a member's personal link: the same flow, sent to the committee to confirm
    * (screenshot required, optional note, always pending).
    */
   member?: MemberMode;
@@ -480,8 +485,13 @@ export function RecordBody({
   const { recordPayment, uploadProof } = useAct();
   const { memberUploadProof, memberSubmitPayment } = useMemberAct();
   const once = useOnceId();
-  const [rows, setRows] = useState<Row[]>([]);
-  const [adding, setAdding] = useState(true);
+  const [rows, setRows] = useState<Row[]>(() => {
+    const self = member?.start === "self" && members.find((m) => m.memberId === member.selfId);
+    return self
+      ? [{ m: self, months: defaultMonths(ctx, self), past: self.pastLate ?? [], edit: false }]
+      : [];
+  });
+  const [adding, setAdding] = useState(() => !rows.length);
   const [payer, setPayer] = useState<string | null>(null); // null = the first member
   const [meth, setMeth] = useState<PaymentMethod | null>(null);
   const [moreMeth, setMoreMeth] = useState(false);
@@ -832,11 +842,9 @@ export function RecordBody({
 
   return (
     <div className="bq-rec">
-      <h2>{member ? "أرسلت دفعة" : "سجّل دفعة"}</h2>
+      <h2>{member ? "أرسل صورة التحويل" : "سجّل دفعة"}</h2>
       {member && !rows.length && (
-        <p className="bq-hint">
-          اختر عن من دفعت. يمكنك الدفع عن نفسك أو عن غيرك، وتؤكدها اللجنة بعد مطابقة الصورة.
-        </p>
+        <p className="bq-hint">اختر من دفعت عنه. تؤكد اللجنة الدفعة بعد مطابقة الصورة.</p>
       )}
 
       <p className="bq-rec-k">{rows.length > 1 ? "الأعضاء في هذا التحويل" : "عن من هذه الدفعة؟"}</p>

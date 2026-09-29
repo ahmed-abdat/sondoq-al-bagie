@@ -1,17 +1,19 @@
 "use client";
-// «أنت»: what a member's personal link adds on top of the public pages. The card (status, months
-// as dots, credit, waiting submissions) and its two sheets: «أرسلت دفعة» (the committee record
-// flow in member mode) and «ادفع الآن» (the fund's wallets and the amount due).
+// «أنت»: what a member's personal link adds on top of the public pages. The card changes with the
+// member's state (owner, r24): the whole year paid (thanks, no pay button), paid up to a month,
+// late (one «ادفع الآن»), exempt. Months as the report's grid (✓ when paid, empty otherwise).
+// Sheets: «أرسل صورة التحويل» (the committee record flow in member mode, for me or for others)
+// and «ادفع الآن» (amount due, the fund's wallets, then «دفعت؟ أرسل صورة التحويل»).
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MemberLinkPaste } from "@/components/providers";
 import { useIsDemo } from "./act";
 import { Avatar, MemberNo } from "./bits";
-import { fmt, groupLabel } from "./derive";
+import { fmt, groupLabel, monthCount } from "./derive";
 import { I } from "./icons";
 import { rememberDemoMember, useMemberAct, useMemberDemo } from "./member-act";
-import { DOT_WORD, waitingLine, youDots, youStatus } from "./member-model";
+import { waitingLine, youCard, youDots } from "./member-model";
 import {
   memberHome,
   memberSheetData,
@@ -47,7 +49,7 @@ function useMemberHome(initial?: MemberHome | null) {
   return [d, () => setTick((n) => n + 1)] as const;
 }
 
-type SheetKind = "send" | "pay";
+type SheetKind = "self" | "others" | "pay";
 
 export function MemberCard({
   initial,
@@ -93,8 +95,9 @@ export function MemberCard({
   if (d === null) return onMe ? null : <MemberLinkPaste />;
 
   const { s } = d;
-  const st = youStatus(s);
+  const st = youCard(s, d.months, d.year);
   const dots = youDots(d.months);
+  const paidNames = dots.filter((x) => x.state === "paid").map((x) => x.name);
   const waiting = d.waiting + (isDemo ? demo.sent.filter((x) => x.status === "pending").length : 0);
   return (
     <section className="bq-sec bq-you" aria-labelledby="bq-you-h">
@@ -130,23 +133,31 @@ export function MemberCard({
             ))}
         </div>
       )}
-      <p className={`bq-you-st ${st.late ? "is-late" : "is-ok"}`}>
-        {st.late ? I.clock(20) : I.check(20)}
+      <p className={`bq-you-st ${st.kind === "late" ? "is-late" : "is-ok"}`}>
+        {st.kind === "late" ? I.clock(20) : I.check(20)}
         <span>{st.text}</span>
       </p>
-      <ol className="bq-you-dots" aria-label={`أشهر ${d.year}`}>
-        {dots.map((x) => (
-          <li key={x.month} className={`is-${x.state}`}>
-            <span className="bq-sr">
-              {x.name}: {DOT_WORD[x.state]}
-            </span>
-          </li>
-        ))}
-      </ol>
+      {st.kind === "full" && <p className="bq-hint">شكرًا لك</p>}
+      <div className="bq-you-grid">
+        <ol
+          className="bq-you-cells"
+          role="img"
+          aria-label={
+            paidNames.length ? `أشهر ${d.year} المدفوعة: ${paidNames.join("، ")}` : `أشهر ${d.year}`
+          }
+        >
+          {dots.map((x) => (
+            <li key={x.month}>{x.state === "paid" ? <OkMark /> : null}</li>
+          ))}
+        </ol>
+        <ol className="bq-you-nums" aria-hidden="true">
+          {dots.map((x) => (
+            <li key={x.month}>{x.month}</li>
+          ))}
+        </ol>
+      </div>
       <p className="bq-you-key" aria-hidden="true">
-        <span className="is-paid">مدفوع</span>
-        <span className="is-late">متأخر</span>
-        <span className="is-upcoming">لم يحن</span>
+        <OkMark /> مدفوع
       </p>
       {s.credit > 0 && (
         <p className="bq-hint">
@@ -154,20 +165,35 @@ export function MemberCard({
         </p>
       )}
       {waiting > 0 && (
-        <p className="bq-you-wait">
+        <Link className="bq-you-wait bq-press" href="/me" transitionTypes={["tab-fwd"]}>
           {I.clock(18)} {waitingLine(waiting)}
-        </p>
+        </Link>
       )}
       <div className="bq-btn-col bq-small-top">
+        {st.kind === "late" && (
+          <button
+            type="button"
+            className="bq-btn bq-btn-primary bq-btn-lg bq-press"
+            onClick={() => open("pay")}
+          >
+            ادفع الآن
+          </button>
+        )}
+        {st.kind === "upto" && (
+          <button
+            type="button"
+            className="bq-btn bq-btn-soft bq-press"
+            onClick={() => open("self")}
+          >
+            ادفع أشهرًا قادمة
+          </button>
+        )}
         <button
           type="button"
-          className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-          onClick={() => open("send")}
+          className="bq-btn bq-btn-soft bq-press"
+          onClick={() => open("others")}
         >
-          {I.image(20)} أرسلت دفعة
-        </button>
-        <button type="button" className="bq-btn bq-btn-soft bq-press" onClick={() => open("pay")}>
-          ادفع الآن
+          ادفع عن شخص آخر
         </button>
       </div>
       {!onMe && (
@@ -177,15 +203,20 @@ export function MemberCard({
         </Link>
       )}
 
-      {sheet === "send" && (
-        <Sheet key="send" label="أرسلت دفعة" onDone={() => setSheet(null)}>
+      {(sheet === "self" || sheet === "others") && (
+        <Sheet key={sheet} label="أرسل صورة التحويل" onDone={() => setSheet(null)}>
           {data ? (
             <RecordBody
               members={data.members}
               ctx={data.ctx}
               accounts={data.accounts}
               campaigns={data.campaigns}
-              member={{ selfId: s.memberId, selfName: s.fullName, recent: data.recent }}
+              member={{
+                selfId: s.memberId,
+                selfName: s.fullName,
+                recent: data.recent,
+                start: sheet,
+              }}
               onDone={(t) => {
                 setSheet(null);
                 say(t);
@@ -203,18 +234,18 @@ export function MemberCard({
             <h2>ادفع الآن</h2>
             {s.amountOwed > 0 && (
               <p className="bq-lead">
-                عليك حتى الآن <Num className="bq-strong">{fmt(s.amountOwed)}</Num> أوقية.
+                عليك <Num className="bq-strong">{fmt(s.amountOwed)}</Num> أوقية عن{" "}
+                {monthCount(s.monthsBehind)}.
               </p>
             )}
-            <p className="bq-rec-k">حوّل إلى أحد أرقام الصندوق</p>
+            <p className="bq-rec-k">كيف أدفع؟ حوّل إلى أحد أرقام الصندوق</p>
             {data ? <PayTo accounts={data.accounts} /> : <SheetWait failed={data === null} />}
-            <p className="bq-hint">بعد التحويل اضغط «أرسلت دفعة» وأرفق صورة التحويل.</p>
             <button
               type="button"
               className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-              onClick={() => setSheet("send")}
+              onClick={() => setSheet("self")}
             >
-              أرسلت دفعة
+              {I.image(20)} دفعت؟ أرسل صورة التحويل
             </button>
           </div>
         </Sheet>
@@ -232,5 +263,22 @@ function SheetWait({ failed }: { failed: boolean }) {
     <p className="bq-hint" role="status">
       <span className="bq-spin" aria-hidden="true" /> جارٍ التحميل…
     </p>
+  );
+}
+
+/** The report's ✓ badge (green disc, white check). */
+function OkMark() {
+  return (
+    <svg className="bq-okm" viewBox="0 0 32 32" width="18" height="18" aria-hidden="true">
+      <circle cx="16" cy="16" r="16" fill="var(--g7)" />
+      <path
+        d="M9 16l5 5 10-11"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

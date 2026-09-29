@@ -11,6 +11,26 @@ export function youStatus(s: Pick<MemberSession, "status" | "monthsBehind" | "am
   return { late: true, text: `عليك ${monthCount(s.monthsBehind)}${owed}` };
 }
 
+/**
+ * What the «أنت» card says and offers (owner, r24): the whole year paid → thanks, no pay button;
+ * paid up to a month → «دفعت حتى سبتمبر»; late → «عليك …» and one «ادفع الآن»; exempt.
+ */
+export type YouKind = "full" | "upto" | "late" | "exempt";
+export function youCard(
+  s: Pick<MemberSession, "status" | "monthsBehind" | "amountOwed">,
+  code: string,
+  year: number,
+): { kind: YouKind; text: string } {
+  if (s.status === "exempt") return { kind: "exempt", text: "أنت معفى من الرسوم الشهرية" };
+  if (s.monthsBehind > 0) return { kind: "late", text: youStatus(s).text };
+  const dots = youDots(code);
+  const owed = dots.filter((d) => d.state !== "off");
+  if (owed.length && owed.every((d) => d.state === "paid"))
+    return { kind: "full", text: `دفعت رسوم ${year} كاملة` };
+  const last = [...dots].reverse().find((d) => d.state === "paid");
+  return { kind: "upto", text: last ? `دفعت حتى ${last.name}` : "أنت منتظم" };
+}
+
 export type Dot = { month: number; name: string; state: "paid" | "late" | "upcoming" | "off" };
 /** This year's twelve months as dots, January first. */
 export function youDots(code: string): Dot[] {
@@ -30,7 +50,7 @@ export const DOT_WORD: Record<Dot["state"], string> = {
 /** «دفعة بانتظار التأكيد» / «دفعتان …» / «3 دفعات …». */
 export function waitingLine(n: number) {
   if (n <= 0) return "";
-  if (n === 1) return "دفعة واحدة بانتظار التأكيد";
+  if (n === 1) return "دفعة بانتظار التأكيد";
   if (n === 2) return "دفعتان بانتظار التأكيد";
   return n <= 10 ? `${n} دفعات بانتظار التأكيد` : `${n} دفعة بانتظار التأكيد`;
 }

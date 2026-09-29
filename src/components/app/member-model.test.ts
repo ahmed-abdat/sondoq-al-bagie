@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { coverLines, historySections, waitingLine, youDots, youStatus } from "./member-model";
+import {
+  coverLines,
+  historySections,
+  waitingLine,
+  youCard,
+  youDots,
+  youStatus,
+} from "./member-model";
 import type { MemberHistoryItem } from "@/lib/data/member-types";
 
 const alloc = (memberId: string, fullName: string, month: number, year = 2026) => ({
@@ -45,6 +52,27 @@ describe("youStatus", () => {
   });
 });
 
+describe("youCard", () => {
+  const on = { status: "active" as const, monthsBehind: 0, amountOwed: 0 };
+  it("whole year paid (months before joining do not count)", () => {
+    expect(youCard(on, "PPPPPPPPPPPP", 2026)).toEqual({
+      kind: "full",
+      text: "دفعت رسوم 2026 كاملة",
+    });
+    expect(youCard(on, "NNNNNPPPPPPP", 2026).kind).toBe("full");
+  });
+  it("up to date: paid up to the last paid month", () => {
+    expect(youCard(on, "PPPPPPPPPUUU", 2026)).toEqual({ kind: "upto", text: "دفعت حتى سبتمبر" });
+    expect(youCard(on, "UUUUUUUUUUUU", 2026).text).toBe("أنت منتظم");
+  });
+  it("late and exempt", () => {
+    const late = youCard({ ...on, monthsBehind: 3, amountOwed: 3000 }, "PPPPPPLLLUUU", 2026);
+    expect(late.kind).toBe("late");
+    expect(late.text).toMatch(/^عليك 3 أشهر · 3\s000 أوقية$/);
+    expect(youCard({ ...on, status: "exempt" }, "NNNNNNNNNNNN", 2026).kind).toBe("exempt");
+  });
+});
+
 describe("youDots and waitingLine", () => {
   it("maps the month code to twelve dots", () => {
     const d = youDots("PPPPPPLLLUUN");
@@ -56,7 +84,7 @@ describe("youDots and waitingLine", () => {
   });
   it("counts waiting submissions in words", () => {
     expect(waitingLine(0)).toBe("");
-    expect(waitingLine(1)).toBe("دفعة واحدة بانتظار التأكيد");
+    expect(waitingLine(1)).toBe("دفعة بانتظار التأكيد");
     expect(waitingLine(2)).toBe("دفعتان بانتظار التأكيد");
     expect(waitingLine(4)).toBe("4 دفعات بانتظار التأكيد");
   });

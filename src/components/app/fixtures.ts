@@ -96,6 +96,8 @@ const STATUS: Record<string, MembershipStatus> = {
 };
 /** Joined mid-year: the months before are «غير مستحق» (never offered on the record screen). */
 const JOINED: Record<string, number> = { "B-12": 6 };
+/** Months paid, fixed for the demo members: A-3 (/m/demo) paid the whole year. */
+const UP_TO: Record<string, number> = { "A-3": 12 };
 const RAW: Raw[] = Array.from({ length: 91 }, (_, i) => {
   const r = seeded(i + 3);
   const group: "A" | "B" = i < 21 ? "A" : "B";
@@ -103,7 +105,9 @@ const RAW: Raw[] = Array.from({ length: 91 }, (_, i) => {
   const status = STATUS[`${group}-${no}`] ?? "active";
   // ~45% paid the whole year, ~38% nothing yet, the rest through May, June or August.
   const x = r();
-  const upTo = x < 0.45 ? 12 : x < 0.83 ? 0 : [5, 6, 8][Math.floor(r() * 3)];
+  const drawn = x < 0.45 ? 12 : x < 0.83 ? 0 : [5, 6, 8][Math.floor(r() * 3)];
+  // the override comes after the draw so the random sequence (names) stays the same
+  const upTo = UP_TO[`${group}-${no}`] ?? drawn;
   return {
     id: uuid("a", i + 1),
     no,
@@ -665,7 +669,7 @@ export const fxTerms = (): Term[] => [
 export const fxHandovers = (): Handover[] => [];
 
 /* ───────────── member link (demo: /m/demo) ───────────── */
-// The demo member is A-3 (late July to September); he paid earlier for himself and once for B-6.
+// /m/demo is A-3 (paid the whole year; he also paid once for B-6); /m/demo2 is B-6 (late).
 const ME = RAW[2];
 const COUSIN = RAW[26]; // B-6
 const ym = (month: number) => `${YEAR}-${String(month).padStart(2, "0")}`;
