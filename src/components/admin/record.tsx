@@ -25,7 +25,8 @@ import {
   fmt,
   levyOwed,
   levyShare,
-  isLate,
+  nothingToPay,
+  owes,
   Money,
   monthsWords,
   Num,
@@ -289,7 +290,8 @@ function RecordFlow({
   return (
     <div className="pa-page r2">
       <Back to="" label="الرئيسية" />
-      <h1>سجّل دفعة</h1>
+      {/* owner: no visible title, the screen starts with «لمن هذه الدفعة؟» (kept for screen readers) */}
+      <h1 className="bq-sr">سجّل دفعة</h1>
       <section className="pa-sec">
         <div className="pa-sec-h">
           <h2>{t.lines.length ? "هذه الدفعة عن" : "لمن هذه الدفعة؟"}</h2>
@@ -598,14 +600,17 @@ function PersonPicker({ t, onDone, autoFocus }: { t: T; onDone: () => void; auto
   const active = d.members.filter((m) => m.status === "active");
   const mine = recent.flatMap((id) => active.filter((m) => m.id === id));
   // a new phone has no recent payers: offer who owes instead of an empty screen
-  const start = mine.length ? mine : active.filter(isLate).slice(0, 5);
+  // recent payers with something left to pay, else (a new phone) who owes
+  const owing = mine.filter((m) => !nothingToPay(m, d));
+  const start = owing.length ? owing : active.filter((m) => owes(m, d)).slice(0, 5);
   return (
     <>
       <MemberPicker
+        payment
         autoFocus={autoFocus}
         exclude={taken}
         start={start}
-        startHint={mine.length ? "آخر من سجّلت لهم" : "عليهم متأخرات"}
+        startHint={owing.length ? "آخر من سجّلت لهم" : "عليهم متأخرات"}
         alreadyText={(m) => `${m.name} في هذه الدفعة.`}
         onPick={(m) => {
           t.addPerson(m.ref);

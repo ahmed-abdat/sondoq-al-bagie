@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { safeStorage } from "@/lib/safe-storage";
 import { searchMembers } from "@/components/app/derive";
-import { Avatar, payStatus, useP, X } from "./kit";
+import { Avatar, levyOwed, nothingToPay, payStatus, useP, X } from "./kit";
 import type { PMember } from "./types";
 
 /** The last members this phone recorded payments for (ids, newest first). */
@@ -25,33 +25,52 @@ export const rememberRecent = (ids: string[]) =>
   );
 
 /** One row the picker can offer: paper ref («A-4»), name, and a short line under it. */
-export type Person = { id: string; ref: string; name: string; sub: string };
+export type Person = {
+  id: string;
+  ref: string;
+  name: string;
+  sub: string;
+  /** shown dimmed (e.g. «لا شيء عليه» when recording a payment) */
+  muted?: boolean;
+};
 
 /** The admin screens' picker: active members, each with how far he has paid. */
 export function MemberPicker({
   onPick,
   start,
   alreadyText,
+  payment = false,
   ...rest
 }: Omit<SearchProps, "people" | "onPick" | "start" | "alreadyText"> & {
   onPick: (m: PMember) => void;
   start?: PMember[];
   alreadyText?: (m: PMember) => string;
+  /**
+   * Recording a payment: members with nothing to pay are left out of the starting list; the
+   * search still finds them, dimmed with «لا شيء عليه» (a تبرع for them stays possible).
+   */
+  payment?: boolean;
 }) {
   const { d } = useP();
   const active = d.members.filter((m) => m.status === "active");
   const byRef = new Map(active.map((m) => [m.ref, m]));
+  const done = (m: PMember) => payment && nothingToPay(m, d);
   const person = (m: PMember): Person => ({
     id: m.id,
     ref: m.ref,
     name: m.name,
-    sub: payStatus(m),
+    sub: done(m)
+      ? "لا شيء عليه"
+      : payment && levyOwed(m, d).length
+        ? `${payStatus(m)} · عليه نصيب لوحة`
+        : payStatus(m),
+    muted: done(m),
   });
   return (
     <MemberSearch
       {...rest}
       people={active.map(person)}
-      start={start?.map(person)}
+      start={start?.filter((m) => !done(m)).map(person)}
       alreadyText={alreadyText && ((p) => alreadyText(byRef.get(p.ref)!))}
       onPick={(p) => onPick(byRef.get(p.ref)!)}
     />
@@ -122,7 +141,7 @@ export function MemberSearch({
             <li key={m.ref}>
               <button
                 type="button"
-                className="pa-row"
+                className={`pa-row ${m.muted ? "is-muted" : ""}`}
                 aria-pressed={selected.length ? on : undefined}
                 onClick={() => onPick(m)}
               >

@@ -99,3 +99,21 @@ test("several people in one transfer: a relative from the hint, each with his mo
   await page.getByRole("button", { name: "أخرِجه من الدفعة" }).nth(1).click();
   await expect(page.locator(".r2-line")).toHaveCount(1);
 });
+
+test("the payment picker: who has nothing to pay is not offered, search shows them dimmed", async ({
+  page,
+}) => {
+  await page.goto("/committee/record");
+  const find = page.getByLabel("ابحث عن العضو", { exact: true });
+  // before typing: only members with something to pay
+  await expect(page.locator(".pa-rows button.pa-row").first()).toBeVisible();
+  await expect(page.locator(".pa-rows button.pa-row.is-muted")).toHaveCount(0);
+  // a member who paid the whole year and owes no لوحة share: found, dimmed, still pickable (تبرع)
+  await find.fill("أ 7");
+  const row = page.locator(".pa-rows button.pa-row").first();
+  await expect(row).toContainText("لا شيء عليه");
+  await expect(row).toHaveClass(/is-muted/);
+  // paid the year but owes a لوحة share: offered, and says so
+  await find.fill("أ 2");
+  await expect(page.locator(".pa-rows button.pa-row").first()).toContainText("عليه نصيب لوحة");
+});

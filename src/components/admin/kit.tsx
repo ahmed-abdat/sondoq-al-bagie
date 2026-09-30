@@ -348,6 +348,17 @@ export const levyOwed = (m: PMember, d: PData): PLevy[] =>
   );
 /** One member's share of a levy (their own amount when the «مسؤول» changed it). */
 export const levyShare = (l: PLevy, ref: string) => l.amounts?.[ref] ?? l.perMember;
+/**
+ * Nothing to pay (owner): not active (exempt, away, left), or every month of this year paid or
+ * not owed, no earlier year's month late and no open لوحة share. Server numbers only (the same
+ * member rows and levy shares as «المتأخرات»).
+ */
+export const nothingToPay = (m: PMember, d: Pick<PData, "levies">) => {
+  if (m.status !== "active") return true;
+  if (m.pastLate.length) return false;
+  for (let k = 1; k <= 12; k++) if (!m.paid.includes(k) && !m.notOwed.includes(k)) return false;
+  return levyOwed(m, d as PData).length === 0;
+};
 export const owes = (m: PMember, d: PData) => isLate(m) || levyOwed(m, d).length > 0;
 /** This year's late fees, earlier years' (each at its price) and open لوحة shares. */
 export const feesOwed = (m: PMember, d: Pick<PData, "year">) =>

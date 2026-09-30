@@ -1469,3 +1469,9 @@ body:has(.pa) .bq-demo {
 .pa-skip:focus {
   top: 8px;
 }
+
+/* a member with nothing to pay, found by search when recording a payment */
+.pa-row.is-muted .pa-row-t,
+.pa-row.is-muted .pa-av {
+  opacity: 0.6;
+}
