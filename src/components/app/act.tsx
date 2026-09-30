@@ -491,14 +491,10 @@ const demo = {
   updateWalletType: async () => ok(undefined),
   setWalletTypeActive: async () => ok(undefined),
   addWalletAccount: async () => ok(crypto.randomUUID()),
-  setFundAccountOpening: async () => ok(undefined),
-  setCashOpening: async () => ok(undefined),
   uploadWalletLogo: async () => ok({ path: "0000000000000000.png" }),
   // m43 (Lane A): not in the demo yet
   replaceWalletAccount: async () => ok(crypto.randomUUID()),
   correctWalletAccount: async () => ok(undefined),
-  recordWalletTransfer: async () => ok(crypto.randomUUID()),
-  cancelWalletTransfer: async () => ok(undefined),
 } satisfies Sim;
 
 /* ───────────── context ───────────── */

@@ -228,20 +228,6 @@ const cases: Case[] = [
     true,
   ],
   [
-    "setFundAccountOpening",
-    () => a.setFundAccountOpening({ id, amount: 15000, on: "2026-01-01" }),
-    "set_fund_account_opening",
-    { p_id: id, p_amount: 15000, p_on: "2026-01-01" },
-    true,
-  ],
-  [
-    "setCashOpening",
-    () => a.setCashOpening({ amount: 2000, on: "2026-01-01" }),
-    "set_cash_opening",
-    { p_amount: 2000, p_on: "2026-01-01" },
-    true,
-  ],
-  [
     "recordExpense (wallet)",
     () =>
       a.recordExpense({ id, spentOn: "2026-09-01", activityId: 5, amount: 700, walletTypeId: 9 }),

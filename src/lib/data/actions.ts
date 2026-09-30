@@ -388,27 +388,7 @@ export async function addWalletAccount(input: s.AddWalletAccountInput) {
   );
 }
 
-/** The opening balance of an account, set once («المسؤول»). */
-export async function setFundAccountOpening(input: { id: string; amount: number; on: string }) {
-  return run(
-    s.setFundAccountOpeningSchema,
-    input,
-    (sb, p) => sb.rpc("set_fund_account_opening", { p_id: p.id, p_amount: p.amount, p_on: p.on }),
-    { touchesPublic: true },
-  );
-}
-
-/** The opening of cash in hand, set once («المسؤول»). */
-export async function setCashOpening(input: { amount: number; on: string }) {
-  return run(
-    s.setCashOpeningSchema,
-    input,
-    (sb, p) => sb.rpc("set_cash_opening", { p_amount: p.amount, p_on: p.on }),
-    { touchesPublic: true },
-  );
-}
-
-/* ───────────── wallet numbers and moves (m43) ───────────── */
+/* ───────────── a wallet's number (m43; moves and openings retired by m46) ───────────── */
 
 /** A wallet's new number («المسؤول»): stops its active account, adds this one; returns its id. */
 export async function replaceWalletAccount(input: {
@@ -444,39 +424,6 @@ export async function correctWalletAccount(input: {
         p_account_number: p.accountNumber,
         p_holder_name: p.holderName,
       }),
-    { touchesPublic: true },
-  );
-}
-
-/**
- * Move money between wallets (an account, or cash = null), e.g. everything to cash before a
- * handover. Any committee member; never more than the wallet holds (not_enough names the wallet
- * and its balance); never income, spending or the fund balance. Replay-safe on `id`.
- */
-export async function recordWalletTransfer(input: s.RecordWalletTransferInput) {
-  return run(
-    s.recordWalletTransferSchema,
-    input,
-    (sb, p) =>
-      sb.rpc("record_wallet_transfer", {
-        p_id: p.id,
-        // null = cash (the generated Args type does not show the null the RPC takes)
-        p_from_account_id: p.fromAccountId as string,
-        p_to_account_id: p.toAccountId as string,
-        p_amount: p.amount,
-        p_moved_on: p.movedOn,
-        p_note: p.note,
-      }),
-    { touchesPublic: true, result: (d) => d as string },
-  );
-}
-
-/** Cancel a move with a reason («المسؤول»). */
-export async function cancelWalletTransfer(input: { id: string; reason: string }) {
-  return run(
-    s.idReasonSchema,
-    input,
-    (sb, p) => sb.rpc("cancel_wallet_transfer", { p_id: p.id, p_reason: p.reason }),
     { touchesPublic: true },
   );
 }

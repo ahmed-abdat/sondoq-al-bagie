@@ -235,29 +235,9 @@ export type WalletsReport = Base & {
     in: number;
     count: number;
     out?: number;
-    /** @deprecated m46 «one pot»: wallets have no balance, moves or opening; never set */
-    transferIn?: number;
-    /** @deprecated m46 */
-    transferOut?: number;
-    /** @deprecated m46 */
-    opening?: { amount: number; on: string } | null;
-    /** @deprecated m46: the fund balance is the one number */
-    balance?: number;
   }[];
-  /** money in and out in cash («نقدًا») */
-  cash: {
-    in: number;
-    count: number;
-    out?: number;
-    /** @deprecated m46 */
-    transferIn?: number;
-    /** @deprecated m46 */
-    transferOut?: number;
-    /** @deprecated m46 */
-    opening?: { amount: number; on: string } | null;
-    /** @deprecated m46 */
-    balance?: number;
-  };
+  /** money in and out in cash («نقدًا»); m46 «one pot»: no wallet has a balance */
+  cash: { in: number; count: number; out?: number };
   /** money in without a wallet (the paper sheets) */
   paperIn?: number;
   /** expenses that name no wallet (m31) */

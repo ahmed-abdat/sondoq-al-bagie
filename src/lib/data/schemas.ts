@@ -378,9 +378,6 @@ export const addWalletAccountSchema = z.object({
   note: optText(300),
   sortOrder: z.number().int().min(0).max(1000).default(0),
 });
-const openingAmount = z.number().int().min(0).max(100_000_000);
-export const setFundAccountOpeningSchema = z.object({ id, amount: openingAmount, on: day });
-export const setCashOpeningSchema = z.object({ amount: openingAmount, on: day });
 /** A wallet's new number (m43): the old account stops, its history stays. */
 export const replaceWalletAccountSchema = z.object({
   walletTypeId,
@@ -389,19 +386,7 @@ export const replaceWalletAccountSchema = z.object({
 });
 /** A typo in a number nothing has used yet (m43). */
 export const correctWalletAccountSchema = z.object({ id, accountNumber, holderName: text(120) });
-/** Money moved between wallets (m43): an account, or cash (null); never income or spending. */
-export const recordWalletTransferSchema = z
-  .object({
-    id,
-    fromAccountId: id.nullable(),
-    toAccountId: id.nullable(),
-    amount: mro,
-    movedOn: day,
-    note: optText(500),
-  })
-  .refine((p) => p.fromAccountId !== p.toAccountId, { message: "same_wallet" });
 export type AddWalletAccountInput = z.input<typeof addWalletAccountSchema>;
-export type RecordWalletTransferInput = z.input<typeof recordWalletTransferSchema>;
 export type UpdateFundAccountInput = z.input<typeof updateFundAccountSchema>;
 
 /** PushSubscription.toJSON() from the browser. */
