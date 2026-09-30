@@ -1,6 +1,7 @@
 // PROTOTYPE (throwaway, branch proto/admin): the committee-only admin app, fixtures only.
 // Plain serialisable shapes built on the server from the fictional fixtures (data.ts).
 import type { Method } from "@/lib/methods";
+import type { AllStats } from "./stats";
 
 export type PMember = {
   id: string;
@@ -133,4 +134,6 @@ export type PData = {
   prices: Record<string, number>;
   levies: PLevy[];
   log: PLog[];
+  /** analytics, computed in the data door (see stats.ts) */
+  stats: AllStats;
 };

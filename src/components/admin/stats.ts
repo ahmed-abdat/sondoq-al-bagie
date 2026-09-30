@@ -85,3 +85,36 @@ export function campaignStats(c: PCampaign, members: PMember[]) {
     pctTarget: c.target > 0 ? pct(c.collected, c.target) : null,
   };
 }
+
+export type FeeStats = ReturnType<typeof feeStats>;
+export type LevyStats = ReturnType<typeof levyStats>;
+export type CampaignStats = ReturnType<typeof campaignStats>;
+export type AllStats = {
+  fees: FeeStats;
+  /** active members who owe fees (any year) or an open لوحة share */
+  owing: number;
+  levies: Record<string, LevyStats>;
+  campaigns: Record<string, CampaignStats>;
+};
+
+/**
+ * Every number the screens show, computed once in the data door (source.ts) from the same
+ * committee reads as the rest of the page; screens never recount. When the stats read lands
+ * (plan §10, Lane A) source.ts swaps it in here.
+ */
+export function allStats(d: Omit<PData, "stats">): AllStats {
+  const levyOwing = new Set(
+    d.levies.flatMap((l) =>
+      l.refs.filter((r) => !l.paidRefs.includes(r) && !l.exemptRefs?.includes(r)),
+    ),
+  );
+  const owing = d.members.filter(
+    (m) => m.status === "active" && (!upToDate(m) || levyOwing.has(m.ref)),
+  ).length;
+  return {
+    fees: feeStats(d),
+    owing,
+    levies: Object.fromEntries(d.levies.map((l) => [l.id, levyStats(l, d.members, d.today)])),
+    campaigns: Object.fromEntries(d.campaigns.map((c) => [c.id, campaignStats(c, d.members)])),
+  };
+}

@@ -36,6 +36,7 @@ import { currentDueMonth, fmt } from "./derive";
 import { demoAdminData, demoStatement } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
+import { allStats } from "@/components/admin/stats";
 import * as fx from "./fixtures";
 import { assembleReport } from "@/lib/data/report";
 import { toFundSummary } from "@/lib/data/map";
@@ -412,7 +413,7 @@ export async function adminData(): Promise<PData> {
     expected: x.expected,
     spent: spentIn(x.month),
   }));
-  return {
+  const base: Omit<PData, "stats"> = {
     today: t.toISOString().slice(0, 10),
     year,
     due,
@@ -447,6 +448,7 @@ export async function adminData(): Promise<PData> {
     levies,
     log,
   };
+  return { ...base, stats: allStats(base) };
 }
 
 /** One «سجل العمليات» line in plain words: who, what, how much, why. */

@@ -5,6 +5,7 @@ import * as fx from "./fixtures";
 import { toMemberRows } from "@/lib/data/member-lists";
 import type { Method } from "@/lib/methods";
 import type { MemberStatement } from "@/lib/data/report-types";
+import { allStats } from "@/components/admin/stats";
 import type {
   PCampaign,
   PData,
@@ -285,7 +286,12 @@ export function demoAdminData(): PData {
       createdBy: "سيدي محمد",
       status: "open",
       refs: active.map((m) => m.ref),
-      paidRefs: active.filter((m, i) => i % 3 !== 1 && m.paid.length > 0).map((m) => m.ref),
+      paidRefs: active
+        .filter((m, i) => i % 3 !== 1 && m.paid.length > 0 && i !== 7)
+        .map((m) => m.ref),
+      // a member exempted by «مسؤول», and one with his own share
+      exemptRefs: active.filter((_, i) => i === 7).map((m) => m.ref),
+      amounts: Object.fromEntries(active.filter((_, i) => i === 10).map((m) => [m.ref, 1000])),
     },
     {
       id: "l2",
@@ -354,7 +360,7 @@ export function demoAdminData(): PData {
   const s = fx.fxSummary();
   const session = fx.fxSession();
   void byId;
-  return {
+  const base: Omit<PData, "stats"> = {
     today: "2026-09-28",
     year,
     due,
@@ -389,6 +395,7 @@ export function demoAdminData(): PData {
     levies,
     log,
   };
+  return { ...base, stats: allStats(base) };
 }
 
 /** Demo «كشف حساب» of one member, built from the same fictional months as the committee app. */
