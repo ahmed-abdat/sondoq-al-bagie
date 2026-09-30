@@ -277,3 +277,29 @@ Campaigns tabs, reachable by `?v=a|b|c`.
 
 Show each with: taps counted for "record transfer from screenshot", "record cash", "remind one
 late member", "share the monthly summary", "record a campaign contribution".
+
+## 7. Owner additions (2026-09-30, after the committee meeting)
+
+1. **Who did what, visible to all the committee.** Every record (payment, cash, expense,
+   contribution, confirm, reject, cancel, member change, campaign change) shows who recorded it and
+   when, in the item itself and in one «سجل العمليات» list (from `audit_log` + the row's
+   `created_by` / `confirmed_by`). Nothing is anonymous.
+2. **Notifications to the committee** when something new happens (a payment recorded, needs
+   confirming, confirmed/rejected, an expense, a contribution, a new «لوحة»): Web Push to the other
+   committee members (not the one who did it), each person can turn kinds on/off in «حسابي».
+   Existing committee push (`src/lib/push/send.ts`) is the base.
+3. **كشف حساب لكل عضو** (member page + shareable report): per year the months paid / not paid; every
+   payment with date, amount, method, receipt number, **who recorded it, who confirmed it**, and
+   «قال إنه دفع» notes (a pending or rejected entry with its reason); what he owes: monthly fees +
+   unpaid «لوحات»; credit if any.
+4. **«اللوحة» (mandatory levy), new feature.** Unlike a donation (optional), a لوحة is a fixed amount
+   set on members (all active members, or chosen ones / a group) for a specific need (a sick person,
+   an activity the fund can't cover). Each member's unpaid share stays as a debt («متأخرات») until
+   paid; it shows on his statement, in the late list and reminders, and in «المتأخرات» (as its own
+   column/section, still no amounts in that export). The schema already has what's needed:
+   `campaigns.amount_mode = 'fixed'` + `campaign_participants.expected_amount`. Lane A: a kind
+   (`donation` | `levy`) or reuse fixed mode, a committee view per member (expected, paid, left) and
+   per levy (who paid, who didn't), payments allocated to a levy share, cancel/close rules
+   (closing a لوحة does NOT erase unpaid shares unless the committee exempts someone, audited).
+   UI: التبرعات tab shows two kinds, «تبرع» and «لوحة»; a لوحة page lists members with ✓ / not yet,
+   «ذكّر من لم يدفع», «سجّل دفعة»; share as PDF/images.
