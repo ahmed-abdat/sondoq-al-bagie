@@ -21,7 +21,7 @@ test("«دفعة أخرى» starts a new, empty payment", async ({ page }) => {
   await page.goto("/committee/record?m=B-2");
   await page.getByRole("button", { name: /نقدًا/ }).click();
   await page.locator(".r2-foot .pa-btn-primary").click();
-  await expect(page.getByText("سُجّلت الدفعة")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "سُجّلت الدفعة" })).toBeVisible();
   await page.getByRole("button", { name: /دفعة أخرى/ }).click();
   await expect(page.getByRole("heading", { name: "لمن هذه الدفعة؟" })).toBeVisible();
   await expect(page.locator(".r2-line")).toHaveCount(0);
