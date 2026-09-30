@@ -498,6 +498,12 @@ export type ActivityEntry = {
   id: number;
   at: string;
   actorName: string | null;
+  /**
+   * No actor: a migration, the paper import or SQL run by hand as `postgres` (never a committee
+   * member; the server writes no audited table). Hide these; a row with an actor stays even when
+   * its name is missing. Optional so older demo/test entries still type-check (missing = shown).
+   */
+  system?: boolean;
   action: string;
   table: string;
   rowId: string | null;
@@ -509,6 +515,7 @@ export type ActivityEntry = {
 export function toActivityEntry(r: {
   id: number;
   at: string;
+  actor: string | null;
   actor_name: string | null;
   action: string;
   table_name: string;
@@ -521,6 +528,7 @@ export function toActivityEntry(r: {
     id: r.id,
     at: r.at,
     actorName: r.actor_name ?? null,
+    system: r.actor == null,
     action: r.action,
     table: r.table_name,
     rowId: r.row_id ?? null,

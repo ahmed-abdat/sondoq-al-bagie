@@ -1,8 +1,7 @@
 /**
- * Shared plumbing for "draw a card on a canvas → share it as a PNG" (receipts, fund report).
- * Falls back to a prefilled wa.me text message when the phone cannot share files.
+ * Shared plumbing for "draw a report page on a canvas → a PNG" (fonts, images, render, download).
+ * Sharing the pages is in reports/share.ts.
  */
-import { waLink } from "./whatsapp";
 
 export interface CanvasFonts {
   display: string;
@@ -67,41 +66,6 @@ export type ShareResult = "shared" | "whatsapp" | "cancelled" | "retry";
 export type ShareNavigator = Pick<Navigator, "share"> & {
   canShare?: (data: ShareData) => boolean;
 };
-
-export interface ShareImageOptions {
-  /** Open this person's WhatsApp chat in the fallback (else WhatsApp asks whom to send to). */
-  phone?: string | null;
-  nav?: ShareNavigator;
-  open?: (url: string) => void;
-}
-
-/**
- * Share `text` + the rendered PNG through the phone's share sheet (WhatsApp shows up there).
- * If files cannot be shared (older phones, desktop), open WhatsApp with the text instead.
- */
-export async function shareImage(
-  makePng: () => Promise<Blob>,
-  fileName: string,
-  text: string,
-  opts: ShareImageOptions = {},
-): Promise<ShareResult> {
-  const nav = opts.nav ?? (navigator as ShareNavigator);
-  try {
-    if (typeof nav.share === "function" && nav.canShare) {
-      const file = new File([await makePng()], fileName, { type: "image/png" });
-      if (nav.canShare({ files: [file] })) {
-        await nav.share({ files: [file], text });
-        return "shared";
-      }
-    }
-  } catch (e) {
-    if (e instanceof DOMException && e.name === "AbortError") return "cancelled";
-    /* anything else: fall through to the text link */
-  }
-  const url = waLink(opts.phone, text);
-  (opts.open ?? ((u: string) => window.open(u, "_blank", "noopener")))(url);
-  return "whatsapp";
-}
 
 /** Save a file to the phone (download). */
 export function downloadPng(blob: Blob, fileName: string): void {

@@ -1,6 +1,5 @@
 // The fund's names and how people write a member's paper number. Used by every report.
 
-export const FUND_NAME = "صندوق الرابطة";
 export const ASSOC_NAME = "رابطة شباب قرية البقيع";
 
 const LETTERS: Record<string, string> = { A: "أ", B: "ب" };

@@ -8,8 +8,8 @@ import { codeOf, messageFor } from "../../src/lib/data/errors";
 import { COMMITTEE, signedIn, type Who } from "../../supabase/tests/e2e/helpers";
 
 /**
- * A transfer screenshot: any picture works (OCR reading nothing is fine: the member picks the
- * wallet). Each call is a new picture with its own pixels: the app refuses a picture already
+ * A transfer screenshot: any picture works (OCR reads nothing: the amount is typed, the wallet
+ * picked). Each call is a new picture with its own pixels: the app refuses a picture already
  * sent (it compares the compressed image), as it would a member resending the same photo.
  */
 export function shot() {
@@ -69,9 +69,9 @@ export async function openPage(page: Page, path: string) {
 
 /**
  * «سجّل دفعة» from a transfer screenshot, as a committee member does it from the WhatsApp group:
- * home → «سجّل دفعة» (/committee/record), the member (late months by default), the picture, the
- * wallet, save. Found by roles and labels: the member by name, the wallet by its name. Returns on
- * the saved screen («سُجّلت الدفعة» + «تراجع»), the payment confirmed in the database.
+ * home → «سجّل دفعة» (/committee/record), the member (late months by default), the picture and
+ * its amount, the wallet, save. Found by roles and labels: the member by name, the wallet by its
+ * name. Returns on the saved screen («سُجّلت الدفعة» + «تراجع»), the payment confirmed.
  */
 export async function recordTransfer(page: Page, member: string, wallet = "بنكيلي") {
   await openPage(page, "/committee");
@@ -83,11 +83,19 @@ export async function recordTransfer(page: Page, member: string, wallet = "بن�
   await page.getByLabel("ابحث عن العضو", { exact: true }).fill(member);
   await page.getByRole("button").filter({ hasText: member }).first().click();
   await page.locator('.r2-how input[type="file"]').setInputFiles(shot());
+  // nothing is read on this picture: its amount is typed as printed (MRU = the total / 10)
+  const save = page.locator(".r2-foot").getByRole("button");
+  await expect(save).toHaveText("اكتب المبلغ", { timeout: 30_000 });
+  const total = Number((await page.locator(".r2-foot-sum b").innerText()).replace(/\D/g, ""));
+  expect(total % 10, "a total in whole MRU").toBe(0);
+  await page.getByLabel("لم نقرأ المبلغ. اكتبه:").fill(String(total / 10));
+  await expect(page.locator(".r2-foot-sum .r2-chip")).toHaveText(/مطابق للصورة/);
   await page
     .getByRole("radiogroup", { name: "المحفظة" })
     .getByRole("radio", { name: wallet })
     .click();
-  const save = page.locator(".r2-foot").getByRole("button");
+  const account = page.getByRole("radiogroup", { name: "أي حساب" });
+  if (await account.count()) await account.getByRole("radio").first().click();
   await expect(save).toHaveText(/^\s*سجّل\s*$/);
   await save.click();
   await expect(page.getByRole("status").filter({ hasText: "سُجّلت الدفعة" })).toBeVisible();

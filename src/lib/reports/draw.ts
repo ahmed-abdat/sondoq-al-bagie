@@ -4,7 +4,7 @@
 import type { CanvasFonts } from "../canvas-share";
 import { formatNumber } from "../format";
 import { ASSOC_NAME } from "../brand";
-import { makePen, T, type Pen } from "../share-report";
+import { makePen, T, type Pen } from "./pen";
 import {
   blockHeight,
   gridRow,
