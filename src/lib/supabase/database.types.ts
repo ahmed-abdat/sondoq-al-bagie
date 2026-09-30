@@ -75,33 +75,55 @@ export type Database = {
           reason?: string
           term?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "balance_adjustments_handover_id_fkey"
+            columns: ["handover_id"]
+            isOneToOne: false
+            referencedRelation: "handovers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "balance_adjustments_handover_id_fkey"
+            columns: ["handover_id"]
+            isOneToOne: false
+            referencedRelation: "handovers_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "balance_adjustments_term_fkey"
+            columns: ["term"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["number"]
+          },
+        ]
       }
       campaign_participants: {
         Row: {
+          campaign_id: string
+          created_at: string
           exempt_reason: string | null
           exempted_at: string | null
           exempted_by: string | null
-          campaign_id: string
-          created_at: string
           expected_amount: number | null
           member_id: string
         }
         Insert: {
+          campaign_id: string
+          created_at?: string
           exempt_reason?: string | null
           exempted_at?: string | null
           exempted_by?: string | null
-          campaign_id: string
-          created_at?: string
           expected_amount?: number | null
           member_id: string
         }
         Update: {
+          campaign_id?: string
+          created_at?: string
           exempt_reason?: string | null
           exempted_at?: string | null
           exempted_by?: string | null
-          campaign_id?: string
-          created_at?: string
           expected_amount?: number | null
           member_id?: string
         }
@@ -127,11 +149,17 @@ export type Database = {
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "campaign_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members_admin"
+            referencedColumns: ["member_id"]
+          },
         ]
       }
       campaigns: {
         Row: {
-          kind: Database["public"]["Enums"]["campaign_kind"]
           amount_mode: Database["public"]["Enums"]["campaign_mode"]
           closed_at: string | null
           closed_by: string | null
@@ -139,6 +167,7 @@ export type Database = {
           created_by: string | null
           deadline: string | null
           id: string
+          kind: Database["public"]["Enums"]["campaign_kind"]
           purpose: string | null
           status: Database["public"]["Enums"]["campaign_status"]
           surplus_action: Database["public"]["Enums"]["surplus_action"] | null
@@ -146,7 +175,6 @@ export type Database = {
           title: string
         }
         Insert: {
-          kind?: Database["public"]["Enums"]["campaign_kind"]
           amount_mode: Database["public"]["Enums"]["campaign_mode"]
           closed_at?: string | null
           closed_by?: string | null
@@ -154,6 +182,7 @@ export type Database = {
           created_by?: string | null
           deadline?: string | null
           id?: string
+          kind?: Database["public"]["Enums"]["campaign_kind"]
           purpose?: string | null
           status?: Database["public"]["Enums"]["campaign_status"]
           surplus_action?: Database["public"]["Enums"]["surplus_action"] | null
@@ -161,7 +190,6 @@ export type Database = {
           title: string
         }
         Update: {
-          kind?: Database["public"]["Enums"]["campaign_kind"]
           amount_mode?: Database["public"]["Enums"]["campaign_mode"]
           closed_at?: string | null
           closed_by?: string | null
@@ -169,6 +197,7 @@ export type Database = {
           created_by?: string | null
           deadline?: string | null
           id?: string
+          kind?: Database["public"]["Enums"]["campaign_kind"]
           purpose?: string | null
           status?: Database["public"]["Enums"]["campaign_status"]
           surplus_action?: Database["public"]["Enums"]["surplus_action"] | null
@@ -220,12 +249,17 @@ export type Database = {
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "committee_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members_admin"
+            referencedColumns: ["member_id"]
+          },
         ]
       }
       expenses: {
         Row: {
-          fund_account_id: string | null
-          paid_in_cash: boolean
           amount: number
           campaign_id: string | null
           cancel_reason: string | null
@@ -234,14 +268,14 @@ export type Database = {
           category: Database["public"]["Enums"]["expense_category"]
           created_at: string
           created_by: string | null
+          fund_account_id: string | null
           id: string
           note: string | null
+          paid_in_cash: boolean
           receipt_path: string | null
           spent_on: string
         }
         Insert: {
-          fund_account_id?: string | null
-          paid_in_cash?: boolean
           amount: number
           campaign_id?: string | null
           cancel_reason?: string | null
@@ -250,14 +284,14 @@ export type Database = {
           category: Database["public"]["Enums"]["expense_category"]
           created_at?: string
           created_by?: string | null
+          fund_account_id?: string | null
           id?: string
           note?: string | null
+          paid_in_cash?: boolean
           receipt_path?: string | null
           spent_on: string
         }
         Update: {
-          fund_account_id?: string | null
-          paid_in_cash?: boolean
           amount?: number
           campaign_id?: string | null
           cancel_reason?: string | null
@@ -266,8 +300,10 @@ export type Database = {
           category?: Database["public"]["Enums"]["expense_category"]
           created_at?: string
           created_by?: string | null
+          fund_account_id?: string | null
           id?: string
           note?: string | null
+          paid_in_cash?: boolean
           receipt_path?: string | null
           spent_on?: string
         }
@@ -277,6 +313,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_fund_account_id_fkey"
+            columns: ["fund_account_id"]
+            isOneToOne: false
+            referencedRelation: "fund_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -437,7 +480,22 @@ export type Database = {
           submitted_by?: string | null
           to_term?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "handovers_from_term_fkey"
+            columns: ["from_term"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["number"]
+          },
+          {
+            foreignKeyName: "handovers_to_term_fkey"
+            columns: ["to_term"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["number"]
+          },
+        ]
       }
       job_runs: {
         Row: {
@@ -494,7 +552,29 @@ export type Database = {
           revoked_by?: string | null
           token_hash?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "member_links_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "arrears"
+            referencedColumns: ["member_id"]
+          },
+          {
+            foreignKeyName: "member_links_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_links_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members_admin"
+            referencedColumns: ["member_id"]
+          },
+        ]
       }
       members: {
         Row: {
@@ -594,13 +674,20 @@ export type Database = {
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "membership_periods_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members_admin"
+            referencedColumns: ["member_id"]
+          },
         ]
       }
       payment_allocations: {
         Row: {
-          donor_name: string | null
           amount: number
           campaign_id: string | null
+          donor_name: string | null
           id: string
           kind: Database["public"]["Enums"]["allocation_kind"]
           member_id: string | null
@@ -609,9 +696,9 @@ export type Database = {
           year: number | null
         }
         Insert: {
-          donor_name?: string | null
           amount: number
           campaign_id?: string | null
+          donor_name?: string | null
           id?: string
           kind: Database["public"]["Enums"]["allocation_kind"]
           member_id?: string | null
@@ -620,9 +707,9 @@ export type Database = {
           year?: number | null
         }
         Update: {
-          donor_name?: string | null
           amount?: number
           campaign_id?: string | null
+          donor_name?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["allocation_kind"]
           member_id?: string | null
@@ -651,6 +738,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members_admin"
+            referencedColumns: ["member_id"]
           },
           {
             foreignKeyName: "payment_allocations_payment_id_fkey"
@@ -710,6 +804,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_months_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members_admin"
+            referencedColumns: ["member_id"]
           },
           {
             foreignKeyName: "payment_months_payment_id_fkey"
@@ -800,40 +901,48 @@ export type Database = {
           submitted_via_link?: string | null
           txn_ref?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payments_submitted_via_link_fkey"
+            columns: ["submitted_via_link"]
+            isOneToOne: false
+            referencedRelation: "member_links"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
-          kinds: string[]
           auth: string
           created_at: string
           endpoint: string
           failures: number
           id: string
+          kinds: string[]
           last_ok_at: string | null
           p256dh: string
           user_agent: string | null
           user_id: string
         }
         Insert: {
-          kinds?: string[]
           auth: string
           created_at?: string
           endpoint: string
           failures?: number
           id?: string
+          kinds?: string[]
           last_ok_at?: string | null
           p256dh: string
           user_agent?: string | null
           user_id: string
         }
         Update: {
-          kinds?: string[]
           auth?: string
           created_at?: string
           endpoint?: string
           failures?: number
           id?: string
+          kinds?: string[]
           last_ok_at?: string | null
           p256dh?: string
           user_agent?: string | null
@@ -908,6 +1017,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members_admin"
+            referencedColumns: ["member_id"]
           },
           {
             foreignKeyName: "reminders_payment_id_fkey"
@@ -1022,85 +1138,6 @@ export type Database = {
       }
     }
     Views: {
-      activity_public: {
-        Row: {
-          at: string | null
-          category: Database["public"]["Enums"]["expense_category"] | null
-          kind: string | null
-          member_names: string | null
-          method: Database["public"]["Enums"]["payment_method"] | null
-          months: number | null
-          payment_id: string | null
-        }
-        Relationships: []
-      }
-      campaign_contributors_public: {
-        Row: {
-          at: string | null
-          campaign_id: string | null
-          contributor_name: string | null
-          payment_id: string | null
-        }
-        Relationships: []
-      }
-      campaigns_public: {
-        Row: {
-          amount_mode: Database["public"]["Enums"]["campaign_mode"] | null
-          campaign_id: string | null
-          deadline: string | null
-          participants: number | null
-          participants_paid: number | null
-          purpose: string | null
-          status: Database["public"]["Enums"]["campaign_status"] | null
-          title: string | null
-        }
-        Relationships: []
-      }
-      expenses_public: {
-        Row: {
-          campaign_id: string | null
-          category: Database["public"]["Enums"]["expense_category"] | null
-          id: string | null
-          note: string | null
-          spent_on: string | null
-        }
-        Relationships: []
-      }
-      fund_stats: {
-        Row: {
-          last_activity_at: string | null
-          members_active: number | null
-          members_behind: number | null
-          members_ok: number | null
-          term_number: number | null
-          term_started_on: string | null
-        }
-        Relationships: []
-      }
-      member_status_public: {
-        Row: {
-          full_name: string | null
-          group_code: string | null
-          list_code: string | null
-          member_id: string | null
-          member_ref: string | null
-          member_status: Database["public"]["Enums"]["membership_status"] | null
-          months_behind: number | null
-          months_paid_this_year: number | null
-          number: number | null
-          status_label: string | null
-        }
-        Relationships: []
-      }
-      terms_info: {
-        Row: {
-          ended_on: string | null
-          number: number | null
-          started_on: string | null
-          title: string | null
-        }
-        Relationships: []
-      }
       activity_feed: {
         Row: {
           amount: number | null
@@ -1115,15 +1152,27 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_public: {
+        Row: {
+          at: string | null
+          category: Database["public"]["Enums"]["expense_category"] | null
+          kind: string | null
+          member_names: string | null
+          method: Database["public"]["Enums"]["payment_method"] | null
+          months: number | null
+          payment_id: string | null
+        }
+        Relationships: []
+      }
       arrears: {
         Row: {
-          levies: Json | null
-          levy_left: number | null
           amount_owed: number | null
           credit: number | null
           full_name: string | null
           group_code: string | null
           last_reminded_at: string | null
+          levies: Json | null
+          levy_left: number | null
           list_code: string | null
           member_id: string | null
           member_ref: string | null
@@ -1138,6 +1187,15 @@ export type Database = {
       campaign_contributions: {
         Row: {
           amount: number | null
+          at: string | null
+          campaign_id: string | null
+          contributor_name: string | null
+          payment_id: string | null
+        }
+        Relationships: []
+      }
+      campaign_contributors_public: {
+        Row: {
           at: string | null
           campaign_id: string | null
           contributor_name: string | null
@@ -1160,6 +1218,19 @@ export type Database = {
           target_amount: number | null
           title: string | null
           transferred: number | null
+        }
+        Relationships: []
+      }
+      campaigns_public: {
+        Row: {
+          amount_mode: Database["public"]["Enums"]["campaign_mode"] | null
+          campaign_id: string | null
+          deadline: string | null
+          participants: number | null
+          participants_paid: number | null
+          purpose: string | null
+          status: Database["public"]["Enums"]["campaign_status"] | null
+          title: string | null
         }
         Relationships: []
       }
@@ -1187,6 +1258,16 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses_public: {
+        Row: {
+          campaign_id: string | null
+          category: Database["public"]["Enums"]["expense_category"] | null
+          id: string | null
+          note: string | null
+          spent_on: string | null
+        }
+        Relationships: []
+      }
       fund_accounts_public: {
         Row: {
           account_number: string | null
@@ -1202,6 +1283,17 @@ export type Database = {
           grace_days: number | null
           show_amount_owed: boolean | null
           whatsapp_contact: string | null
+        }
+        Relationships: []
+      }
+      fund_stats: {
+        Row: {
+          last_activity_at: string | null
+          members_active: number | null
+          members_behind: number | null
+          members_ok: number | null
+          term_number: number | null
+          term_started_on: string | null
         }
         Relationships: []
       }
@@ -1255,7 +1347,22 @@ export type Database = {
           submitted_by_name: string | null
           to_term: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "handovers_from_term_fkey"
+            columns: ["from_term"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["number"]
+          },
+          {
+            foreignKeyName: "handovers_to_term_fkey"
+            columns: ["to_term"]
+            isOneToOne: false
+            referencedRelation: "terms"
+            referencedColumns: ["number"]
+          },
+        ]
       }
       keepalive: {
         Row: {
@@ -1284,27 +1391,6 @@ export type Database = {
         }
         Relationships: []
       }
-      members_admin: {
-        Row: {
-          amount_owed: number | null
-          created_at: string | null
-          former_debt_amount: number | null
-          former_debt_months: string[] | null
-          full_name: string | null
-          group_code: string | null
-          joined_month: string | null
-          list_code: string | null
-          member_id: string | null
-          member_ref: string | null
-          member_status: Database["public"]["Enums"]["membership_status"] | null
-          months_behind: number | null
-          months_paid_this_year: number | null
-          note: string | null
-          number: number | null
-          phone: string | null
-        }
-        Relationships: []
-      }
       member_months: {
         Row: {
           member_id: string | null
@@ -1328,6 +1414,42 @@ export type Database = {
           months_paid_this_year: number | null
           number: number | null
           status_label: string | null
+        }
+        Relationships: []
+      }
+      member_status_public: {
+        Row: {
+          full_name: string | null
+          group_code: string | null
+          list_code: string | null
+          member_id: string | null
+          member_ref: string | null
+          member_status: Database["public"]["Enums"]["membership_status"] | null
+          months_behind: number | null
+          months_paid_this_year: number | null
+          number: number | null
+          status_label: string | null
+        }
+        Relationships: []
+      }
+      members_admin: {
+        Row: {
+          amount_owed: number | null
+          created_at: string | null
+          former_debt_amount: number | null
+          former_debt_months: string[] | null
+          full_name: string | null
+          group_code: string | null
+          joined_month: string | null
+          list_code: string | null
+          member_id: string | null
+          member_ref: string | null
+          member_status: Database["public"]["Enums"]["membership_status"] | null
+          months_behind: number | null
+          months_paid_this_year: number | null
+          note: string | null
+          number: number | null
+          phone: string | null
         }
         Relationships: []
       }
@@ -1367,6 +1489,26 @@ export type Database = {
         }
         Relationships: []
       }
+      recent_expenses: {
+        Row: {
+          amount: number | null
+          campaign_id: string | null
+          category: Database["public"]["Enums"]["expense_category"] | null
+          id: string | null
+          note: string | null
+          spent_on: string | null
+        }
+        Relationships: []
+      }
+      terms_info: {
+        Row: {
+          ended_on: string | null
+          number: number | null
+          started_on: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
       terms_public: {
         Row: {
           adjustment: number | null
@@ -1381,22 +1523,26 @@ export type Database = {
         }
         Relationships: []
       }
-      recent_expenses: {
-        Row: {
-          amount: number | null
-          campaign_id: string | null
-          category: Database["public"]["Enums"]["expense_category"] | null
-          id: string | null
-          note: string | null
-          spent_on: string | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       accept_handover: {
         Args: { p_id: string; p_new_term_title?: string }
         Returns: number
+      }
+      activity_log: {
+        Args: { p_before?: number; p_limit?: number }
+        Returns: {
+          action: string
+          actor: string
+          actor_name: string
+          amount: number
+          at: string
+          id: number
+          reason: string
+          row_id: string
+          subject: string
+          table_name: string
+        }[]
       }
       add_fund_account: {
         Args: {
@@ -1407,6 +1553,10 @@ export type Database = {
           p_sort_order?: number
         }
         Returns: string
+      }
+      add_levy_members: {
+        Args: { p_amount: number; p_id: string; p_member_ids: string[] }
+        Returns: number
       }
       add_member: {
         Args: {
@@ -1421,19 +1571,23 @@ export type Database = {
         }
         Returns: string
       }
-      backup_snapshot: {
-        Args: { p_tables: string[] }
-        Returns: Json
-      }
       apply_credit: {
         Args: { p_id: string; p_member_id: string; p_months: Json }
         Returns: Json
       }
+      backup_snapshot: { Args: { p_tables: string[] }; Returns: Json }
       cancel_expense: {
         Args: { p_expense_id: string; p_reason: string }
         Returns: undefined
       }
-      cancel_handover: { Args: { p_id: string; p_reason: string }; Returns: undefined }
+      cancel_handover: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
+      cancel_last_period: {
+        Args: { p_member_id: string; p_reason: string }
+        Returns: string
+      }
       cancel_payment: {
         Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
@@ -1445,10 +1599,6 @@ export type Database = {
           p_member_id: string
           p_reason?: string
         }
-        Returns: string
-      }
-      cancel_last_period: {
-        Args: { p_member_id: string; p_reason: string }
         Returns: string
       }
       change_member_status: {
@@ -1468,9 +1618,17 @@ export type Database = {
         }
         Returns: number
       }
+      co_paid_members: {
+        Args: { p_limit?: number; p_member_id: string }
+        Returns: {
+          full_name: string
+          last_paid_on: string
+          member_id: string
+          member_ref: string
+          times: number
+        }[]
+      }
       confirm_payment: { Args: { p_payment_id: string }; Returns: Json }
-      delete_committee_member: { Args: { p_user_id: string }; Returns: undefined }
-      delete_push_subscription: { Args: { p_endpoint: string }; Returns: undefined }
       create_campaign: {
         Args: {
           p_amount_mode?: Database["public"]["Enums"]["campaign_mode"]
@@ -1483,6 +1641,30 @@ export type Database = {
         }
         Returns: string
       }
+      create_levy: {
+        Args: {
+          p_amount: number
+          p_amount_b?: number
+          p_deadline?: string
+          p_id: string
+          p_member_ids: string[]
+          p_purpose?: string
+          p_title: string
+        }
+        Returns: string
+      }
+      delete_committee_member: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      delete_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
+      exempt_levy_share: {
+        Args: { p_id: string; p_member_id: string; p_reason: string }
+        Returns: undefined
+      }
       log_reminder: {
         Args: {
           p_campaign_id?: string
@@ -1492,18 +1674,22 @@ export type Database = {
         }
         Returns: string
       }
+      member_statement: {
+        Args: { p_member_id: string; p_year?: number }
+        Returns: Json
+      }
       next_member_number: { Args: { p_list_code: string }; Returns: number }
       record_expense: {
         Args: {
           p_amount: number
           p_campaign_id?: string
           p_category: Database["public"]["Enums"]["expense_category"]
+          p_fund_account_id?: string
           p_id: string
           p_note?: string
+          p_paid_in_cash?: boolean
           p_receipt_path?: string
           p_spent_on: string
-          p_fund_account_id?: string
-          p_paid_in_cash?: boolean
         }
         Returns: string
       }
@@ -1526,17 +1712,41 @@ export type Database = {
         Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
       }
+      report_committee_work: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          active: boolean
+          cancellations: number
+          display_name: string
+          expenses_amount: number
+          expenses_count: number
+          is_admin: boolean
+          last_at: string
+          levy_exemptions: number
+          payments_amount: number
+          payments_count: number
+          user_id: string
+        }[]
+      }
+      report_period: { Args: { p_from: string; p_to: string }; Returns: Json }
+      report_wallets: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          in_amount: number
+          in_count: number
+          method: Database["public"]["Enums"]["payment_method"]
+          out_amount: number
+          out_count: number
+        }[]
+      }
       save_push_subscription: {
-        Args: { p_auth: string; p_endpoint: string; p_p256dh: string; p_user_agent?: string }
+        Args: {
+          p_auth: string
+          p_endpoint: string
+          p_p256dh: string
+          p_user_agent?: string
+        }
         Returns: undefined
-      }
-      update_my_profile: {
-        Args: { p_display_name: string; p_member_id?: string }
-        Returns: undefined
-      }
-      set_join_month: {
-        Args: { p_from_month: string; p_member_id: string; p_reason: string }
-        Returns: string
       }
       set_committee_active: {
         Args: { p_active: boolean; p_user_id: string }
@@ -1560,9 +1770,28 @@ export type Database = {
         Args: { p_group_code: string; p_monthly_amount: number; p_year: number }
         Returns: undefined
       }
-      start_handover: { Args: { p_id: string; p_note?: string }; Returns: string }
+      set_join_month: {
+        Args: { p_from_month: string; p_member_id: string; p_reason: string }
+        Returns: string
+      }
+      set_levy_share: {
+        Args: { p_amount: number; p_id: string; p_member_id: string }
+        Returns: undefined
+      }
+      set_push_kinds: {
+        Args: { p_endpoint: string; p_kinds: string[] }
+        Returns: undefined
+      }
+      start_handover: {
+        Args: { p_id: string; p_note?: string }
+        Returns: string
+      }
       submit_handover: { Args: { p_id: string }; Returns: undefined }
       undo_payment: { Args: { p_payment_id: string }; Returns: undefined }
+      unexempt_levy_share: {
+        Args: { p_id: string; p_member_id: string }
+        Returns: undefined
+      }
       update_campaign: {
         Args: {
           p_deadline: string
@@ -1602,6 +1831,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_my_profile: {
+        Args: { p_display_name: string; p_member_id?: string }
+        Returns: undefined
+      }
       update_settings: {
         Args: {
           p_grace_days?: number
@@ -1610,94 +1843,6 @@ export type Database = {
           p_show_amount_owed?: boolean
           p_whatsapp_contact?: string
         }
-        Returns: undefined
-      }
-      activity_log: {
-        Args: { p_before?: number; p_limit?: number }
-        Returns: {
-          action: string
-          actor: string
-          actor_name: string
-          amount: number
-          at: string
-          id: number
-          reason: string
-          row_id: string
-          subject: string
-          table_name: string
-        }[]
-      }
-      add_levy_members: {
-        Args: { p_amount: number; p_id: string; p_member_ids: string[] }
-        Returns: number
-      }
-      co_paid_members: {
-        Args: { p_limit?: number; p_member_id: string }
-        Returns: {
-          full_name: string
-          last_paid_on: string
-          member_id: string
-          member_ref: string
-          times: number
-        }[]
-      }
-      create_levy: {
-        Args: {
-          p_amount: number
-          p_amount_b?: number
-          p_deadline?: string
-          p_id: string
-          p_member_ids: string[]
-          p_purpose?: string
-          p_title: string
-        }
-        Returns: string
-      }
-      exempt_levy_share: {
-        Args: { p_id: string; p_member_id: string; p_reason: string }
-        Returns: undefined
-      }
-      member_statement: {
-        Args: { p_member_id: string; p_year?: number }
-        Returns: Json
-      }
-      report_committee_work: {
-        Args: { p_from: string; p_to: string }
-        Returns: {
-          active: boolean
-          cancellations: number
-          display_name: string
-          expenses_amount: number
-          expenses_count: number
-          is_admin: boolean
-          last_at: string
-          levy_exemptions: number
-          payments_amount: number
-          payments_count: number
-          user_id: string
-        }[]
-      }
-      report_period: { Args: { p_from: string; p_to: string }; Returns: Json }
-      report_wallets: {
-        Args: { p_from: string; p_to: string }
-        Returns: {
-          in_amount: number
-          in_count: number
-          method: Database["public"]["Enums"]["payment_method"] | null
-          out_amount: number
-          out_count: number
-        }[]
-      }
-      set_levy_share: {
-        Args: { p_amount: number; p_id: string; p_member_id: string }
-        Returns: undefined
-      }
-      set_push_kinds: {
-        Args: { p_endpoint: string; p_kinds: string[] }
-        Returns: undefined
-      }
-      unexempt_levy_share: {
-        Args: { p_id: string; p_member_id: string }
         Returns: undefined
       }
     }

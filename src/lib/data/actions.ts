@@ -4,12 +4,19 @@
 // public cache when public numbers change. Never throws for expected failures.
 import { updateTag } from "next/cache";
 import { after } from "next/server";
-import { pendingPaymentPayload } from "@/lib/push/payload";
-import { notifyConfirmers } from "@/lib/push/send";
+import {
+  cancelPayload,
+  expensePayload,
+  levyPayload,
+  recordedPaymentPayload,
+} from "@/lib/push/payload";
+import type { PushPayload } from "@/lib/push/payload";
+import { notifyCommittee } from "@/lib/push/send";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { codeOf, failure, MESSAGES } from "./errors";
+import { CATEGORY_LABELS } from "./labels";
 import { generatePassword, parseLogin } from "./logins";
 import { isProofPath, PROOF_MAX_BYTES, proofPath, sha256Hex, sniffImage } from "./proof";
 import type { Client } from "./read";
@@ -60,23 +67,32 @@ export type RecordPaymentResult = {
 };
 
 /**
- * Record a payment. Treasurer/deputy/admin recordings are confirmed at once (except their own).
- * A new pending payment notifies the other confirmers by push, after the response.
+ * Record a payment: confirmed at once for every committee member (m29). The other committee
+ * members hear about it by push (their devices choose the kind), after the response.
  */
 export async function recordPayment(input: s.RecordPaymentInput) {
   const res = await record(input);
-  if (res.ok && res.data.status === "pending" && !res.data.replay) {
+  if (res.ok && !res.data.replay) {
     const p = s.recordPaymentSchema.parse(input);
     const session = await getCommitteeSession();
-    const payload = pendingPaymentPayload({
+    const payload = recordedPaymentPayload({
       id: res.data.id,
+      actorName: session?.displayName ?? null,
       payerName: p.payerName,
       amount: p.amount,
       allocations: p.allocations,
     });
-    after(() => notifyConfirmers(session?.userId ?? null, payload));
+    const kind = p.allocations.every((a) => a.kind === "campaign") ? "contribution" : "payment";
+    after(() => notifyCommittee(kind, session?.userId ?? null, payload));
   }
   return res;
+}
+
+/** After a successful write: tell the other committee members (never fails the action). */
+async function tell(kind: s.PushKind, payload: (actorName: string | null) => PushPayload) {
+  const session = await getCommitteeSession();
+  const p = payload(session?.displayName ?? null);
+  after(() => notifyCommittee(kind, session?.userId ?? null, p));
 }
 
 async function record(input: s.RecordPaymentInput) {
@@ -204,12 +220,17 @@ export async function rejectPayment(input: { id: string; reason: string }) {
 }
 
 export async function cancelPayment(input: { id: string; reason: string }) {
-  return run(
+  const res = await run(
     s.idReasonSchema,
     input,
     (sb, p) => sb.rpc("cancel_payment", { p_payment_id: p.id, p_reason: p.reason }),
     { touchesPublic: true },
   );
+  if (res.ok)
+    await tell("cancel", (actorName) =>
+      cancelPayload({ id: input.id, actorName, what: "دفعة", reason: input.reason }),
+    );
+  return res;
 }
 
 /** «تراجع» right after recording: only the recorder, within 30 s on the server (5 s in the UI). */
@@ -222,7 +243,7 @@ export async function undoPayment(input: { id: string }) {
 /* ───────────── expenses, reminders ───────────── */
 
 export async function recordExpense(input: s.RecordExpenseInput) {
-  return run(
+  const res = await run(
     s.recordExpenseSchema,
     input,
     (sb, p) =>
@@ -240,21 +261,38 @@ export async function recordExpense(input: s.RecordExpenseInput) {
       }),
     { touchesPublic: true, result: (d) => d as string },
   );
+  if (res.ok) {
+    const p = s.recordExpenseSchema.parse(input);
+    await tell("expense", (actorName) =>
+      expensePayload({
+        id: p.id,
+        actorName,
+        label: p.note || CATEGORY_LABELS[p.category],
+        amount: p.amount,
+      }),
+    );
+  }
+  return res;
 }
 
 export async function cancelExpense(input: { id: string; reason: string }) {
-  return run(
+  const res = await run(
     s.idReasonSchema,
     input,
     (sb, p) => sb.rpc("cancel_expense", { p_expense_id: p.id, p_reason: p.reason }),
     { touchesPublic: true },
   );
+  if (res.ok)
+    await tell("cancel", (actorName) =>
+      cancelPayload({ id: input.id, actorName, what: "مصروفًا", reason: input.reason }),
+    );
+  return res;
 }
 
 /* ───────────── «اللوحة» levies (m30; «مسؤول» only, the database checks) ───────────── */
 
 export async function createLevy(input: s.CreateLevyInput) {
-  return run(
+  const res = await run(
     s.createLevySchema,
     input,
     (sb, p) =>
@@ -269,6 +307,13 @@ export async function createLevy(input: s.CreateLevyInput) {
       }),
     { touchesPublic: false, result: (d) => d as string },
   );
+  if (res.ok) {
+    const p = s.createLevySchema.parse(input);
+    await tell("levy", () =>
+      levyPayload({ id: p.id, title: p.title, amount: p.amount, members: p.memberIds.length }),
+    );
+  }
+  return res;
 }
 
 export async function addLevyMembers(input: { id: string; memberIds: string[]; amount: number }) {

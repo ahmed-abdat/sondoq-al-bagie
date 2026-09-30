@@ -6,7 +6,7 @@ const rpc = vi.fn();
 const updateTag = vi.fn();
 vi.mock("server-only", () => ({}));
 vi.mock("next/server", () => ({ after: () => {} }));
-vi.mock("@/lib/push/send", () => ({ notifyConfirmers: async () => {} }));
+vi.mock("@/lib/push/send", () => ({ notifyCommittee: async () => {} }));
 vi.mock("next/cache", () => ({ updateTag: (t: string) => updateTag(t) }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("./committee", () => ({ getCommitteeSession: async () => null }));
