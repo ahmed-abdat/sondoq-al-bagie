@@ -124,7 +124,7 @@ test("«المحافظ» (one pot): one row per wallet, no balance; one sheet ad
 
   // a new wallet with its number in one sheet
   await ws.getByRole("button", { name: "محفظة جديدة" }).click();
-  sheet = page.getByRole("dialog", { name: "محفظة جديدة" });
+  let sheet = page.getByRole("dialog", { name: "محفظة جديدة" });
   await sheet.getByLabel("اسم المحفظة").fill("محفظة التجربة");
   await sheet.getByLabel("رقم الحساب").fill("22000099");
   await sheet.getByLabel("اسم صاحب الحساب").fill("رابطة شباب البقيع");
