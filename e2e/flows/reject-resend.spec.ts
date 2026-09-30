@@ -4,6 +4,10 @@ import { committeePhone, memberPhone, openSlip, payOwnFees, sendProof, youCard }
 
 const M = E2E_MEMBERS.reject;
 
+// Committee-only (2026-09-30): member links and the public pages are gone. This flow will be
+// rewritten as a committee-recorded payment (docs/COMMITTEE-ONLY-PLAN.md §1 Lane B); skipped now.
+test.skip(true, "member-link flow retired; rewrite as committee-recorded (plan §1)");
+
 test("the committee rejects with a reason, the member sees it, sends again, and it is confirmed", async ({
   browser,
   baseURL,
