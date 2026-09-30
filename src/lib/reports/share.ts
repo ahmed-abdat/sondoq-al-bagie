@@ -12,7 +12,16 @@ import {
 } from "../canvas-share";
 import { A4_PT, jpegsToPdf } from "../pdf";
 import { waLink } from "../whatsapp";
-import { A4, docText, paginate, PHONE, type DocMeta, type PageSize, type ReportDoc } from "./doc";
+import {
+  A4,
+  docText,
+  paginate,
+  PHONE,
+  shareText,
+  type DocMeta,
+  type PageSize,
+  type ReportDoc,
+} from "./doc";
 import { drawDocPage } from "./draw";
 
 export type { ShareResult };
@@ -113,7 +122,7 @@ export async function shareDocImages(
   const nav = opts.nav ?? (navigator as ShareNavigator);
   if (typeof nav.share === "function" && nav.canShare) {
     const files = await docImages(doc, meta).catch(() => null);
-    const res = files && (await shareFiles(files, `${doc.title} · ${doc.subtitle}`, nav));
+    const res = files && (await shareFiles(files, shareText(doc), nav));
     if (res) return res;
   }
   (opts.open ?? ((u: string) => window.open(u, "_blank", "noopener")))(
@@ -130,7 +139,7 @@ export async function shareDocPdf(
 ): Promise<ShareResult | "downloaded"> {
   const nav = opts.nav ?? (navigator as ShareNavigator);
   const file = await docPdf(doc, meta);
-  const res = await shareFiles([file], `${doc.title} · ${doc.subtitle}`, nav);
+  const res = await shareFiles([file], shareText(doc), nav);
   if (res) return res;
   (opts.download ?? downloadPng)(file, file.name);
   return "downloaded";

@@ -80,8 +80,8 @@ begin
 end $$;
 
 -- Expenses and one donation campaign.
-select public.record_expense(gen_random_uuid(), current_date - 40, 'teaching', 20000, 'رواتب المعلم');
-select public.record_expense(gen_random_uuid(), current_date - 12, 'sports', 7500, 'كرات وأقمصة');
+select public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date - 40, p_category => 'teaching', p_amount => 20000, p_note => 'رواتب المعلم');
+select public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date - 12, p_category => 'sports', p_amount => 7500, p_note => 'كرات وأقمصة');
 insert into public.campaigns (id, title, purpose, target_amount, amount_mode)
 values ('00000000-0000-4000-8000-00000000ca01', 'ترميم المسجد', 'إصلاح السقف قبل موسم الأمطار', 300000, 'open');
 select public.record_payment(gen_random_uuid(), 'متبرع من الخارج', 'bankily', 50000, current_date - 5,

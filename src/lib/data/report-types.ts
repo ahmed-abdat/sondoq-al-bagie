@@ -18,6 +18,8 @@ type Base = { period: Period; generatedAt: string };
 export type Income = { fees: number; levies: number; donations: number; total: number };
 export type Spending = {
   byCategory: { category: ExpenseCategory; label: string; amount: number }[];
+  /** «النشاط» (m38): what the report shows; byCategory is the old fixed list */
+  byActivity: { activityId: number; name: string; amount: number }[];
   /** part of total paid from a campaign or levy's own money */
   fromCampaigns: number;
   total: number;
@@ -32,8 +34,17 @@ export type AnnualReport = Base & {
   closing: number;
   /** money of campaigns and levies still inside `closing` (not yet spent or moved to the fund) */
   campaignsHeld: number;
-  /** every month of the period (12 for a year) */
-  months: { year: number; month: number; income: number; spending: number }[];
+  /**
+   * «المداخيل حسب الشهر المستحق» (m39): month fees counted in the month they pay for, whatever the
+   * payment date; levies, donations and credit put aside by their date.
+   * total = income.total − feesForOtherMonths + feesPaidOutside.
+   */
+  incomeDue: { total: number; feesForOtherMonths: number; feesPaidOutside: number };
+  /**
+   * every month of the period (12 for a year). income and spending are by date (cash);
+   * dueIncome is by the month it pays for (the monthly chart and table show dueIncome).
+   */
+  months: { year: number; month: number; income: number; dueIncome: number; spending: number }[];
 };
 
 /** 2 · one-page summary. */
@@ -92,13 +103,17 @@ export type ExpensesReport = Base & {
   items: {
     spentOn: string;
     category: ExpenseCategory;
+    /** the activity name (m38) */
     label: string;
+    activityId: number;
+    activity: string;
     note: string | null;
     amount: number;
     campaignTitle: string | null;
     recordedBy: string | null;
   }[];
   byCategory: { category: ExpenseCategory; label: string; amount: number }[];
+  byActivity: { activityId: number; name: string; amount: number }[];
   total: number;
 };
 

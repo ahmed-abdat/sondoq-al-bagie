@@ -40,6 +40,7 @@ export {
   getStatsReport,
   getGroupsOverview,
   getAccuracyAudit,
+  getExpenseActivities,
   getLevyStats,
   getDonationStats,
 } from "./committee";

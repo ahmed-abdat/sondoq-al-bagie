@@ -38,18 +38,21 @@ export type Home = {
   pct: string;
 };
 
-/** Home: «في الصندوق», «هذا الشهر: دخل … · صرف …», «دفع … من … حتى … · …٪». */
+/** Home: «في الصندوق», «المداخيل هذا الشهر: … · المصاريف: …», «دفع … من … حتى … · …٪». */
 export async function home(page: Page): Promise<Home> {
   await openPage(page, "/committee");
   const hero = page.getByRole("region", { name: "الصندوق" });
   await expect(hero).toContainText("في الصندوق");
   const text = clean(await hero.innerText());
   const bal = /في الصندوق\s*([\d\s]+)\s*أوقية/.exec(text);
-  const month = /دخل\s*([\d\s]+)\s*·\s*صرف\s*([\d\s]+)/.exec(text);
+  const month = /المداخيل هذا الشهر:\s*([\d\s]+?)\s*·\s*المصاريف:\s*([\d\s]+)/.exec(text);
   const feesLink = page.locator("a.pb-month"); // «دفع … من … حتى … · …٪», to «الإحصاءات»
   await expect(feesLink).toBeVisible();
-  const feesLine = clean(await feesLink.innerText());
-  const fees = /دفع\s*([\d\s]+?)\s*من\s*([\d\s]+?)\s*حتى.*?(\d+٪)/.exec(feesLine);
+  const feesLine = clean(await feesLink.innerText()).replace(/\s+/g, " ");
+  // «48٪ · دفع 46 من 96 · كل ما عليهم حتى سبتمبر» (the percent comes first on the card)
+  const counts = /دفع ([\d ]+?) من ([\d ]+?)(?: [^\d]|$)/.exec(feesLine);
+  const pct = /(\d+٪)/.exec(feesLine);
+  const fees = counts && pct ? [counts[0], counts[1], counts[2], pct[1]] : null;
   expect(bal, text).not.toBeNull();
   expect(month, text).not.toBeNull();
   expect(fees, feesLine).not.toBeNull();
@@ -63,12 +66,13 @@ export async function home(page: Page): Promise<Home> {
   };
 }
 
-/** «الإحصاءات» page: «دفعوا … حتى …: X من Y عضوًا.» and its big «…٪». */
+/** «الإحصاءات» page: «دفعوا … حتى … X من Y عضوًا» and its big «…٪». */
 export async function statsPage(page: Page) {
   await openPage(page, "/committee/stats");
-  const card = page.getByRole("region", { name: /^الرسوم الشهرية/ });
-  const text = clean(await card.innerText());
-  const m = /دفعوا.*?:\s*([\d\s]+?)\s*من\s*([\d\s]+?)\s*عضو/.exec(text);
+  const card = page.getByRole("region", { name: /^المستحقات الشهرية/ });
+  const text = clean(await card.innerText()).replace(/\s+/g, " ");
+  // «دفعوا كل ما عليهم حتى سبتمبر 48 من 96 عضوًا» (a colon or not)
+  const m = /دفعوا[^\d]*?([\d ]+?) من ([\d ]+?) عضو/.exec(text);
   const p = /(\d+٪)/.exec(text);
   expect(m, text).not.toBeNull();
   return { paidUp: toNumber(m![1]), active: toNumber(m![2]), pct: p![1] };

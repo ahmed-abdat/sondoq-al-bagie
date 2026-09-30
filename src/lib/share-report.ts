@@ -45,7 +45,7 @@ export interface ReportSummaryData {
   months: { month: number; expected: number; collected: number }[];
   /** «28 سبتمبر 2026». */
   asOfLabel: string;
-  /** Paid this month per member list («المجموعة أ: 11 من 20»); the summary card shows them. */
+  /** Paid this month per member list («الفئة أ: 11 من 20»); the summary card shows them. */
   groups?: { label: string; paid: number; active: number }[];
 }
 
@@ -90,7 +90,7 @@ export function reportSummary(r: ReportData): ReportSummaryData {
       const inList = active.filter((m) => m.memberRef.split("-")[0] === l);
       const label = l === "A" ? "أ" : l === "B" ? "ب" : l;
       return {
-        label: `المجموعة ${label}`,
+        label: `الفئة ${label}`,
         paid: inList.filter(isPaid).length,
         active: inList.length,
       };
@@ -112,7 +112,7 @@ export type ReportSource = ReportData | ReportSummaryData;
 const toCard = (d: ReportSource): ReportSummaryData => ("summary" in d ? reportSummary(d) : d);
 
 export function paidLine(d: Pick<ReportSummaryData, "paidCount" | "activeCount" | "month">) {
-  return `${d.paidCount} من ${d.activeCount} دفعوا رسوم ${monthName(d.month)}`;
+  return `${d.paidCount} من ${d.activeCount} دفعوا مستحقات شهر ${monthName(d.month)}`;
 }
 
 /** «سنة 2026 · الدورة 2» */
@@ -120,18 +120,11 @@ export function yearLine(d: Pick<ReportSummaryData, "year" | "termLabel">): stri
   return [`سنة ${d.year}`, d.termLabel].filter(Boolean).join(" · ");
 }
 
-/** Share page: `<origin>/report`. */
-export function reportUrl(origin: string): string {
-  return `${origin.replace(/\/$/, "")}/report`;
-}
-
 /**
- * The public site for links printed on shared images: the production URL (set at build time in
- * next.config.ts), never localhost or a preview; the page's own origin only as a last resort.
+ * No link anywhere in what is shared (owner): the WhatsApp group is public, the app is the
+ * committee's. The renderers still take a `url` for the old layout; it is always empty.
  */
-function publicOrigin(): string {
-  return process.env.NEXT_PUBLIC_SITE_ORIGIN || location.origin;
-}
+const NO_LINK = "";
 
 export function reportFileName(year: number, month: number): string {
   return `ملخص-صندوق-الرابطة-${year}-${String(month).padStart(2, "0")}.png`;
@@ -142,19 +135,19 @@ export function reportFileBase(iso: string): string {
   return `تقرير-صندوق-الرابطة-${iso.slice(0, 10)}`;
 }
 
-export function reportShareText(src: ReportSource, url: string): string {
+export function reportShareText(src: ReportSource): string {
   const d = toCard(src);
   return [
     `*ملخص ${FUND_NAME}*`,
     d.termLabel ?? ASSOC_NAME,
     "",
     `في الصندوق الآن: ${formatNumber(d.balance)} أوقية`,
-    `جُمع هذا العام: ${formatNumber(d.collectedThisYear)} أوقية`,
-    `صُرف هذا العام: ${formatNumber(d.spentThisYear)} أوقية`,
+    `المداخيل هذا العام: ${formatNumber(d.collectedThisYear)} أوقية`,
+    `المصاريف هذا العام: ${formatNumber(d.spentThisYear)} أوقية`,
     paidLine(d),
     `حتى ${d.asOfLabel}`,
     "",
-    `التفاصيل: ${url}`,
+    "للسؤال تواصل مع اللجنة.",
   ].join("\n");
 }
 
@@ -372,7 +365,7 @@ export function drawReportSummary(
   const stats: [string, number][] = [
     ["رصيد مرحّل", d.carried],
     ["جُمع", d.moneyIn],
-    ["صُرف", d.moneyOut],
+    ["المصاريف", d.moneyOut],
   ];
   stats.forEach(([label, n], i) => {
     const cr = R - i * colW;
@@ -398,7 +391,7 @@ export function drawReportSummary(
   bar(py + 32, 20, d.paidCount, d.activeCount);
 
   if (card) {
-    // Paid per list, then where to look yourself up
+    // Paid per list
     let gy = py + 150;
     for (const g of d.groups ?? []) {
       p.text(`${g.label}: ${g.paid} من ${g.active}`, R, gy, {
@@ -409,22 +402,6 @@ export function drawReportSummary(
       bar(gy + 24, 12, g.paid, g.active);
       gy += 96;
     }
-    const cy = H - 92 - 40;
-    const lw = p.text("ابحث عن اسمك:", R, cy, {
-      size: 30,
-      weight: 700,
-      face: "display",
-      color: T.forest,
-    });
-    p.text(o.url.replace(/^https?:\/\//, ""), R - lw - 14, cy, {
-      size: 30,
-      weight: 600,
-      face: "display",
-      color: T.forest,
-      dir: "ltr",
-      align: "right",
-      max: R - lw - 14 - P,
-    });
     p.footer(W, H, o.footer ?? `${FUND_NAME} · حتى ${d.asOfLabel}`, "", P);
     return;
   }
@@ -481,10 +458,7 @@ async function drawKit(): Promise<{ fonts: CanvasFonts; logo: HTMLImageElement |
   return { fonts, logo };
 }
 
-async function renderReportSummaryPng(
-  d: ReportSource,
-  url = reportUrl(publicOrigin()),
-): Promise<Blob> {
+async function renderReportSummaryPng(d: ReportSource, url = NO_LINK): Promise<Blob> {
   const card = toCard(d);
   const { fonts, logo } = await drawKit();
   // Already 1080 px wide: draw at 1×.
@@ -498,14 +472,14 @@ export type { ShareResult };
 /** Share the summary card (share sheet with PNG + text; else WhatsApp text with the link). */
 export async function shareReportSummary(
   d: ReportSource,
-  url = reportUrl(publicOrigin()),
+  url = NO_LINK,
   opts: ShareImageOptions = {},
 ): Promise<ShareResult> {
   const card = toCard(d);
   return shareImage(
     () => renderReportSummaryPng(card, url),
     reportFileName(card.year, card.month),
-    reportShareText(card, url),
+    reportShareText(card),
     opts,
   );
 }
@@ -526,7 +500,7 @@ const slot = (d: ReportInput) => {
 };
 
 /** The report as 1080×1350 PNG files, one per page (rendered once per ReportInput). */
-function reportPageFiles(d: ReportInput, url = reportUrl(publicOrigin())): Promise<File[]> {
+function reportPageFiles(d: ReportInput, url = NO_LINK): Promise<File[]> {
   const s = slot(d);
   s.pages ??= (async () => {
     const pages = await import("./report-pages");
@@ -540,7 +514,7 @@ function reportPageFiles(d: ReportInput, url = reportUrl(publicOrigin())): Promi
 }
 
 /** The report as an A4 PDF (the same pages at A4 ratio, as JPEG), built on the phone. */
-function reportPdfFile(d: ReportInput, url = reportUrl(publicOrigin())): Promise<File> {
+function reportPdfFile(d: ReportInput, url = NO_LINK): Promise<File> {
   const s = slot(d);
   s.pdf ??= buildPdf(d, url, `تقرير ${FUND_NAME} ${d.year}`, reportFileBase(d.generatedAt));
   s.pdf.catch(() => (s.pdf = undefined));
@@ -609,13 +583,13 @@ async function shareFiles(
  */
 export async function shareReportImages(
   d: ReportInput,
-  url = reportUrl(publicOrigin()),
+  url = NO_LINK,
   opts: ShareImageOptions = {},
 ): Promise<ShareResult> {
   const nav = opts.nav ?? (navigator as ShareNavigator);
   if (typeof nav.share === "function" && nav.canShare) {
     const files = await reportPageFiles(d, url).catch(() => null);
-    const res = files && (await shareFiles(files, reportShareText(d, url), nav));
+    const res = files && (await shareFiles(files, reportShareText(d), nav));
     if (res) return res;
   }
   return shareReportSummary(d, url, opts);
@@ -624,12 +598,12 @@ export async function shareReportImages(
 /** Share the PDF through the share sheet; if files cannot be shared, download it. */
 export async function shareReportPdf(
   d: ReportInput,
-  url = reportUrl(publicOrigin()),
+  url = NO_LINK,
   opts: { nav?: ShareNavigator; download?: (b: Blob, name: string) => void } = {},
 ): Promise<ShareResult | "downloaded"> {
   const nav = opts.nav ?? (navigator as ShareNavigator);
   const file = await reportPdfFile(d, url);
-  const res = await shareFiles([file], reportShareText(d, url), nav);
+  const res = await shareFiles([file], reportShareText(d), nav);
   if (res) return res;
   (opts.download ?? downloadPng)(file, file.name);
   return "downloaded";
@@ -651,14 +625,11 @@ export function reminderFileBase(iso: string): string {
   return `المتأخرات-${iso.slice(0, 7)}`;
 }
 
-/** The app's home link (where each member finds their name). */
-const appUrl = () => publicOrigin().replace(/\/$/, "");
-
-export function reminderShareText(url: string): string {
+/** The message with the «المتأخرات» pages: short and warm, no link (owner). */
+export function reminderShareText(year: number): string {
   return [
-    `*المتأخرات · ${FUND_NAME}*`,
-    "هذه الأسماء عليها متأخرات لم تُدفع بعد.",
-    `ابحث عن اسمك في التطبيق: ${url}`,
+    `*المتأخرات · سنة ${year}*`,
+    "هذه الأسماء عليها متأخرات لم تُدفع بعد. للدفع أو السؤال تواصل مع اللجنة.",
   ].join("\n");
 }
 
@@ -689,18 +660,18 @@ function reminderPdfFile(d: ReportInput, url: string): Promise<File> {
 }
 
 /** Start rendering the arrears pages in the background (when chosen in the sheet). */
-export function prepareReminderShare(d: ReportInput, url = appUrl()): void {
+export function prepareReminderShare(d: ReportInput, url = NO_LINK): void {
   reminderPageFiles(d, url).catch(() => {});
 }
 
 /** The arrears pages as PNG in one share; without file sharing, WhatsApp text with the link. */
 export async function shareReminderImages(
   d: ReportInput,
-  url = appUrl(),
+  url = NO_LINK,
   opts: ShareImageOptions = {},
 ): Promise<ShareResult> {
   const nav = opts.nav ?? (navigator as ShareNavigator);
-  const text = reminderShareText(url);
+  const text = reminderShareText(d.year);
   if (typeof nav.share === "function" && nav.canShare) {
     const files = await reminderPageFiles(d, url).catch(() => null);
     const res = files && (await shareFiles(files, text, nav));
@@ -713,12 +684,12 @@ export async function shareReminderImages(
 /** The arrears as one A4 PDF through the share sheet; if files cannot be shared, download it. */
 export async function shareReminderPdf(
   d: ReportInput,
-  url = appUrl(),
+  url = NO_LINK,
   opts: { nav?: ShareNavigator; download?: (b: Blob, name: string) => void } = {},
 ): Promise<ShareResult | "downloaded"> {
   const nav = opts.nav ?? (navigator as ShareNavigator);
   const file = await reminderPdfFile(d, url);
-  const res = await shareFiles([file], reminderShareText(url), nav);
+  const res = await shareFiles([file], reminderShareText(d.year), nav);
   if (res) return res;
   (opts.download ?? downloadPng)(file, file.name);
   return "downloaded";

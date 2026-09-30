@@ -177,7 +177,7 @@ describe("money pages", () => {
       campaigns: [campaign("open", 0), campaign("closed", 0), campaign("closed", 500)],
     };
     const b = moneyBlocks(r);
-    expect(b.map((x) => x.t)).toEqual(["heading", "campaign", "campaign", "space", "cta"]);
+    expect(b.map((x) => x.t)).toEqual(["heading", "campaign", "campaign"]);
     const money = paginateReport(r).filter((p) => p.kind === "money");
     expect(money.map((p) => p.kind === "money" && p.title)).toEqual(["حملات التبرع"]);
     const withExp = paginateReport({ ...r, expenses: [expense(1)] }).find(
@@ -290,6 +290,8 @@ describe("what the «المتأخرات» pages draw", () => {
       no: 1,
       of: 1,
     });
+    // owner: shared pages never name the app or carry a link, even when given one
+    for (const t of texts) expect(t).not.toMatch(/http|vercel|baqie|التطبيق/);
     return texts;
   };
   const owing = (ref: string): ReportMember => ({
@@ -303,14 +305,14 @@ describe("what the «المتأخرات» pages draw", () => {
     const r = report([owing("A-1"), member("A-2"), owing("A-3")]);
     const [page] = paginateReminder(r, A4_PAGE);
     const texts = drawn(page, r);
-    expect(texts).toEqual(expect.arrayContaining(["المتأخرات · المجموعة أ", "عضو A-1", "عضو A-3"]));
+    expect(texts).toEqual(expect.arrayContaining(["المتأخرات · الفئة أ", "عضو A-1", "عضو A-3"]));
     expect(texts).not.toContain("عضو A-2");
-    for (const t of texts) expect(t).not.toMatch(/أوقية|الرسوم|المجموع:|متأخر \d/);
+    for (const t of texts) expect(t).not.toMatch(/أوقية|المستحقات|الرسوم|المجموع:|متأخر \d/);
   });
 
   it("while the full report's group page does show the fee", () => {
     const r = report([owing("A-1")]);
     const page = paginateReport(r, A4_PAGE).find((p) => p.kind === "members")!;
-    expect(drawn(page, r).some((t) => /الرسوم الشهرية: 1.000 أوقية/.test(t))).toBe(true);
+    expect(drawn(page, r).some((t) => /المستحقات الشهرية: 1.000 أوقية/.test(t))).toBe(true);
   });
 });

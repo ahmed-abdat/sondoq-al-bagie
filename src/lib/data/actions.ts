@@ -250,7 +250,10 @@ export async function recordExpense(input: s.RecordExpenseInput) {
       sb.rpc("record_expense", {
         p_id: p.id,
         p_spent_on: p.spentOn,
-        p_category: p.category,
+        // m38: the activity; the old category only when a screen still sends one
+        ...(p.activityId !== undefined
+          ? { p_activity_id: p.activityId }
+          : { p_category: p.category }),
         p_amount: p.amount,
         p_note: p.note,
         p_campaign_id: p.campaignId,
@@ -263,16 +266,65 @@ export async function recordExpense(input: s.RecordExpenseInput) {
   );
   if (res.ok) {
     const p = s.recordExpenseSchema.parse(input);
+    const label =
+      p.note ||
+      (await activityName(p.activityId)) ||
+      (p.category ? CATEGORY_LABELS[p.category] : "");
     await tell("expense", (actorName) =>
       expensePayload({
         id: p.id,
         actorName,
-        label: p.note || CATEGORY_LABELS[p.category],
+        label,
         amount: p.amount,
       }),
     );
   }
   return res;
+}
+
+/** The activity name for the push text; a failed lookup never fails the recorded expense. */
+async function activityName(id: number | undefined): Promise<string | null> {
+  if (id === undefined) return null;
+  try {
+    const sb = await createClient();
+    const { data } =
+      (await sb?.from("expense_activities").select("name").eq("id", id).maybeSingle()) ?? {};
+    return data?.name ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/* ───────────── «النشاط» expense activities (m38, «مسؤول») ───────────── */
+
+/** A new activity, last in the list (before «أخرى»); returns its id. */
+export async function addExpenseActivity(input: { name: string }) {
+  return run(
+    s.addExpenseActivitySchema,
+    input,
+    (sb, p) => sb.rpc("add_expense_activity", { p_name: p.name }),
+    { touchesPublic: true, result: (d) => d as number },
+  );
+}
+
+/** Rename an activity (its past expenses show the new name). */
+export async function renameExpenseActivity(input: { id: number; name: string }) {
+  return run(
+    s.renameExpenseActivitySchema,
+    input,
+    (sb, p) => sb.rpc("rename_expense_activity", { p_id: p.id, p_name: p.name }),
+    { touchesPublic: true },
+  );
+}
+
+/** Retire (active false) or bring back an activity; never the last active one. */
+export async function setExpenseActivityActive(input: { id: number; active: boolean }) {
+  return run(
+    s.setExpenseActivityActiveSchema,
+    input,
+    (sb, p) => sb.rpc("set_expense_activity_active", { p_id: p.id, p_active: p.active }),
+    { touchesPublic: true },
+  );
 }
 
 export async function cancelExpense(input: { id: string; reason: string }) {

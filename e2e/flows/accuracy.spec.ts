@@ -12,22 +12,6 @@ const FEE = 500;
 const due = new Date().getMonth() + 1; // months owed so far this year (Africa/Nouakchott = UTC)
 const paid = (s: Record<number, string>) => Object.values(s).filter((v) => v === "paid").length;
 
-/**
- * Known wrong today: home «هذا الشهر: دخل» counts fees by the month they pay FOR
- * (monthly_collection), not the money received this month (a 9-month transfer adds 500, not 4 500);
- * the month's «أول الشهر» in the summary sheet is derived from it. Recorded on the run, not failed,
- * so the other checks keep guarding the ship; set to true once source.ts uses the month's income.
- */
-const MONTH_IN_FIXED = false;
-function monthIn(actual: number, expected: number, what: string) {
-  if (MONTH_IN_FIXED) return expect(actual, what).toBe(expected);
-  if (actual !== expected)
-    test.info().annotations.push({
-      type: "known wrong number",
-      description: `${what}: shown ${actual}, should be ${expected}`,
-    });
-}
-
 /** Every screen against the database, and against each other. */
 async function sameEverywhere(page: Page, t: Truth): Promise<Home> {
   const h = await home(page);
@@ -96,8 +80,9 @@ test("every screen shows the database's numbers after each step, and each step m
   expect(t1.balance - t0.balance).toBe(pay.amount);
   expect(t1.paidUp - t0.paidUp).toBe(1);
   const h1 = await sameEverywhere(page, t1);
-  monthIn(h1.monthIn - h0.monthIn, pay.amount, "«هذا الشهر: دخل» += the transfer");
-  expect(h1.monthOut, "«صرف» unchanged by a payment").toBe(h0.monthOut);
+  // home counts the money received this month (what moved the balance), whatever months it pays
+  expect(h1.monthIn - h0.monthIn, "«المداخيل هذا الشهر» += the transfer").toBe(pay.amount);
+  expect(h1.monthOut, "«المصاريف» unchanged by a payment").toBe(h0.monthOut);
   await memberEverywhere(page, due);
 
   // 2 · «مسؤول» cancels the payment: back to step 0, months unpaid again
@@ -132,6 +117,6 @@ test("every screen shows the database's numbers after each step, and each step m
   const t4 = await truth();
   expect(t0.balance - t4.balance).toBe(1500);
   const h4 = await sameEverywhere(page, t4);
-  expect(h4.monthOut - h0.monthOut, "«صرف» += the expense").toBe(1500);
-  monthIn(h4.monthIn, h0.monthIn, "«دخل» unchanged by an expense");
+  expect(h4.monthOut - h0.monthOut, "«المصاريف» += the expense").toBe(1500);
+  expect(h4.monthIn, "«المداخيل» unchanged by an expense").toBe(h0.monthIn);
 });

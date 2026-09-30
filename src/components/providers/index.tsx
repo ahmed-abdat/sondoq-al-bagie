@@ -13,7 +13,7 @@ export { useOnline } from "./online";
 export { AppBadgeSync } from "./app-badge";
 // The committee's push pieces (server actions) live in "./committee-push"; import them from there.
 export { OfflineWriteHint } from "./offline-banner";
-export { InstallEntry, markInstallEngaged } from "./install";
+export { InstallEntry } from "./install";
 export { reportActionError } from "./sw-update";
 
 export function makeClient() {

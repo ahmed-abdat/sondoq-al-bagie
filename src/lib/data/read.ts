@@ -3,12 +3,14 @@
 // public view GETs). RLS decides what a committee read returns.
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { CATEGORY_LABELS } from "./labels";
 import * as map from "./map";
 import type {
   ActivityItem,
   BackupStatus,
   PublicActivityItem,
   CommitteeAccount,
+  ExpenseActivity,
   ExpenseAdmin,
   FundAccountAdmin,
   FundSettings,
@@ -209,18 +211,41 @@ export async function arrears(c: Client) {
   ).map(map.toArrear);
 }
 
-/** All expenses (also cancelled), newest first, with the receipt image path. */
+/**
+ * All expenses (also cancelled), newest first, with the receipt image path, the activity (m38),
+ * the wallet or cash (m31) and who recorded it.
+ */
 export async function expensesAdmin(c: Client, limit = 100): Promise<ExpenseAdmin[]> {
-  const rows = many(
-    "expenses",
-    await c
+  const [rows, people] = await Promise.all([
+    c
       .from("expenses")
-      .select("*")
+      .select("*, activity:expense_activities(name), wallet:fund_accounts(method, account_number)")
       .order("spent_on", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(limit),
-  );
-  return rows.map(toExpenseAdmin);
+    c.from("committee").select("user_id, display_name"),
+  ]);
+  const names = new Map(many("committee", people).map((p) => [p.user_id, p.display_name]));
+  return many("expenses", rows).map((r) => ({
+    ...toExpenseAdmin(r),
+    activityId: r.activity_id,
+    activity: r.activity?.name ?? CATEGORY_LABELS[r.category],
+    wallet: r.wallet ? { method: r.wallet.method, accountNumber: r.wallet.account_number } : null,
+    paidInCash: r.paid_in_cash,
+    recordedBy: r.created_by ? (names.get(r.created_by) ?? null) : null,
+  }));
+}
+
+/** Every expense activity («النشاط», m38), in list order; retired ones too (history). */
+export async function expenseActivities(c: Client): Promise<ExpenseActivity[]> {
+  return many(
+    "expense_activities",
+    await c
+      .from("expense_activities")
+      .select("id, name, sort_order, active")
+      .order("sort_order")
+      .order("id"),
+  ).map((a) => ({ id: a.id, name: a.name, sortOrder: a.sort_order, active: a.active }));
 }
 
 function toExpenseAdmin(r: Database["public"]["Tables"]["expenses"]["Row"]): ExpenseAdmin {
@@ -390,11 +415,21 @@ export async function contributorsPublic(c: Client, campaignId: string, limit = 
 
 /* ───────────── committee tools (m29–m30) ───────────── */
 
-/** «سجل العمليات»: newest first; pass the last id shown as `before` for the next page. */
-export async function activityLog(c: Client, before?: number, limit = 50) {
+export type ActivityScope = "money" | "settings" | "all";
+
+/**
+ * «سجل العمليات»: newest first; pass the last id shown as `before` for the next page. `scope`
+ * (m40): business actions by default, settings changes apart, or both.
+ */
+export async function activityLog(
+  c: Client,
+  before?: number,
+  limit = 50,
+  scope: ActivityScope = "money",
+) {
   const rows = many(
     "activity_log",
-    await c.rpc("activity_log", { p_before: before, p_limit: limit }),
+    await c.rpc("activity_log", { p_before: before, p_limit: limit, p_scope: scope }),
   );
   return rows.map(map.toActivityEntry);
 }

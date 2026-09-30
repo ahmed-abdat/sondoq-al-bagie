@@ -186,7 +186,8 @@ const demo = {
     const e: ExpenseAdmin = {
       id: p.id,
       spentOn: p.spentOn,
-      category: p.category,
+      category: p.category ?? "other",
+      ...(p.activityId !== undefined ? { activityId: p.activityId } : {}),
       amount: p.amount,
       note: p.note ?? null,
       campaignId: p.campaignId ?? null,
@@ -481,6 +482,10 @@ const demo = {
       toFee: null,
     }),
   retireGroup: async () => ok(undefined),
+  // m38 (Lane A): not in the demo yet
+  addExpenseActivity: async () => ok(99),
+  renameExpenseActivity: async () => ok(undefined),
+  setExpenseActivityActive: async () => ok(undefined),
 } satisfies Sim;
 
 /* ───────────── context ───────────── */
