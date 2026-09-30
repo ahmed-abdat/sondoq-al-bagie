@@ -1224,6 +1224,41 @@ select tests.login('admin');
 select public.cancel_payment(tests.id('m29q'), 'خطأ');
 select tests.ok((select status from public.payments where id = tests.id('m29q')) = 'cancelled', '«مسؤول» cancels a payment');
 
+/* ───────────── M31: report reads ───────────── */
+
+select tests.login('committee');
+select tests.set('rp', public.report_period(date_trunc('year', current_date)::date, (date_trunc('year', current_date) + interval '1 year - 1 day')::date)::text);
+select tests.login('server');
+select tests.ok((select (r ->> 'closing')::bigint
+                   = (select balance from public.fund_summary) + (select sum(balance) from public.campaign_progress)
+                 from (select tests.get('rp')::jsonb r) x),
+  'the year''s closing = main fund + money still held by campaigns and levies');
+select tests.ok((select (r ->> 'closing')::bigint = (r ->> 'opening')::bigint + (r -> 'income' ->> 'total')::bigint
+                        - (r -> 'spending' ->> 'total')::bigint + (r ->> 'adjustments')::bigint
+                 from (select tests.get('rp')::jsonb r) x), 'closing = opening + income − spending + adjustments');
+select tests.ok((select (r -> 'income' ->> 'total')::bigint = (r -> 'income' ->> 'fees')::bigint + (r -> 'income' ->> 'levies')::bigint
+                        + (r -> 'income' ->> 'donations')::bigint and (r -> 'income' ->> 'levies')::bigint > 0
+                        and jsonb_array_length(r -> 'months') = 12
+                        and (select sum((m ->> 'income')::bigint) from jsonb_array_elements(r -> 'months') m) = (r -> 'income' ->> 'total')::bigint
+                 from (select tests.get('rp')::jsonb r) x), 'income by source adds up, 12 months add up, levies counted');
+select tests.login('committee');
+select tests.ok((select (a -> 'income' ->> 'total')::bigint + (b -> 'income' ->> 'total')::bigint
+                        = (c -> 'income' ->> 'total')::bigint and (b ->> 'opening')::bigint = (a ->> 'closing')::bigint
+                 from (select public.report_period(date_trunc('year', current_date)::date, (current_date - 40)) a,
+                              public.report_period(current_date - 39, current_date + 400) b,
+                              public.report_period(date_trunc('year', current_date)::date, current_date + 400) c) x),
+  'two periods chain: the second opens with the first''s closing');
+select tests.throws($$select public.report_period(current_date, current_date - 1)$$, 'invalid_input', 'a period ends after it starts');
+select tests.ok((select sum(amount) from public.report_wallets('2000-01-01', '2100-01-01'))
+                = (select sum(amount) from public.payments where status = 'confirmed' and method::text <> 'credit'),
+  'wallets add up to the confirmed money in');
+select tests.ok((select payments_count > 0 and cancellations > 0 from public.report_committee_work('2000-01-01', '2100-01-01')
+                 where display_name = 'المدير'), 'committee work counts records and cancellations per person');
+select tests.login('former');
+select tests.throws($$select public.report_period(current_date, current_date)$$, 'not_committee', 'reports are committee only');
+select tests.login('public');
+select tests.throws($$select * from public.report_wallets(current_date, current_date)$$, '42501', 'strangers get no report');
+
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
 select tests.login('server');
