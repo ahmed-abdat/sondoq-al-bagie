@@ -87,7 +87,7 @@ function MenuRow({
       <Link
         href={href}
         // the report page is heavy; load it only when asked
-        prefetch={href.startsWith("/report") ? false : undefined}
+        prefetch={href.includes("#share") ? false : undefined}
         className="bq-row bq-press"
         transitionTypes={["tab-fwd"]}
       >
@@ -367,7 +367,7 @@ export function CommitteeView({
                 />
               )}
               <MenuRow
-                href="/report#share"
+                href="/committee/reports#share"
                 icon={I.image(22)}
                 title="مشاركة التقرير"
                 sub="صور أو PDF لمجموعة الواتساب"

@@ -37,34 +37,16 @@ test("the notifications switch is replaced by a plain note in the demo", async (
   await expect(page.getByRole("switch", { name: /إشعارات الدفعات الجديدة/ })).toHaveCount(0);
 });
 
-test("late reminders: «ذكّر الجميع بالترتيب» walks the list one WhatsApp at a time", async ({
+test("late members: the list in the app and «شارك المتأخرات» (no WhatsApp walk)", async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    (window as unknown as { __opened: string[] }).__opened = [];
-    window.open = ((url: string) => {
-      (window as unknown as { __opened: string[] }).__opened.push(String(url));
-      return null;
-    }) as typeof window.open;
-  });
   await page.goto("/committee/late");
+  await expect(page.getByRole("heading", { name: "المتأخرون", level: 1 })).toBeVisible();
+  await expect(page.getByRole("button", { name: /شارك المتأخرات/ })).toBeVisible();
+  await expect(page.locator(".bq-list li").first()).toContainText("لم يدفع منذ");
   await expect(
-    page.getByText("الأكثر تأخرًا أولًا. افتح رسالة كل عضو في واتساب وأرسلها له."),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "ذكّر الجميع بالترتيب" }).click();
-  const walk = page.locator(".bq-ml-walk");
-  const first = await walk.locator(".bq-ml-walk-t").textContent();
-  await walk.getByRole("button", { name: /افتح الرسالة في واتساب/ }).click();
-  await expect
-    .poll(() => page.evaluate(() => (window as unknown as { __opened: string[] }).__opened.length))
-    .toBe(1);
-  await expect(walk.locator(".bq-ml-walk-t")).not.toHaveText(first!);
-  await walk.getByRole("button", { name: "إيقاف" }).click();
-  await expect(walk).toHaveCount(0);
-  // only what the app knows: the draft opened, not that it was sent (QA pass 5)
-  const row = page.locator("li", { hasText: first!.trim() }).first();
-  await expect(row).toContainText("فُتحت رسالة واتساب");
-  await expect(page.getByText(/ذُكّر/)).toHaveCount(0);
+    page.getByRole("button", { name: /ذكّر الجميع|افتح الرسالة في واتساب/ }),
+  ).toHaveCount(0);
 });
 
 test("hub, demo queue: empty (?demoQueue=0) says so and offers a cash record", async ({ page }) => {

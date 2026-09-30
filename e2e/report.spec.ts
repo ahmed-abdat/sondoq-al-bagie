@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// /report: the fund's report and its share sheet. Needs a production build (the SW is off in
-// dev); fictional data: SONDOQ_FIXTURES=1 pnpm build && SONDOQ_FIXTURES=1 pnpm start.
+// /committee/reports: the fund's report and its share sheet (committee-only app). Needs a
+// production build; fictional data: SONDOQ_FIXTURES=1 pnpm build && SONDOQ_FIXTURES=1 pnpm start.
 
 type SharedFile = {
   name: string;
@@ -93,27 +93,13 @@ async function openSheet(page: Page) {
   await expect(page.getByRole("dialog", { name: "مشاركة التقرير" })).toBeVisible();
 }
 
-test("opens, and opens offline after a visit", async ({ page, context }) => {
-  await page.goto("/report");
-  await expect(heading(page)).toBeVisible();
-  await waitForServiceWorker(page);
-  await page.reload(); // now through the SW, so it is stored
-  await expect(heading(page)).toBeVisible();
-
-  await context.setOffline(true);
-  await page.reload();
-  await expect(heading(page)).toBeVisible();
-  await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toHaveCount(0);
-  await context.setOffline(false);
-});
-
 test("«طباعة» opens the print dialog", async ({ page }) => {
   await page.addInitScript(() => {
     const w = window as unknown as Win;
     w.__printed = 0;
     window.print = () => void w.__printed++;
   });
-  await page.goto("/report");
+  await page.goto("/committee/reports");
   await page.getByRole("button", { name: "طباعة" }).click();
   expect(await win(page, "__printed")).toBe(1);
 });
@@ -231,7 +217,7 @@ test("summary image alone goes to the share sheet as a 1080×1350 PNG", async ({
 test("members grid: one bordered table, a plain ✓ in each paid month, empty cells otherwise", async ({
   page,
 }) => {
-  await page.goto("/report");
+  await page.goto("/committee/reports");
   const legend = page.locator(".rp-legend");
   await expect(legend).toContainText("مدفوع");
   await expect(legend).toContainText("12 = ديسمبر");
@@ -243,9 +229,8 @@ test("members grid: one bordered table, a plain ✓ in each paid month, empty ce
   await expect(page.locator(".rp-legend svg circle, .rp-mt svg circle")).toHaveCount(0);
   // «المجموع: … أوقية» under each group
   await expect(page.locator(".rp-gtotal")).toHaveCount(await page.locator(".rp-mt-narrow").count());
-  // a stranger: the total is hidden (money privacy)
-  await expect(page.locator(".rp-gtotal").first()).toHaveText(/^المجموع:\s+أوقية$/);
-  await expect(page.locator(".rp-gtotal").first().locator(".bq-dots")).toHaveCount(1);
+  // committee-only app: the total is shown
+  await expect(page.locator(".rp-gtotal").first()).toHaveText(/^المجموع: \d[\d\s  ]* أوقية$/);
   // r25: no «الرقم» column
   for (const t of await page.locator(".rp-mt").all()) await expect(t).not.toContainText("الرقم");
   const narrow = page.locator(".rp-mt-narrow").first();
@@ -276,21 +261,6 @@ test("members grid: one bordered table, a plain ✓ in each paid month, empty ce
   await page.setViewportSize({ width: 390, height: 844 });
 });
 
-test("«مشاركة التقرير» is for the committee only: a visitor reads, #share opens nothing", async ({
-  page,
-}) => {
-  await page.goto("/report#share");
-  await expect(heading(page)).toBeVisible();
-  await expect(page.getByRole("button", { name: "طباعة" })).toBeVisible();
-  await page.waitForTimeout(500);
-  await expect(page.getByRole("button", { name: "مشاركة التقرير" })).toHaveCount(0);
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByText("من عليه متأخرات فقط")).toHaveCount(0); // «المتأخرات» too
-  await page.goto("/accounts");
-  await expect(page.getByRole("link", { name: /مشاركة التقرير/ })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /التقرير كاملًا/ })).toBeVisible();
-});
-
 test("committee (demo): the hub opens the share sheet on the report", async ({ page }) => {
   await openSheet(page);
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -298,40 +268,4 @@ test("committee (demo): the hub opens the share sheet on the report", async ({ p
   await expect(page.getByRole("dialog")).not.toContainText("✓ يعني");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "مشاركة التقرير" })).toBeVisible();
-});
-
-test("copy link: «نُسخ» only after the clipboard said yes, else the link to copy by hand (QA pass 5)", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: () => Promise.reject(new Error("denied")) },
-    });
-  });
-  await openSheet(page);
-  await page.getByRole("button", { name: /نسخ الرابط/ }).click();
-  const field = page.getByRole("textbox", { name: "انسخ الرابط يدويًا" });
-  await expect(field).toHaveValue(/\/report$/);
-  await expect(page.getByText(/نُسخ الرابط/)).toHaveCount(0);
-});
-
-test("copy link: a real clipboard write says «نُسخ الرابط»", async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: {
-        writeText: (t: string) => {
-          (window as unknown as { __copied: string }).__copied = t;
-          return Promise.resolve();
-        },
-      },
-    });
-  });
-  await openSheet(page);
-  await page.getByRole("button", { name: /نسخ الرابط/ }).click();
-  await expect(page.getByRole("status")).toHaveText(/نُسخ الرابط/);
-  expect(await page.evaluate(() => (window as unknown as { __copied: string }).__copied)).toMatch(
-    /\/report$/,
-  );
 });

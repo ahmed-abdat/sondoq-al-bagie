@@ -16,17 +16,15 @@ import {
 } from "@/lib/share-report";
 import { I } from "./icons";
 import { Sheet } from "./sheet";
-import { copyText, ManualCopy } from "./copy";
 
-type Result = "shared" | "whatsapp" | "cancelled" | "downloaded" | "retry" | "copied" | "manual";
+type Result = "shared" | "whatsapp" | "cancelled" | "downloaded" | "retry";
 
 // only what the app knows (QA pass 5): a share sheet or a draft opened, never «أُرسل»
-const DONE: Record<Exclude<Result, "retry" | "manual">, string> = {
+const DONE: Record<Exclude<Result, "retry">, string> = {
   shared: "",
   whatsapp: "فُتح واتساب بملخص التقرير ورابطه. اضغط إرسال هناك.",
   cancelled: "",
   downloaded: "حُفظ الملف في التنزيلات.",
-  copied: "نُسخ الرابط. الصقه في مجموعة الواتساب.",
 };
 
 /** «مشاركة التقرير» + «طباعة» (the app is committee-only: every viewer may share). */
@@ -67,7 +65,6 @@ function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean })
   const [busy, setBusy] = useState<string | null>(null);
   const [retry, setRetry] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
-  const [manual, setManual] = useState(false);
   useEffect(() => {
     if (!committee || (!autoOpen && window.location.hash !== "#share")) return;
     const t = window.setTimeout(() => setOpen(true));
@@ -87,12 +84,8 @@ function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean })
       if (r === "retry") {
         // the files were not ready at the first tap; they are now (cached): one more tap shares
         setRetry(key);
-      } else if (r === "manual") {
-        setRetry(null);
-        setManual(true);
       } else {
         setRetry(null);
-        setManual(false);
         setMsg(
           r === "whatsapp" && kind === "reminder"
             ? "فُتح واتساب بنص المتأخرات ورابط التطبيق. اضغط إرسال هناك."
@@ -150,14 +143,6 @@ function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean })
       title: "صورة الملخص فقط",
       sub: "صورة واحدة: ما في الصندوق ومن دفع",
       run: () => shareReportSummary(data),
-    },
-    {
-      key: "link",
-      icon: I.copy(24),
-      title: "نسخ الرابط",
-      sub: "يظهر في واتساب ببطاقة فيها الأرقام",
-      // «نُسخ» only once the clipboard said yes; else the link, selected, to copy by hand
-      run: () => copyText(`${window.location.origin}/report`),
     },
   ];
 
@@ -235,7 +220,6 @@ function ShareTools({ data, autoOpen }: { data: ReportData; autoOpen: boolean })
               ))}
             </ul>
             <p className="bq-hint">اختر واتساب ثم اضغط إرسال.</p>
-            {manual && <ManualCopy text={`${window.location.origin}/report`} />}
             {msg && (
               <p className="bq-save is-saved" role="status">
                 {msg}
