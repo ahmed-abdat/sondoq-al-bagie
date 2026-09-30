@@ -340,6 +340,13 @@ describe("«الإحصاءات»", () => {
     expect(text).toContain("لم يدفعوا بعد: 50");
     expect(text).toContain("معفون: 4");
     expect(text).toContain("جُمع 68 000 من 168 000 أوقية.");
+    expect(text).toContain(
+      "المجموعة أ: جُمع 40 000 من 76 000 أوقية. المجموعة ب: جُمع 28 000 من 92 000 أوقية.",
+    );
+    // the groups add up to the whole
+    const g = fx.fxLevyStats.groups;
+    expect(g.reduce((s, x) => s + x.collected, 0)).toBe(fx.fxLevyStats.collected);
+    expect(g.reduce((s, x) => s + x.expected, 0)).toBe(fx.fxLevyStats.expected);
     expect(text).toContain("*تبرع: ترميم المصلى*");
     expect(text).toContain("أوقية جُمعت من هدف 150 000 (43٪).");
     expect(text).toContain("تبرّع 25٪ من أعضاء الرابطة.");
@@ -393,7 +400,8 @@ describe("«الإحصاءات»", () => {
     const levy = txt(buildCampaign(fx.fxLevy, fx.fxLevyStats));
     expect(levy).toContain("*40٪* دفعوا نصيبهم.");
     expect(levy).not.toContain("ولم يدفع بعد");
-    expect(levy.match(/جُمع/g)).toHaveLength(1);
+    // the amounts once (the campaign's own lines), plus the per-group line
+    expect(levy.match(/^جُمع/gm)).toHaveLength(1);
     expect(txt(buildCampaign(fx.fxLevy))).toContain("ولم يدفع بعد");
     const gift = txt(buildCampaign(fx.fxCampaign, fx.fxDonationStats));
     expect(gift).toContain("تبرّعوا: 27");

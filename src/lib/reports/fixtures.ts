@@ -426,8 +426,26 @@ export const fxLevyStats: LevyStats = {
   expected: 168_000,
   collected: 68_000,
   groups: [
-    { groupCode: "A", shares: 40, paid: 20, unpaid: 18, exempt: 2, paidPct: 52.6 },
-    { groupCode: "B", shares: 48, paid: 14, unpaid: 32, exempt: 2, paidPct: 30.4 },
+    {
+      groupCode: "A",
+      shares: 40,
+      paid: 20,
+      unpaid: 18,
+      exempt: 2,
+      paidPct: 52.6,
+      expected: 76_000,
+      collected: 40_000,
+    },
+    {
+      groupCode: "B",
+      shares: 48,
+      paid: 14,
+      unpaid: 32,
+      exempt: 2,
+      paidPct: 30.4,
+      expected: 92_000,
+      collected: 28_000,
+    },
   ],
 };
 export const fxDonationStats: DonationStats = {

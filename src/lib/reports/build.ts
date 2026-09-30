@@ -491,6 +491,15 @@ function levyStatBlocks(l: LevyStats, title?: string): Block[] {
               bar: { part: g.paid, whole: g.shares - g.exempt },
             })),
           } as Block,
+          {
+            t: "note",
+            text: l.groups
+              .map(
+                (g) =>
+                  `${groupLabel(g.groupCode)}: جُمع ${amt(g.collected)} من ${amt(g.expected)} أوقية.`,
+              )
+              .join(" "),
+          } as Block,
         ]
       : []),
   ];
