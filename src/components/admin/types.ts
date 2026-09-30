@@ -136,7 +136,8 @@ export type PData = {
   opening: number;
   collectedYear: number;
   spentYear: number;
-  monthIn: number;
+  /** money received this month (without the paper-sheet import); null = unknown, not shown */
+  monthIn: number | null;
   monthOut: number;
   monthly: { month: number; collected: number; expected: number; spent: number }[];
   members: PMember[];
