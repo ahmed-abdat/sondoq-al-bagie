@@ -1514,6 +1514,8 @@ select tests.throws($$select * from app_private.cleanup_archive$$, '42501', 'str
 /* ───────────── M38: expense activities («النشاط») ───────────── */
 
 select tests.login('committee');
+select tests.ok((select name from public.expense_activities where legacy_category = 'teaching') = 'التدريس المحظري',
+                'm42: the first activity has the owner''s spelling');
 select tests.ok((select count(*) from public.expense_activities where legacy_category is not null) = 4
                 and (select name from public.expense_activities where legacy_category = 'honoring') = 'تكريم الناجحين',
   'the 4 old categories are the first activities');
