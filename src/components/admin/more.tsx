@@ -2,7 +2,6 @@
 // «المزيد» and «سجل العمليات» (plan §4, §7.1: who did what, visible to all the committee).
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { InstallEntry } from "@/components/providers";
 import { LogoutButton } from "@/components/app/logout";
 import { Back, Chips, committeeHref, day, Num, useP, X } from "./kit";
 import { legacyPendingCount } from "./report-action";
@@ -57,7 +56,6 @@ export function MoreMenu({ me }: { me: { name: string; role: string; admin: bool
   const rows: { t: string; s: string; icon: keyof typeof X; to: string; admin?: boolean }[] = [
     { t: "المصاريف", s: "سجّل مصروفًا، وكل المصاريف", icon: "bag", to: href("expenses") },
     { t: "سجل العمليات", s: "من سجّل ماذا، ومتى", icon: "list", to: href("activity") },
-    { t: "المتأخرون", s: "من عليه متأخرات أو نصيب لوحة", icon: "clock", to: href("late") },
     ...(pending
       ? [
           {
@@ -69,17 +67,8 @@ export function MoreMenu({ me }: { me: { name: string; role: string; admin: bool
         ]
       : []),
     {
-      t: "تسليم الصندوق",
-      s: "عند نهاية الدورة",
-      icon: "hand",
-      to: href("handover"),
-      admin: true,
-    },
-    {
       t: "الإعدادات",
-      s: me.admin
-        ? "أرقام الصندوق، المستحقات الشهرية، أعضاء اللجنة"
-        : "أرقام الصندوق، المستحقات الشهرية",
+      s: me.admin ? "المحافظ، الفئات، النشاط، حسابات اللجنة، التسليم" : "المحافظ، الفئات، النشاط",
       icon: "gear",
       to: href("settings"),
     },
@@ -105,9 +94,6 @@ export function MoreMenu({ me }: { me: { name: string; role: string; admin: bool
               </Link>
             </li>
           ))}
-        <li>
-          <InstallEntry />
-        </li>
       </ul>
       <LogoutButton className="pa-btn pa-btn-ghost pa-btn-block">خروج</LogoutButton>
     </div>

@@ -20,7 +20,7 @@ export default async function HandoverPage() {
     handovers.find((h) => h.status === "draft" || h.status === "submitted") ?? handovers[0] ?? null;
   return (
     <Tab>
-      <SubHead title="تسليم الصندوق" lead="للجنة الجديدة عند نهاية الدورة." />
+      <SubHead title="تسليم الصندوق" lead="للجنة الجديدة عند نهاية الدورة." back="settings" />
       <HandoverView
         handover={open}
         balance={summary.balance}

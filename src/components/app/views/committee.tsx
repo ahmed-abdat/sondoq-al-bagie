@@ -34,15 +34,24 @@ export function CommitteeLive() {
 }
 
 /** Sub-page header: «رجوع» to the committee hub, the title, one line of help. */
-export function SubHead({ title, lead }: { title: string; lead?: string }) {
+export function SubHead({
+  title,
+  lead,
+  back = "more",
+}: {
+  title: string;
+  lead?: string;
+  /** the page it was opened from: «المزيد» or «الإعدادات» (rare items live there) */
+  back?: "more" | "settings";
+}) {
   return (
     <header className="bq-page-h">
       <Link
-        href="/committee/more"
+        href={`/committee/${back}`}
         className="bq-link bq-link-s bq-back bq-press"
         transitionTypes={["tab-back"]}
       >
-        {I.back(18)} المزيد
+        {I.back(18)} {back === "settings" ? "الإعدادات" : "المزيد"}
       </Link>
       <h1>{title}</h1>
       {lead && <p className="bq-lead">{lead}</p>}

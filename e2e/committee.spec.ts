@@ -113,3 +113,27 @@ test("waiting payments, demo queue: 12 pending (?demoQueue=12) shows one open sl
   await page.getByRole("button", { name: /عرض الكل/ }).click();
   await expect(page.locator(".bq-rev-row")).toHaveCount(11);
 });
+
+test("«المزيد» is short; the rare items are sections of «الإعدادات»", async ({ page }) => {
+  await page.goto("/committee/more");
+  await expect(page.getByRole("main").getByRole("link")).toHaveText([
+    /^المصاريف/,
+    /^سجل العمليات/,
+    /^دفعات قديمة لم تُثبَّت/,
+    /^الإعدادات/,
+    /^حسابي/,
+    "خروج",
+  ]);
+  await page.getByRole("link", { name: /^الإعدادات/ }).click();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveText([
+    "المحافظ",
+    "الفئات والمستحقات الشهرية",
+    "النشاط",
+    "حسابات اللجنة",
+    "تسليم الصندوق",
+    "آخر نسخة احتياطية",
+  ]);
+  await page.getByRole("link", { name: "افتح التسليم" }).click();
+  await expect(page.getByRole("heading", { name: "تسليم الصندوق", level: 1 })).toBeVisible();
+  await expect(page.getByRole("link", { name: "الإعدادات" }).first()).toBeVisible();
+});

@@ -46,7 +46,7 @@ async function chromeOffersInstall(page: Page, outcome: "accepted" | "dismissed"
 
 /** «المزيد» → «تثبيت التطبيق». */
 async function tapEntry(page: Page) {
-  await page.goto("/committee/more");
+  await page.goto("/committee/settings");
   await page.getByRole("button", { name: /تثبيت التطبيق/ }).click();
 }
 
@@ -67,7 +67,7 @@ test("the event caught before the app shell exists opens Chrome's dialog on tap"
 }) => {
   await returning(page);
   await chromeOffersInstall(page, "accepted");
-  await page.goto("/committee/more");
+  await page.goto("/committee/settings");
   expect((await log(page))[0]).toBe("fired:loading:no-shell");
   await page.getByRole("button", { name: /تثبيت التطبيق/ }).click();
   await expect.poll(() => log(page)).toContain("prompt");
