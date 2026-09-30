@@ -12,6 +12,7 @@ import {
   buildWallets,
   buildWork,
   daysWord,
+  lateWhen,
   refLabel,
 } from "./build";
 import {
@@ -109,6 +110,18 @@ describe("paginate", () => {
     }
   });
 
+  it("the closing total never ends a page without its split", () => {
+    for (const size of [PHONE, A4]) {
+      const pages = paginate(buildAnnual(fx.fxAnnual).blocks, size);
+      const at = pages.findIndex((pg) =>
+        pg.some((b) => b.t === "rows" && b.total?.label === "المجموع آخر السنة"),
+      );
+      const txtOf = (pg: Block[]) => JSON.stringify(pg);
+      expect(txtOf(pages[at])).toContain("منها في الصندوق");
+      expect(txtOf(pages[at])).toContain("منها لدى التبرعات واللوحات");
+    }
+  });
+
   it("never leaves a heading alone at the bottom of a page", () => {
     const filler: Block = {
       t: "rows",
@@ -190,21 +203,38 @@ describe("the 10 reports", () => {
     expect(txt(doc)).toContain("✓ مدفوع · خانة فارغة: لم يُدفع");
   });
 
-  it("«المتأخرات»: names, months left and the levy column; no amount anywhere", () => {
+  it("«المتأخرات»: names only, a box with the months left, the months exactly, the لوحة owed", () => {
     const doc = buildLate(fx.fxLate);
     expect(doc.hasAmounts).toBe(false);
     const text = txt(doc);
-    expect(text).toContain("_الاسم · الأشهر الباقية · لوحة_");
-    expect(text).toContain("أ 4 · الحسن ولد عبد الله · يناير إلى سبتمبر · ✓");
-    expect(text).toContain("أ 5 · المختار ولد محمد · يونيو إلى سبتمبر · —");
-    expect(text).toContain("ب 11 · عبد الرحمن ولد سيدي");
+    expect(text).toContain("*الفئة أ*");
+    expect(text).toContain("الحسن ولد عبد الله: [9] يناير – سبتمبر + نصيب لوحة ترميم المسجد");
+    expect(text).toContain("المختار ولد محمد: [4] يونيو – سبتمبر");
+    expect(text).toContain("*الفئة ب*");
+    expect(text).toContain("عبد الرحمن ولد سيدي: نصيب لوحة ترميم المسجد");
     for (const t of [text, ...drawn(doc)]) {
       expect(t).not.toMatch(AMOUNT);
       expect(t).not.toMatch(/أوقية|المستحقات الشهرية|الرسوم الشهرية|المجموع/);
+      // no paper number, no count of members (owner: internal)
+      expect(t).not.toMatch(/[أب] \d|[AB]-\d|عضو/);
     }
     expect(buildLate({ ...fx.fxLate, members: [] }).blocks).toEqual([
       { t: "note", text: "لا أحد عليه متأخرات الآن." },
     ]);
+  });
+
+  it("«المتأخرات» months: never a range over a paid month; the year when there are several", () => {
+    expect(lateWhen(["2026-01", "2026-02", "2026-03"])).toBe("يناير – مارس");
+    expect(lateWhen(["2026-01", "2026-03", "2026-04", "2026-05"])).toBe("يناير، مارس – مايو");
+    expect(lateWhen(["2026-02"])).toBe("فبراير");
+    expect(lateWhen(["2025-11", "2025-12", "2026-01"])).toBe("نوفمبر – ديسمبر 2025، يناير 2026");
+    // the box says exactly how many months are listed
+    const row = (months: string[]) =>
+      buildLate({
+        ...fx.fxLate,
+        members: [{ ...fx.fxLate.members[0], lateMonths: months, monthsCount: 99, levies: [] }],
+      }).blocks.find((b) => b.t === "late");
+    expect(row(["2026-01", "2026-03"])).toMatchObject({ rows: [{ count: 2 }] });
   });
 
   it("expenses: by kind with the total, then by month newest first", () => {

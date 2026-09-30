@@ -27,8 +27,16 @@ export type Block =
    * starts on a new page rather than split, when it fits on one page.
    */
   | { t: "heading"; text: string; keep?: boolean }
-  /** label / amount lines, with an optional bold total under a rule */
-  | { t: "rows"; rows: AmountRow[]; total?: { label: string; amount: number } }
+  /**
+   * label / amount lines, with an optional bold total under a rule. `keepNext`: never the last
+   * block of a page (it goes to the next page with the block after it).
+   */
+  | {
+      t: "rows";
+      rows: AmountRow[];
+      total?: { label: string; amount: number };
+      keepNext?: boolean;
+    }
   /** one short paragraph */
   | { t: "note"; text: string }
   /**
@@ -48,6 +56,11 @@ export type Block =
   | { t: "grid"; rows: { name: string; paid: boolean[] }[] }
   /** one member's 12 months as two rows of six (statement) */
   | { t: "months"; paid: boolean[] }
+  /**
+   * «المتأخرات»: a name, a small box with how many months are left, the months themselves, and
+   * the لوحة shares owed («+ نصيب لوحة …»). No number, no amount.
+   */
+  | { t: "late"; rows: { name: string; count: number; when: string; extra?: string }[] }
   /** a simple bar chart of 12 monthly amounts */
   | { t: "bars"; values: number[] }
   /** two signature lines (handover) */
@@ -113,6 +126,8 @@ export const LAYOUT = {
   tiles: 116,
   tileSub: 34,
   tileBar: 34,
+  lateRow: 64,
+  lateRowExtra: 94,
   counts: 300,
   partBar: 40,
   /** space after each block */
@@ -156,8 +171,14 @@ export function blockHeight(b: Block, size: PageSize): number {
       );
     case "counts":
       return L.counts;
+    case "late":
+      return b.rows.reduce((s, r) => s + lateRowHeight(r), 0);
   }
 }
+
+/** A «المتأخرات» row: taller when a لوحة line sits under the months. */
+export const lateRowHeight = (r: { count: number; extra?: string }) =>
+  r.extra && r.count ? LAYOUT.lateRowExtra : LAYOUT.lateRow;
 
 /** Room for blocks on one page, between the band and the footer. */
 export const pageRoom = (size: PageSize) =>
@@ -182,6 +203,21 @@ function splitBlock(b: Block, room: number, size: PageSize): [Block, Block] | nu
     return [
       { t: "rows", rows: b.rows.slice(0, n) },
       { ...b, rows: b.rows.slice(n) },
+    ];
+  }
+  if (b.t === "late") {
+    let h = 0;
+    let n = 0;
+    for (const r of b.rows) {
+      const rh = lateRowHeight(r);
+      if (h + rh > room) break;
+      h += rh;
+      n++;
+    }
+    if (n === 0 || n >= b.rows.length) return null;
+    return [
+      { t: "late", rows: b.rows.slice(0, n) },
+      { t: "late", rows: b.rows.slice(n) },
     ];
   }
   if (b.t === "table" || b.t === "grid") {
@@ -223,6 +259,15 @@ export function paginate(blocks: Block[], size: PageSize): Block[][] {
   while (queue.length) {
     const b = queue.shift()!;
     const h = blockHeight(b, size);
+    if (b.t === "rows" && b.keepNext && page.length && queue.length) {
+      // with the block after it: both on the next page when they do not fit here together
+      const need = h + LAYOUT.after + blockHeight(queue[0], size);
+      if (used + need > room && need <= room) {
+        flush();
+        queue.unshift(b);
+        continue;
+      }
+    }
     if (b.t === "heading" && b.keep && page.length) {
       // the whole section on the next page when it does not fit here but fits on a page
       const end = queue.findIndex((x) => x.t === "heading");
@@ -359,6 +404,12 @@ export function docText(doc: ReportDoc, meta: DocMeta): string {
             .flatMap((m, i) => (m.started || m.paid ? [`${monthName(i + 1)} ${m.paid}`] : []))
             .join("، "),
         );
+        break;
+      case "late":
+        for (const r of b.rows)
+          out.push(
+            `${r.name}: ${r.count ? `[${r.count}] ${r.when}` : ""}${r.extra ? `${r.count ? " " : ""}${r.extra}` : ""}`,
+          );
         break;
       case "bars":
       case "sign":

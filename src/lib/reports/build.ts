@@ -106,7 +106,7 @@ const spendingBlocks = (s: AnnualReport["spending"]): Block[] => [
 function closingBlocks(closing: number, held: number, label: string, total: string): Block[] {
   if (!held) return [{ t: "rows", rows: [], total: { label, amount: closing } }];
   return [
-    { t: "rows", rows: [], total: { label: total, amount: closing } },
+    { t: "rows", rows: [], total: { label: total, amount: closing }, keepNext: true },
     rowsOf([
       ["منها في الصندوق", closing - held],
       ["منها لدى التبرعات واللوحات", held],
@@ -247,25 +247,64 @@ export function buildGrid(d: GridReport): ReportDoc {
 
 /* ─────────────── 4 · «المتأخرات» (no amounts at all) ─────────────── */
 
+/**
+ * Unpaid 'YYYY-MM' months as people read them: runs of following months with «–»
+ * («يناير – سبتمبر»), others listed («يناير، مارس – مايو»), so a range never covers a paid month;
+ * the year after each year's months when there are several («نوفمبر – ديسمبر 2025، يناير 2026»).
+ */
+export function lateWhen(yms: string[]): string {
+  const byYear = new Map<number, number[]>();
+  for (const ym of yms) {
+    const [y, m] = ym.split("-").map(Number);
+    if (!y || !m) continue;
+    byYear.set(
+      y,
+      [...new Set([...(byYear.get(y) ?? []), m])].sort((a, b) => a - b),
+    );
+  }
+  const years = [...byYear.keys()].sort();
+  return years
+    .map((y) => {
+      const runs: [number, number][] = [];
+      for (const m of byYear.get(y)!) {
+        const last = runs[runs.length - 1];
+        if (last && m === last[1] + 1) last[1] = m;
+        else runs.push([m, m]);
+      }
+      const text = runs
+        .map(([a, b]) => (a === b ? monthName(a) : `${monthName(a)} – ${monthName(b)}`))
+        .join("، ");
+      return years.length > 1 ? `${text} ${y}` : text;
+    })
+    .join("، ");
+}
+
+/**
+ * «المتأخرات» (owner): names only, no member number, no count of members, no amount. Each person:
+ * how many months are left in a small box, the months themselves, and «+ نصيب لوحة …» for a لوحة
+ * share still owed. One section per الفئة.
+ */
 export function buildLate(d: LateReport): ReportDoc {
-  const list = d.members.filter((m) => m.monthsCount > 0 || m.levies.length > 0);
-  const anyLevy = list.some((m) => m.levies.length);
+  const list = d.members.filter((m) => m.lateMonths.length > 0 || m.levies.length > 0);
+  const groups = [...new Set(list.map((m) => m.groupCode ?? ""))].sort();
   const blocks: Block[] = list.length
-    ? [
+    ? groups.flatMap((g): Block[] => [
+        { t: "heading", text: g ? groupLabel(g) : "بلا فئة" },
         {
-          t: "table",
-          head: anyLevy ? ["الاسم", "الأشهر الباقية", "لوحة"] : ["الاسم", "الأشهر الباقية"],
-          widths: anyLevy ? [0.46, 0.42, 0.12] : [0.5, 0.5],
-          rows: list.map((m) => [
-            `${refLabel(m.memberRef)} · ${m.fullName}`,
-            ymText(m.lateMonths),
-            ...(anyLevy ? [m.levies.length ? "✓" : ""] : []),
-          ]),
+          t: "late",
+          rows: list
+            .filter((m) => (m.groupCode ?? "") === g)
+            .map((m) => {
+              const levies = m.levies.map((l) => `نصيب لوحة ${l.title}`).join(" + ");
+              return {
+                name: m.fullName,
+                count: m.lateMonths.length,
+                when: lateWhen(m.lateMonths),
+                ...(levies ? { extra: `${m.lateMonths.length ? "+ " : ""}${levies}` } : {}),
+              };
+            }),
         },
-        ...(anyLevy
-          ? [{ t: "note", text: "«لوحة» تعني أن عليه نصيبًا من لوحة لم يُدفع." } as Block]
-          : []),
-      ]
+      ])
     : [{ t: "note", text: "لا أحد عليه متأخرات الآن." }];
   return {
     kind: "late",
