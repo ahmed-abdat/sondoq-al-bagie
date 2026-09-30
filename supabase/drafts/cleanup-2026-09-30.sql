@@ -1,4 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════════════════
+-- DONE 2026-09-30 11:3x UTC (dry run then real run; 863 rows archived + removed, balance 557 500, audit 28/28).
 -- One-off clean-up of TEST data on production (owner decision 2026-09-30, relayed by the lead and
 -- confirmed by AHMED in the Lane A session). NOT a migration: run ONCE with MCP execute_sql, after
 --   1. m37 (app_private.cleanup_archive) is applied,
