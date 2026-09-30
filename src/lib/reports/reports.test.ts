@@ -155,12 +155,16 @@ describe("the 10 reports", () => {
     }
   });
 
-  it("annual and handover: the part of the income typed in from the paper sheets (m44), only when there is one", () => {
+  it("annual, summary and handover: the part of the income typed in from the paper sheets (m44), only when there is one", () => {
     const line = "منها 60 000 من الأوراق (أُدخلت من الدفاتر).";
     const plain = (d: ReturnType<typeof buildAnnual>) =>
       txt(d).replace(/[\u202f\u2066\u2069]/g, (c) => (c === "\u202f" ? " " : ""));
     expect(plain(buildAnnual(fx.fxAnnual))).toContain(line);
     expect(plain(buildHandover(fx.fxHandover))).toContain(line);
+    expect(plain(buildSummary(fx.fxSummary))).toContain(
+      "المداخيل: منها 40 000 من الأوراق (أُدخلت من الدفاتر).",
+    );
+    expect(txt(buildSummary({ ...fx.fxSummary, incomePaper: 0 }))).not.toContain("من الأوراق");
     const none = buildAnnual({ ...fx.fxAnnual, income: { ...fx.fxAnnual.income, paper: 0 } });
     expect(txt(none)).not.toContain("من الأوراق");
     const old = buildAnnual({

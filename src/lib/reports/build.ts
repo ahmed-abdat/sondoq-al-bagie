@@ -210,6 +210,14 @@ export function buildSummary(d: SummaryReport): ReportDoc {
       ...(d.campaignsHeld
         ? closingBlocks(d.closing, d.campaignsHeld, "", `المجموع آخر ${edge}`)
         : []),
+      ...(d.incomePaper
+        ? [
+            {
+              t: "note" as const,
+              text: `المداخيل: منها ${amt(d.incomePaper)} من الأوراق (أُدخلت من الدفاتر).`,
+            },
+          ]
+        : []),
       { t: "note", text: paid },
     ],
     fileBase: `الملخص-${periodSlug(d.period)}`,
