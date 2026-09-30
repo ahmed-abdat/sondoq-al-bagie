@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { E2E_MEMBERS, latestPayment, monthStates } from "../../supabase/tests/e2e/helpers";
-import { committeePhone, openSlip } from "./steps";
+import { committeePhone } from "./steps";
 
 const M = E2E_MEMBERS.cash;
 
@@ -23,17 +23,8 @@ test("the committee records cash: the member's months are paid, with a receipt c
   await expect(btn).toHaveText("سجّل الدفعة");
   await btn.click();
 
-  // recorded by the treasurer: confirmed at once, or waiting for a second committee member
-  let p = await latestPayment(M.ref);
-  if (p.status === "pending") {
-    const admin = await committeePhone(browser, baseURL!, "admin");
-    await (
-      await openSlip(admin.page, M.name)
-    )
-      .getByRole("button", { name: "أكّد الاستلام" })
-      .click();
-  }
-  p = await latestPayment(M.ref, { status: "confirmed" });
+  // recorded → confirmed at once (m29)
+  const p = await latestPayment(M.ref, { status: "confirmed" });
   expect(p.method).toBe("cash");
   expect(p.receiptCode).toMatch(/^BQ-/);
   const months = await monthStates(M.ref);
