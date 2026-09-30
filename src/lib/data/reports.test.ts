@@ -194,7 +194,7 @@ describe("member reports", () => {
     ]);
     const money = {
       opening: 1,
-      income: { total: 2 },
+      income: { total: 2, paper: 1 },
       spending: { total: 3, by_category: [] },
       closing: 5000,
       campaigns_held: 1500,
@@ -218,6 +218,8 @@ describe("member reports", () => {
       openCampaigns: 1,
       closing: 5000,
       campaignsHeld: 1500,
+      income: 2,
+      incomePaper: 1,
     });
     const sept = await r.loadSummary(client, { year: 2026, month: 9 }, now);
     expect(sept.membersPaidPeriod).toBe(2);

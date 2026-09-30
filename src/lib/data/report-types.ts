@@ -58,6 +58,8 @@ export type AnnualReport = Base & {
 export type SummaryReport = Base & {
   opening: number;
   income: number;
+  /** of `income`, the paper sheets (m44): typed in on 2026-09-28/29, not money received then */
+  incomePaper?: number;
   spending: number;
   /** whole association: the fund + money still held by donations and levies (adds up) */
   closing: number;
