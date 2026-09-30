@@ -80,7 +80,7 @@ describe("report periods", () => {
       {
         report_period: {
           opening: 100,
-          income: { fees: 50, levies: 20, donations: 10, total: 80 },
+          income: { fees: 50, levies: 20, donations: 10, total: 80, paper: 40 },
           spending: {
             by_category: [{ category: "sports", amount: 30 }],
             by_activity: [{ activity_id: 3, name: "الفريق الرياضي", amount: 30 }],
@@ -102,7 +102,7 @@ describe("report periods", () => {
       opening: 100,
       closing: 149,
       campaignsHeld: 7,
-      income: { levies: 20, total: 80 },
+      income: { levies: 20, total: 80, paper: 40 },
       spending: { fromCampaigns: 5, total: 30 },
     });
     expect(a.spending.byCategory[0]).toMatchObject({ category: "sports", amount: 30 });
@@ -194,7 +194,7 @@ describe("member reports", () => {
     ]);
     const money = {
       opening: 1,
-      income: { total: 2 },
+      income: { total: 2, paper: 1 },
       spending: { total: 3, by_category: [] },
       closing: 5000,
       campaigns_held: 1500,
@@ -218,6 +218,8 @@ describe("member reports", () => {
       openCampaigns: 1,
       closing: 5000,
       campaignsHeld: 1500,
+      income: 2,
+      incomePaper: 1,
     });
     const sept = await r.loadSummary(client, { year: 2026, month: 9 }, now);
     expect(sept.membersPaidPeriod).toBe(2);
@@ -325,6 +327,8 @@ describe("money reports", () => {
       opening_balance: null,
       opening_on: null,
       balance: null,
+      transfer_in: 0,
+      transfer_out: 0,
       ...o,
     });
     const { client } = fakeClient(
@@ -341,9 +345,10 @@ describe("money reports", () => {
             out_amount: 700,
             opening_balance: 1000,
             opening_on: "2026-01-01",
-            balance: 3300,
+            balance: 3150,
+            transfer_out: 150,
           }),
-          row({ wallet_type_id: 9, method: "other", in_count: 1, in_amount: 200 }),
+          row({ wallet_type_id: 9, method: "other", in_count: 1, in_amount: 200, balance: 200 }),
           row({
             wallet_type_id: 8,
             method: "cash",
@@ -354,6 +359,7 @@ describe("money reports", () => {
             opening_balance: 500,
             opening_on: "2026-01-01",
             balance: 700,
+            transfer_in: 150,
           }),
           row({ method: "paper", in_count: 5, in_amount: 9000 }),
           row({ out_count: 2, out_amount: 900 }),
@@ -372,8 +378,10 @@ describe("money reports", () => {
         in: 3000,
         count: 2,
         out: 700,
+        transferIn: 0,
+        transferOut: 150,
         opening: { amount: 1000, on: "2026-01-01" },
-        balance: 3300,
+        balance: 3150,
       },
       expect.objectContaining({
         walletTypeId: 9,
@@ -381,13 +389,15 @@ describe("money reports", () => {
         fundAccountId: null,
         in: 200,
         opening: null,
+        balance: 200,
       }),
     ]);
-    expect(w.wallets[1]).not.toHaveProperty("balance");
     expect(w.cash).toEqual({
       in: 500,
       count: 1,
       out: 300,
+      transferIn: 150,
+      transferOut: 0,
       opening: { amount: 500, on: "2026-01-01" },
       balance: 700,
     });

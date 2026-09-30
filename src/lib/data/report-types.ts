@@ -15,7 +15,14 @@ export type Period = { year: number; month?: number };
 
 type Base = { period: Period; generatedAt: string };
 
-export type Income = { fees: number; levies: number; donations: number; total: number };
+export type Income = {
+  fees: number;
+  levies: number;
+  donations: number;
+  total: number;
+  /** of total: the paper sheets (m44), typed in on 2026-09-28/29, so by date mostly September */
+  paper?: number;
+};
 export type Spending = {
   byCategory: { category: ExpenseCategory; label: string; amount: number }[];
   /** «النشاط» (m38): what the report shows; byCategory is the old fixed list */
@@ -51,6 +58,8 @@ export type AnnualReport = Base & {
 export type SummaryReport = Base & {
   opening: number;
   income: number;
+  /** of `income`, the paper sheets (m44): typed in on 2026-09-28/29, not money received then */
+  incomePaper?: number;
   spending: number;
   /** whole association: the fund + money still held by donations and levies (adds up) */
   closing: number;
@@ -226,21 +235,28 @@ export type WalletsReport = Base & {
     in: number;
     count: number;
     out?: number;
-    /** set once by «المسؤول»; without it there is no balance, only the period's in and out */
+    /** money moved in from / out to another wallet or cash in the period (m43); never income or spending */
+    transferIn: number;
+    transferOut: number;
+    /** a manual opening set by «المسؤول» (override); null = the wallet starts at 0 (m43) */
     opening: { amount: number; on: string } | null;
-    /** opening + in − out from the opening to the period end; only with an opening */
-    balance?: number;
+    /** what the wallet holds at the period end: in − out ± moves since the start (or the opening), m43 */
+    balance: number;
   }[];
+  /** cash in hand: also the paper sheets, the fund's opening and expenses without a wallet (m43) */
   cash: {
     in: number;
     count: number;
     out?: number;
+    transferIn: number;
+    transferOut: number;
+    /** manual override; null = the fund's opening balance (settings) */
     opening: { amount: number; on: string } | null;
-    balance?: number;
+    balance: number;
   };
-  /** money in without a wallet (the paper sheets) */
+  /** money in without a wallet (the paper sheets); its money is in cash */
   paperIn?: number;
-  /** expenses recorded before wallets were named (m31) */
+  /** expenses recorded before wallets were named (m31); paid from cash */
   unspecifiedOut?: number;
   totalIn: number;
 };

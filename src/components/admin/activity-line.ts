@@ -13,6 +13,8 @@ export function activityLine(x: ActivityEntry): PLog | null {
   const amt = x.amount != null ? ` (${fmt(x.amount)} أوقية)` : "";
   const sub = x.subject ? ` ${x.subject}` : "";
   const why = x.reason ? `. السبب: ${x.reason}` : "";
+  const [from, to] = (x.subject ?? "").split(" → ");
+  const move = from && to ? ` من ${from} إلى ${to}` : sub;
   const W: Record<string, [string, PLog["kind"]]> = {
     record_payment: [`سجّل دفعة${sub}${amt}`, "pay"],
     // an old payment (recorded before one-level) counted now; the same-moment one is hidden
@@ -22,6 +24,9 @@ export function activityLine(x: ActivityEntry): PLog | null {
     undo_payment: [`تراجع عن دفعة${sub}${amt}`, "no"],
     apply_credit: [`دفع من رصيد${sub}${amt}`, "pay"],
     record_expense: [`سجّل مصروفًا${sub}${amt}`, "exp"],
+    // m43: a move between wallets (subject «بنكيلي → نقدًا»); never income or spending
+    record_wallet_transfer: [`حوّل مالًا${move}${amt}`, "edit"],
+    cancel_wallet_transfer: [`ألغى تحويلًا${move}${amt}${why}`, "no"],
     cancel_expense: [`ألغى مصروفًا${sub}${amt}${why}`, "no"],
     create_campaign: [`فتح تبرعًا:${sub}`, "gift"],
     update_campaign: [`عدّل التبرع${sub}`, "edit"],
@@ -51,6 +56,8 @@ export function activityLine(x: ActivityEntry): PLog | null {
     update_fund_account: `عدّل محفظة${sub}`,
     deactivate_fund_account: `أوقف المحفظة${sub}`,
     activate_fund_account: `أعاد المحفظة${sub}`,
+    replace_wallet_account: `غيّر رقم المحفظة${sub}`,
+    correct_wallet_account: `صحّح رقم المحفظة${sub}`,
     create_committee_account: `أضاف حسابًا في اللجنة${sub}`,
     set_committee_member: `عدّل حسابًا في اللجنة${sub}`,
     set_committee_active: `غيّر حالة حساب في اللجنة${sub}`,
@@ -73,6 +80,9 @@ export function activityLines(xs: ActivityEntry[]): PLog[] {
   const recorded = new Set(
     xs.filter((x) => x.action === "record_payment").map((x) => `${x.at}|${x.rowId}`),
   );
+  const cancelledMoves = new Set(
+    xs.filter((x) => x.action === "cancel_wallet_transfer" && x.rowId).map((x) => x.rowId!),
+  );
   const recordedAt = new Set(xs.filter((x) => x.action === "record_payment").map((x) => x.at));
   return xs.flatMap((x) => {
     if (x.system === true) return [];
@@ -80,6 +90,10 @@ export function activityLines(xs: ActivityEntry[]): PLog[] {
       if (x.table !== "payments") return [];
       if (recorded.has(`${x.at}|${x.rowId}`) || recordedAt.has(x.at)) return [];
     }
-    return activityLine(x) ?? [];
+    const l = activityLine(x);
+    if (!l) return [];
+    if (x.action === "record_wallet_transfer" && x.rowId)
+      l.transfer = { id: x.rowId, cancelled: cancelledMoves.has(x.rowId) };
+    return [l];
   });
 }

@@ -57,6 +57,8 @@ and every change lands in `audit_log`.
 | `*_m40_activity_scope.sql` | «سجل العمليات» scope: `activity_log(p_before, p_limit, p_scope)`, `money` by default (payments, expenses, campaigns/levies, members, the fund), `settings` (wallets, settings, accounts, push, fees, activities) or `all`; filtered before the page limit. Undo: `rollback/m40_revert.sql` |
 | `*_m41_wallets.sql` | wallets («المحافظ») as one list managed by «المسؤول»: `wallet_types` (seeded بنكيلي، مصرفي، السداد، كليك، BIM بنك، أمانتي، باميس، نقدًا; `add_wallet_type`, `update_wallet_type` (name, logo), `set_wallet_type_active`; never deleted), public `logos` bucket; `fund_accounts.wallet_type_id` + opening (`set_fund_account_opening`, once), cash opening (`set_cash_opening`, once), `add_wallet_account`; `payments.wallet_type_id`/`fund_account_id`, `expenses.wallet_type_id` checked and filled by `b_wallet`; `record_payment`/`record_expense` take them; transfer numbers unique per wallet; `report_wallets` per account (balance only with an opening) and per wallet. `payment_method` kept as a mirror. Undo: `rollback/m41_revert.sql` |
 | `*_m42_activity_name.sql` | the first expense activity is «التدريس المحظري» (owner's spelling; the m38 seed said «التدريس المحوري»). Production was renamed by hand on 2026-09-30, so there it changes nothing; fresh databases match production. Undo: `rollback/m42_revert.sql` |
+| `*_m43_wallet_moves.sql` | wallet balances and moves (owner: one number per wallet, the handover in cash, wallets start at 0): every account, wallet and cash has a balance by default (everything in − out ± moves since the start; paper sheets, expenses without a wallet, the fund opening and handover differences count as cash; the manual opening stays an override); `wallet_transfers` + `record_wallet_transfer(id, from account \| cash, to account \| cash, amount, date, note)` (any committee member; never income, spending or the fund balance) and `cancel_wallet_transfer` («المسؤول», reason); `replace_wallet_account(wallet, number, holder)` (stops the old account, history keeps it) and `correct_wallet_account` (a typo, only while unused; trigger `b_number_unused`) «المسؤول»; `report_wallets` + `transfer_in/transfer_out`; moves in «سجل العمليات»; `accuracy_audit()` 31 checks (wallets add up to all the money, none below 0). Undo: `rollback/m43_revert.sql` |
+| `*_m44_income_paper.sql` | `report_period.income.paper`: the part of the period's income from the paper sheets (typed in on 2026-09-28/29, so by date mostly September; same filter as income); the app says «منها X من الأوراق» and home «هذا الشهر» leaves it out. Undo: `rollback/m44_revert.sql` |
 
 Access (committee-only app since m28/m29, [docs/COMMITTEE-ONLY-PLAN.md](../docs/COMMITTEE-ONLY-PLAN.md)):
 `anon` reads only the `keepalive` view. An active row in `committee` reads everything through RLS
@@ -73,10 +75,10 @@ the app to translate (`src/lib/data/errors.ts`). Rows from m1–m27 above descri
 ## Accuracy audit
 
 `accuracy_audit()` (m35, committee or server, read-only) recomputes every figure the app shows from
-the base tables: 29 checks, one row each (`check_name, ok, detail`), counts only. It is the single
+the base tables: 31 checks, one row each (`check_name, ok, detail`), counts only. It is the single
 source of the checks:
 
-- production by hand: `tests/accuracy_audit.sql` (MCP `execute_sql`), expect 29/29;
+- production by hand: `tests/accuracy_audit.sql` (MCP `execute_sql`), expect 31/31;
 - daily on production: `/api/audit` (Vercel cron) records `job_runs` (job `audit`, m36) and pushes
   an alert to the «مسؤول» accounts when a check fails;
 - `run.sh`: `tests/local/accuracy_audit_checks.sql` (the fee-completeness check is skipped: the

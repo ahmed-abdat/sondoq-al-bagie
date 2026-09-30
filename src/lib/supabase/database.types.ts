@@ -1238,6 +1238,83 @@ export type Database = {
           },
         ]
       }
+      wallet_transfers: {
+        Row: {
+          amount: number
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          created_by: string | null
+          from_account_id: string | null
+          from_wallet_type_id: number
+          id: string
+          moved_on: string
+          note: string | null
+          to_account_id: string | null
+          to_wallet_type_id: number
+        }
+        Insert: {
+          amount: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_account_id?: string | null
+          from_wallet_type_id: number
+          id?: string
+          moved_on: string
+          note?: string | null
+          to_account_id?: string | null
+          to_wallet_type_id: number
+        }
+        Update: {
+          amount?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_account_id?: string | null
+          from_wallet_type_id?: number
+          id?: string
+          moved_on?: string
+          note?: string | null
+          to_account_id?: string | null
+          to_wallet_type_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transfers_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "fund_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transfers_from_wallet_type_id_fkey"
+            columns: ["from_wallet_type_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transfers_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "fund_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transfers_to_wallet_type_id_fkey"
+            columns: ["to_wallet_type_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallet_types: {
         Row: {
           active: boolean
@@ -1765,6 +1842,10 @@ export type Database = {
         Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
       }
+      cancel_wallet_transfer: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
       change_member_group: {
         Args: {
           p_from_month: string
@@ -1802,6 +1883,10 @@ export type Database = {
         }[]
       }
       confirm_payment: { Args: { p_payment_id: string }; Returns: Json }
+      correct_wallet_account: {
+        Args: { p_account_number: string; p_holder_name: string; p_id: string }
+        Returns: undefined
+      }
       create_campaign: {
         Args: {
           p_amount_mode?: Database["public"]["Enums"]["campaign_mode"]
@@ -1911,6 +1996,17 @@ export type Database = {
         }
         Returns: Json
       }
+      record_wallet_transfer: {
+        Args: {
+          p_amount: number
+          p_from_account_id: string
+          p_id: string
+          p_moved_on: string
+          p_note?: string
+          p_to_account_id: string
+        }
+        Returns: string
+      }
       reject_payment: {
         Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
@@ -1918,6 +2014,14 @@ export type Database = {
       rename_expense_activity: {
         Args: { p_id: number; p_name: string }
         Returns: undefined
+      }
+      replace_wallet_account: {
+        Args: {
+          p_account_number: string
+          p_holder_name: string
+          p_wallet_type_id: number
+        }
+        Returns: string
       }
       report_committee_work: {
         Args: { p_from: string; p_to: string }
@@ -1954,6 +2058,8 @@ export type Database = {
           opening_on: string
           out_amount: number
           out_count: number
+          transfer_in: number
+          transfer_out: number
           wallet_type_id: number
         }[]
       }
