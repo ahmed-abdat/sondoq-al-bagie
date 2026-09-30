@@ -1,9 +1,11 @@
-// Shared steps for the two-person flows: a member's phone and a committee member's phone, each
-// its own browser context (own cookies), against the local Supabase only.
+// Shared steps for the flows: committee members' phones (each its own browser context, own
+// cookies) against the local Supabase only. Committee-only app (2026-09-30): payments are
+// recorded by the committee from the screenshots in the WhatsApp group, confirmed at once (m29).
 import { randomBytes } from "node:crypto";
 import zlib from "node:zlib";
 import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
-import { COMMITTEE, memberLink, type Who } from "../../supabase/tests/e2e/helpers";
+import { codeOf, messageFor } from "../../src/lib/data/errors";
+import { COMMITTEE, signedIn, type Who } from "../../supabase/tests/e2e/helpers";
 
 /**
  * A transfer screenshot: any picture works (OCR reading nothing is fine: the member picks the
@@ -45,14 +47,6 @@ async function phone(browser: Browser, baseURL: string): Promise<Phone> {
   return { ctx, page: await ctx.newPage() };
 }
 
-/** The member's phone, opened with a fresh personal link: home shows their «أنت» card. */
-export async function memberPhone(browser: Browser, baseURL: string, ref: string) {
-  const p = await phone(browser, baseURL);
-  await p.page.goto(await memberLink(ref));
-  await expect(youCard(p.page)).toBeVisible();
-  return p;
-}
-
 /** A committee member's phone, signed in on /login. */
 export async function committeePhone(browser: Browser, baseURL: string, who: Who = "treasurer") {
   const p = await phone(browser, baseURL);
@@ -64,50 +58,43 @@ export async function committeePhone(browser: Browser, baseURL: string, who: Who
   return p;
 }
 
-/** A stranger: no link, no session. */
+/** A stranger: no session. */
 export const strangerPhone = phone;
 
-export const youCard = (page: Page) => page.locator("section.bq-you");
-
-/**
- * From the proof sheet («أرسل صورة التحويل»): attach the picture, pick the wallet if asked, send.
- * Returns once the member's card says it arrived.
- */
-export async function sendProof(page: Page, wallet = "بنكيلي") {
-  const sheet = page.getByRole("dialog", { name: "أرسل صورة التحويل" });
-  await expect(sheet).toBeVisible();
-  const btn = sheet.locator(".bq-rec-foot").getByRole("button");
-  await sheet.locator('input[type="file"]').setInputFiles(shot());
-  await expect(btn).not.toHaveText("أرفق صورة التحويل");
-  if ((await btn.textContent())?.includes("كيف")) {
-    await btn.click();
-    await sheet.getByRole("radio", { name: wallet }).click();
-  }
-  await expect(btn).toHaveText("أرسل إلى اللجنة");
-  await btn.click();
-  await expect(sheet).toHaveCount(0);
+/** Open a committee page and wait until it has streamed in. */
+export async function openPage(page: Page, path: string) {
+  await page.goto(path);
+  await expect(page.getByText("جارٍ فتح صفحة اللجنة…")).toHaveCount(0);
 }
 
-/** The member's own «ادفع الآن» → «دفعت؟ أرسل صورة التحويل» → send. */
-export async function payOwnFees(page: Page) {
-  await youCard(page).getByRole("button", { name: "ادفع الآن" }).click();
+/**
+ * «سجّل دفعة» from a transfer screenshot, as a committee member does it from the WhatsApp group:
+ * the member (late months by default), the picture, the wallet, save. Found by roles and labels
+ * only (the record screen is being rebuilt): the member by name, the wallet by its name, the save
+ * button by its words. Returns once the payment is in the database, confirmed.
+ */
+export async function recordTransfer(page: Page, member: string, wallet = "بنكيلي") {
+  await openPage(page, "/committee");
   await page
-    .getByRole("dialog", { name: "ادفع الآن" })
-    .getByRole("button", { name: /دفعت؟ أرسل صورة التحويل/ })
+    .getByRole("button", { name: /^سجّل دفعة$/ })
+    .first()
     .click();
-  await sendProof(page);
+  const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
+  await sheet.getByPlaceholder(/اكتب الاسم أو الرقم/).fill(member);
+  await sheet.getByRole("button").filter({ hasText: member }).first().click();
+  await sheet.locator('input[type="file"]').setInputFiles(shot());
+  await sheet.getByRole("radio", { name: wallet }).click();
+  await sheet.getByRole("button", { name: /^سجّل الدفعة$/ }).click();
+  await expect(sheet.getByRole("button", { name: /^سجّل الدفعة$/ })).toHaveCount(0);
 }
 
 /**
- * The committee hub's slip for this payer: the queue opens one at a time, the others are rows;
- * a row opens with a tap.
+ * A committee member's own Supabase session: the same database rules as the app. Used for the
+ * actions whose screens Lane C is still building (undo, levies, the activity log, the statement);
+ * switch each step to the screen once it lands.
  */
-export async function openSlip(page: Page, payer: string) {
-  await page.goto("/committee");
-  const slip = page.getByRole("article", { name: `دفعة ${payer}` });
-  const row = page.locator("button.bq-rev-row").filter({ hasText: payer }).first();
-  await expect(slip.or(row)).toBeVisible();
-  if (!(await slip.isVisible())) await row.click();
-  await expect(slip).toBeVisible();
-  return slip;
-}
+export const asCommittee = signedIn;
+
+/** The Arabic message the app shows for a database error. */
+export const errorText = (err: Parameters<typeof codeOf>[0] | null) =>
+  err ? messageFor(codeOf(err)) : null;
