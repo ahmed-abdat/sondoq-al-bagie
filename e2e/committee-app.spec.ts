@@ -182,11 +182,11 @@ test("«حوّل»: money from a wallet to cash (not income or spending); «غي
   const mv = page.getByRole("dialog", { name: "حوّل مالًا" });
   // to cash by default
   await expect(
-    mv.getByRole("radiogroup", { name: "إلى" }).getByRole("radio", { name: "نقدًا" }),
+    mv.getByRole("radiogroup", { name: "إلى" }).getByRole("radio", { name: "النقد" }),
   ).toHaveAttribute("aria-checked", "true");
   await mv.getByLabel("المبلغ").fill("5000");
-  await mv.getByRole("button", { name: /حوّل 5\s000 أوقية إلى نقدًا/ }).click();
-  await expect(page.getByText(/حُوّل 5\s000 أوقية من بنكيلي إلى نقدًا\./)).toBeVisible();
+  await mv.getByRole("button", { name: /حوّل 5\s000 أوقية إلى النقد/ }).click();
+  await expect(page.getByText(/حُوّل 5\s000 أوقية من بنكيلي إلى النقد\./)).toBeVisible();
 
   // a new number: the old one stops, its payments stay
   await ws.getByRole("button", { name: "عدّل بنكيلي" }).click();

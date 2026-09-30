@@ -13,7 +13,8 @@ export function activityLine(x: ActivityEntry): PLog | null {
   const amt = x.amount != null ? ` (${fmt(x.amount)} أوقية)` : "";
   const sub = x.subject ? ` ${x.subject}` : "";
   const why = x.reason ? `. السبب: ${x.reason}` : "";
-  const [from, to] = (x.subject ?? "").split(" → ");
+  // «نقدًا» (the cash wallet's name) reads «النقد» in a move: «إلى النقد»
+  const [from, to] = (x.subject ?? "").split(" → ").map((w) => (w === "نقدًا" ? "النقد" : w));
   const move = from && to ? ` من ${from} إلى ${to}` : sub;
   const W: Record<string, [string, PLog["kind"]]> = {
     record_payment: [`سجّل دفعة${sub}${amt}`, "pay"],

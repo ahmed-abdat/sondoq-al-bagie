@@ -19,6 +19,13 @@ import { Num } from "./num";
 import { Sheet } from "./sheet";
 import { useSnack } from "./shell";
 import { walletLogo } from "./wallet-logo";
+import {
+  moveSources,
+  moveTargets,
+  oldWithMoney,
+  walletBalance,
+  type MoveEnd,
+} from "./wallet-money";
 
 type Res = { ok: true; data?: unknown } | { ok: false; message: string };
 /** Server balances from the wallets report: by account id, and cash. */
@@ -68,19 +75,16 @@ export function WalletsSection({
 
   const live = ws.filter((w) => w.kind === "wallet" && w.active);
   const accsOfId = (id: number) => accs.filter((a) => a.walletTypeId === id && a.active);
-  // the list shows the wallets with a number; the others wait in a collapsed list
-  const withNumber = live.filter((w) => accsOfId(w.id).length > 0);
-  const noNumber = live.filter((w) => accsOfId(w.id).length === 0);
+  // the list shows the wallets with a number or money on an old number; the others collapse
+  const shown = (w: WalletType) =>
+    accsOfId(w.id).length > 0 || oldWithMoney(accs, w, balances).length > 0;
+  const withNumber = live.filter(shown);
+  const noNumber = live.filter((w) => !shown(w));
   const stopped = ws.filter((w) => w.kind === "wallet" && !w.active);
   const cash = ws.find((w) => w.kind === "cash");
   const accsOf = (w: WalletType) => accs.filter((a) => a.walletTypeId === w.id && a.active);
-  /** the wallet's balance: the sum over its accounts, when the server gives one */
-  const balanceOf = (w: WalletType) => {
-    const xs = accsOf(w).flatMap((a) =>
-      balances.accounts[a.id] !== undefined ? [balances.accounts[a.id]] : [],
-    );
-    return xs.length ? xs.reduce((s, x) => s + x, 0) : undefined;
-  };
+  /** the wallet's money: all its numbers, a replaced one included (QA pass 9 P0-1) */
+  const balanceOf = (w: WalletType) => walletBalance(accs, w, balances);
 
   const setWalletActive = (w: WalletType, on: boolean) =>
     run(
@@ -120,6 +124,15 @@ export function WalletsSection({
                 ) : (
                   <span className="bq-row-s">لا رقم بعد</span>
                 )}
+                {oldWithMoney(accs, w, balances).map((x) => (
+                  <span key={x.id} className="bq-row-s">
+                    الرقم القديم{" "}
+                    <bdi dir="ltr" className="bq-num">
+                      {x.accountNumber}
+                    </bdi>
+                    : <Num>{fmt(balances.accounts[x.id])}</Num> أوقية
+                  </span>
+                ))}
                 {bal !== undefined && (
                   <span className="bq-row-s">
                     الرصيد الآن: <Num>{fmt(bal)}</Num> أوقية
@@ -251,11 +264,13 @@ export function WalletsSection({
       {move && (
         <Sheet label="حوّل مالًا" onDone={() => setMove(null)}>
           <MoveSheet
-            from={move}
-            wallets={withNumber}
-            cash={cash}
-            accountOf={(w) => (w.kind === "cash" ? null : (accsOf(w)[0]?.id ?? null))}
-            balanceOf={(w) => (w.kind === "cash" ? (balances.cash ?? undefined) : balanceOf(w))}
+            sources={moveSources(withNumber, cash, accs, balances)}
+            targets={moveTargets(withNumber, cash, accs)}
+            start={
+              move.kind === "cash"
+                ? "cash"
+                : (accsOf(move)[0]?.id ?? oldWithMoney(accs, move, balances)[0]?.id ?? "cash")
+            }
             onDone={(text) => {
               setMove(null);
               say(text);
@@ -293,6 +308,14 @@ export function WalletsSection({
             <WalletSheet
               w={sheet.w}
               account={sheet.w ? accsOf(sheet.w)[0] : undefined}
+              old={
+                sheet.w
+                  ? oldWithMoney(accs, sheet.w, balances).map((a) => ({
+                      number: a.accountNumber,
+                      balance: balances.accounts[a.id],
+                    }))
+                  : []
+              }
               busy={busy}
               err={err}
               onSave={async ({ name, logoPath, number, holder, mode }) => {
@@ -519,6 +542,7 @@ function Opening({
 function WalletSheet({
   w,
   account,
+  old,
   busy,
   err,
   onSave,
@@ -527,6 +551,8 @@ function WalletSheet({
 }: {
   w?: WalletType;
   account?: FundAccountAdmin;
+  /** replaced numbers that still hold money: move it with «حوّل» */
+  old: { number: string; balance: number }[];
   busy: boolean;
   err: string;
   onSave: (v: {
@@ -661,6 +687,20 @@ function WalletSheet({
           />
         </>
       )}
+      {old.length > 0 && (
+        <>
+          <p className="bq-rec-k">أرقام قديمة فيها مال</p>
+          {old.map((o) => (
+            <p key={o.number} className="bq-mline">
+              <bdi dir="ltr" className="bq-num">
+                {o.number}
+              </bdi>
+              : <Num>{fmt(o.balance)}</Num> أوقية
+            </p>
+          ))}
+          <p className="bq-hint">حوّل هذا المال بزر «حوّل» في قائمة المحافظ.</p>
+        </>
+      )}
       <p className="bq-rec-k">الشعار (اختياري)</p>
       <div className="bq-field">
         <span className="bq-wallet-logo bq-wallet-logo-lg">
@@ -769,58 +809,51 @@ function CashSheet({
  * income, not spending, the fund balance stays. The server refuses more than the wallet holds.
  */
 function MoveSheet({
-  from: start,
-  wallets,
-  cash,
-  accountOf,
-  balanceOf,
+  sources,
+  targets,
+  start,
   onDone,
 }: {
-  from: WalletType;
-  wallets: WalletType[];
-  cash?: WalletType;
-  accountOf: (w: WalletType) => string | null;
-  balanceOf: (w: WalletType) => number | undefined;
+  sources: MoveEnd[];
+  targets: MoveEnd[];
+  /** the source picked by the row's «حوّل» */
+  start: string;
   onDone: (text: string) => void;
 }) {
   const { recordWalletTransfer } = useAct();
-  const all = [...wallets, ...(cash ? [cash] : [])];
   const [id] = useState(() => crypto.randomUUID());
-  const [from, setFrom] = useState(start.id);
-  const [to, setTo] = useState(
+  const [from, setFrom] = useState(start);
+  const [to, setTo] = useState<string | undefined>(
     () =>
-      (start.kind === "cash" ? wallets[0]?.id : cash?.id) ?? all.find((w) => w.id !== start.id)?.id,
+      (start === "cash" ? targets[0]?.key : "cash") ?? targets.find((t) => t.key !== start)?.key,
   );
   const [amt, setAmt] = useState("");
   const [on, setOn] = useState(todayIso);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const f = all.find((w) => w.id === from)!;
-  const t = all.find((w) => w.id === to);
+  const f = sources.find((x) => x.key === from) ?? sources[0];
+  const t = targets.find((x) => x.key === to && x.key !== f.key);
   const amount = amountValue(amt);
-  const bal = balanceOf(f);
   const chips = (
-    value: number | undefined,
-    set: (id: number) => void,
+    list: MoveEnd[],
+    value: string | undefined,
+    set: (k: string) => void,
     label: string,
-    skip?: number,
   ) => (
     <div className="bq-chips" role="radiogroup" aria-label={label}>
-      {all
-        .filter((w) => w.id !== skip)
-        .map((w) => (
-          <button
-            key={w.id}
-            type="button"
-            role="radio"
-            aria-checked={value === w.id}
-            className="bq-chip bq-press"
-            onClick={() => set(w.id)}
-          >
-            {w.name}
-          </button>
-        ))}
+      {list.map((x) => (
+        <button
+          key={x.key}
+          type="button"
+          role="radio"
+          aria-checked={value === x.key}
+          className="bq-chip bq-press"
+          onClick={() => set(x.key)}
+        >
+          {x.label}
+        </button>
+      ))}
     </div>
   );
   return (
@@ -829,20 +862,26 @@ function MoveSheet({
       <p className="bq-hint">لا يدخل في المداخيل ولا المصاريف، ورصيد الصندوق لا يتغيّر.</p>
       <p className="bq-rec-k">من</p>
       {chips(
-        from,
-        (x) => {
-          setFrom(x);
-          if (x === to) setTo(all.find((w) => w.id !== x)?.id);
+        sources,
+        f.key,
+        (k) => {
+          setFrom(k);
+          if (k === to) setTo(targets.find((x) => x.key !== k)?.key);
         },
         "من",
       )}
-      {bal !== undefined && (
+      {f.balance !== undefined && (
         <p className="bq-hint">
-          فيها الآن <Num>{fmt(bal)}</Num> أوقية
+          فيها الآن <Num>{fmt(f.balance)}</Num> أوقية
         </p>
       )}
       <p className="bq-rec-k">إلى</p>
-      {chips(to, setTo, "إلى", from)}
+      {chips(
+        targets.filter((x) => x.key !== f.key),
+        t?.key,
+        setTo,
+        "إلى",
+      )}
       <p className="bq-rec-k">المبلغ بالأوقية القديمة</p>
       <AmountInput
         className="bq-input"
@@ -866,7 +905,7 @@ function MoveSheet({
         err={err}
         busy={busy}
         ok={!!t && amount > 0 && !!on}
-        save={t && amount ? `حوّل ${fmt(amount)} أوقية إلى ${t.name}` : "حوّل"}
+        save={t && amount ? `حوّل ${fmt(amount)} أوقية إلى ${t.label}` : "حوّل"}
         onSave={async () => {
           if (!t) return;
           setBusy(true);
@@ -875,8 +914,8 @@ function MoveSheet({
           try {
             r = await recordWalletTransfer({
               id,
-              fromAccountId: accountOf(f),
-              toAccountId: accountOf(t),
+              fromAccountId: f.accountId,
+              toAccountId: t.accountId,
               amount,
               movedOn: on,
               note: note.trim() || undefined,
@@ -886,7 +925,7 @@ function MoveSheet({
           }
           setBusy(false);
           if (!r.ok) return setErr(r.message);
-          onDone(`حُوّل ${fmt(amount)} أوقية من ${f.name} إلى ${t.name}.`);
+          onDone(`حُوّل ${fmt(amount)} أوقية من ${f.label} إلى ${t.label}.`);
         }}
       />
     </div>
