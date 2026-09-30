@@ -235,28 +235,32 @@ export type WalletsReport = Base & {
     in: number;
     count: number;
     out?: number;
-    /** money moved in from / out to another wallet or cash in the period (m43); never income or spending */
-    transferIn: number;
-    transferOut: number;
-    /** a manual opening set by «المسؤول» (override); null = the wallet starts at 0 (m43) */
-    opening: { amount: number; on: string } | null;
-    /** what the wallet holds at the period end: in − out ± moves since the start (or the opening), m43 */
-    balance: number;
+    /** @deprecated m46 «one pot»: wallets have no balance, moves or opening; never set */
+    transferIn?: number;
+    /** @deprecated m46 */
+    transferOut?: number;
+    /** @deprecated m46 */
+    opening?: { amount: number; on: string } | null;
+    /** @deprecated m46: the fund balance is the one number */
+    balance?: number;
   }[];
-  /** cash in hand: also the paper sheets, the fund's opening and expenses without a wallet (m43) */
+  /** money in and out in cash («نقدًا») */
   cash: {
     in: number;
     count: number;
     out?: number;
-    transferIn: number;
-    transferOut: number;
-    /** manual override; null = the fund's opening balance (settings) */
-    opening: { amount: number; on: string } | null;
-    balance: number;
+    /** @deprecated m46 */
+    transferIn?: number;
+    /** @deprecated m46 */
+    transferOut?: number;
+    /** @deprecated m46 */
+    opening?: { amount: number; on: string } | null;
+    /** @deprecated m46 */
+    balance?: number;
   };
-  /** money in without a wallet (the paper sheets); its money is in cash */
+  /** money in without a wallet (the paper sheets) */
   paperIn?: number;
-  /** expenses recorded before wallets were named (m31); paid from cash */
+  /** expenses that name no wallet (m31) */
   unspecifiedOut?: number;
   totalIn: number;
 };

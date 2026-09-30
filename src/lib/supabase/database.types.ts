@@ -1437,6 +1437,7 @@ export type Database = {
           campaign_id: string | null
           collected: number | null
           deadline: string | null
+          kind: Database["public"]["Enums"]["campaign_kind"] | null
           participants: number | null
           participants_paid: number | null
           purpose: string | null
@@ -2049,17 +2050,12 @@ export type Database = {
       report_wallets: {
         Args: { p_from: string; p_to: string }
         Returns: {
-          balance: number
           fund_account_id: string
           in_amount: number
           in_count: number
           method: Database["public"]["Enums"]["payment_method"]
-          opening_balance: number
-          opening_on: string
           out_amount: number
           out_count: number
-          transfer_in: number
-          transfer_out: number
           wallet_type_id: number
         }[]
       }

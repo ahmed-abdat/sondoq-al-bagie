@@ -1425,7 +1425,7 @@ select tests.throws($$select * from public.groups_overview(2026::int)$$, '42501'
 select tests.login('server');
 \ir local/accuracy_audit_checks.sql
 select tests.login('committee');
-select tests.ok((select count(*) = 31 and bool_and(detail is not null) from public.accuracy_audit()),
+select tests.ok((select count(*) = 30 and bool_and(detail is not null) from public.accuracy_audit()),
   'every committee member runs the accuracy audit');
 select tests.ok((select string_agg(detail, ' ') from public.accuracy_audit()) !~ 'full_name|عضو تجريبي|إحصاء',
   'the audit shows counts, no names');
@@ -1651,48 +1651,25 @@ select tests.set('ew2', public.record_expense(p_id => gen_random_uuid(), p_spent
   p_wallet_type_id => tests.get('wt')::int)::text);
 select tests.ok((select fund_account_id = tests.id('wa') and not paid_in_cash from public.expenses where id = tests.id('ew2')),
   'an expense from a wallet names its account');
--- opening balance: once, then the report gives the balance
-select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 1000, current_date - 1)$$, tests.get('wa')), 'not_admin',
-  'only «المسؤول» sets an opening');
+-- m46 (one pot): no wallet openings; the report gives money in and out per wallet
 select tests.login('admin');
--- m45: an opening is part of the one starting amount (the test fund starts at 0)
-select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 1000, current_date - 1)$$, tests.get('wa')), 'opening_too_big',
-  'an account cannot hold more at the start than the fund had');
-select tests.login('server');
-update public.settings set opening_balance = opening_balance + 1500 where id;
-select tests.login('admin');
-select public.set_fund_account_opening(tests.id('wa'), 1000, current_date - 1);
-select tests.ok((select opening_on = (select opening_balance_on from public.settings) from public.fund_accounts where id = tests.id('wa')),
-  'm45: an opening is as at the start of the records');
-select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 501, current_date)$$, tests.get('acc')), 'opening_too_big',
-  'openings together never pass the fund opening');
-select tests.login('server');
-select tests.throws($$update public.settings set opening_balance = 999 where id$$, 'opening_too_big',
-  'the fund opening cannot drop below the accounts'' openings');
-select tests.login('admin');
-select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 5, current_date)$$, tests.get('wa')), 'opening_already_set',
-  'the opening is set once');
+select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 1000, current_date - 1)$$, tests.get('wa')), 'feature_retired',
+  'm46: no account opening');
+select tests.throws($$select public.set_cash_opening(500, current_date - 1)$$, 'feature_retired', 'm46: no cash opening');
 select tests.login('committee');
-select tests.ok((select in_amount = 200 and out_amount = 70 and balance = 1000 + 200 - 70
+select tests.ok((select in_amount = 200 and out_amount = 70 and in_count = 1 and out_count = 1
                  from public.report_wallets(current_date - 1, current_date) where fund_account_id = tests.id('wa')),
-  'wallet report: in, out and balance from the opening');
-select tests.ok((select balance = (select coalesce(sum(amount), 0) from public.payments where fund_account_id = tests.id('acc')
-                                    and status = 'confirmed' and paid_on <= current_date)
-                                 - (select coalesce(sum(amount), 0) from public.expenses where fund_account_id = tests.id('acc')
-                                    and cancelled_at is null and spent_on <= current_date)
-                 from public.report_wallets(current_date - 1, current_date) where fund_account_id = tests.id('acc')),
-  'm43: without an opening the balance starts at 0 (everything in − out)');
+  'wallet report: in and out per account');
+select tests.ok(not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'report_wallets'
+                            and column_name in ('balance', 'opening_balance', 'transfer_in'))
+                and (select count(*) from information_schema.routines r join information_schema.parameters x
+                       on x.specific_name = r.specific_name where r.routine_schema = 'public' and r.routine_name = 'report_wallets'
+                       and x.parameter_mode = 'OUT' and x.parameter_name in ('balance', 'opening_balance', 'transfer_in', 'transfer_out')) = 0,
+  'm46: the wallet report has no balance, opening or move columns');
 select tests.ok((select sum(in_amount) from public.report_wallets(make_date(2000, 1, 1), current_date + 1))
                 = (select sum(amount) from public.payments where status = 'confirmed' and method::text <> 'credit'
                    and paid_on between make_date(2000, 1, 1) and current_date + 1),
   'wallet rows add up to all money in');
--- cash in hand (m45): the fund opening − what the accounts held; nothing to set
-select tests.login('admin');
-select tests.throws($$select public.set_cash_opening(500, current_date - 1)$$, 'cash_opening_derived', 'the cash opening is not set by hand');
-select tests.login('committee');
-select tests.ok((select opening_balance = (select opening_balance from public.settings) - 1000
-                 from public.report_wallets(current_date - 1, current_date) where method = 'cash' and fund_account_id is null),
-  'cash starts with the fund opening minus the accounts'' openings');
 select tests.ok((select public and file_size_limit = 204800 and not ('image/svg+xml' = any (allowed_mime_types))
                  from storage.buckets where id = 'logos'), 'logos: a public bucket, small images only (no SVG)');
 select tests.login('admin');
@@ -1703,58 +1680,13 @@ select tests.throws(format($$select public.record_payment(gen_random_uuid(), 'x'
   tests.get('sX'), tests.get('wt')), 'wallet_inactive', 'a stopped wallet takes no new money');
 select tests.throws(format($$delete from public.wallet_types where id = %s$$, tests.get('wt')), '42501', 'wallets are never deleted');
 
-/* ───────────── M43: wallet balances, moves, a wallet's number ───────────── */
+/* ───────────── M43/M46: a wallet's number (moves retired) ───────────── */
 
-select tests.login('server');
-select tests.set('bal43', (select balance::text from public.fund_summary));
-select tests.set('inc43', (select (public.report_period(make_date(2000, 1, 1), current_date + 1) -> 'income' ->> 'total')));
 select tests.login('committee');
--- a move: bankily account → cash; never income, spending or the fund balance
-select tests.set('bk', (select balance::text from public.report_wallets(current_date, current_date) where fund_account_id = tests.id('acc')));
-select tests.set('ca', (select balance::text from public.report_wallets(current_date, current_date) where method = 'cash' and fund_account_id is null));
-select tests.throws(format($$select public.record_wallet_transfer(gen_random_uuid(), %L::uuid, null, %s, current_date)$$,
-  tests.get('acc'), tests.get('bk')::bigint + 1), 'not_enough', 'never more than the wallet holds');
-select tests.ok(tests.get('bk')::bigint >= 150, 'the test account holds enough for the move');
-select tests.set('mv', public.record_wallet_transfer(gen_random_uuid(), tests.id('acc'), null, 150, current_date, ' سحب للتسليم ')::text);
-select tests.ok(public.record_wallet_transfer(tests.id('mv'), tests.id('acc'), null, 150, current_date) = tests.id('mv')
-                and (select count(*) from public.wallet_transfers where id = tests.id('mv')) = 1, 'a replayed move is recorded once');
-select tests.ok((select transfer_out = 150 and balance = tests.get('bk')::bigint - 150
-                 from public.report_wallets(current_date, current_date) where fund_account_id = tests.id('acc'))
-                and (select transfer_in = 150 and balance = tests.get('ca')::bigint + 150
-                     from public.report_wallets(current_date, current_date) where method = 'cash' and fund_account_id is null),
-  'a move takes from one wallet and adds to the other');
-select tests.ok((select note = 'سحب للتسليم' and to_account_id is null
-                        and to_wallet_type_id = (select id from public.wallet_types where kind = 'cash')
-                 from public.wallet_transfers where id = tests.id('mv')), 'cash = the cash wallet, no account');
-select tests.login('server');
-select tests.ok((select balance::text from public.fund_summary) = tests.get('bal43')
-                and (public.report_period(make_date(2000, 1, 1), current_date + 1) -> 'income' ->> 'total') = tests.get('inc43'),
-  'a move changes neither the fund balance nor the income');
-select tests.login('committee');
-select tests.ok(exists (select 1 from public.activity_log(null, 50, 'money') where table_name = 'wallet_transfers'
-                        and subject like '% → نقدًا' and amount = 150), 'a move is a money action in the log');
-select tests.throws(format($$select public.record_wallet_transfer(gen_random_uuid(), null, %L::uuid, %s, current_date)$$,
-  tests.get('acc'), tests.get('ca')::bigint + 151), 'not_enough', 'cash too: never more than it holds');
-select tests.throws($$select public.record_wallet_transfer(gen_random_uuid(), null, null, 10, current_date)$$, 'same_wallet',
-  'cash to cash is refused');
-select tests.throws(format($$select public.record_wallet_transfer(gen_random_uuid(), %L::uuid, %L::uuid, 10, current_date)$$,
-  tests.get('acc'), tests.get('acc')), 'same_wallet', 'an account to itself is refused');
-select tests.throws(format($$select public.record_wallet_transfer(gen_random_uuid(), %L::uuid, null, 0, current_date)$$, tests.get('acc')),
-  'invalid_input', 'a move needs an amount');
-select tests.throws(format($$select public.record_wallet_transfer(gen_random_uuid(), %L::uuid, null, 5, current_date + 5)$$, tests.get('acc')),
-  'future_date', 'no move in the future');
-select tests.throws(format($$select public.cancel_wallet_transfer(%L::uuid, 'خطأ')$$, tests.get('mv')), 'not_admin',
-  'only «المسؤول» cancels a move');
-select tests.login('admin');
-select tests.throws(format($$select public.cancel_wallet_transfer(%L::uuid, ' ')$$, tests.get('mv')), 'reason_required',
-  'a cancelled move needs a reason');
-select public.cancel_wallet_transfer(tests.id('mv'), 'خطأ');
-select tests.ok((select balance = tests.get('bk')::bigint from public.report_wallets(current_date, current_date)
-                 where fund_account_id = tests.id('acc')), 'a cancelled move no longer counts');
-select tests.throws(format($$update public.wallet_transfers set amount = 1 where id = %L$$, tests.get('mv')), '42501',
-  'moves are written through the RPCs only');
+select tests.throws(format($$select public.record_wallet_transfer(gen_random_uuid(), %L::uuid, null, 10, current_date)$$, tests.get('acc')),
+  'feature_retired', 'm46: no moves between wallets');
+select tests.ok((select count(*) from public.wallet_transfers) = 0, 'no move was recorded');
 -- a new number for bankily: the old account stops, old payments keep it, new money goes to the new one
-select tests.login('committee');
 select tests.throws($$select public.replace_wallet_account(1, '22223333', 'x')$$, 'not_admin', 'only «المسؤول» changes a wallet''s number');
 select tests.login('admin');
 select tests.set('bkt', (select wallet_type_id::text from public.fund_accounts where id = tests.id('acc')));
@@ -1766,8 +1698,9 @@ select tests.ok((select not active from public.fund_accounts where id = tests.id
                 and (select count(*) from public.fund_accounts where wallet_type_id = tests.get('bkt')::smallint and active) = 1,
   'replace: one active account, the new number');
 select tests.ok((select fund_account_id = tests.id('acc') from public.payments where id = tests.id('pw1')), 'old payments keep the old account');
-select tests.ok(exists (select 1 from public.report_wallets(current_date, current_date) where fund_account_id = tests.id('acc')),
-  'a stopped account with money left is still listed');
+select tests.ok(exists (select 1 from public.report_wallets(current_date, current_date) where fund_account_id = tests.id('acc'))
+                and exists (select 1 from public.report_wallets(current_date, current_date) where fund_account_id = tests.id('accn')),
+  'a stopped account with money in the period and the new active one are listed');
 -- a typo in the new number: fixed in place while nothing uses it
 select public.correct_wallet_account(tests.id('accn'), '4444 5556', 'تجربة');
 select tests.ok((select account_number = '44445556' from public.fund_accounts where id = tests.id('accn')), 'a typo is fixed in place');
@@ -1775,35 +1708,30 @@ select tests.login('committee');
 select tests.set('pw3', public.record_payment(gen_random_uuid(), 'محفظة', 'bankily', 100, current_date,
   jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('sX'), 'amount', 100))) ->> 'id');
 select tests.ok((select fund_account_id = tests.id('accn') from public.payments where id = tests.id('pw3')), 'new money goes to the new number');
--- the stopped account can still be emptied to cash; not into it
-select public.record_wallet_transfer(gen_random_uuid(), tests.id('acc'), null, 10, current_date);
-select tests.throws(format($$select public.record_wallet_transfer(gen_random_uuid(), null, %L::uuid, 10, current_date)$$, tests.get('acc')),
-  'wallet_inactive', 'no move into a stopped account');
 select tests.login('admin');
 select tests.throws(format($$select public.correct_wallet_account(%L::uuid, '44445557', 'تجربة')$$, tests.get('accn')), 'account_in_use',
   'a used number is replaced, not edited');
 select tests.login('server');
 select tests.throws(format($$update public.fund_accounts set account_number = '1' where id = %L$$, tests.get('acc')), 'account_in_use',
   'the trigger keeps a used number, even for the server');
--- the audit: with no manual opening, every balance together = all the money
-update public.fund_accounts set opening_balance = null, opening_on = null where opening_on is not null;
-update public.settings set opening_balance = opening_balance - 1500 where id;
-select tests.ok((select coalesce(sum(balance), 0) from public.report_wallets((select opening_balance_on from public.settings), current_date + 1))
-                = (select opening_balance from public.settings)
-                  + (select coalesce(sum(amount), 0) from public.payments where status = 'confirmed' and method::text <> 'credit')
-                  - (select coalesce(sum(amount), 0) from public.expenses where cancelled_at is null)
-                  + (select coalesce(sum(amount), 0) from public.balance_adjustments),
-  'wallets + cash = all the association''s money');
+-- the audit (m46): the wallet rows add up to all income and spending; a wallet may go below 0 (one pot)
+select tests.set('ew3', public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_amount => 99999, p_category => 'other',
+  p_fund_account_id => tests.id('accn'))::text);
+select tests.ok((select coalesce(sum(in_amount), 0) - coalesce(sum(out_amount), 0) from public.report_wallets(make_date(1900, 1, 1), current_date + 1))
+                = (select coalesce(sum(amount), 0) from public.payments where status = 'confirmed' and method::text <> 'credit')
+                  - (select coalesce(sum(amount), 0) from public.expenses where cancelled_at is null),
+  'wallet rows in − out = all income − all spending');
 \ir local/accuracy_audit_checks.sql
 select tests.login('admin');
-select public.set_fund_account_opening(tests.id('accn'), 0, current_date);
-select tests.login('server');
-update public.settings set opening_balance = opening_balance + 700 where id;
-select tests.login('admin');
-select public.set_fund_account_opening(tests.id('wa'), 700, current_date);
+select public.cancel_expense(tests.id('ew3'), 'تجربة');
 select tests.login('committee');
-select tests.ok((select ok from public.accuracy_audit() where check_name like 'wallet balances%'),
-  'm45: with an opening set the wallets still add up to all the money (strict)');
+select tests.ok((select kind = 'donation' from public.campaign_progress limit 1)
+                or not exists (select 1 from public.campaign_progress where kind = 'donation'),
+  'm46: campaign_progress names its kind');
+select tests.ok(exists (select 1 from public.campaign_progress where kind = 'levy')
+                and not exists (select 1 from public.campaign_progress p join public.campaigns c on c.id = p.campaign_id
+                                where p.kind <> c.kind),
+  'campaign_progress kind = the campaign''s kind');
 
 /* ───────────── M44: income from the paper sheets ───────────── */
 

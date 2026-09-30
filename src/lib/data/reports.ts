@@ -607,18 +607,9 @@ export async function loadWallets(
     read.walletTypes(c),
     read.fundAccountsAdmin(c),
   ]);
-  const opening = (amount: number | null, on: string | null) =>
-    amount !== null && on ? { amount, on } : null;
+  // m46 «one pot»: in and out per wallet only; the fund balance is the one number
   const wallets: WalletsReport["wallets"] = [];
-  let cash: WalletsReport["cash"] = {
-    in: 0,
-    count: 0,
-    out: 0,
-    transferIn: 0,
-    transferOut: 0,
-    opening: null,
-    balance: 0,
-  };
+  let cash: WalletsReport["cash"] = { in: 0, count: 0, out: 0 };
   let paperIn = 0;
   let unspecifiedOut = 0;
   for (const w of rows) {
@@ -629,17 +620,8 @@ export async function loadWallets(
       unspecifiedOut += w.out_amount;
       continue;
     }
-    const open = opening(w.opening_balance, w.opening_on);
     if (type.kind === "cash") {
-      cash = {
-        in: w.in_amount,
-        count: w.in_count,
-        out: w.out_amount,
-        transferIn: w.transfer_in,
-        transferOut: w.transfer_out,
-        opening: open,
-        balance: w.balance ?? 0,
-      };
+      cash = { in: w.in_amount, count: w.in_count, out: w.out_amount };
       continue;
     }
     const acc = w.fund_account_id ? accounts.find((a) => a.id === w.fund_account_id) : undefined;
@@ -653,11 +635,6 @@ export async function loadWallets(
       in: w.in_amount,
       count: w.in_count,
       out: w.out_amount,
-      transferIn: w.transfer_in,
-      transferOut: w.transfer_out,
-      opening: open,
-      // m43: every wallet and account row has a balance (0 + in − out ± moves, or from its opening)
-      balance: w.balance ?? 0,
     });
   }
   return {
