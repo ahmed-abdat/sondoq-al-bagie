@@ -653,7 +653,7 @@ select public.set_committee_member('00000000-0000-0000-0000-0000000000a3', 'ال
 select tests.login('server');
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000a6', 'mistake@test.invalid');
 select tests.ok((select count(*) from pg_constraint where contype = 'f' and confrelid = 'auth.users'::regclass
-                   and connamespace = 'public'::regnamespace) = 25,
+                   and connamespace = 'public'::regnamespace) = 26,
   'every column pointing at auth.users is checked by account_has_history (update it when this count changes)');
 select tests.login('admin');
 select public.set_committee_member('00000000-0000-0000-0000-0000000000a6', 'خطأ', 'committee');
@@ -1054,6 +1054,78 @@ select tests.throws('select * from public.activity_log()', 'not_committee', 'an 
 select tests.throws($$select public.member_statement(tests.id('E'))$$, 'not_committee', 'nor a statement');
 select tests.login('public');
 select tests.throws('select * from public.activity_log()', '42501', 'strangers cannot read the activity log');
+
+/* ───────────── M30: «اللوحة» levies ───────────── */
+
+select tests.login('server');
+create function tests.levy(p_member text, p_amount integer, p_campaign text default 'L1') returns jsonb language sql as $$
+  select public.record_payment(gen_random_uuid(), 'دافع', 'cash', p_amount, current_date,
+    jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id(p_campaign),
+                                         'member_id', case when p_member is not null then tests.id(p_member) end, 'amount', p_amount)))
+$$;
+grant execute on function tests.levy(text, integer, text) to authenticated;
+select tests.login('committee');
+select tests.set('L1B', public.add_member(9102, 'عضو ب', 'B', tests.m(-1)));
+select tests.set('L1', public.create_levy('00000000-0000-4000-8000-0000000000e1', 'مساعدة مريض', 2000,
+  array[tests.id('E'), tests.id('K'), tests.id('T'), tests.id('L1B'), tests.id('E')], 'علاج', null, 1000)::text);
+select tests.ok((select count(*) = 4 and bool_and(left_amount = expected) from public.levy_shares where campaign_id = tests.id('L1')),
+  'a levy puts one share on each chosen member (duplicates ignored)');
+select tests.ok((select expected from public.levy_shares where campaign_id = tests.id('L1') and member_id = tests.id('L1B')) = 1000
+                and (select expected from public.levy_shares where campaign_id = tests.id('L1') and member_id = tests.id('E')) = 2000,
+  'group B gets its own amount when one is given');
+select tests.ok((select kind = 'levy' and amount_mode = 'per_group' from public.campaigns where id = tests.id('L1')), 'stored as a levy');
+
+select tests.ok((tests.levy('E', 2000) ->> 'status') = 'confirmed', 'a full share is recorded and confirmed');
+select tests.ok((select paid = 2000 and left_amount = 0 from public.levy_shares where campaign_id = tests.id('L1') and member_id = tests.id('E')),
+  'the share is paid');
+select tests.throws($$select tests.levy('E', 2000)$$, 'levy_share_paid', 'a share is paid once');
+select tests.throws($$select tests.levy('K', 1000)$$, 'levy_full_share', 'a share is paid in full, not in parts');
+select tests.throws($$select tests.levy('K', 3000)$$, 'levy_full_share', 'nor more than the share');
+select tests.throws($$select tests.levy('m29m', 2000)$$, 'not_levy_member', 'only the levy''s members pay a share');
+select tests.throws($$select tests.levy(null, 2000)$$, 'levy_member_required', 'a share is paid for a member');
+
+select tests.throws($$select public.exempt_levy_share(tests.id('L1'), tests.id('K'), ' ')$$, 'reason_required', 'exempting needs a reason');
+select public.exempt_levy_share(tests.id('L1'), tests.id('K'), 'ظروف صعبة');
+select tests.ok((select exempt and left_amount = 0 from public.levy_shares where campaign_id = tests.id('L1') and member_id = tests.id('K')),
+  'an exempt share owes nothing');
+select tests.throws($$select tests.levy('K', 2000)$$, 'levy_exempt', 'an exempt share cannot be paid');
+select tests.throws($$select public.exempt_levy_share(tests.id('L1'), tests.id('E'), 'x')$$, 'levy_share_paid', 'a paid share cannot be exempted');
+select tests.ok(exists (select 1 from public.activity_log(null, 20) where action = 'exempt_levy_share' and reason = 'ظروف صعبة'),
+  'the exemption is in «سجل العمليات» with its reason');
+select public.unexempt_levy_share(tests.id('L1'), tests.id('K'));
+select tests.ok((select not exempt and left_amount = 2000 from public.levy_shares where campaign_id = tests.id('L1') and member_id = tests.id('K')),
+  'taking the exemption back makes the share owed again');
+
+select public.set_levy_share(tests.id('L1'), tests.id('T'), 1500);
+select tests.ok((tests.levy('T', 1500) ->> 'status') = 'confirmed', 'a per-member share is paid at its own amount');
+select tests.throws($$select public.set_levy_share(tests.id('L1'), tests.id('T'), 1000)$$, 'levy_share_paid', 'a paid share keeps its amount');
+select tests.ok(public.add_levy_members(tests.id('L1'), array[tests.id('K'), tests.id('m29m')], 2000) = 1,
+  'adding members keeps the ones already in');
+
+select tests.ok((select levy_left = 2000 and levies -> 0 ->> 'title' = 'مساعدة مريض' from public.arrears where member_id = tests.id('K')),
+  'unpaid shares are arrears');
+select tests.ok((select jsonb_array_length(s -> 'levies') = 1 and (s -> 'owed' ->> 'levy_left')::int = 2000
+                 from (select public.member_statement(tests.id('K'))) x(s)), 'and in the member statement');
+
+select public.close_campaign(tests.id('L1'), 'to_fund');
+select tests.set('tr30', (select count(*)::text from public.transfers where from_campaign_id = tests.id('L1')));
+select tests.ok((tests.levy('K', 2000) ->> 'status') = 'confirmed', 'a closed levy still takes a late share');
+select tests.ok((select count(*) from public.transfers where from_campaign_id = tests.id('L1')) = tests.get('tr30')::int + 1
+                and exists (select 1 from public.transfers where from_campaign_id = tests.id('L1') and amount = 2000)
+                and (select paid = 2000 from public.levy_shares where campaign_id = tests.id('L1') and member_id = tests.id('K')),
+  'the late share goes to the main fund, still recorded against the levy');
+select tests.throws($$select public.add_levy_members(tests.id('L1'), array[tests.id('G')], 2000)$$, 'campaign_closed',
+  'no new members on a closed levy');
+select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 500, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)))$$,
+  'campaign_closed', 'a closed donation campaign still takes nothing');
+
+select tests.login('former');
+select tests.ok((select count(*) from public.levy_shares) = 0, 'an inactive account sees no shares');
+select tests.throws($$select public.create_levy(gen_random_uuid(), 'x', 100, array[tests.id('E')])$$, 'not_committee',
+  'nor creates a levy');
+select tests.login('public');
+select tests.throws('select * from public.levy_shares', '42501', 'strangers cannot read levy shares');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
