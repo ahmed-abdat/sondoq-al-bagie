@@ -400,3 +400,4 @@ Stats design pick: **a (numbers first)**.
 «لأي نشاط؟» is a list the «مسؤول» manages (add, rename, retire), not a fixed set. Existing
 expenses map to «التدريس المحوري», «تكريم الناجحين», «الفريق الرياضي», «أخرى». The owner sends the full list
 of the association's activities to seed. Reports group spending by activity.
+Owner (later): the word is **«النشاط»**; the 4 existing activities are the defaults; «المسؤول» adds any others from the list screen (no seed list to wait for).
