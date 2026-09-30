@@ -172,3 +172,28 @@ test("a new committee account is linked to a member with the shared member searc
   await expect(pick).toBeHidden();
   await expect(add.getByText("الشيخ ولد سيدي")).toBeVisible();
 });
+
+test("«حوّل»: money from a wallet to cash (not income or spending); «غيّر الرقم» in the wallet's sheet", async ({
+  page,
+}) => {
+  await page.goto("/committee/settings");
+  const ws = page.getByRole("region", { name: "المحافظ" });
+  await ws.getByRole("button", { name: "حوّل من بنكيلي" }).click();
+  const mv = page.getByRole("dialog", { name: "حوّل مالًا" });
+  // to cash by default
+  await expect(
+    mv.getByRole("radiogroup", { name: "إلى" }).getByRole("radio", { name: "نقدًا" }),
+  ).toHaveAttribute("aria-checked", "true");
+  await mv.getByLabel("المبلغ").fill("5000");
+  await mv.getByRole("button", { name: /حوّل 5\s000 أوقية إلى نقدًا/ }).click();
+  await expect(page.getByText(/حُوّل 5\s000 أوقية من بنكيلي إلى نقدًا\./)).toBeVisible();
+
+  // a new number: the old one stops, its payments stay
+  await ws.getByRole("button", { name: "عدّل بنكيلي" }).click();
+  const ed = page.getByRole("dialog", { name: "عدّل المحفظة" });
+  await ed.getByRole("button", { name: "غيّر الرقم" }).click();
+  await ed.getByLabel("رقم الحساب").fill("22000077");
+  await expect(ed.getByRole("radio", { name: "رقم جديد" })).toHaveAttribute("aria-checked", "true");
+  await ed.getByRole("button", { name: "احفظ" }).click();
+  await expect(ws.getByText("22000077")).toBeVisible();
+});

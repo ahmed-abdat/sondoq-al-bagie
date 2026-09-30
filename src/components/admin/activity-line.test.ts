@@ -106,3 +106,29 @@ describe("the log as the committee reads it (owner bug: one payment, two lines)"
     expect(out[0].what).toMatch(/^سجّل دفعة قديمة عالي/);
   });
 });
+
+describe("moves between wallets (m43)", () => {
+  const move = e("record_wallet_transfer", {
+    id: 30,
+    table: "wallet_transfers",
+    rowId: "t-1",
+    subject: "بنكيلي → نقدًا",
+    amount: 36000,
+  });
+  it("reads «حوّل مالًا من بنكيلي إلى نقدًا» and can be cancelled until it is", () => {
+    const [l] = activityLines([move]);
+    expect(l.what).toMatch(/^حوّل مالًا من بنكيلي إلى نقدًا \(36\s000 أوقية\)$/);
+    expect(l.transfer).toEqual({ id: "t-1", cancelled: false });
+    const cancelled = activityLines([
+      e("cancel_wallet_transfer", {
+        ...move,
+        id: 31,
+        action: "cancel_wallet_transfer",
+        reason: "خطأ",
+      }),
+      move,
+    ]);
+    expect(cancelled[0].what).toMatch(/^ألغى تحويلًا من بنكيلي إلى نقدًا .*السبب: خطأ$/);
+    expect(cancelled[1].transfer).toEqual({ id: "t-1", cancelled: true });
+  });
+});
