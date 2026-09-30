@@ -23,6 +23,7 @@ import {
   Seg,
   Sheet,
   StripHead,
+  findMembers,
   useP,
   Wallet,
   X,
@@ -35,15 +36,10 @@ export function MembersScreen({ strip = true }: { strip?: boolean }) {
   const { d, href } = useP();
   const [q, setQ] = useState("");
   const [f, setF] = useState<MF>("all");
-  const list = d.members
+  const shown = d.members
     .filter((m) => m.status !== "left")
-    .filter((m) => (f === "owe" ? owes(m, d) : f === "A" || f === "B" ? m.group === f : true))
-    .filter((m) => {
-      const t = q.trim();
-      if (!t) return true;
-      const digits = t.replace(/\D/g, "");
-      return m.name.includes(t) || (digits !== "" && String(m.no) === digits);
-    });
+    .filter((m) => (f === "owe" ? owes(m, d) : f === "A" || f === "B" ? m.group === f : true));
+  const list = q.trim() ? findMembers(shown, q) : shown;
   const oweCount = d.members.filter((m) => owes(m, d)).length;
   return (
     <div className="pa-page">

@@ -16,6 +16,7 @@ import {
   payStatus,
   refLabel,
   Sheet,
+  findMembers,
   useP,
   X,
 } from "./kit";
@@ -441,10 +442,8 @@ function MemberSheet({
 }) {
   const { d } = useP();
   const [q, setQ] = useState("");
-  const list = d.members
-    .filter((m) => m.status === "active")
-    .filter((m) => !q.trim() || m.name.includes(q.trim()) || String(m.no) === q.replace(/\D/g, ""))
-    .slice(0, 8);
+  const active = d.members.filter((m) => m.status === "active");
+  const list = (q.trim() ? findMembers(active, q) : active).slice(0, 8);
   return (
     <Sheet open={open} onClose={onClose} title="كشف أي عضو؟">
       <label className="pa-search">

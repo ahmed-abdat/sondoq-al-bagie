@@ -4,6 +4,7 @@
 // (members, one member, late, expenses, more) live here.
 import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { searchMembers } from "@/components/app/derive";
 import { I } from "@/components/app/icons";
 import { radioKeys, radioTab } from "@/components/app/radio-keys";
 import { Sheet as AppSheet } from "@/components/app/sheet";
@@ -95,6 +96,12 @@ export function payStatus(m: PMember): string {
   if (!last) return `دفع ${monthsWords(m.paid)}`;
   return `دفع حتى ${month(last)}`;
 }
+/** Name, or the paper number in any form: «ب 2», «ب2», «B-2», «2», «٢». */
+export const findMembers = (list: PMember[], q: string): PMember[] =>
+  searchMembers(
+    list.map((m) => ({ fullName: m.name, number: m.no, memberRef: m.ref, m })),
+    q,
+  ).map((x) => x.m);
 export const isLate = (m: PMember) => m.status === "active" && m.owed.length > 0;
 export const day = (iso: string) => {
   const d = new Date(iso);
@@ -524,15 +531,7 @@ export function MemberSearch({
   const [q, setQ] = useState("");
   const active = d.members.filter((m) => m.status === "active");
   const list = q.trim()
-    ? active.filter((m) => {
-        const t = q.trim().replace(/[أا]/g, "ا");
-        const digits = t.replace(/\D/g, "");
-        return (
-          m.name.replace(/[أا]/g, "ا").includes(t) ||
-          (digits && String(m.no) === digits) ||
-          refLabel(m.ref).replace(/\s/g, "") === t.replace(/\s/g, "")
-        );
-      })
+    ? findMembers(active, q)
     : lateFirst
       ? active.filter(isLate).slice(0, 5)
       : ["A-9", "B-8", "A-1", "B-27"].flatMap((r) => active.filter((m) => m.ref === r));

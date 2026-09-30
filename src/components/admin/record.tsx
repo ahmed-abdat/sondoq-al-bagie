@@ -22,6 +22,7 @@ import {
   Avatar,
   Back,
   Chips,
+  findMembers,
   fmt,
   levyOwed,
   levyShare,
@@ -482,20 +483,19 @@ function PersonPicker({ t, onDone, autoFocus }: { t: T; onDone: () => void; auto
   const [q, setQ] = useState("");
   const [recent] = useState(readRecent);
   const taken = t.lines.flatMap((l) => (l.t === "gift" || !l.ref ? [] : [l.ref])).join(",");
-  const list = useMemo(() => {
+  const { list, already } = useMemo(() => {
     const inList = new Set(taken.split(","));
-    const act = d.members.filter((m) => m.status === "active" && !inList.has(m.ref));
-    const s = toWesternDigits(q.trim());
-    if (!s) return recent.flatMap((id) => act.filter((m) => m.id === id));
-    const digits = s.replace(/\D/g, "");
-    const letter = /^(أ|ا|a)/i.test(s) ? "A" : /^(ب|b)/i.test(s) ? "B" : null;
-    return act
-      .filter(
-        (m) =>
-          m.name.includes(s) ||
-          (digits !== "" && String(m.no) === digits && (!letter || m.group === letter)),
-      )
-      .slice(0, 8);
+    const act = d.members.filter((m) => m.status === "active");
+    if (!q.trim())
+      return {
+        list: recent.flatMap((id) => act.filter((m) => m.id === id && !inList.has(m.ref))),
+        already: [],
+      };
+    const found = findMembers(act, q);
+    return {
+      list: found.filter((m) => !inList.has(m.ref)).slice(0, 8),
+      already: found.filter((m) => inList.has(m.ref)),
+    };
   }, [q, d.members, taken, recent]);
   return (
     <div className="r2-picker">
@@ -530,7 +530,11 @@ function PersonPicker({ t, onDone, autoFocus }: { t: T; onDone: () => void; auto
             </button>
           </li>
         ))}
-        {q && !list.length && <li className="pa-empty">لا أحد بهذا الاسم أو الرقم.</li>}
+        {q && !list.length && (
+          <li className="pa-empty">
+            {already.length ? `${already[0].name} في هذه الدفعة.` : "لا أحد بهذا الاسم أو الرقم."}
+          </li>
+        )}
       </ul>
       {!!t.lines.length && (
         <button type="button" className="pa-btn pa-btn-ghost pa-btn-sm" onClick={onDone}>
@@ -656,7 +660,7 @@ function HowSec({ t }: { t: T }) {
     <input
       type="file"
       accept="image/*"
-      className="sr-only"
+      className="bq-sr"
       onChange={async (e) => {
         const f = e.target.files?.[0];
         e.target.value = "";
@@ -672,7 +676,7 @@ function HowSec({ t }: { t: T }) {
         <div className="r2-how">
           <label className="r2-how-b r2-how-img">
             {X.image(26)}
-            <b>أرفق صورة التحويل</b>
+            <b>أضف صورة التحويل</b>
             <small>نقرأ منها المبلغ ورقم العملية</small>
             {input}
           </label>
