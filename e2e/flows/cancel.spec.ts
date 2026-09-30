@@ -11,15 +11,23 @@ const M = E2E_MEMBERS.reject; // B-902
 const paidCount = (s: Record<number, string>) =>
   Object.values(s).filter((v) => v === "paid").length;
 
-/** From «الدفعات الأخيرة»: open the member's payment, «إلغاء هذه الدفعة», a reason, confirm. */
-async function tryCancel(page: import("@playwright/test").Page, name: string, reason: string) {
-  await openPage(page, "/committee/payments");
-  await page.getByRole("button").filter({ hasText: name }).first().click();
-  const start = page.getByRole("button", { name: /إلغاء هذه الدفعة/ });
-  if (!(await start.isVisible().catch(() => false))) return false; // not offered to this member
+/** From the member's page («الدفعات»): «ألغِ الدفعة» on the payment, a reason, confirm. */
+async function tryCancel(page: import("@playwright/test").Page, ref: string, reason: string) {
+  await openPage(page, `/committee/members/${ref}`);
+  const pays = page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "الدفعات", exact: true }) });
+  const row = pays.getByRole("listitem").filter({ hasNotText: "أُلغيت" }).first();
+  await expect(row).toBeVisible(); // the statement has loaded, with the confirmed payment
+  const start = row.getByRole("button", { name: "ألغِ الدفعة" });
+  if (!(await start.isVisible())) return false; // not offered to this member
   await start.click();
-  await page.getByRole("radio", { name: reason }).click();
-  await page.getByRole("button", { name: /^ألغِ الدفعة$/ }).click();
+  const sheet = page.getByRole("dialog", { name: "ألغِ الدفعة" });
+  await sheet
+    .getByRole("radiogroup", { name: "السبب" })
+    .getByRole("radio", { name: reason })
+    .click();
+  await sheet.getByRole("button", { name: "ألغِ الدفعة" }).click();
   return true;
 }
 
@@ -42,13 +50,13 @@ test("only «مسؤول» cancels, with a reason: the months are unpaid again an
   expect(errorText(refused.error)).toBe("هذا الإجراء للمسؤول فقط.");
   // …and on the screen: no cancel offered, or the same words if it is
   const plainPhone = await committeePhone(browser, baseURL!, "committee");
-  if (await tryCancel(plainPhone.page, M.name, "دفعة مكررة"))
+  if (await tryCancel(plainPhone.page, M.ref, "دفعة مكررة"))
     await expect(plainPhone.page.getByRole("alert")).toHaveText("هذا الإجراء للمسؤول فقط.");
   expect((await latestPayment(M.ref)).status).toBe("confirmed");
 
   // «مسؤول» cancels it from the payment
   const boss = await committeePhone(browser, baseURL!, "admin");
-  expect(await tryCancel(boss.page, M.name, "دفعة مكررة")).toBe(true);
+  expect(await tryCancel(boss.page, M.ref, "دفعة مكررة")).toBe(true);
   await expect.poll(async () => (await latestPayment(M.ref)).status).toBe("cancelled");
   expect(paidCount(await monthStates(M.ref))).toBe(0);
 
