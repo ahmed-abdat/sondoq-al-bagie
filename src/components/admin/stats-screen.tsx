@@ -4,6 +4,7 @@
 // as short blocks. Green = paid, soft grey = not yet, a number on every bar, no names, no red.
 // Every number comes from `d.stats` (the «الإحصاءات» read, same as the report); nothing recounted.
 import { useState } from "react";
+import { memberNoun } from "@/components/app/derive";
 import { Back, month, Num, useP, X } from "./kit";
 import { ReportSheet } from "./report-doc";
 import { pct } from "./stats";
@@ -55,7 +56,7 @@ export function FeesCard() {
       <p className="st-lead">
         دفعوا كل ما عليهم حتى {month(d.due)}
         <span className="st-sub">
-          <N v={s.paid} /> من <N v={s.total} /> عضوًا
+          <N v={s.paid} /> من <N v={s.total} /> {memberNoun(s.total)}
           {s.previous !== null && (
             <>
               {" "}

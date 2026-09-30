@@ -33,9 +33,9 @@ import type {
   WalletsReport,
 } from "@/lib/data/report-types";
 import * as rfx from "@/lib/reports/fixtures";
-import type { Method } from "@/lib/methods";
-import { currentDueMonth } from "./derive";
-import { demoAdminData, demoStatement, demoStats } from "./admin-demo";
+import { METHOD_LABELS, type Method } from "@/lib/methods";
+import { currentDueMonth, groupLabel } from "./derive";
+import { demoAdminData, demoStatement, demoStats, toActivities } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
 import { allStats, statsFromReport } from "@/components/admin/stats";
@@ -166,6 +166,8 @@ export async function myProfile(): Promise<MyProfile | null> {
 /** Latest payments (any status), newest first: the committee finds one to fix here. */
 export const recentPayments = () => pick(fx.fxRecent, () => data.getRecentPayments());
 export const arrears = () => pick(fx.fxArrears, () => data.getArrears());
+/** «النشاط» (m38): every expense activity, retired ones too, in list order. */
+export const expenseActivities = () => pick(fx.fxActivities, () => data.getExpenseActivities());
 export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFundAccountsAdmin());
 /** Committee member list: every member, any status, with phone and current group. */
 export const membersAdmin = () => pick(fx.fxMembersAdmin, () => data.getMembersAdmin());
@@ -304,6 +306,8 @@ export async function adminData(): Promise<PData> {
     shares,
     statsReport,
     monthCash,
+    activities,
+    groupRows,
   ] = await Promise.all([
     membersAdmin(),
     memberRows(year),
@@ -320,7 +324,10 @@ export async function adminData(): Promise<PData> {
     data.getStatsReport(year).catch(() => null),
     // «هذا الشهر» on home: the money that moved the balance this month (the summary report)
     data.getSummaryReport({ year, month: t.getUTCMonth() + 1 }).catch(() => null),
+    data.getExpenseActivities(),
+    groupsOverview(year).catch(() => [] as GroupRow[]),
   ]);
+  const groupName = new Map(groupRows.map((g) => [g.code, g.name]));
   const due = currentDueMonth(t, info.graceDays);
   const codeOf = new Map(rows.map((r) => [r.memberId, r.months]));
   const rowOf = new Map(rows.map((r) => [r.memberId, r]));
@@ -331,6 +338,7 @@ export async function adminData(): Promise<PData> {
       id: a.memberId,
       ref: a.memberRef,
       group: a.listCode as "A" | "B",
+      feeGroup: { code: a.groupCode, name: groupName.get(a.groupCode) ?? groupLabel(a.groupCode) },
       no: a.number,
       name: a.fullName,
       phone: a.phone,
@@ -378,9 +386,12 @@ export async function adminData(): Promise<PData> {
       id: e.id,
       at: e.spentOn,
       category: e.category as PExpense["category"],
+      activity: e.activity ?? "",
       note: e.note ?? "",
       amount: e.amount,
       campaign: e.campaignId,
+      wallet: e.paidInCash ? "نقدًا" : e.wallet ? METHOD_LABELS[e.wallet.method] : "",
+      by: e.recordedBy ?? "",
     }));
   const refByName = new Map(members.map((x) => [x.name, x.ref]));
   const campaignsRaw = (m?.campaigns ?? []).filter((c) => c.amountMode !== "fixed");
@@ -498,6 +509,7 @@ export async function adminData(): Promise<PData> {
     })),
     prices,
     levies,
+    activities: toActivities(activities),
     log,
   };
   // the numbers the «الإحصاءات» report prints (m32); counted here only if that read fails

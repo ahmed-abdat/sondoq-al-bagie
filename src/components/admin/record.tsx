@@ -3,6 +3,7 @@
 // several people, a لوحة share, a donation or an outside donor in one transfer; the screenshot
 // is read on the phone (OCR); a sticky total against the amount in the picture. The payment is
 // confirmed at once (m29). No receipt: «سُجّلت الدفعة ✓» and «تراجع» for 30 seconds.
+import { AmountInput, amountValue } from "@/components/app/amount-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -14,9 +15,7 @@ import { failure } from "@/lib/data/errors";
 import type { AllocationInput } from "@/lib/data/schemas";
 import { MONTHS_AR, todayIso } from "@/lib/dates";
 import type { Method } from "@/lib/methods";
-import { parseAmount, toWesternDigits } from "@/lib/money";
 import { readReceipt } from "@/lib/ocr";
-import { safeStorage } from "@/lib/safe-storage";
 import { imageOpenError, parseMemberRef } from "@/components/app/derive";
 import { DateField } from "@/components/app/date-field";
 import {
@@ -26,7 +25,8 @@ import {
   fmt,
   levyOwed,
   levyShare,
-  isLate,
+  nothingToPay,
+  owes,
   Money,
   monthsWords,
   Num,
@@ -40,7 +40,7 @@ import {
 import { feeAllocations, feesTotal, pastWords, payablePast, priceOf, ym } from "./fees";
 import { coPaidMembers } from "./report-action";
 import { WalletPicker } from "./wallet-picker";
-import { MemberPicker } from "./member-picker";
+import { MemberPicker, readRecent, rememberRecent } from "./member-picker";
 import type { PData, PMember } from "./types";
 import "./record2.css";
 
@@ -61,21 +61,6 @@ type Shot = {
   txn: string | null;
   date: string | null;
 };
-
-const RECENT_KEY = "bq-recent-payers";
-const readRecent = (): string[] => {
-  try {
-    const v = JSON.parse(safeStorage.getItem(RECENT_KEY) ?? "[]");
-    return Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 4) : [];
-  } catch {
-    return [];
-  }
-};
-const rememberRecent = (ids: string[]) =>
-  safeStorage.setItem(
-    RECENT_KEY,
-    JSON.stringify([...new Set([...ids, ...readRecent()])].slice(0, 4)),
-  );
 
 /** Late months of earlier years are always part of «الأشهر المتأخرة» and «باقي السنة». */
 const monthsFor = (m: PMember, mode: Mode) =>
@@ -305,7 +290,8 @@ function RecordFlow({
   return (
     <div className="pa-page r2">
       <Back to="" label="الرئيسية" />
-      <h1>سجّل دفعة</h1>
+      {/* owner: no visible title, the screen starts with «لمن هذه الدفعة؟» (kept for screen readers) */}
+      <h1 className="bq-sr">سجّل دفعة</h1>
       <section className="pa-sec">
         <div className="pa-sec-h">
           <h2>{t.lines.length ? "هذه الدفعة عن" : "لمن هذه الدفعة؟"}</h2>
@@ -433,15 +419,9 @@ function LineRow({ l, t }: { l: Line; t: T }) {
         )}
         <label className="r2-amt">
           <span>المبلغ</span>
-          <input
-            inputMode="numeric"
-            dir="ltr"
+          <AmountInput
             value={l.amount ? String(l.amount) : ""}
-            onChange={(e) =>
-              t.setGift(l.id, {
-                amount: Math.round(parseAmount(toWesternDigits(e.target.value)) ?? 0),
-              })
-            }
+            onChange={(v) => t.setGift(l.id, { amount: amountValue(v) })}
             placeholder="0"
             aria-label="مبلغ التبرع بالأوقية القديمة"
           />
@@ -620,14 +600,17 @@ function PersonPicker({ t, onDone, autoFocus }: { t: T; onDone: () => void; auto
   const active = d.members.filter((m) => m.status === "active");
   const mine = recent.flatMap((id) => active.filter((m) => m.id === id));
   // a new phone has no recent payers: offer who owes instead of an empty screen
-  const start = mine.length ? mine : active.filter(isLate).slice(0, 5);
+  // recent payers with something left to pay, else (a new phone) who owes
+  const owing = mine.filter((m) => !nothingToPay(m, d));
+  const start = owing.length ? owing : active.filter((m) => owes(m, d)).slice(0, 5);
   return (
     <>
       <MemberPicker
+        payment
         autoFocus={autoFocus}
         exclude={taken}
         start={start}
-        startHint={mine.length ? "آخر من سجّلت لهم" : "عليهم متأخرات"}
+        startHint={owing.length ? "آخر من سجّلت لهم" : "عليهم متأخرات"}
         alreadyText={(m) => `${m.name} في هذه الدفعة.`}
         onPick={(m) => {
           t.addPerson(m.ref);

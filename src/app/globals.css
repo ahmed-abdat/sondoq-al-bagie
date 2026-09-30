@@ -255,6 +255,16 @@
     flex-wrap: wrap;
     gap: 8px;
   }
+  /* «النشاط»: a stopped one is dimmed; renaming puts the field on the row */
+  .bq-group-row.is-off .bq-row-m {
+    opacity: 0.6;
+  }
+  .bq-act-edit {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+  }
   .bq-stack {
     display: flex;
     flex-direction: column;

@@ -6,6 +6,7 @@ const mem = (ref: string, p: Partial<PMember> = {}): PMember => ({
   id: ref,
   ref,
   group: ref.startsWith("A") ? "A" : "B",
+  feeGroup: ref.startsWith("A") ? { code: "A", name: "أ" } : { code: "B", name: "ب" },
   no: Number(ref.slice(2)),
   name: `م ${ref}`,
   phone: null,

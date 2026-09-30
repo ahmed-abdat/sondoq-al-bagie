@@ -1,9 +1,10 @@
 "use client";
+import { AmountInput, amountValue } from "../amount-input";
 import { toWesternDigits } from "@/lib/money";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { OfflineWriteHint, useOnline } from "@/components/providers";
+import { InstallEntry, OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct, useDemoState } from "../act";
 import type {
   CommitteeAccount,
@@ -148,27 +149,62 @@ export function SaveNote({ s, id }: { s: SaveState; id?: string }) {
   );
 }
 
+/** «حسابات اللجنة» («المسؤول» only): who signs in, and their level. */
+export function CommitteeSection({
+  committee,
+  members,
+  selfId,
+}: {
+  committee: CommitteeAccount[];
+  members: { memberId: string; memberRef: string; fullName: string; status: string }[];
+  selfId: string | null;
+}) {
+  return (
+    <section className="bq-sec" aria-labelledby="bq-acc-h">
+      <h2 id="bq-acc-h">حسابات اللجنة</h2>
+      <p className="bq-lead">من يدخل إلى التطبيق، ودور كل واحد.</p>
+      <CommitteeAccounts accounts={committee} members={members} selfId={selfId} />
+    </section>
+  );
+}
+
+/** «تسليم الصندوق» («المسؤول» only, once per term): the flow has its own page. */
+export function HandoverSection() {
+  return (
+    <section className="bq-sec" aria-labelledby="bq-ho-h">
+      <h2 id="bq-ho-h">تسليم الصندوق</h2>
+      <p className="bq-lead">للجنة الجديدة عند نهاية الدورة.</p>
+      <Link href="/committee/handover" className="bq-btn bq-btn-tonal bq-press">
+        افتح التسليم
+      </Link>
+    </section>
+  );
+}
+
+/** «تثبيت التطبيق»: nothing once the app is installed. */
+export function InstallSection() {
+  return (
+    <div className="bq-sec">
+      <InstallEntry />
+    </div>
+  );
+}
+
 export function SettingsView({
   role,
   displayName,
   openingBalance,
   openingBalanceOn,
   accounts,
-  committee,
-  members,
-  selfId,
   children,
 }: {
-  /** extra cards after «أرقام الصندوق» (year prices, backup) */
+  /** the other sections, in order, after «المحافظ» */
   children?: ReactNode;
   role: CommitteeRole;
   displayName: string;
   openingBalance: number;
   /** "YYYY-MM-DD"; null when unknown */
   openingBalanceOn: string | null;
-  committee: CommitteeAccount[];
-  members: { memberId: string; memberRef: string; fullName: string; status: string }[];
-  selfId: string | null;
   accounts: FundAccountAdmin[];
 }) {
   const router = useRouter();
@@ -186,7 +222,7 @@ export function SettingsView({
   const yearStart = openingBalanceOn ?? `${new Date().getFullYear()}-01-01`;
   const [openingOn, setOpeningOn] = useState(yearStart);
   const [savedOpeningOn, setSavedOpeningOn] = useState(yearStart);
-  const openingNum = Number(opening.replace(/\s/g, "")) || 0;
+  const openingNum = amountValue(opening);
   const [openSave, setOpenSave] = useState<SaveState>(IDLE);
   const [accSave, setAccSave] = useState<Record<string, SaveState>>({});
 
@@ -207,7 +243,7 @@ export function SettingsView({
       </header>
 
       <section className="bq-sec bq-sec-first" aria-labelledby="bq-wallets-h">
-        <h2 id="bq-wallets-h">أرقام الصندوق</h2>
+        <h2 id="bq-wallets-h">المحافظ</h2>
         {!admin && <p className="bq-lead">يغيّرها المسؤول فقط.</p>}
         <p className="bq-hint">المحافظ التي تختارها اللجنة عند تسجيل دفعة أو مصروف.</p>
         <ul className="bq-pay">
@@ -319,12 +355,10 @@ export function SettingsView({
           />
         </div>
         <div className="bq-field">
-          <input
+          <AmountInput
             className="bq-input bq-grow-1"
             value={opening}
-            onChange={(e) => setOpening(toWesternDigits(e.target.value).replace(/[^\d\s]/g, ""))}
-            inputMode="numeric"
-            dir="ltr"
+            onChange={setOpening}
             aria-label="الرصيد المُرحَّل بالأوقية"
             aria-describedby="bq-open-note"
             disabled={!admin}
@@ -355,14 +389,6 @@ export function SettingsView({
       </section>
 
       {children}
-
-      {admin && (
-        <section className="bq-sec" aria-labelledby="bq-acc-h">
-          <h2 id="bq-acc-h">حسابات اللجنة</h2>
-          <p className="bq-lead">من يدخل إلى التطبيق، ودور كل واحد.</p>
-          <CommitteeAccounts accounts={committee} members={members} selfId={selfId} />
-        </section>
-      )}
 
       {adding && (
         <Sheet key="account" label="أضف محفظة" onDone={() => setAdding(false)}>

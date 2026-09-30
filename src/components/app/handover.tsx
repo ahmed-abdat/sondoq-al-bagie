@@ -2,6 +2,7 @@
 // «تسليم الصندوق»: the outgoing committee counts the money it hands over (per wallet + cash),
 // says who stays on the committee, and submits; an admin who did not submit accepts, which
 // starts the next term («الدورة N»). One page, calm steps, no red for a difference.
+import { AmountInput, amountValue } from "./amount-input";
 import { failure } from "@/lib/data/errors";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,7 +16,6 @@ import type {
   PendingPayment,
 } from "@/lib/data/types";
 import { METHOD_LABELS } from "@/lib/methods";
-import { parseAmount, toWesternDigits } from "@/lib/money";
 import { waLink } from "@/lib/whatsapp";
 import { rememberHandoverBalance, useAct, useDemoState, useIsDemo } from "./act";
 import { sendOnce, useOnceId } from "./once-id";
@@ -374,15 +374,10 @@ function Draft({
                   aria-label="اسم السطر"
                 />
               )}
-              <input
+              <AmountInput
                 className="bq-input bq-ho-amt"
                 value={l.text}
-                onChange={(e) => {
-                  const text = toWesternDigits(e.target.value);
-                  setLine(l.key, { text, amount: Math.max(0, Math.round(parseAmount(text) ?? 0)) });
-                }}
-                inputMode="numeric"
-                dir="ltr"
+                onChange={(text) => setLine(l.key, { text, amount: amountValue(text) })}
                 placeholder="0"
                 aria-label={`المبلغ: ${l.label || "سطر"}`}
               />

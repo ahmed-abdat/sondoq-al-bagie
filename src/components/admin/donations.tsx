@@ -2,6 +2,7 @@
 // «التبرعات» (owner pick B): voluntary donations (تبرع) and fixed shares (لوحة). A لوحة page shows
 // ✓ / لم يدفع بعد / معفى per member; only «مسؤول» creates, closes, exempts or changes a share.
 // Analytics (plan §10): counts and percentages, no names.
+import { AmountInput, amountValue } from "@/components/app/amount-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -11,14 +12,12 @@ import { memberCount } from "@/components/app/derive";
 import { DateField } from "@/components/app/date-field";
 import { sendOnce, useOnceId } from "@/components/app/once-id";
 import { failure } from "@/lib/data/errors";
-import { parseAmount, toWesternDigits } from "@/lib/money";
 import {
   Avatar,
   Back,
   Bar,
   Chips,
   day,
-  findMembers,
   fmt,
   levyShare,
   Money,
@@ -31,6 +30,7 @@ import {
   X,
 } from "./kit";
 import { ExpenseSheet } from "./expense-sheet";
+import { MemberPicker } from "./member-picker";
 import { EditCampaignSheet, NewCampaignSheet } from "./manage-sheets";
 import { ReportSheet } from "./report-doc";
 import { GiftCard, LevyCard } from "./stats-screen";
@@ -68,7 +68,7 @@ function Err({ err }: { err: string }) {
     </p>
   ) : null;
 }
-const amountOf = (s: string) => Math.round(parseAmount(toWesternDigits(s)) ?? 0);
+const amountOf = amountValue;
 
 /* ───────── the list ───────── */
 export function CampaignsScreen() {
@@ -584,12 +584,7 @@ function ShareSheet({
         <>
           <label className="pa-field">
             <span>نصيبه بالأوقية القديمة</span>
-            <input
-              inputMode="numeric"
-              dir="ltr"
-              value={amt}
-              onChange={(e) => setAmt(toWesternDigits(e.target.value))}
-            />
+            <AmountInput value={amt} onChange={setAmt} />
           </label>
           <button
             type="button"
@@ -649,7 +644,6 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
   const [amtB, setAmtB] = useState("");
   const [who, setWho] = useState<Who>("all");
   const [picked, setPicked] = useState<string[]>([]);
-  const [q, setQ] = useState("");
   const [purpose, setPurpose] = useState("");
   const [deadline, setDeadline] = useState("");
   const active = d.members.filter((m) => m.status === "active");
@@ -668,7 +662,6 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
         : !members.length
           ? "اختر الأعضاء"
           : null;
-  const found = q.trim() ? findMembers(active, q).slice(0, 6) : [];
   return (
     <Sheet
       open
@@ -723,13 +716,7 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
       </label>
       <label className="pa-field">
         <span>{twoAmounts ? "المبلغ على عضو الفئة أ" : "المبلغ على كل عضو"}</span>
-        <input
-          inputMode="numeric"
-          dir="ltr"
-          value={amt}
-          onChange={(e) => setAmt(toWesternDigits(e.target.value))}
-          placeholder="بالأوقية القديمة"
-        />
+        <AmountInput value={amt} onChange={setAmt} placeholder="بالأوقية القديمة" />
       </label>
       <label className="pa-check">
         <input
@@ -742,12 +729,7 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
       {twoAmounts && (
         <label className="pa-field">
           <span>المبلغ على عضو الفئة ب</span>
-          <input
-            inputMode="numeric"
-            dir="ltr"
-            value={amtB}
-            onChange={(e) => setAmtB(toWesternDigits(e.target.value))}
-          />
+          <AmountInput value={amtB} onChange={setAmtB} />
         </label>
       )}
       <p className="pa-label">على من؟</p>
@@ -762,46 +744,17 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
           { k: "pick", l: "أختارهم" },
         ]}
       />
+      {/* the shared picker: typing finds anyone; before typing, the chosen ones (tap = remove) */}
       {who === "pick" && (
-        <div className="r2-picker">
-          <label className="pa-search">
-            {X.search(22)}
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="اسم العضو أو رقمه"
-              aria-label="أضف عضوًا"
-            />
-          </label>
-          <ul className="pa-rows">
-            {found.map((m) => {
-              const on = picked.includes(m.id);
-              return (
-                <li key={m.ref}>
-                  <button
-                    type="button"
-                    className="pa-row"
-                    aria-pressed={on}
-                    onClick={() =>
-                      setPicked((p) => (on ? p.filter((x) => x !== m.id) : [...p, m.id]))
-                    }
-                  >
-                    <Avatar refs={m.ref} />
-                    <span className="pa-row-t">
-                      <b>{m.name}</b>
-                    </span>
-                    <span className="pa-tick-big">{on ? "✓" : ""}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          {picked.length > 0 && (
-            <p className="pa-hint">
-              اخترت <Num>{picked.length}</Num>.
-            </p>
-          )}
-        </div>
+        <MemberPicker
+          label="أضف عضوًا"
+          selected={members.map((m) => m.ref)}
+          start={members}
+          startHint="من اخترتهم:"
+          onPick={(m) =>
+            setPicked((p) => (p.includes(m.id) ? p.filter((x) => x !== m.id) : [...p, m.id]))
+          }
+        />
       )}
       <p className="pa-hint">يمكنك بعد الإنشاء تغيير نصيب عضو أو إعفاؤه من صفحة اللوحة.</p>
       <label className="pa-field">

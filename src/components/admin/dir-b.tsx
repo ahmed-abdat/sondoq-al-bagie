@@ -71,7 +71,7 @@ export function Home() {
           <Bar value={fees.paid} max={fees.total} />
           <span className="pb-month-s">الإحصاءات {X.go(18)}</span>
         </Link>
-        <Link href={href("late")} className="pa-row">
+        <Link href={href("members", { f: "owe" })} className="pa-row">
           <span className="pa-ic">{X.clock(22)}</span>
           <span className="pa-row-t">
             <b>

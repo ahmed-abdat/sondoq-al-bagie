@@ -3,14 +3,15 @@
 // «المسؤول» only: a new group, a group's amount for a year, moving members (from a month, January
 // next year by default; the preview says exactly who moves and who blocks it), retiring an empty
 // group. Past months keep the amount they had; paper numbers (أ 12) never change.
+import { MemberSearch } from "@/components/admin/member-picker";
+import { AmountInput, amountValue } from "./amount-input";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { MONTHS_AR } from "@/lib/dates";
-import { toWesternDigits } from "@/lib/money";
 import { useAct } from "./act";
 import { MonthPicker } from "./date-field";
-import { fmt, memberLabel, searchMembers } from "./derive";
+import { fmt, memberCount } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
 import { Sheet } from "./sheet";
@@ -32,7 +33,7 @@ export type GroupMember = {
   groupCode: string;
 };
 
-const n = (s: string) => Number(toWesternDigits(s).replace(/[^\d]/g, "")) || 0;
+const n = amountValue;
 const ymWords = (ym: string) => {
   const [y, m] = ym.split("-").map(Number);
   return `${MONTHS_AR[m - 1]} ${y}`;
@@ -82,7 +83,7 @@ export function GroupsSection({
                   </>
                 )}
                 {" · "}
-                <Num>{g.members}</Num> عضوًا
+                <Num>{memberCount(g.members)}</Num>
               </span>
             </span>
             {admin && (
@@ -225,12 +226,10 @@ function NewGroup({ year, onDone }: { year: number; onDone: () => void }) {
         aria-label="اسم الفئة"
       />
       <p className="bq-rec-k">المستحقات الشهرية بالأوقية القديمة</p>
-      <input
+      <AmountInput
         className="bq-input"
         value={fee}
-        onChange={(e) => setFee(toWesternDigits(e.target.value).replace(/[^\d]/g, ""))}
-        inputMode="numeric"
-        dir="ltr"
+        onChange={setFee}
         aria-label="المستحقات الشهرية"
       />
       <p className="bq-rec-k">ابتداءً من سنة</p>
@@ -287,12 +286,10 @@ function GroupFee({ g, year, onDone }: { g: GroupRow; year: number; onDone: () =
       />
       {y === year && <p className="bq-hint">لا تتغيّر مستحقات سنة فيها دفعات مسجّلة.</p>}
       <p className="bq-rec-k">المستحقات الشهرية بالأوقية القديمة</p>
-      <input
+      <AmountInput
         className="bq-input"
         value={fee}
-        onChange={(e) => setFee(toWesternDigits(e.target.value).replace(/[^\d]/g, ""))}
-        inputMode="numeric"
-        dir="ltr"
+        onChange={setFee}
         aria-label="المستحقات الشهرية"
       />
       <div className="bq-rec-foot">
@@ -381,7 +378,6 @@ function MoveMembers({
   const [picked, setPicked] = useState<string[]>(
     from ? members.filter((m) => m.groupCode === from.code).map((m) => m.memberId) : [],
   );
-  const [q, setQ] = useState("");
   const [to, setTo] = useState<string>(groups.find((g) => g.code !== from?.code)?.code ?? "");
   const [month, setMonth] = useState(`${year + 1}-01`);
   const [midYearOk, setMidYearOk] = useState(false);
@@ -394,7 +390,13 @@ function MoveMembers({
   const midYear = !month.endsWith("-01");
   // the January that keeps every month of a started year at its fixed amount
   const jan = my > year ? my : my + 1;
-  const found = q.trim() ? searchMembers(members, q).slice(0, 6) : [];
+  const people = members.map((m) => ({
+    id: m.memberId,
+    ref: m.memberRef,
+    name: m.fullName,
+    sub: `الفئة ${nameOf(m.groupCode)}`,
+  }));
+  const chosen = people.filter((p) => picked.includes(p.id));
   const input = {
     toGroup: to,
     fromMonth: `${month}-01`,
@@ -424,51 +426,23 @@ function MoveMembers({
       <h2>انقل أعضاء إلى فئة</h2>
       {from ? (
         <p className="bq-lead">
-          كل أعضاء الفئة {from.name}: <Num>{picked.length}</Num> عضوًا.
+          كل أعضاء الفئة {from.name}: <Num>{memberCount(picked.length)}</Num>.
         </p>
       ) : (
         <>
           <p className="bq-rec-k">من ينتقل؟</p>
-          <input
-            className="bq-input"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="اسم العضو أو رقمه"
-            aria-label="ابحث عن عضو"
+          {/* the shared picker; before typing, the chosen ones (tap = remove) */}
+          <MemberSearch
+            label="ابحث عن عضو"
+            people={people}
+            selected={chosen.map((m) => m.ref)}
+            start={chosen}
+            startHint="من اخترتهم:"
+            onPick={(m) => {
+              reset();
+              setPicked((p) => (p.includes(m.id) ? p.filter((x) => x !== m.id) : [...p, m.id]));
+            }}
           />
-          <ul className="bq-list">
-            {found.map((m) => {
-              const on = picked.includes(m.memberId);
-              return (
-                <li key={m.memberId}>
-                  <button
-                    type="button"
-                    className="bq-row bq-press"
-                    aria-pressed={on}
-                    onClick={() => {
-                      reset();
-                      setPicked((p) =>
-                        on ? p.filter((x) => x !== m.memberId) : [...p, m.memberId],
-                      );
-                    }}
-                  >
-                    <span className="bq-row-m">
-                      <span className="bq-row-t">{m.fullName}</span>
-                      <span className="bq-row-s">
-                        {memberLabel(m)} · الفئة {nameOf(m.groupCode)}
-                      </span>
-                    </span>
-                    <span className="bq-chev">{on ? I.check(20) : I.plus(20)}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          {picked.length > 0 && (
-            <p className="bq-hint">
-              اخترت <Num>{picked.length}</Num>.
-            </p>
-          )}
         </>
       )}
       <p className="bq-rec-k">إلى الفئة</p>
@@ -534,12 +508,10 @@ function MoveMembers({
             لم تُحدَّد مستحقات {noPrice} للفئة {nameOf(to)} بعد. حدّد مستحقات {noPrice} أولًا، ثم
             نكمل النقل.
           </p>
-          <input
+          <AmountInput
             className="bq-input"
             value={fee}
-            onChange={(e) => setFee(toWesternDigits(e.target.value).replace(/[^\d]/g, ""))}
-            inputMode="numeric"
-            dir="ltr"
+            onChange={setFee}
             aria-label={`مستحقات ${noPrice} للفئة ${nameOf(to)}`}
             placeholder="بالأوقية القديمة"
           />
@@ -568,7 +540,7 @@ function MoveMembers({
       {preview && (
         <div className="bq-move-preview" role="status">
           <p className="bq-lead">
-            سينتقل <Num>{preview.moved}</Num> عضوًا إلى الفئة {nameOf(to)} ابتداءً من{" "}
+            سينتقل <Num>{memberCount(preview.moved)}</Num> إلى الفئة {nameOf(to)} ابتداءً من{" "}
             {ymWords(month)}.
             {preview.fromFee !== null && preview.toFee !== null && (
               <>
@@ -621,7 +593,7 @@ function MoveMembers({
               setBusy(false);
               if (!r.ok) return setErr(r.message);
               router.refresh();
-              say(`انتقل ${r.data.moved} عضوًا إلى الفئة ${nameOf(to)}`);
+              say(`انتقل ${memberCount(r.data.moved)} إلى الفئة ${nameOf(to)}`);
               onDone();
             }}
           >
