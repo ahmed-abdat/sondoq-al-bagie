@@ -1,0 +1,354 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { MemberMonth, MemberStatus } from "./types";
+
+const read = vi.hoisted(() => ({
+  members: vi.fn(),
+  memberMonths: vi.fn(),
+  fundAccounts: vi.fn(),
+}));
+vi.mock("./read", async (orig) => ({ ...(await orig<typeof import("./read")>()), ...read }));
+const r = await import("./reports");
+
+/** Supabase stand-in: every chain call returns the builder; awaiting gives the table's rows. */
+function fakeClient(tables: Record<string, unknown[]>, rpcs: Record<string, unknown> = {}) {
+  const rpc = vi.fn(async (name: string) => ({ data: rpcs[name] ?? null, error: null }));
+  const from = (t: string) => {
+    const rows = tables[t] ?? [];
+    const b: Record<string, unknown> = {};
+    for (const m of [
+      "select",
+      "eq",
+      "is",
+      "gte",
+      "lte",
+      "order",
+      "range",
+      "in",
+      "not",
+      "neq",
+      "limit",
+    ])
+      b[m] = () => b;
+    b.maybeSingle = async () => ({ data: rows[0] ?? null, error: null });
+    b.then = (ok: (v: unknown) => unknown) => Promise.resolve({ data: rows, error: null }).then(ok);
+    return b;
+  };
+  return { client: { from, rpc } as never, rpc };
+}
+
+const now = new Date("2026-09-30T10:00:00Z");
+const member = (over: Partial<MemberStatus>): MemberStatus => ({
+  memberId: "m1",
+  listCode: "A",
+  number: 1,
+  memberRef: "A-1",
+  fullName: "عضو",
+  groupCode: "A",
+  status: "active",
+  monthsPaidThisYear: 0,
+  monthsBehind: 0,
+  statusLabel: "منتظم",
+  amountOwed: null,
+  ...over,
+});
+const month = (memberId: string, m: number, state: MemberMonth["state"]): MemberMonth => ({
+  memberId,
+  year: 2026,
+  month: m,
+  state,
+});
+
+beforeEach(() => {
+  for (const f of Object.values(read)) f.mockReset();
+});
+
+describe("report periods", () => {
+  it("a year, a month, and February of a leap year", () => {
+    expect(r.periodRange({ year: 2026 })).toEqual({ from: "2026-01-01", to: "2026-12-31" });
+    expect(r.periodRange({ year: 2026, month: 9 })).toEqual({
+      from: "2026-09-01",
+      to: "2026-09-30",
+    });
+    expect(r.periodRange({ year: 2028, month: 2 }).to).toBe("2028-02-29");
+  });
+
+  it("annual report maps the SQL totals with category labels", async () => {
+    const { client, rpc } = fakeClient(
+      {},
+      {
+        report_period: {
+          opening: 100,
+          income: { fees: 50, levies: 20, donations: 10, total: 80 },
+          spending: {
+            by_category: [{ category: "sports", amount: 30 }],
+            from_campaigns: 5,
+            total: 30,
+          },
+          adjustments: -1,
+          closing: 149,
+          campaigns_held: 7,
+          months: [{ year: 2026, month: 1, income: 80, spending: 30 }],
+        },
+      },
+    );
+    const a = await r.loadAnnual(client, { year: 2026 }, now);
+    expect(rpc).toHaveBeenCalledWith("report_period", { p_from: "2026-01-01", p_to: "2026-12-31" });
+    expect(a).toMatchObject({
+      period: { year: 2026 },
+      opening: 100,
+      closing: 149,
+      campaignsHeld: 7,
+      income: { levies: 20, total: 80 },
+      spending: { fromCampaigns: 5, total: 30 },
+    });
+    expect(a.spending.byCategory[0]).toMatchObject({ category: "sports", amount: 30 });
+    expect(a.spending.byCategory[0].label).toBeTruthy();
+  });
+});
+
+describe("member reports", () => {
+  it("late: active members with late months or an unpaid levy share, no amounts", async () => {
+    read.members.mockResolvedValue([
+      member({}),
+      member({ memberId: "m2", memberRef: "A-2", fullName: "ب" }),
+      member({ memberId: "m3", memberRef: "A-3", status: "left" }),
+      member({ memberId: "m4", memberRef: "A-4" }),
+    ]);
+    read.memberMonths.mockResolvedValue([
+      month("m1", 3, "late"),
+      month("m1", 2, "late"),
+      month("m3", 1, "late"),
+      month("m4", 1, "paid"),
+    ]);
+    const { client } = fakeClient({
+      levy_shares: [
+        { member_id: "m2", title: "لوحة", left_amount: 1000, exempt: false },
+        { member_id: "m4", title: "لوحة", left_amount: 1000, exempt: true },
+      ],
+    });
+    const late = await r.loadLate(client, 2026, now);
+    expect(late.members.map((m) => m.memberRef)).toEqual(["A-1", "A-2"]);
+    expect(late.members[0]).toMatchObject({
+      lateMonths: ["2026-02", "2026-03"],
+      monthsCount: 2,
+      levies: [],
+    });
+    expect(late.members[1].levies).toEqual([{ title: "لوحة" }]);
+    expect(JSON.stringify(late)).not.toMatch(/amount/i);
+  });
+
+  it("summary: paid the whole year vs paid that month", async () => {
+    read.members.mockResolvedValue([member({}), member({ memberId: "m2", monthsBehind: 2 })]);
+    read.memberMonths.mockResolvedValue([
+      ...Array.from({ length: 12 }, (_, k) => month("m1", k + 1, "paid")),
+      month("m2", 9, "paid"),
+      month("m2", 10, "upcoming"),
+    ]);
+    const money = {
+      opening: 1,
+      income: { total: 2 },
+      spending: { total: 3, by_category: [] },
+      closing: 0,
+      months: [],
+    };
+    const { client } = fakeClient(
+      {
+        campaigns: [
+          { kind: "levy", status: "open" },
+          { kind: "donation", status: "open" },
+        ],
+      },
+      { report_period: money },
+    );
+    const year = await r.loadSummary(client, { year: 2026 }, now);
+    expect(year).toMatchObject({
+      membersActive: 2,
+      membersPaidPeriod: 1,
+      membersLate: 1,
+      openLevies: 1,
+      openCampaigns: 1,
+    });
+    const sept = await r.loadSummary(client, { year: 2026, month: 9 }, now);
+    expect(sept.membersPaidPeriod).toBe(2);
+  });
+
+  it("statement: 12 months with paid / prepaid / late / exempt / not a member", () => {
+    const s = r.toMemberStatement(
+      {
+        year: 2026,
+        member: {
+          member_id: "m1",
+          member_ref: "A-1",
+          full_name: "عضو",
+          group_code: "A",
+          status: "active",
+        },
+        months: [
+          { month: 1, status: "active", price: 1000, paid: true, due: false },
+          { month: 2, status: "active", price: 1000, paid: false, due: true },
+          { month: 3, status: "exempt", price: 1000, paid: false, due: false },
+          { month: 10, status: "active", price: 1000, paid: false, due: false },
+          { month: 11, status: "active", price: 1000, paid: true, due: false },
+        ],
+        payments: [
+          {
+            payment_id: "p1",
+            paid_on: "2026-01-05",
+            status: "confirmed",
+            method: "bankily",
+            amount: 1000,
+            total: 2000,
+            months: [{ year: 2026, month: 1 }],
+            campaigns: [],
+            recorded_by_name: "مشرف",
+            recorded_at: "2026-01-05T10:00:00Z",
+            confirmed_by_name: "مشرف",
+          },
+        ],
+        levies: [{ title: "لوحة", expected: 2000, paid: 0, left: 2000, exempt: false }],
+        owed: { months_count: 1, amount_owed: 1000, levy_left: 2000, credit: 0 },
+      },
+      now,
+    );
+    expect(s.months.map((m) => m.state).slice(0, 4)).toEqual([
+      "paid",
+      "late",
+      "exempt",
+      "not_owed",
+    ]);
+    expect(s.months[9].state).toBe("upcoming");
+    expect(s.months[10].state).toBe("prepaid");
+    expect(s.payments[0]).toMatchObject({
+      months: ["2026-01"],
+      recordedBy: "مشرف",
+      amount: 1000,
+      total: 2000,
+    });
+    expect(s.owed).toEqual({ monthsCount: 1, amountOwed: 1000, levyLeft: 2000, credit: 0 });
+  });
+});
+
+describe("money reports", () => {
+  it("wallets: in and out per wallet, cash apart, older expenses not specified", async () => {
+    read.fundAccounts.mockResolvedValue([{ method: "bankily", accountNumber: "22000001" }]);
+    const { client } = fakeClient(
+      {},
+      {
+        report_wallets: [
+          { method: "bankily", in_count: 2, in_amount: 3000, out_count: 1, out_amount: 700 },
+          { method: "cash", in_count: 1, in_amount: 500, out_count: 1, out_amount: 300 },
+          { method: null, in_count: 0, in_amount: 0, out_count: 2, out_amount: 900 },
+        ],
+      },
+    );
+    const w = await r.loadWallets(client, { year: 2026 }, now);
+    expect(w.wallets).toEqual([
+      expect.objectContaining({
+        method: "bankily",
+        accountNumber: "22000001",
+        in: 3000,
+        out: 700,
+        balance: 2300,
+      }),
+    ]);
+    expect(w.cash).toEqual({ in: 500, count: 1, out: 300, balance: 200 });
+    expect(w.unspecifiedOut).toBe(900);
+    expect(w.totalIn).toBe(3500);
+  });
+
+  it("campaign: a non-member donor by name, members by ref, levy shares", async () => {
+    const { client } = fakeClient({
+      campaigns: [
+        {
+          id: "c1",
+          title: "لوحة",
+          kind: "levy",
+          purpose: null,
+          status: "open",
+          target_amount: null,
+          created_at: "t",
+          closed_at: null,
+        },
+      ],
+      campaign_progress: [{ collected: 3000, spent: 0, transferred: 0, balance: 3000 }],
+      payment_allocations: [
+        { payment_id: "p1", member_id: null, donor_name: "متبرع من خارج الصندوق", amount: 1000 },
+        { payment_id: "p2", member_id: "m1", donor_name: null, amount: 2000 },
+      ],
+      payments: [
+        { id: "p1", paid_on: "2026-09-02", payer_name: "تحويل", status: "confirmed" },
+        { id: "p2", paid_on: "2026-09-01", payer_name: "أب", status: "confirmed" },
+      ],
+      members: [{ id: "m1", list_code: "B", number: 7, full_name: "عضو" }],
+      expenses: [],
+      levy_shares: [
+        {
+          member_ref: "B-7",
+          full_name: "عضو",
+          expected: 2000,
+          paid: 2000,
+          left_amount: 0,
+          exempt: false,
+          exempt_reason: null,
+        },
+      ],
+    });
+    const c = await r.loadCampaign(client, "c1", now);
+    expect(c?.contributions).toEqual([
+      { paidOn: "2026-09-01", name: "عضو", memberRef: "B-7", amount: 2000 },
+      { paidOn: "2026-09-02", name: "متبرع من خارج الصندوق", memberRef: null, amount: 1000 },
+    ]);
+    expect(c?.shares?.[0]).toMatchObject({ memberRef: "B-7", left: 0, exempt: false });
+  });
+
+  it("committee work: people from SQL and what was cancelled, newest first", async () => {
+    const { client } = fakeClient(
+      {
+        payments: [
+          {
+            payer_name: "دافع",
+            amount: 1000,
+            cancelled_by: "u1",
+            cancelled_at: "2026-09-02T00:00:00Z",
+            cancel_reason: "خطأ",
+          },
+        ],
+        expenses: [
+          {
+            note: null,
+            category: "sports",
+            amount: 50,
+            cancelled_by: "u1",
+            cancelled_at: "2026-09-05T00:00:00Z",
+            cancel_reason: null,
+          },
+        ],
+        committee: [{ user_id: "u1", display_name: "المسؤول" }],
+      },
+      {
+        report_committee_work: [
+          {
+            display_name: "المسؤول",
+            is_admin: true,
+            active: true,
+            payments_count: 3,
+            payments_amount: 3000,
+            expenses_count: 1,
+            expenses_amount: 50,
+            cancellations: 2,
+            levy_exemptions: 0,
+            last_at: null,
+          },
+        ],
+      },
+    );
+    const w = await r.loadCommitteeWork(client, { year: 2026, month: 9 }, now);
+    expect(w.people[0]).toMatchObject({
+      name: "المسؤول",
+      isAdmin: true,
+      payments: { count: 3, amount: 3000 },
+    });
+    expect(w.cancelled?.map((x) => x.amount)).toEqual([50, 1000]);
+    expect(w.cancelled?.[1]).toMatchObject({ what: "دافع", by: "المسؤول", reason: "خطأ" });
+  });
+});

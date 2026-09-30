@@ -200,7 +200,9 @@ export type WalletsReport = Base & {
     out?: number;
     balance?: number;
   }[];
-  cash: { in: number; count: number };
+  cash: { in: number; count: number; out?: number; balance?: number };
+  /** expenses recorded before wallets were named (m31) */
+  unspecifiedOut?: number;
   totalIn: number;
 };
 

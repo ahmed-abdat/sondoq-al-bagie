@@ -25,12 +25,15 @@ export class DataError extends Error {
   }
 }
 
-function must<T>(source: string, res: { data: T; error: PostgrestError | null }): T {
+export function must<T>(source: string, res: { data: T; error: PostgrestError | null }): T {
   if (res.error) throw new DataError(source, res.error);
   return res.data;
 }
 
-function many<T>(source: string, res: { data: T[] | null; error: PostgrestError | null }): T[] {
+export function many<T>(
+  source: string,
+  res: { data: T[] | null; error: PostgrestError | null },
+): T[] {
   if (res.error) throw new DataError(source, res.error);
   return res.data ?? [];
 }
@@ -40,7 +43,7 @@ function many<T>(source: string, res: { data: T[] | null; error: PostgrestError 
  * that (the month grid: members × 12), read page by page. `page(from, to)` must keep a stable order.
  */
 const PAGE = 1000;
-async function paged<T>(
+export async function paged<T>(
   source: string,
   page: (
     from: number,
@@ -392,4 +395,41 @@ export async function contributorsPublic(c: Client, campaignId: string, limit = 
       .order("at", { ascending: false })
       .limit(limit),
   ).map(map.toContributorPublic);
+}
+
+/* ───────────── committee tools (m29–m30) ───────────── */
+
+/** «سجل العمليات»: newest first; pass the last id shown as `before` for the next page. */
+export async function activityLog(c: Client, before?: number, limit = 50) {
+  const rows = many(
+    "activity_log",
+    await c.rpc("activity_log", { p_before: before, p_limit: limit }),
+  );
+  return rows.map(map.toActivityEntry);
+}
+
+/** «دفعوا معه سابقًا»: members covered by the same past payments, most often first. */
+export async function coPaidMembers(c: Client, memberId: string, limit = 5) {
+  const rows = many(
+    "co_paid_members",
+    await c.rpc("co_paid_members", { p_member_id: memberId, p_limit: limit }),
+  );
+  return rows.map((r) => ({
+    memberId: r.member_id,
+    memberRef: r.member_ref,
+    fullName: r.full_name,
+    times: r.times,
+    lastPaidOn: r.last_paid_on,
+  }));
+}
+
+/** Levy shares (committee): one levy's members, or one member's levies. */
+export async function levyShares(
+  c: Client,
+  filter: { campaignId?: string; memberId?: string } = {},
+) {
+  let q = c.from("levy_shares").select("*");
+  if (filter.campaignId) q = q.eq("campaign_id", filter.campaignId);
+  if (filter.memberId) q = q.eq("member_id", filter.memberId);
+  return many("levy_shares", await q.order("member_ref")).map(map.toLevyShare);
 }

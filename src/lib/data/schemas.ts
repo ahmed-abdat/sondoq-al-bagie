@@ -75,6 +75,41 @@ export const recordExpenseSchema = z.object({
   paidInCash: z.boolean().optional(),
 });
 
+/* ───────────── «اللوحة» levies (m30) ───────────── */
+
+export const createLevySchema = z.object({
+  id,
+  title: text(120),
+  amount: mro,
+  /** optional amount for group B members */
+  amountB: mro.optional(),
+  memberIds: z.array(id).min(1).max(500),
+  purpose: optText(500),
+  deadline: day.optional(),
+});
+export const levyMembersSchema = z.object({
+  id,
+  memberIds: z.array(id).min(1).max(500),
+  amount: mro,
+});
+export const levyShareSchema = z.object({ id, memberId: id, amount: mro });
+export const levyExemptSchema = z.object({ id, memberId: id, reason });
+export const levyMemberSchema = z.object({ id, memberId: id });
+
+/** Push kinds a device receives (m29). */
+export const PUSH_KINDS = [
+  "payment",
+  "expense",
+  "contribution",
+  "levy",
+  "cancel",
+  "member",
+] as const;
+export const pushKindsSchema = z.object({
+  endpoint: z.url().max(1000),
+  kinds: z.array(z.enum(PUSH_KINDS)).max(PUSH_KINDS.length),
+});
+
 export const logReminderSchema = z.object({
   kind: z.enum(E.reminder_kind),
   memberId: id.optional(),
@@ -267,6 +302,8 @@ export type SetCommitteeActiveInput = z.input<typeof setCommitteeActiveSchema>;
 export type RecordPaymentInput = z.input<typeof recordPaymentSchema>;
 export type AllocationInput = z.input<typeof allocationSchema>;
 export type RecordExpenseInput = z.input<typeof recordExpenseSchema>;
+export type CreateLevyInput = z.input<typeof createLevySchema>;
+export type PushKind = (typeof PUSH_KINDS)[number];
 export type LogReminderInput = z.input<typeof logReminderSchema>;
 export type AddMemberInput = z.input<typeof addMemberSchema>;
 export type UpdateMemberInput = z.input<typeof updateMemberSchema>;

@@ -491,3 +491,75 @@ export function toContributorPublic(r: Row<"campaign_contributors_public">): Con
 export function toMemberStatusPublic(r: Row<"member_status_public">): MemberStatus {
   return toMemberStatus({ ...r, amount_owed: null });
 }
+
+/* ───────────── committee tools (m29–m30) ───────────── */
+
+export type ActivityEntry = {
+  id: number;
+  at: string;
+  actorName: string | null;
+  action: string;
+  table: string;
+  rowId: string | null;
+  subject: string | null;
+  amount: number | null;
+  reason: string | null;
+};
+
+export function toActivityEntry(r: {
+  id: number;
+  at: string;
+  actor_name: string | null;
+  action: string;
+  table_name: string;
+  row_id: string | null;
+  subject: string | null;
+  amount: number | null;
+  reason: string | null;
+}): ActivityEntry {
+  return {
+    id: r.id,
+    at: r.at,
+    actorName: r.actor_name ?? null,
+    action: r.action,
+    table: r.table_name,
+    rowId: r.row_id ?? null,
+    subject: r.subject ?? null,
+    amount: r.amount ?? null,
+    reason: r.reason ?? null,
+  };
+}
+
+export type LevyShare = {
+  campaignId: string;
+  title: string;
+  levyStatus: "open" | "closed";
+  memberId: string;
+  memberRef: string;
+  fullName: string;
+  expected: number;
+  paid: number;
+  left: number;
+  exempt: boolean;
+  exemptReason: string | null;
+  paymentId: string | null;
+  paidOn: string | null;
+};
+
+export function toLevyShare(r: Row<"levy_shares">): LevyShare {
+  return {
+    campaignId: str(r.campaign_id),
+    title: str(r.title),
+    levyStatus: r.levy_status === "closed" ? "closed" : "open",
+    memberId: str(r.member_id),
+    memberRef: str(r.member_ref),
+    fullName: str(r.full_name),
+    expected: num(r.expected),
+    paid: num(r.paid),
+    left: num(r.left_amount),
+    exempt: r.exempt === true,
+    exemptReason: r.exempt_reason ?? null,
+    paymentId: r.payment_id ?? null,
+    paidOn: r.paid_on ?? null,
+  };
+}

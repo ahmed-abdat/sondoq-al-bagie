@@ -490,6 +490,13 @@ const demo = {
   setGroupPrice: async () => ok(undefined),
   savePushSubscription: async () => ok(undefined),
   deletePushSubscription: async () => ok(undefined),
+  // m29–m30 (Lane A): not in the demo yet
+  createLevy: async (p) => ok(p.id),
+  addLevyMembers: async (p) => ok(p.memberIds.length),
+  setLevyShare: async () => ok(undefined),
+  exemptLevyShare: async () => ok(undefined),
+  unexemptLevyShare: async () => ok(undefined),
+  setPushKinds: async () => ok(undefined),
 } satisfies Sim;
 
 /* ───────────── context ───────────── */

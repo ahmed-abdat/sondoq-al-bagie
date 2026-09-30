@@ -258,6 +258,76 @@ export async function cancelExpense(input: { id: string; reason: string }) {
   );
 }
 
+/* ───────────── «اللوحة» levies (m30; «مسؤول» only, the database checks) ───────────── */
+
+export async function createLevy(input: s.CreateLevyInput) {
+  return run(
+    s.createLevySchema,
+    input,
+    (sb, p) =>
+      sb.rpc("create_levy", {
+        p_id: p.id,
+        p_title: p.title,
+        p_amount: p.amount,
+        p_member_ids: p.memberIds,
+        p_purpose: p.purpose,
+        p_deadline: p.deadline,
+        p_amount_b: p.amountB,
+      }),
+    { touchesPublic: false, result: (d) => d as string },
+  );
+}
+
+export async function addLevyMembers(input: { id: string; memberIds: string[]; amount: number }) {
+  return run(
+    s.levyMembersSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("add_levy_members", { p_id: p.id, p_member_ids: p.memberIds, p_amount: p.amount }),
+    { touchesPublic: false, result: (d) => d as number },
+  );
+}
+
+/** One member's share (only while unpaid). */
+export async function setLevyShare(input: { id: string; memberId: string; amount: number }) {
+  return run(
+    s.levyShareSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("set_levy_share", { p_id: p.id, p_member_id: p.memberId, p_amount: p.amount }),
+    { touchesPublic: false },
+  );
+}
+
+export async function exemptLevyShare(input: { id: string; memberId: string; reason: string }) {
+  return run(
+    s.levyExemptSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("exempt_levy_share", { p_id: p.id, p_member_id: p.memberId, p_reason: p.reason }),
+    { touchesPublic: false },
+  );
+}
+
+export async function unexemptLevyShare(input: { id: string; memberId: string }) {
+  return run(
+    s.levyMemberSchema,
+    input,
+    (sb, p) => sb.rpc("unexempt_levy_share", { p_id: p.id, p_member_id: p.memberId }),
+    { touchesPublic: false },
+  );
+}
+
+/** Which kinds of events this device is notified about (own device only). */
+export async function setPushKinds(input: { endpoint: string; kinds: s.PushKind[] }) {
+  return run(
+    s.pushKindsSchema,
+    input,
+    (sb, p) => sb.rpc("set_push_kinds", { p_endpoint: p.endpoint, p_kinds: p.kinds }),
+    { touchesPublic: false },
+  );
+}
+
 /** Log a WhatsApp reminder/receipt the committee member just opened. */
 export async function logReminder(input: s.LogReminderInput) {
   return run(

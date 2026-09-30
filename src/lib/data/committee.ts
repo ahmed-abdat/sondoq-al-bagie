@@ -5,6 +5,7 @@ import { displayLogin } from "./logins";
 import { toFundInfo } from "./map";
 import { EMPTY_MEMBER_INDEX, loadMemberIndex, loadMemberRows } from "./member-lists";
 import * as read from "./read";
+import * as reports from "./reports";
 import type { CommitteeRole, CommitteeSession, MyProfile } from "./types";
 
 /** Same rule as app_private.can_confirm() in the database. */
@@ -82,6 +83,21 @@ export const getCommitteeMemberMonths = committee(read.memberMonths, []);
 export const getCommitteeGroupPrices = committee(read.groupPrices, []);
 export const getCommitteeFundAccounts = committee(read.fundAccounts, []);
 export const getCommitteeFundInfo = committee(read.fundInfo, toFundInfo(null));
+
+/* Committee tools and the 10 reports (m29–m31; they need those migrations applied). */
+export const getActivityLog = committee(read.activityLog, []);
+export const getCoPaidMembers = committee(read.coPaidMembers, []);
+export const getLevyShares = committee(read.levyShares, []);
+export const getAnnualReport = committee(reports.loadAnnual, null);
+export const getSummaryReport = committee(reports.loadSummary, null);
+export const getGridReport = committee(reports.loadGrid, null);
+export const getLateReport = committee(reports.loadLate, null);
+export const getExpensesReport = committee(reports.loadExpenses, null);
+export const getCampaignReport = committee(reports.loadCampaign, null);
+export const getMemberStatement = committee(reports.loadStatement, null);
+export const getHandoverReport = committee(reports.loadHandover, null);
+export const getWalletsReport = committee(reports.loadWallets, null);
+export const getCommitteeWorkReport = committee(reports.loadCommitteeWork, null);
 
 /** «حسابي»: the signed-in, active committee member's own account, or null. */
 export async function getMyProfile(): Promise<MyProfile | null> {
