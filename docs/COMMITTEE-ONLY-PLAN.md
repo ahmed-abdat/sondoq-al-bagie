@@ -303,3 +303,21 @@ late member", "share the monthly summary", "record a campaign contribution".
    (closing a لوحة does NOT erase unpaid shares unless the committee exempts someone, audited).
    UI: التبرعات tab shows two kinds, «تبرع» and «لوحة»; a لوحة page lists members with ✓ / not yet,
    «ذكّر من لم يدفع», «سجّل دفعة»; share as PDF/images.
+
+## 8. Owner simplifications (2026-09-30)
+
+1. **No individual WhatsApp reminders.** We don't have members' numbers and it takes too long.
+   Remove the reminders page, the reminder walk, the reminder log («فُتحت رسالة واتساب») and the
+   required phone field (phone stays optional). Keep: «شارك المتأخرات» (PDF/images + a short ready
+   text for the group) on home and in التقارير, and the late list inside the app (no WhatsApp buttons).
+2. **One committee level, no confirmation step.** Payments arrive as screenshots in the WhatsApp
+   group; the committee member in charge records them in the app. Everyone trusts the screenshot.
+   - Every committee member can do everything day to day: record payments/cash/expenses/
+     contributions/levies, edit, cancel with a reason. A recorded payment is **confirmed at once**
+     (receipt issued); no «للمراجعة» queue, no reject flow, no own-membership rule.
+   - Mistakes are fixed by «إلغاء» with a reason (audited, visible in «سجل العمليات») and recording again.
+   - Keep ONE extra flag for account management only (add/deactivate a committee account, reset a
+     password): «مسؤول». Everything else is equal. (Lane A: replace roles treasurer/deputy/
+     supervisor with committee + is_admin; `can_confirm` = any active committee member; record_payment
+     confirms immediately.)
+   - Notifications (§7.2) become "X recorded a payment for Y" etc., no "needs confirming".
