@@ -271,6 +271,7 @@ export async function adminData(): Promise<PData> {
     ]);
   const due = currentDueMonth(t, info.graceDays);
   const codeOf = new Map(rows.map((r) => [r.memberId, r.months]));
+  const rowOf = new Map(rows.map((r) => [r.memberId, r]));
   const members: PMember[] = admin.map((a) => {
     const st = monthStates(codeOf.get(a.memberId) ?? "NNNNNNNNNNNN");
     const at = (k: string) => st.flatMap((x, i) => (x === k ? [i + 1] : []));
@@ -286,6 +287,8 @@ export async function adminData(): Promise<PData> {
       paid: at("paid"),
       owed: at("late"),
       notOwed: at("not_owed"),
+      pastLate: rowOf.get(a.memberId)?.pastLate ?? [],
+      prices: rowOf.get(a.memberId)?.prices,
       lastReminded: null,
     };
   });

@@ -69,29 +69,40 @@ export async function openPage(page: Page, path: string) {
 
 /**
  * «سجّل دفعة» from a transfer screenshot, as a committee member does it from the WhatsApp group:
- * the member (late months by default), the picture, the wallet, save. Found by roles and labels
- * only (the record screen is being rebuilt): the member by name, the wallet by its name, the save
- * button by its words. Returns once the payment is in the database, confirmed.
+ * home → «سجّل دفعة» (/committee/record), the member (late months by default), the picture, the
+ * wallet, save. Found by roles and labels: the member by name, the wallet by its name. Returns on
+ * the saved screen («سُجّلت الدفعة» + «تراجع»), the payment confirmed in the database.
  */
 export async function recordTransfer(page: Page, member: string, wallet = "بنكيلي") {
   await openPage(page, "/committee");
   await page
-    .getByRole("button", { name: /^سجّل دفعة$/ })
+    .getByRole("link", { name: /سجّل دفعة/ })
     .first()
     .click();
-  const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
-  await sheet.getByPlaceholder(/اكتب الاسم أو الرقم/).fill(member);
-  await sheet.getByRole("button").filter({ hasText: member }).first().click();
-  await sheet.locator('input[type="file"]').setInputFiles(shot());
-  await sheet.getByRole("radio", { name: wallet }).click();
-  await sheet.getByRole("button", { name: /^سجّل الدفعة$/ }).click();
-  await expect(sheet.getByRole("button", { name: /^سجّل الدفعة$/ })).toHaveCount(0);
+  await page.waitForURL("**/committee/record");
+  await page.getByLabel("ابحث عن العضو", { exact: true }).fill(member);
+  await page.getByRole("button").filter({ hasText: member }).first().click();
+  await page.locator('.r2-how input[type="file"]').setInputFiles(shot());
+  await page
+    .getByRole("radiogroup", { name: "المحفظة" })
+    .getByRole("radio", { name: wallet })
+    .click();
+  const save = page.locator(".r2-foot").getByRole("button");
+  await expect(save).toHaveText(/^\s*سجّل\s*$/);
+  await save.click();
+  await expect(page.getByRole("status").filter({ hasText: "سُجّلت الدفعة" })).toBeVisible();
+}
+
+/** «تراجع (n)» on the saved screen, right after recordTransfer. */
+export async function undoFromSaved(page: Page) {
+  await page.getByRole("button", { name: /^تراجع \(\d+\)$/ }).click();
+  await expect(page.getByText("تراجعت عن الدفعة.")).toBeVisible();
 }
 
 /**
- * A committee member's own Supabase session: the same database rules as the app. Used for the
- * actions whose screens Lane C is still building (undo, levies, the activity log, the statement);
- * switch each step to the screen once it lands.
+ * A committee member's own Supabase session: the same database rules as the app. Used where no
+ * screen offers the action (another member's undo) or the screen is still being built (levies,
+ * the statement); switch each step to the screen once it lands.
  */
 export const asCommittee = signedIn;
 

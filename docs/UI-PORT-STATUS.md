@@ -609,6 +609,10 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   «+ تبرع», «+ متبرع من خارج الصندوق»; screenshot read on the phone (`readReceipt`), wallet chips;
   sticky total vs the picture amount; confirmed at once (m29); «سُجّلت الدفعة» + «تراجع» 30 s
   (`undoPayment`), no receipt.
+  Earlier years' late months (`pastLate`, each at its own price, `admin/fees.ts`) are in «الأشهر
+  المتأخرة» oldest first with their year and pickable in «اختر»; «دفعة أخرى» resets the form.
+  Search matches «ب 2»/«ب2»/«B-2»/«2»/Arabic-Indic digits (`searchMembers`). e2e:
+  `e2e/committee-record.spec.ts` (new, Lane C).
 
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,

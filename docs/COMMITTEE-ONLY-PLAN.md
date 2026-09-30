@@ -366,7 +366,7 @@ Numbers to decide from, shareable with the group («رابطة الشباب»):
 
 ## 11. Fee groups («الفئات») management (owner, 2026-09-30)
 
-Simple screen «الفئات» (in المزيد → الإعدادات), «مسؤول» only for changes:
+Simple screen «الفئات» (in المزيد → الإعدادات), «مسؤول» only for every change (including fees):
 - List groups with their monthly fee per year and member count (e.g. أ 1 000، ب 500).
 - Create a group (name, monthly fee, from which year), e.g. «ج 700».
 - Change a group's fee for a year (next year by default).
@@ -379,3 +379,18 @@ Simple screen «الفئات» (in المزيد → الإعدادات), «مس�
 - Paper list numbers (أ 12, ب 7) do not change when a member changes group.
 - Preview before saving: «سينتقل 70 عضوًا من ب إلى ج ابتداءً من يناير 2027. رسومهم الشهرية 700 بدل 500.»
 - Everything in «سجل العمليات».
+
+## 12. Top priorities (owner, 2026-09-30)
+
+1. **Accuracy first.** No wrong or misleading number anywhere. Invariants tested in SQL and e2e and
+   checked read-only on production: balance = opening + all income − all spending (+ adjustments);
+   each payment = sum of its allocations; every paid month has exactly one confirmed allocation;
+   member statement = arrears = months grid = report grid = stats; levy collected = sum of paid
+   shares; campaign totals = contributions − spending; stats buckets add up to active members;
+   cancelled/undone items excluded everywhere; year boundaries, prices per year, group moves,
+   exempt/left/away members, credit, levy after close. A read-only «accuracy audit» script runs
+   against production and in CI on the local stack.
+2. **Easy for every committee member.** Fewest taps, clear words, one main action per screen, 360px,
+   48px targets. A UX pass (tap counts per job) on every screen before sign-off.
+
+Stats design pick: **a (numbers first)**.
