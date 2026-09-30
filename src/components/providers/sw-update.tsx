@@ -1,11 +1,8 @@
 "use client";
 
-import { unstable_isUnrecognizedActionError, usePathname } from "next/navigation";
+import { unstable_isUnrecognizedActionError } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { isPublicPage, mayStore, PAGES_CACHE } from "@/lib/offline/cache-rules";
-import { allowsBackgroundDownload, type NetworkInfo } from "@/lib/offline/data-saver";
-import { lastWarmed, pagesToWarm, warmDue, warmPages } from "@/lib/offline/warm";
 
 /* ───────────── update requested by the member ───────────── */
 
@@ -95,94 +92,6 @@ export function ServiceWorkerUpdates() {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("unhandledrejection", onRejection);
       reg?.removeEventListener("updatefound", onUpdateFound);
-    };
-  }, []);
-  return null;
-}
-
-/**
- * In-app navigation only downloads RSC data, so the full page would be missing offline.
- * After each public page visit, save its HTML once, at once: on flaky 3G the connection can drop
- * a second later, and the page being read must open offline then (not after the phone is idle,
- * nor after the worker takes control: the saved copy is served as soon as it does). A page loaded
- * in full is copied from the browser's own HTTP cache (no second download). Skipped for committee
- * pages, when already saved, and in data-saver mode or on 2G (the page is 170 to 230 KB).
- * Replaces Serwist's cacheOnNavigation, which would also save logged-in pages.
- */
-/** The path the document was loaded on (then null: later paths come by in-app navigation). */
-let firstPath: string | null = typeof window === "undefined" ? null : window.location.pathname;
-
-export function SaveVisitedPages() {
-  const pathname = usePathname();
-  useEffect(() => {
-    if (!("serviceWorker" in navigator) || !("caches" in window)) return;
-    const url = new URL(pathname, location.origin);
-    if (!isPublicPage(url, true)) return;
-    // the first page of this load came as a full document: the browser's HTTP cache has it
-    const fullLoad = pathname === firstPath;
-    firstPath = null;
-    void (async () => {
-      const conn = (navigator as Navigator & { connection?: NetworkInfo }).connection;
-      if (!navigator.onLine || !allowsBackgroundDownload(conn)) return;
-      try {
-        const cache = await caches.open(PAGES_CACHE);
-        if (await cache.match(url.href, { ignoreVary: true })) return;
-        const res = await fetch(url.href, {
-          credentials: "same-origin",
-          cache: fullLoad ? "force-cache" : "default",
-        });
-        // as in the worker: nothing marked personal or not-to-keep (money privacy)
-        if (res.ok && !res.redirected && mayStore(res.headers.get("cache-control")))
-          await cache.put(url.href, res);
-      } catch {
-        /* offline or storage full: nothing to do */
-      }
-    })();
-  }, [pathname]);
-  return null;
-}
-
-/**
- * Every public page saved for offline, not only the visited ones: once the worker controls the
- * app, then when the connection comes back, when the app is reopened after 30 minutes, and at
- * once after an update (the new worker forgets the last round). One page at a time, low priority;
- * on Save-Data or 2G only the home and the members list. Nothing is claimed on screen: a page
- * reads «هذه نسخة محفوظة …» only when it really came from the saved copy.
- */
-let warming = false;
-async function warmNow(force = false) {
-  if (warming || !navigator.onLine || !navigator.serviceWorker?.controller) return;
-  warming = true;
-  try {
-    if (!force && !warmDue(await lastWarmed(caches))) return;
-    const conn = (navigator as Navigator & { connection?: NetworkInfo }).connection;
-    await warmPages(pagesToWarm(conn), {
-      caches,
-      fetch: (input, init) => fetch(input, init), // window's own fetch (a bare reference throws)
-      origin: location.origin,
-    });
-  } finally {
-    warming = false;
-  }
-}
-
-export function WarmOfflinePages() {
-  useEffect(() => {
-    const sw = navigator.serviceWorker;
-    if (!sw || !("caches" in window)) return;
-    // after the page's own load, so it never competes with what the member is opening
-    const t = window.setTimeout(() => void warmNow(), 1500);
-    const onControl = () => void warmNow();
-    const onOnline = () => void warmNow(true);
-    const onVisible = () => document.visibilityState === "visible" && void warmNow();
-    sw.addEventListener("controllerchange", onControl);
-    window.addEventListener("online", onOnline);
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      clearTimeout(t);
-      sw.removeEventListener("controllerchange", onControl);
-      window.removeEventListener("online", onOnline);
-      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
   return null;

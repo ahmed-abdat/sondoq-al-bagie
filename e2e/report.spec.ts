@@ -93,17 +93,18 @@ async function openSheet(page: Page) {
   await expect(page.getByRole("dialog", { name: "مشاركة التقرير" })).toBeVisible();
 }
 
-test("opens, and opens offline after a visit", async ({ page, context }) => {
+test("opens; offline it is the offline page (committee-only: nothing kept)", async ({
+  page,
+  context,
+}) => {
   await page.goto("/report");
   await expect(heading(page)).toBeVisible();
   await waitForServiceWorker(page);
-  await page.reload(); // now through the SW, so it is stored
-  await expect(heading(page)).toBeVisible();
-
-  await context.setOffline(true);
   await page.reload();
   await expect(heading(page)).toBeVisible();
-  await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toHaveCount(0);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toBeVisible();
   await context.setOffline(false);
 });
 

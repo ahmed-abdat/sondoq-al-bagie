@@ -1,12 +1,8 @@
 // Which requests the service worker may keep for offline use. Pure functions, unit tested,
-// imported by src/app/sw.ts. Rule of thumb: only public, read-only data is ever cached.
+// imported by src/app/sw.ts. The app is committee-only (2026-09-30): no page and no Supabase
+// read is kept; only build assets, fonts, images and the OCR files (and offline.html).
 
-/**
- * Public read-only Supabase views without money (docs/MONEY-PRIVACY.md: no amounts for strangers;
- * no phones, no proof images). Safe to keep offline. The old money views (fund_summary,
- * monthly_collection, expense_totals, recent_expenses, campaign_progress, campaign_contributions,
- * activity_feed, terms_public, member_status) are never stored.
- */
+/** Public read-only views without money (docs/MONEY-PRIVACY.md); used by the query persister. */
 export const PUBLIC_VIEWS = [
   "fund_stats",
   "member_status_public",
@@ -21,21 +17,21 @@ export const PUBLIC_VIEWS = [
   "group_prices_public",
 ] as const;
 
-/**
- * Runtime cache names. Renamed when what they may hold changes, so phones drop the old copies
- * (the old ones held amounts): the worker deletes RETIRED_CACHES when it takes over.
- */
+/** The former public app's page cache (still cleared at committee sign-out). */
 export const PAGES_CACHE = "pages-v2";
-export const VIEWS_CACHE = "sb-public-views-v2";
-export const RETIRED_CACHES = ["pages", "sb-public-views"] as const;
-
 /**
- * Never store a response the server marked as personal or not to keep (Cache-Control no-store or
- * private): the committee's and a member's pages, and any money read.
+ * Caches of earlier versions: the worker deletes them when it takes over. The committee-only
+ * release adds the public pages, the public views and the warming marker.
  */
-export function mayStore(cacheControl: string | null): boolean {
-  return !/\b(no-store|private)\b/i.test(cacheControl ?? "");
-}
+export const RETIRED_CACHES = [
+  "pages",
+  "sb-public-views",
+  "pages-v2",
+  "sb-public-views-v2",
+  "warm-meta",
+] as const;
+/** Where the former public app saved its query cache (IndexedDB key), deleted with the caches. */
+export const PERSIST_KEY = "sondoq-query-cache";
 
 /**
  * Never cached: pages that need a login (nothing private stays on a shared phone), receipt
@@ -56,24 +52,7 @@ function isSupabaseHost(url: URL): boolean {
   return url.hostname.endsWith(".supabase.co") || url.hostname.endsWith(".supabase.in");
 }
 
-/** GET of a public view on Supabase REST: `/rest/v1/<view>?...`. */
-export function isPublicViewRead(url: URL, method: string): boolean {
-  if (method !== "GET" || !isSupabaseHost(url)) return false;
-  const m = /^\/rest\/v1\/([a-z_]+)$/.exec(url.pathname);
-  return !!m && (PUBLIC_VIEWS as readonly string[]).includes(m[1]);
-}
-
-/** Any other Supabase call (auth, storage, realtime, RPC, tables): network only, never stored. */
+/** Any Supabase call (views, auth, storage, realtime, RPC): network only, never stored. */
 export function isOtherSupabase(url: URL): boolean {
   return isSupabaseHost(url);
-}
-
-/** A public page request (HTML navigation or Next RSC payload) that may be cached. */
-export function isPublicPage(url: URL, sameOrigin: boolean): boolean {
-  return (
-    sameOrigin &&
-    !isPrivatePath(url.pathname) &&
-    !url.pathname.startsWith("/_next/") &&
-    url.pathname !== "/sw.js"
-  );
 }
