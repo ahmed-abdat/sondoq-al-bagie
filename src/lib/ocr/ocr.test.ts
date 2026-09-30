@@ -48,6 +48,17 @@ describe("parseReceipt", () => {
     });
   });
 
+  it("every screenshot amount is new ouguiya (MRU), read whole: 1200 MRU is 1200, never 120", () => {
+    // owner's example: Bankily «المبلغ المرسل: 1200 MRU» → 1200 MRU = 12 000 old ouguiya
+    expect(parseReceipt(F.BANKILY_1200).amountMru).toBe(1200);
+    expect(checkReceipt(parseReceipt(F.BANKILY_1200), opts(12_000)).amount).toBe(true);
+    expect(checkReceipt(parseReceipt(F.BANKILY_1200), opts(1_200)).amount).toBe(false);
+    expect(parseReceipt(F.BANKILY_GROUPED).amountMru).toBe(12_500);
+    expect(parseReceipt(F.SEDAD_PLAIN).amountMru).toBe(1200);
+    expect(parseReceipt(F.MASRVI_PLAIN).amountMru).toBe(1200);
+    expect(parseReceipt(F.BANKILY).amountMru).toBe(100);
+  });
+
   it("returns nothing useful for a random picture", () => {
     expect(parseReceipt(F.NOT_A_RECEIPT)).toMatchObject({
       method: null,
