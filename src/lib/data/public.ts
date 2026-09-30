@@ -3,7 +3,7 @@ import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 import { toFundInfo, toFundStats } from "./map";
 import * as read from "./read";
-import { toMemberIndex, toMemberRows } from "./member-lists";
+import { EMPTY_MEMBER_INDEX, loadMemberIndex, loadMemberRows } from "./member-lists";
 import { loadReportShell, type ReportOptions } from "./report";
 import { PUBLIC_TAG } from "./tags";
 
@@ -44,36 +44,13 @@ export const getFundInfo = cached("fund_info", read.fundInfo, toFundInfo(null));
  * (the record screen prices each month with them). Replaces getMembers() + getMemberMonths() on public pages (~12 bytes of months
  * per member instead of 12 objects).
  */
-export const getMemberRows = cached(
-  "member_rows",
-  async (c: read.Client, year: number = new Date().getUTCFullYear()) => {
-    const [members, months, pastLate, prices] = await Promise.all([
-      read.membersPublic(c),
-      read.memberMonths(c, year),
-      read.pastLateMonths(c, year),
-      read.groupPrices(c, year),
-    ]);
-    const groupPrices = Object.fromEntries(prices.map((p) => [p.group, p.monthlyAmount]));
-    return toMemberRows(members, months, year, { pastLate, groupPrices });
-  },
-  [],
-);
+export const getMemberRows = cached("member_rows", loadMemberRows, []);
 
 /**
  * Home: search index (id, ref, name, status) and the counts «دفع X من N» for a month
  * (default: this month, UTC).
  */
-export const getMemberIndex = cached(
-  "member_index",
-  async (c: read.Client, year?: number, month?: number) => {
-    const now = new Date();
-    const y = year ?? now.getUTCFullYear();
-    const m = month ?? now.getUTCMonth() + 1;
-    const [members, months] = await Promise.all([read.membersPublic(c), read.memberMonths(c, y)]);
-    return toMemberIndex(members, months, y, m);
-  },
-  { members: [], activeCount: 0, paidThisMonth: 0, year: 0, month: 0 },
-);
+export const getMemberIndex = cached("member_index", loadMemberIndex, EMPTY_MEMBER_INDEX);
 
 /* ───────────── amount-free public reads (money privacy: what strangers get) ───────────── */
 

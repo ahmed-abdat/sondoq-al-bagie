@@ -1,6 +1,8 @@
-// Light member lists for the public pages (home search, /members): no per-month objects.
-// Pure (unit tested); the cached server getters are in ./public.
+// Light member lists (home search, /members): no per-month objects. toMemberRows/toMemberIndex
+// are pure (unit tested); loadMemberRows/loadMemberIndex read them with any client (the public
+// cached getters in ./public, the committee's session reads in ./committee).
 import { encodeMonths } from "./month-code";
+import * as read from "./read";
 import type { MemberIndex, MemberMonth, MemberRow, MemberStatus } from "./types";
 
 /** Public lists hide members who left (history is kept). */
@@ -79,4 +81,40 @@ export function toMemberIndex(
     year,
     month,
   };
+}
+
+export const EMPTY_MEMBER_INDEX: MemberIndex = {
+  members: [],
+  activeCount: 0,
+  paidThisMonth: 0,
+  year: 0,
+  month: 0,
+};
+
+/** Rows for /members and the record sheet: this year's months, last years' late months, prices. */
+export async function loadMemberRows(
+  c: read.Client,
+  year: number = new Date().getUTCFullYear(),
+): Promise<MemberRow[]> {
+  const [members, months, pastLate, prices] = await Promise.all([
+    read.membersPublic(c),
+    read.memberMonths(c, year),
+    read.pastLateMonths(c, year),
+    read.groupPrices(c, year),
+  ]);
+  const groupPrices = Object.fromEntries(prices.map((p) => [p.group, p.monthlyAmount]));
+  return toMemberRows(members, months, year, { pastLate, groupPrices });
+}
+
+/** Search index and «دفع X من N» for a month (default: this month, UTC). */
+export async function loadMemberIndex(
+  c: read.Client,
+  year?: number,
+  month?: number,
+): Promise<MemberIndex> {
+  const now = new Date();
+  const y = year ?? now.getUTCFullYear();
+  const m = month ?? now.getUTCMonth() + 1;
+  const [members, months] = await Promise.all([read.membersPublic(c), read.memberMonths(c, y)]);
+  return toMemberIndex(members, months, y, m);
 }

@@ -2,6 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { displayLogin } from "./logins";
+import { toFundInfo } from "./map";
+import { EMPTY_MEMBER_INDEX, loadMemberIndex, loadMemberRows } from "./member-lists";
 import * as read from "./read";
 import type { CommitteeRole, CommitteeSession, MyProfile } from "./types";
 
@@ -67,6 +69,19 @@ export const getFundAccountsAdmin = committee(read.fundAccountsAdmin, []);
 export const getFundSettings = committee(read.fundSettings, null);
 /** Last weekly backup run for the admin (null before the first run or when signed out). */
 export const getBackupStatus = committee(read.backupStatus, null);
+
+/*
+ * The member and fund reads the committee pages share with the old public pages, read with the
+ * committee's own session (per request, never cached across users). They replace the anon cached
+ * getters of ./public, which stop working once m28 closes anon access.
+ */
+export const getCommitteeMemberRows = committee(loadMemberRows, []);
+export const getCommitteeMemberIndex = committee(loadMemberIndex, EMPTY_MEMBER_INDEX);
+export const getCommitteeMembers = committee(read.membersPublic, []);
+export const getCommitteeMemberMonths = committee(read.memberMonths, []);
+export const getCommitteeGroupPrices = committee(read.groupPrices, []);
+export const getCommitteeFundAccounts = committee(read.fundAccounts, []);
+export const getCommitteeFundInfo = committee(read.fundInfo, toFundInfo(null));
 
 /** «حسابي»: the signed-in, active committee member's own account, or null. */
 export async function getMyProfile(): Promise<MyProfile | null> {
