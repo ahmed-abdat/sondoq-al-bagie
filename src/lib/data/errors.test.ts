@@ -61,7 +61,7 @@ describe("errors", () => {
     );
     expect(
       messageFor("wrong_month_amount", d({ name: "محمد", ym: "2026-03", price: 1000 })),
-    ).toMatch(/^رسوم شهر مارس 2026 لـ محمد هي 1.000 أوقية\.$/);
+    ).toMatch(/^مستحقات شهر مارس 2026 لـ محمد: 1.000 أوقية\.$/);
   });
 
   it("falls back to the plain message on a missing or odd detail", () => {

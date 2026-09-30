@@ -34,8 +34,17 @@ export type AnnualReport = Base & {
   closing: number;
   /** money of campaigns and levies still inside `closing` (not yet spent or moved to the fund) */
   campaignsHeld: number;
-  /** every month of the period (12 for a year) */
-  months: { year: number; month: number; income: number; spending: number }[];
+  /**
+   * «المداخيل حسب الشهر المستحق» (m39): month fees counted in the month they pay for, whatever the
+   * payment date; levies, donations and credit put aside by their date.
+   * total = income.total − feesForOtherMonths + feesPaidOutside.
+   */
+  incomeDue: { total: number; feesForOtherMonths: number; feesPaidOutside: number };
+  /**
+   * every month of the period (12 for a year). income and spending are by date (cash);
+   * dueIncome is by the month it pays for (the monthly chart and table show dueIncome).
+   */
+  months: { year: number; month: number; income: number; dueIncome: number; spending: number }[];
 };
 
 /** 2 · one-page summary. */
