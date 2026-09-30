@@ -7,14 +7,12 @@ import { useEffect, useRef, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct } from "./act";
 import type { PendingPayment } from "@/lib/data/types";
-import { shareReceipt } from "@/lib/share-receipt";
 import { MemberNo, MethodBadge } from "./bits";
 import { dayWords, fmt, monthsInWords, relativeAgo } from "./derive";
-import { ShareBtns } from "./entries";
 import { I } from "./icons";
 import { Num, prefersReduced, useNow } from "./num";
 import { ConfirmedMark, Proof, Stamp } from "./receipt";
-import { fromPending, toShareable, type ReceiptView } from "./receipt-model";
+import { fromPending, type ReceiptView } from "./receipt-model";
 import { radioKeys, radioTab } from "./radio-keys";
 
 const REASONS = ["المبلغ غير صحيح", "رقم العملية مكرر", "الصورة غير واضحة", "أخرى"];
@@ -205,17 +203,6 @@ export function PendingSlip({
         )}
         <span className="bq-row-t">{p.payerName}</span>
         <Num className="bq-amt">{fmt(p.amount)}</Num>
-        {done && toShareable(done) && (
-          <button
-            type="button"
-            className="bq-btn bq-btn-soft bq-press bq-slip-one-wa"
-            onClick={() => void shareReceipt(toShareable(done)!)}
-            aria-label={`شارك وصل ${p.payerName}`}
-          >
-            {/* icon plus a word (audit C19) */}
-            {I.wa(20)} الوصل
-          </button>
-        )}
       </div>
     );
 
@@ -229,7 +216,6 @@ export function PendingSlip({
               ? "دفعة مؤكَّدة"
               : "دفعة مرفوضة"}
         </span>
-        {p.receiptNo && <Num className="bq-slip-no">№ {p.receiptNo}</Num>}
       </header>
       <p className="bq-slip-payer">{p.payerName}</p>
       <p className="bq-slip-amt">
@@ -331,13 +317,11 @@ export function PendingSlip({
           <p className="bq-slip-hint">
             {I.clock(18)}
             <span>
-              {own
-                ? "هذه الدفعة عنك؛ يؤكدها عضو آخر من اللجنة."
-                : "التأكيد لأمين الصندوق أو نائبه."}
+              {own ? "هذه الدفعة عنك؛ يؤكدها عضو آخر من اللجنة." : "يثبّتها عضو آخر من اللجنة."}
             </span>
           </p>
           <button type="button" className="bq-link bq-press" onClick={() => onFull(base)}>
-            عرض الوصل كاملًا {I.go(18)}
+            تفاصيل الدفعة {I.go(18)}
           </button>
         </>
       )}
@@ -377,7 +361,7 @@ export function PendingSlip({
           </div>
           <OfflineWriteHint />
           <button type="button" className="bq-link bq-press" onClick={() => onFull(base)}>
-            عرض الوصل كاملًا {I.go(18)}
+            تفاصيل الدفعة {I.go(18)}
           </button>
         </>
       )}
@@ -462,11 +446,7 @@ export function PendingSlip({
               ? `أكّدها ${st.by} قبلك`
               : `أكّدها ${me.by}${me.role ? `، ${me.role}` : ""}، الآن`}
           </p>
-          {st.sent ? (
-            <ShareBtns r={done} />
-          ) : (
-            <p className="bq-hint">يُرسل التأكيد بعد ثوانٍ، ثم يظهر زر إرسال الإيصال.</p>
-          )}
+          {!st.sent && <p className="bq-hint">يُحفظ التثبيت بعد ثوانٍ.</p>}
           {!st.sent && (
             <button type="button" className="bq-link bq-press" onClick={undo}>
               {I.undo(18)} تراجع عن التأكيد

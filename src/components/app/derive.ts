@@ -3,7 +3,7 @@ import { MONTHS_AR, WEEKDAYS_AR } from "@/lib/dates";
 import { CATEGORY_LABELS } from "@/lib/data/labels";
 import { formatNumber } from "@/lib/format";
 import { monthStates } from "@/lib/data/month-code";
-import { memberNumber } from "@/lib/share-receipt";
+import { memberNumber } from "@/lib/brand";
 import { nameRank, toLatinDigits } from "./search-text";
 import type {
   ExpenseCategory,

@@ -19,7 +19,6 @@ import { safeStorage } from "@/lib/safe-storage";
 import { rememberMembers, useAct } from "./act";
 import { sendOnce, useOnceId } from "./once-id";
 import { failure } from "@/lib/data/errors";
-import { ShareBtns } from "./entries";
 import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
 import {
@@ -754,7 +753,6 @@ export function RecordBody({
         />
         <h2>سُجّلت وأُكّدت</h2>
         <p className="bq-lead">{confirmed.text}</p>
-        <ShareBtns r={confirmed.r} />
         <button
           type="button"
           className="bq-btn bq-btn-ghost bq-btn-lg bq-press"

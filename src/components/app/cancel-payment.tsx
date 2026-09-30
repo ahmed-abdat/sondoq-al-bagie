@@ -1,15 +1,16 @@
 "use client";
-// A receipt in a sheet, with the committee-only «إلغاء هذه الدفعة» under it (admin, treasurer,
-// deputy). Cancelling never deletes: the payment stays in the record with its reason, and its
-// months leave the member's account.
+// A payment's details in a sheet (no receipt: owner), with «إلغاء هذه الدفعة» for «مسؤول» only.
+// Cancelling never deletes: the payment stays in the record with its reason, and its months
+// leave the member's account.
 import { useRouter } from "next/navigation";
 import { useState, type CSSProperties } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct } from "./act";
-import { fmt } from "./derive";
-import { ShareBtns } from "./entries";
+import { dayDate, fmt, ROLE_LABEL } from "./derive";
+import { METHOD_LABELS } from "@/lib/methods";
+import { MONTHS_AR } from "@/lib/dates";
 import { Num } from "./num";
-import { Receipt } from "./receipt";
+import { Proof } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
 import { useSnack } from "./shell";
 import { useCanceller } from "./viewer";
@@ -17,7 +18,58 @@ import { radioKeys, radioTab } from "./radio-keys";
 
 export const CANCEL_REASONS = ["تسجيل خاطئ", "مبلغ خاطئ", "دفعة مكررة", "تجربة", "أخرى"];
 
-export function ReceiptSheetBody({
+const monthsText = (ms: number[]) => ms.map((m) => MONTHS_AR[m - 1]).join("، ");
+
+/** What the payment was, who recorded it, and the transfer picture: plain lines, no receipt. */
+export function PaymentDetails({ r }: { r: ReceiptView }) {
+  const st = r.status;
+  return (
+    <div className="bq-pay-details">
+      <h2>{r.payer}</h2>
+      <p className="bq-lead">
+        <Num>{fmt(r.amount)}</Num> أوقية · {METHOD_LABELS[r.method]} · {dayDate(r.paidOn)}
+      </p>
+      <dl className="bq-facts">
+        {r.covers.map((c, i) => (
+          <div key={i}>
+            <dt>{c.name}</dt>
+            <dd>
+              رسوم {monthsText(c.months)} <Num>{c.year}</Num>
+            </dd>
+          </div>
+        ))}
+        {r.campaigns.map((c) => (
+          <div key={c}>
+            <dt>مساهمة</dt>
+            <dd>{c}</dd>
+          </div>
+        ))}
+        {r.txn && (
+          <div>
+            <dt>رقم العملية</dt>
+            <dd>
+              <bdi dir="ltr">{r.txn}</bdi>
+            </dd>
+          </div>
+        )}
+        {r.recordedBy && (
+          <div>
+            <dt>سجّلها</dt>
+            <dd>{r.recordedBy}</dd>
+          </div>
+        )}
+      </dl>
+      {(st.kind === "cancelled" || st.kind === "rejected") && (
+        <p className="bq-alert">
+          أُلغيت{st.by ? ` (${st.by})` : ""}. السبب: {st.reason}
+        </p>
+      )}
+      {r.proofPath && <Proof path={r.proofPath} amount={r.amount} method={r.method} />}
+    </div>
+  );
+}
+
+export function PaymentSheetBody({
   r: initial,
   paymentId,
   style,
@@ -32,7 +84,9 @@ export function ReceiptSheetBody({
   const me = useCanceller();
   const [r, setR] = useState(initial);
   const [asking, setAsking] = useState(false);
-  const canCancel = !!me && !!paymentId && r.status.kind === "confirmed";
+  // cancelling is «مسؤول» only (plan §8); the server checks it too
+  const canCancel =
+    !!me && me.role === ROLE_LABEL.admin && !!paymentId && r.status.kind === "confirmed";
   if (asking && canCancel)
     return (
       <CancelForm
@@ -57,8 +111,7 @@ export function ReceiptSheetBody({
     );
   return (
     <div className="bq-rc-sheet" style={style}>
-      <Receipt r={r} />
-      {r.status.kind === "confirmed" && <ShareBtns r={r} />}
+      <PaymentDetails r={r} />
       {canCancel && (
         <button
           type="button"
@@ -96,11 +149,6 @@ function CancelForm({
     <div className="bq-rec bq-cancel">
       <h2>إلغاء هذه الدفعة</h2>
       <p className="bq-hint">
-        {r.no && (
-          <>
-            وصل <Num>{r.no}</Num> ·{" "}
-          </>
-        )}
         {r.payer} · <Num>{fmt(r.amount)}</Num> أوقية
       </p>
       <p className="bq-lead">تبقى في السجل مع السبب، ولا تُحسب أشهرها للعضو بعد الآن.</p>

@@ -21,13 +21,12 @@ import { useDemoState } from "../act";
 import { MethodBadge } from "../bits";
 import { CampaignAdminList, CampaignFormBody } from "../campaign-form";
 import { fmt, pendingForCampaign, relativeAgo } from "../derive";
-import { ShareBtns } from "../entries";
 import { ExpenseAdminList, RecordExpenseBody } from "../expense";
 import { I } from "../icons";
 import type { MemberCtx } from "../member";
 import { MembersAdmin, type MemberCredit } from "../members-admin";
 import { Num, useNow } from "../num";
-import { Receipt } from "../receipt";
+import { PaymentDetails } from "../cancel-payment";
 import type { ReceiptView } from "../receipt-model";
 import { PushSuggest } from "../push-suggest";
 import { Segmented } from "../segmented";
@@ -409,11 +408,8 @@ export function CommitteeView({
         </Sheet>
       )}
       {sheet?.t === "receipt" && (
-        <Sheet key="receipt" label="وصل استلام" onDone={() => setSheet(null)}>
-          <div className="bq-rc-sheet">
-            <Receipt r={sheet.r} />
-            {sheet.r.status.kind === "confirmed" && <ShareBtns r={sheet.r} />}
-          </div>
+        <Sheet key="receipt" label="تفاصيل الدفعة" onDone={() => setSheet(null)}>
+          <PaymentDetails r={sheet.r} />
         </Sheet>
       )}
     </>
