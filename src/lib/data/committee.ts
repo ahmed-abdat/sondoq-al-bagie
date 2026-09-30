@@ -98,6 +98,9 @@ export const getMemberStatement = committee(reports.loadStatement, null);
 export const getHandoverReport = committee(reports.loadHandover, null);
 export const getWalletsReport = committee(reports.loadWallets, null);
 export const getCommitteeWorkReport = committee(reports.loadCommitteeWork, null);
+export const getStatsReport = committee(reports.loadStats, null);
+export const getLevyStats = committee(reports.loadLevyStats, null);
+export const getDonationStats = committee(reports.loadDonationStats, null);
 
 /** «حسابي»: the signed-in, active committee member's own account, or null. */
 export async function getMyProfile(): Promise<MyProfile | null> {
