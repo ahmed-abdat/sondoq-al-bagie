@@ -3,6 +3,7 @@
 // several people, a لوحة share, a donation or an outside donor in one transfer; the screenshot
 // is read on the phone (OCR); a sticky total against the amount in the picture. The payment is
 // confirmed at once (m29). No receipt: «سُجّلت الدفعة ✓» and «تراجع» for 30 seconds.
+import { AmountInput, amountValue } from "@/components/app/amount-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -14,7 +15,6 @@ import { failure } from "@/lib/data/errors";
 import type { AllocationInput } from "@/lib/data/schemas";
 import { MONTHS_AR, todayIso } from "@/lib/dates";
 import type { Method } from "@/lib/methods";
-import { parseAmount, toWesternDigits } from "@/lib/money";
 import { readReceipt } from "@/lib/ocr";
 import { imageOpenError, parseMemberRef } from "@/components/app/derive";
 import { DateField } from "@/components/app/date-field";
@@ -417,15 +417,9 @@ function LineRow({ l, t }: { l: Line; t: T }) {
         )}
         <label className="r2-amt">
           <span>المبلغ</span>
-          <input
-            inputMode="numeric"
-            dir="ltr"
+          <AmountInput
             value={l.amount ? String(l.amount) : ""}
-            onChange={(e) =>
-              t.setGift(l.id, {
-                amount: Math.round(parseAmount(toWesternDigits(e.target.value)) ?? 0),
-              })
-            }
+            onChange={(v) => t.setGift(l.id, { amount: amountValue(v) })}
             placeholder="0"
             aria-label="مبلغ التبرع بالأوقية القديمة"
           />

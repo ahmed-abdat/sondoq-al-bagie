@@ -2,6 +2,7 @@
 // «سجّل مصروفًا»: the ONE expense sheet (home, المصاريف, a تبرع/لوحة page with it preset).
 // Order (owner): المبلغ → النشاط → ماذا اشتُري → من أي محفظة → التاريخ → صورة الفاتورة (اختياري).
 // Any committee member records; saved at once; the button says what is still missing.
+import { AmountInput, amountValue } from "@/components/app/amount-input";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useOnline } from "@/components/providers";
@@ -12,7 +13,6 @@ import { sendOnce, useOnceId } from "@/components/app/once-id";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import { failure } from "@/lib/data/errors";
 import { todayIso } from "@/lib/dates";
-import { parseAmount, toWesternDigits } from "@/lib/money";
 import { Chips, fmt, Sheet, useP, X } from "./kit";
 import { WalletPicker } from "./wallet-picker";
 
@@ -46,7 +46,7 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
   const [shot, setShot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const amount = Math.round(parseAmount(amt) ?? 0);
+  const amount = amountValue(amt);
   const open = [
     ...d.campaigns
       .filter((c) => c.status === "open")
@@ -133,13 +133,7 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
     >
       <label className="pa-field pa-field-big">
         <span>المبلغ (أوقية)</span>
-        <input
-          inputMode="numeric"
-          dir="ltr"
-          value={amt}
-          onChange={(e) => setAmt(toWesternDigits(e.target.value))}
-          placeholder="0"
-        />
+        <AmountInput value={amt} onChange={setAmt} placeholder="0" />
       </label>
       <p className="pa-label">النشاط</p>
       <Chips

@@ -1,5 +1,6 @@
 "use client";
 // Committee campaigns: open one, edit it while open, close it (surplus to the fund or kept).
+import { AmountInput, amountValue } from "./amount-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -8,7 +9,6 @@ import { useAct } from "./act";
 import type { ActionResult, CampaignProgress } from "@/lib/data/types";
 import { failure } from "@/lib/data/errors";
 import { sendOnce, useOnceId } from "./once-id";
-import { parseAmount } from "@/lib/money";
 import { contributionCount, dayWords, fmt } from "./derive";
 import { DateField } from "./date-field";
 import { I } from "./icons";
@@ -36,7 +36,7 @@ export function CampaignFormBody({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [closing, setClosing] = useState(false);
-  const t = target.trim() ? Math.round(parseAmount(target) ?? 0) : null;
+  const t = target.trim() ? amountValue(target) : null;
   const ok = title.trim().length > 2 && (t === null || t > 0);
 
   const submit = async () => {
@@ -101,19 +101,15 @@ export function CampaignFormBody({
         aria-label="هدف التبرع"
       />
       <p className="bq-rec-k">المبلغ المطلوب بالأوقية (اختياري)</p>
-      <input
+      <AmountInput
         className="bq-input"
         value={target}
-        onChange={(e) => setTarget(e.target.value)}
-        inputMode="numeric"
-        dir="ltr"
+        onChange={setTarget}
         aria-label="المبلغ المطلوب"
       />
       <p className="bq-rec-k">آخر يوم (اختياري)</p>
       <DateField value={deadline} onChange={setDeadline} label="آخر يوم للتبرع" optional />
-      <p className="bq-hint bq-small-top">
-        المساهمات تُحسب منفصلة عن المستحقات الشهرية، ويراها كل الأعضاء في «التبرعات».
-      </p>
+      <p className="bq-hint bq-small-top">المساهمات تُحسب منفصلة عن المستحقات الشهرية.</p>
       <div className="bq-rec-foot">
         {err && (
           <p className="bq-alert" role="alert">

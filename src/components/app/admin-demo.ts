@@ -52,6 +52,7 @@ export function demoAdminData(): PData {
       id: m.memberId,
       ref: m.memberRef,
       group: m.listCode as "A" | "B",
+      feeGroup: { code: m.groupCode, name: m.groupCode === "A" ? "أ" : "ب" },
       no: m.number,
       name: m.fullName,
       phone: m.phone,

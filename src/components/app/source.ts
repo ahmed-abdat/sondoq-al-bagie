@@ -34,7 +34,7 @@ import type {
 } from "@/lib/data/report-types";
 import * as rfx from "@/lib/reports/fixtures";
 import { METHOD_LABELS, type Method } from "@/lib/methods";
-import { currentDueMonth } from "./derive";
+import { currentDueMonth, groupLabel } from "./derive";
 import { demoAdminData, demoStatement, demoStats, toActivities } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
@@ -307,6 +307,7 @@ export async function adminData(): Promise<PData> {
     statsReport,
     monthCash,
     activities,
+    groupRows,
   ] = await Promise.all([
     membersAdmin(),
     memberRows(year),
@@ -324,7 +325,9 @@ export async function adminData(): Promise<PData> {
     // «هذا الشهر» on home: the money that moved the balance this month (the summary report)
     data.getSummaryReport({ year, month: t.getUTCMonth() + 1 }).catch(() => null),
     data.getExpenseActivities(),
+    groupsOverview(year).catch(() => [] as GroupRow[]),
   ]);
+  const groupName = new Map(groupRows.map((g) => [g.code, g.name]));
   const due = currentDueMonth(t, info.graceDays);
   const codeOf = new Map(rows.map((r) => [r.memberId, r.months]));
   const rowOf = new Map(rows.map((r) => [r.memberId, r]));
@@ -335,6 +338,7 @@ export async function adminData(): Promise<PData> {
       id: a.memberId,
       ref: a.memberRef,
       group: a.listCode as "A" | "B",
+      feeGroup: { code: a.groupCode, name: groupName.get(a.groupCode) ?? groupLabel(a.groupCode) },
       no: a.number,
       name: a.fullName,
       phone: a.phone,

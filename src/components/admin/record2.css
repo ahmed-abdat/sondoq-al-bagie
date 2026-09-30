@@ -367,7 +367,9 @@
 /* the total and the picture disagree: ask before saving, with a short reason */
 .r2-diff {
   flex-basis: 100%;
+  min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   padding: 12px;
   border-radius: 16px;
@@ -375,4 +377,20 @@
 }
 .r2-diff p {
   margin: 0;
+}
+.r2-diff input {
+  min-width: 0;
+  width: 100%;
+}
+/* 200% text or a very small phone: the total bar would cover most of the screen; it becomes the
+   end of the page instead (the save button stays under the total), full-width button */
+@media (max-width: 359px), (max-height: 560px) {
+  .r2-foot {
+    position: static;
+    box-shadow: none;
+  }
+  .r2-foot .pa-btn {
+    flex: 1 1 100%;
+    max-width: none;
+  }
 }

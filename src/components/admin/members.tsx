@@ -33,7 +33,8 @@ import { AddMemberSheet, EditMemberSheet } from "./manage-sheets";
 import type { PMember } from "./types";
 
 /* ───────── the list ───────── */
-type MF = "all" | "owe" | "A" | "B";
+/** everyone, who owes, or one «الفئة» (fee group) by its code */
+type MF = string;
 export function MembersScreen() {
   const { d, href, q: query } = useP();
   const [q, setQ] = useState("");
@@ -42,9 +43,14 @@ export function MembersScreen() {
   const [share, setShare] = useState(false);
   const shown = d.members
     .filter((m) => m.status !== "left" && m.status !== "deceased")
-    .filter((m) => (f === "owe" ? owes(m, d) : f === "A" || f === "B" ? m.group === f : true));
+    .filter((m) => (f === "owe" ? owes(m, d) : f === "all" ? true : m.feeGroup.code === f));
   const list = q.trim() ? findMembers(shown, q) : shown;
   const oweCount = d.members.filter((m) => owes(m, d)).length;
+  const groups = [
+    ...new Map(
+      d.members.filter((m) => m.status === "active").map((m) => [m.feeGroup.code, m.feeGroup]),
+    ).values(),
+  ].sort((a, b) => a.code.localeCompare(b.code));
   return (
     <div className="pa-page">
       <header className="pa-title">
@@ -75,8 +81,7 @@ export function MembersScreen() {
         options={[
           { k: "all", l: "الكل" },
           { k: "owe", l: `عليهم متأخرات (${oweCount})` },
-          { k: "A", l: "الفئة أ" },
-          { k: "B", l: "الفئة ب" },
+          ...groups.map((g) => ({ k: g.code, l: `الفئة ${g.name}` })),
         ]}
       />
       {f === "owe" && (
@@ -136,7 +141,7 @@ export function MemberScreen({ refs }: { refs: string }) {
         <div>
           <h1>{m.name}</h1>
           <p className="pa-sub">
-            الفئة {m.group === "A" ? "أ" : "ب"} · المستحقات الشهرية <Money v={m.fee} />
+            الفئة {m.feeGroup.name} · المستحقات الشهرية <Money v={m.fee} />
           </p>
           {m.phone && (
             <p className="pa-sub">

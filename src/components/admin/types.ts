@@ -6,7 +6,10 @@ import type { AllStats } from "./stats";
 export type PMember = {
   id: string;
   ref: string; // "A-9"
+  /** the paper list («أ 12»): never changes */
   group: "A" | "B";
+  /** «الفئة» (fee group) and its name: what he pays each month; can change (plan §11) */
+  feeGroup: { code: string; name: string };
   no: number;
   name: string;
   phone: string | null;

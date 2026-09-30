@@ -1,4 +1,5 @@
 "use client";
+import { AmountInput, amountValue } from "../amount-input";
 import { toWesternDigits } from "@/lib/money";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -221,7 +222,7 @@ export function SettingsView({
   const yearStart = openingBalanceOn ?? `${new Date().getFullYear()}-01-01`;
   const [openingOn, setOpeningOn] = useState(yearStart);
   const [savedOpeningOn, setSavedOpeningOn] = useState(yearStart);
-  const openingNum = Number(opening.replace(/\s/g, "")) || 0;
+  const openingNum = amountValue(opening);
   const [openSave, setOpenSave] = useState<SaveState>(IDLE);
   const [accSave, setAccSave] = useState<Record<string, SaveState>>({});
 
@@ -354,12 +355,10 @@ export function SettingsView({
           />
         </div>
         <div className="bq-field">
-          <input
+          <AmountInput
             className="bq-input bq-grow-1"
             value={opening}
-            onChange={(e) => setOpening(toWesternDigits(e.target.value).replace(/[^\d\s]/g, ""))}
-            inputMode="numeric"
-            dir="ltr"
+            onChange={setOpening}
             aria-label="الرصيد المُرحَّل بالأوقية"
             aria-describedby="bq-open-note"
             disabled={!admin}

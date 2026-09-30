@@ -2,6 +2,7 @@
 // «التبرعات» (owner pick B): voluntary donations (تبرع) and fixed shares (لوحة). A لوحة page shows
 // ✓ / لم يدفع بعد / معفى per member; only «مسؤول» creates, closes, exempts or changes a share.
 // Analytics (plan §10): counts and percentages, no names.
+import { AmountInput, amountValue } from "@/components/app/amount-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -11,7 +12,6 @@ import { memberCount } from "@/components/app/derive";
 import { DateField } from "@/components/app/date-field";
 import { sendOnce, useOnceId } from "@/components/app/once-id";
 import { failure } from "@/lib/data/errors";
-import { parseAmount, toWesternDigits } from "@/lib/money";
 import {
   Avatar,
   Back,
@@ -68,7 +68,7 @@ function Err({ err }: { err: string }) {
     </p>
   ) : null;
 }
-const amountOf = (s: string) => Math.round(parseAmount(toWesternDigits(s)) ?? 0);
+const amountOf = amountValue;
 
 /* ───────── the list ───────── */
 export function CampaignsScreen() {
@@ -584,12 +584,7 @@ function ShareSheet({
         <>
           <label className="pa-field">
             <span>نصيبه بالأوقية القديمة</span>
-            <input
-              inputMode="numeric"
-              dir="ltr"
-              value={amt}
-              onChange={(e) => setAmt(toWesternDigits(e.target.value))}
-            />
+            <AmountInput value={amt} onChange={setAmt} />
           </label>
           <button
             type="button"
@@ -721,13 +716,7 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
       </label>
       <label className="pa-field">
         <span>{twoAmounts ? "المبلغ على عضو الفئة أ" : "المبلغ على كل عضو"}</span>
-        <input
-          inputMode="numeric"
-          dir="ltr"
-          value={amt}
-          onChange={(e) => setAmt(toWesternDigits(e.target.value))}
-          placeholder="بالأوقية القديمة"
-        />
+        <AmountInput value={amt} onChange={setAmt} placeholder="بالأوقية القديمة" />
       </label>
       <label className="pa-check">
         <input
@@ -740,12 +729,7 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
       {twoAmounts && (
         <label className="pa-field">
           <span>المبلغ على عضو الفئة ب</span>
-          <input
-            inputMode="numeric"
-            dir="ltr"
-            value={amtB}
-            onChange={(e) => setAmtB(toWesternDigits(e.target.value))}
-          />
+          <AmountInput value={amtB} onChange={setAmtB} />
         </label>
       )}
       <p className="pa-label">على من؟</p>
