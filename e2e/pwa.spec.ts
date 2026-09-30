@@ -16,17 +16,6 @@ async function waitForServiceWorker(page: Page) {
   });
 }
 
-/**
- * On a first visit the page is saved for offline only after the worker takes control AND the
- * browser is idle (SaveVisitedPages); until then offline shows /offline.html, by design.
- */
-async function waitForSaved(page: Page, path: string) {
-  await expect
-    .poll(() =>
-      page.evaluate(async (p) => !!(await (await caches.open("pages-v2")).match(p)), path),
-    )
-    .toBe(true);
-}
 
 test("manifest is valid and the app is installable", async ({ page, request }) => {
   const res = await request.get("/manifest.webmanifest");

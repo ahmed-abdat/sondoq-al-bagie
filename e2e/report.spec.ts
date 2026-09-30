@@ -15,22 +15,9 @@ type SharedFile = {
 };
 type Win = { __opened: string[]; __printed: number; __shared: SharedFile[]; __text: string };
 
-const heading = (page: Page) => page.getByRole("heading", { level: 1, name: /تقرير صندوق/ });
 const win = <K extends keyof Win>(page: Page, k: K): Promise<Win[K]> =>
   page.evaluate((key) => (window as unknown as Win)[key], k) as Promise<Win[K]>;
 
-async function waitForServiceWorker(page: Page) {
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
-    if (!navigator.serviceWorker.controller) {
-      await new Promise<void>((resolve) =>
-        navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), {
-          once: true,
-        }),
-      );
-    }
-  });
-}
 
 /** A phone that shares files: record what reaches the share sheet. */
 async function shareSheet(page: Page) {
