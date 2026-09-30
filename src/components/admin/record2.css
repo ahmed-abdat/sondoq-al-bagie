@@ -1,0 +1,344 @@
+/* PROTOTYPE round 2: one transfer, several rows */
+.r2 {
+  gap: 14px;
+}
+.r2-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.r2-line {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-block: 12px;
+  box-shadow: inset 0 -1px 0 rgba(20, 32, 26, 0.08);
+}
+.r2-line:first-child {
+  padding-block-start: 4px;
+}
+.r2-line-h {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.r2-line-amt {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+}
+.r2-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-inline-end: -8px;
+  border-radius: 999px;
+  color: var(--muted);
+}
+@media (hover: hover) and (pointer: fine) {
+  .r2-x:hover {
+    background: var(--n1);
+  }
+}
+.r2-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-inline-start: 56px;
+}
+.r2-modes .pa-chip {
+  min-height: 44px;
+  padding-inline: 14px;
+  font-size: 14px;
+}
+.r2-months {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.r2-months button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  border-radius: 14px;
+  background: var(--n1);
+  font-size: 14px;
+  font-weight: 600;
+}
+.r2-months button b {
+  height: 20px;
+  font-size: 17px;
+  color: var(--g8);
+}
+.r2-months button.on {
+  background: var(--paper);
+  box-shadow: inset 0 0 0 2px var(--g7);
+}
+.r2-months button:disabled {
+  background: transparent;
+  color: var(--muted);
+}
+.r2-months button:disabled b {
+  font-size: 13px;
+  color: var(--muted);
+}
+.r2-rel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.r2-rel-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.r2-rel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 6px 14px 6px 16px;
+  border-radius: 18px;
+  background: var(--g1);
+  color: var(--g9);
+  text-align: start;
+  font-weight: 600;
+  font-size: 15px;
+}
+.r2-rel-chip span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+.r2-rel-chip small {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--g8);
+}
+.r2-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.r2-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  margin-inline: -4px;
+  border-radius: var(--r-lg);
+  background: var(--g0);
+}
+.r2-picker .pa-search {
+  background: var(--paper);
+}
+.r2-picker > .pa-btn {
+  align-self: flex-start;
+}
+.r2-suggest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  padding: 10px 14px;
+  border-radius: var(--r-lg);
+  background: var(--g0);
+  text-align: start;
+  color: inherit;
+}
+.r2-suggest > svg {
+  color: var(--g8);
+}
+.r2-how {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.r2-how-b {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 104px;
+  padding: 14px;
+  border-radius: var(--r-card);
+  background: var(--n1);
+  color: var(--ink);
+  text-align: start;
+}
+.r2-how-img {
+  background: var(--g1);
+  color: var(--g9);
+}
+.r2-how-b b {
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+.r2-how-b small {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.r2-how-big {
+  grid-template-columns: 1fr;
+}
+.r2-how-big .r2-how-b {
+  min-height: 88px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 14px;
+  align-items: center;
+}
+.r2-how-big .r2-how-b svg {
+  grid-row: 1 / 3;
+}
+.r2-reading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  margin: 0;
+}
+.r2-paid {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--r-lg);
+  background: var(--g0);
+}
+.r2-ocr {
+  flex: 1;
+  min-width: 160px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 14px;
+}
+.r2-ocr dt {
+  color: var(--muted);
+}
+.r2-ocr dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* sticky total */
+.r2-foot {
+  position: sticky;
+  z-index: 5;
+  bottom: calc(var(--nav) + 8px + var(--safe-b));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-inline: calc(-1 * var(--pa-gut));
+  padding: 10px var(--pa-gut);
+  background: var(--paper);
+  box-shadow: var(--sh-sticky-up);
+}
+@media (min-width: 1024px) {
+  .r2-foot {
+    bottom: 0;
+  }
+}
+.r2-foot-sum {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.r2-foot-sum > span:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.r2-foot-sum small {
+  color: var(--muted);
+  font-size: 14px;
+}
+.r2-foot-sum b {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--g9);
+}
+.r2-check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.r2-check.ok {
+  color: var(--g8);
+}
+.r2-foot .pa-btn {
+  flex: none;
+  max-width: 55%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+}
+.r2-note a {
+  color: var(--g8);
+}
+.r2-done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 700;
+  color: var(--g8);
+}
+.r2-rlines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+}
+.r2-rlines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.r2-rel-chip small {
+  white-space: nowrap;
+}
+.r2-amt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-inline-start: 56px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.r2-amt input {
+  width: 150px;
+  min-height: 48px;
+  padding-inline: 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--n1);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.r2-amt input:focus {
+  outline: 2px solid var(--g7);
+  background: var(--paper);
+}

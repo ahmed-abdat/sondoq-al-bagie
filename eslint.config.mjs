@@ -35,7 +35,11 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ["src/components/app/act.tsx", "src/components/app/source.ts"],
+    files: [
+      "src/components/app/act.tsx",
+      "src/components/app/source.ts",
+      "src/components/app/admin-demo.ts",
+    ],
     rules: { "no-restricted-imports": "off" },
   },
   // Override default ignores of eslint-config-next.

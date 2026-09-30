@@ -5,7 +5,20 @@ import { redirect } from "next/navigation";
 // anonymous public client. With SONDOQ_FIXTURES=1 (demo) it serves the fictional fixtures.
 // This is the ONLY file that imports ./fixtures.
 import * as data from "@/lib/data";
-import type { CommitteeRole, MoneyBundle, ReportData } from "@/lib/data/types";
+import type { CommitteeRole, MoneyBundle, PendingPayment, ReportData } from "@/lib/data/types";
+import type {
+  PCampaign,
+  PData,
+  PExpense,
+  PLog,
+  PMember,
+  POp,
+  PPayment,
+} from "@/components/admin/types";
+import { monthStates } from "@/lib/data/month-code";
+import type { Method } from "@/lib/methods";
+import { currentDueMonth, fmt } from "./derive";
+import { demoAdminData } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
 import * as fx from "./fixtures";
@@ -210,3 +223,195 @@ export const committeeSummary = () =>
   committeeMoney().then((m) => m?.summary ?? toFundSummary(null));
 /** Committee pages: campaigns with their figures. */
 export const moneyCampaigns = () => money().then((m) => m?.campaigns ?? []);
+
+/* ───────────── the committee app's one data model (owner picks, 2026-09-30) ───────────── */
+const ROLE_WORD: Record<string, string> = {
+  admin: "مسؤول",
+  treasurer: "عضو اللجنة",
+  deputy: "عضو اللجنة",
+  committee: "عضو اللجنة",
+};
+const monthOf = (iso: string) => Number(iso.slice(5, 7));
+
+/** Everything the committee screens show, from the committee's own reads (demo: fixtures).
+ *  Levies (m30) and the activity log (m29) are not live yet: empty lists, the UI hides them. */
+export async function adminData(): Promise<PData> {
+  if (usingFixtures) return demoAdminData();
+  const s = await requireCommittee("/committee");
+  const t = today();
+  const year = t.getUTCFullYear();
+  const [admin, rows, prices, pendingRaw, recentRaw, m, exps, accounts, users, info] =
+    await Promise.all([
+      membersAdmin(),
+      memberRows(year),
+      groupPrices(year),
+      pendingPayments(),
+      recentPayments(),
+      money(),
+      expensesAdmin(),
+      fundAccountsAdmin(),
+      committeeAccounts(),
+      fundInfo(),
+    ]);
+  const due = currentDueMonth(t, info.graceDays);
+  const codeOf = new Map(rows.map((r) => [r.memberId, r.months]));
+  const members: PMember[] = admin.map((a) => {
+    const st = monthStates(codeOf.get(a.memberId) ?? "NNNNNNNNNNNN");
+    const at = (k: string) => st.flatMap((x, i) => (x === k ? [i + 1] : []));
+    return {
+      id: a.memberId,
+      ref: a.memberRef,
+      group: a.listCode as "A" | "B",
+      no: a.number,
+      name: a.fullName,
+      phone: a.phone,
+      status: a.status,
+      fee: prices[a.groupCode] ?? 0,
+      paid: at("paid"),
+      owed: at("late"),
+      notOwed: at("not_owed"),
+      lastReminded: null,
+    };
+  });
+  const toPay = (p: PendingPayment): PPayment => {
+    const lines = new Map<string, PPayment["lines"][number]>();
+    for (const x of p.allocations) {
+      if (x.kind !== "months") continue;
+      const ref = `${x.listCode}-${x.number}`;
+      const l = lines.get(ref) ?? { ref, name: x.fullName, months: [] };
+      l.months.push(x.month);
+      lines.set(ref, l);
+    }
+    const gift = p.allocations.find((x) => x.kind === "campaign");
+    return {
+      id: p.id,
+      kind: lines.size ? "fees" : "gift",
+      status:
+        p.status === "pending" ? "pending" : p.status === "cancelled" ? "cancelled" : "confirmed",
+      payer: p.payerName,
+      method: p.method as Method,
+      amount: p.amount,
+      at: p.createdAt,
+      by: p.createdByName ?? "",
+      txn: p.txnRef,
+      receiptNo: p.receiptNo,
+      lines: [...lines.values()],
+      ...(gift && gift.kind === "campaign" ? { campaign: gift.campaignId } : {}),
+    };
+  };
+  const pending = pendingRaw.map(toPay);
+  const recent = recentRaw.map(toPay);
+  const expenses: PExpense[] = exps
+    .filter((e) => !e.cancelledAt)
+    .map((e) => ({
+      id: e.id,
+      at: e.spentOn,
+      category: e.category as PExpense["category"],
+      note: e.note ?? "",
+      amount: e.amount,
+      campaign: e.campaignId,
+    }));
+  const campaignsRaw = m?.campaigns ?? [];
+  const gifts = await Promise.all(
+    campaignsRaw.map((c) => data.getMoneyContributions(c.campaignId, 100).catch(() => null)),
+  );
+  const campaigns: PCampaign[] = campaignsRaw.map((c, i) => ({
+    id: c.campaignId,
+    title: c.title,
+    purpose: c.purpose ?? "",
+    target: c.targetAmount ?? 0,
+    startedOn: "",
+    deadline: c.deadline,
+    status: c.status === "open" ? "open" : "closed",
+    collected: c.collected,
+    spent: c.spent,
+    gifts: (gifts[i] ?? []).map((g) => ({
+      name: g.contributorName,
+      ref: null,
+      amount: g.amount,
+      at: g.at,
+      method: "cash" as Method,
+    })),
+    spends: expenses
+      .filter((e) => e.campaign === c.campaignId)
+      .map((e) => ({ note: e.note, amount: e.amount, at: e.at })),
+  }));
+  const ops: POp[] = [
+    ...recent
+      .filter((p) => p.status === "confirmed")
+      .map((p): POp => ({
+        t: p.kind === "gift" ? "gift" : "pay",
+        id: p.id,
+        at: p.at,
+        title: p.payer,
+        sub: p.kind === "gift" ? "مساهمة" : "رسوم",
+        amount: p.amount,
+      })),
+    ...expenses.map((e): POp => ({
+      t: "exp",
+      id: e.id,
+      at: `${e.at}T12:00:00Z`,
+      title: e.note,
+      sub: e.campaign ? "مصروف حملة" : "مصروف",
+      amount: e.amount,
+    })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
+  // until «سجل العمليات» (m29): who recorded each payment, from the payments themselves
+  const log: PLog[] = recentRaw
+    .map((p): PLog => ({
+      who: p.createdByName ?? "اللجنة",
+      what:
+        p.status === "cancelled"
+          ? `ألغى دفعة ${p.payerName} (${fmt(p.amount)} أوقية)${p.cancelReason ? `. السبب: ${p.cancelReason}` : ""}`
+          : `سجّل دفعة ${p.payerName}: ${fmt(p.amount)} أوقية`,
+      at: p.decidedAt && p.status === "cancelled" ? p.decidedAt : p.createdAt,
+      kind: p.status === "cancelled" ? "no" : "pay",
+    }))
+    .sort((a, b) => b.at.localeCompare(a.at));
+  const sum = m?.summary ?? toFundSummary(null);
+  const month = t.getUTCMonth() + 1;
+  const spentIn = (k: number) =>
+    expenses
+      .filter((e) => !e.campaign && Number(e.at.slice(0, 4)) === year && monthOf(e.at) === k)
+      .reduce((n, e) => n + e.amount, 0);
+  const monthly = (m?.monthly ?? []).map((x) => ({
+    month: x.month,
+    collected: x.collected,
+    expected: x.expected,
+    spent: spentIn(x.month),
+  }));
+  return {
+    today: t.toISOString().slice(0, 10),
+    year,
+    due,
+    me: { name: s.displayName, role: ROLE_WORD[s.role] ?? "عضو اللجنة" },
+    balance: sum.balance,
+    opening: sum.openingBalance,
+    collectedYear: sum.collectedThisYear,
+    spentYear: sum.spentThisYear,
+    monthIn: monthly.find((x) => x.month === month)?.collected ?? 0,
+    monthOut: spentIn(month),
+    monthly,
+    members,
+    pending,
+    recent,
+    ops,
+    campaigns,
+    expenses,
+    accounts: accounts.map((a) => ({
+      method: a.method as Method,
+      number: a.accountNumber,
+      holder: a.holderName,
+      active: a.active,
+    })),
+    users: users.map((u) => ({
+      name: u.displayName,
+      role: ROLE_WORD[u.role] ?? "عضو اللجنة",
+      login: u.login,
+      last: u.lastSignInAt,
+    })),
+    prices,
+    levies: [],
+    log,
+  };
+}
