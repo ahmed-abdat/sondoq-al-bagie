@@ -236,8 +236,12 @@ select tests.login('deputy');
 
 /* ───────────── cancel frees the month ───────────── */
 
+select tests.login('admin');
 select tests.throws($$select public.cancel_payment(tests.id('p3'), ' ')$$, 'reason_required', 'cancel needs a reason');
+select tests.login('deputy');
+select tests.login('admin');
 select public.cancel_payment(tests.id('p3'), 'wrong member');
+select tests.login('deputy');
 select tests.ok((select released_at is not null from public.payment_months where payment_id = tests.id('p3')), 'cancelled payment releases its month');
 select tests.login('committee');
 select tests.ok((select tests.pay('p4', 1000, jsonb_build_array(tests.month('E', -2, 1000))) ->> 'status') = 'confirmed',
@@ -378,18 +382,19 @@ select tests.set('u1', tests.pay('u1', 1000, jsonb_build_array(tests.month('E', 
 select tests.ok((select allocations -> 0 ->> 'number' from public.payment_queue where id = tests.id('u1')) = '1001',
   'payment queue shows the member number in allocations');
 select tests.ok((select created_by_name from public.payment_queue where id = tests.id('u1')) = 'مشرف', 'queue shows who recorded it');
-select tests.login('deputy');
+select tests.throws($$select public.undo_payment(tests.id('u1'))$$, 'not_admin', 'the quick undo is «مسؤول» only (m29)');
+select tests.login('admin');
 select tests.throws($$select public.undo_payment(tests.id('u1'))$$, 'undo_expired', 'only the recorder can undo');
-select tests.login('committee');
-select public.undo_payment(tests.id('u1'));
-select tests.ok((select status from public.payments where id = tests.id('u1')) = 'cancelled', 'undo cancels the payment');
-select tests.ok((select cancel_reason from public.payments where id = tests.id('u1')) = 'undo', 'undo reason recorded');
-select public.undo_payment(tests.id('u1'));   -- repeat is a no-op
-select tests.login('deputy');
+select public.cancel_payment(tests.id('u1'), 'undo');
+select tests.ok((select status from public.payments where id = tests.id('u1')) = 'cancelled', 'a cancelled payment');
+select tests.ok((select cancel_reason from public.payments where id = tests.id('u1')) = 'undo', 'with its reason');
+select public.undo_payment(tests.id('u1'));   -- a cancelled payment: no-op
 select tests.set('u2', (public.record_payment(gen_random_uuid(), 'دافع', 'cash', 1000, current_date,
   jsonb_build_array(tests.month('E', 0, 1000))) ->> 'id'));
-select tests.ok((select status from public.payments where id = tests.id('u2')) = 'confirmed', 'deputy payment confirmed');
+select tests.ok((select status from public.payments where id = tests.id('u2')) = 'confirmed', 'admin payment confirmed');
 select public.undo_payment(tests.id('u2'));
+select tests.ok((select status = 'cancelled' and cancel_reason = 'undo' from public.payments where id = tests.id('u2')),
+  'the recorder («مسؤول») undoes his own payment at once');
 select tests.ok(not exists (select 1 from public.payment_months where payment_id = tests.id('u2') and released_at is null),
   'undo of a confirmed payment releases its months');
 select tests.login('server');
@@ -429,7 +434,9 @@ select tests.ok((select receipt_code from public.activity_feed where payment_id 
 select tests.login('public');
 select tests.throws('select * from public.receipt_counters', '42501', 'anon cannot read receipt counters');
 select tests.login('treasurer');
+select tests.login('admin');
 select public.cancel_payment(tests.id('r1'), 'خطأ في التسجيل');
+select tests.login('treasurer');
 select tests.login('server');
 select tests.ok((select status = 'cancelled' and receipt_code = tests.get('r1_code') from public.payments where id = tests.id('r1')),
   'a cancelled payment keeps its receipt code');
@@ -456,18 +463,24 @@ select tests.ok(not exists (select 1 from public.payments where method = 'paper'
 /* ───────────── M6: campaigns ───────────── */
 
 select tests.login('former');
-select tests.throws($$select public.create_campaign(gen_random_uuid(), 'حملة')$$, 'not_allowed', 'an inactive account cannot open a campaign');
+select tests.throws($$select public.create_campaign(gen_random_uuid(), 'حملة')$$, 'not_admin', 'an inactive account cannot open a campaign');
 select tests.login('treasurer');
+select tests.login('admin');
 select tests.set('c6', public.create_campaign('00000000-0000-0000-0000-00000000c006', 'ترميم', 'fixed', 'السقف', 20000, null,
   jsonb_build_array(jsonb_build_object('member_id', tests.id('E'), 'expected_amount', 3000))));
+select tests.login('treasurer');
+select tests.login('admin');
 select public.create_campaign('00000000-0000-0000-0000-00000000c006', 'ترميم');   -- retry is a no-op
 select tests.ok((select count(*) from public.campaigns where id = tests.id('c6')) = 1, 'retried create adds nothing');
+select tests.login('treasurer');
 -- one transfer pays a month and the campaign
 select tests.ok((public.record_payment(gen_random_uuid(), 'دافع', 'bankily', 4000, current_date,
   jsonb_build_array(tests.month('E', 1, 1000),
                     jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', tests.id('E'), 'amount', 3000)))
   ->> 'status') = 'confirmed', 'one payment splits a month and a campaign');
+select tests.login('admin');
 select public.update_campaign(tests.id('c6'), 'ترميم المسجد', 'السقف', 25000, current_date + 30);
+select tests.login('treasurer');
 select public.record_expense(gen_random_uuid(), current_date, 'other', 1000, 'مواد', tests.id('c6'));
 select tests.login('public');
 select tests.login('server');
@@ -479,19 +492,29 @@ select tests.login('public');
 select tests.login('committee');
 select tests.pend('cp6', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)));
 select tests.login('treasurer');
+select tests.login('admin');
 select tests.throws($$select public.close_campaign(tests.id('c6'), 'to_fund')$$, 'campaign_has_pending',
   'a campaign with a pending contribution cannot be closed');
+select tests.login('treasurer');
 select public.reject_payment(tests.id('cp6'), 'اختبار');
+select tests.login('admin');
 select tests.ok(public.close_campaign(tests.id('c6'), 'to_fund') = 2000, 'closing moves the surplus to the fund');
+select tests.login('treasurer');
+select tests.login('admin');
 select tests.ok(public.close_campaign(tests.id('c6'), 'to_fund') = 0, 'closing twice is a no-op');
+select tests.login('treasurer');
+select tests.login('admin');
 select tests.throws($$select public.update_campaign(tests.id('c6'), 'x', null, null, null)$$, 'campaign_closed', 'closed campaigns are not edited');
+select tests.login('treasurer');
 select tests.throws($$select public.record_payment(gen_random_uuid(), 'دافع', 'cash', 500, current_date,
   jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)))$$,
   'campaign_closed', 'no contributions after closing');
 select tests.throws($$select public.record_expense(gen_random_uuid(), current_date, 'other', 100, 'بعد الإغلاق', tests.id('c6'))$$,
   'campaign_closed', 'no expenses on a closed campaign (audit C2)');
 -- a contribution still pending when a campaign closed (older data, or a race) cannot be confirmed (audit C1)
+select tests.login('admin');
 select tests.set('c7', public.create_campaign('00000000-0000-0000-0000-00000000c007', 'حملة مغلقة'));
+select tests.login('treasurer');
 select tests.login('committee');
 select tests.pend('cp7', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c7'), 'member_id', null, 'amount', 500)));
 select tests.login('server');
@@ -507,10 +530,14 @@ select tests.ok((select balance from public.campaign_progress where campaign_id 
 select tests.login('public');
 -- owner decision: closing always moves the leftover to the fund, even when an old client sends 'keep'
 select tests.login('treasurer');
+select tests.login('admin');
 select tests.set('c8', public.create_campaign('00000000-0000-0000-0000-00000000c008', 'حملة ثامنة'));
+select tests.login('treasurer');
 select public.record_payment(gen_random_uuid(), 'متبرع', 'cash', 700, current_date,
   jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c8'), 'member_id', null, 'amount', 700)));
+select tests.login('admin');
 select tests.ok(public.close_campaign(tests.id('c8'), 'keep') = 700, 'closing with keep still moves the leftover to the fund');
+select tests.login('treasurer');
 select tests.ok((select surplus_action from public.campaigns where id = tests.id('c8')) = 'to_fund', 'and is stored as to_fund');
 
 select tests.login('public');
@@ -750,7 +777,7 @@ select tests.ok((select state from public.member_months where member_id = tests.
                  and year = extract(year from tests.m(-1)) and month = extract(month from tests.m(-1))) = 'not_owed',
   'a wrong «غادر» makes the month not owed');
 select tests.login('former');
-select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'not_committee', 'an inactive account cannot undo a period');
+select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'not_admin', 'an inactive account cannot undo a period');
 select tests.login('admin');
 select tests.throws($$select public.cancel_last_period(tests.id('D'), '  ')$$, 'reason_required', 'undo needs a reason');
 select public.cancel_last_period(tests.id('D'), 'خطأ في الإدخال');
@@ -854,7 +881,9 @@ select tests.ok((select credit from app_private.member_credit() where member_id 
 select tests.login('treasurer');
 select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'credit', 1000, current_date,
   jsonb_build_array(tests.month('F', -1, 1000)))$$, 'invalid_input', 'credit payments only through apply_credit');
+select tests.login('admin');
 select public.cancel_payment(tests.id('cr1'), 'خطأ');
+select tests.login('treasurer');
 select tests.login('server');
 select tests.ok((select credit from app_private.member_credit() where member_id = tests.id('F')) = 2500
                 and not exists (select 1 from public.payment_months where member_id = tests.id('F') and released_at is null),
@@ -1004,7 +1033,9 @@ select tests.ok((select bool_and(submitted_by_member is null) from public.paymen
 /* ───────────── M29: one committee level, activity log, statement, push kinds ───────────── */
 
 select tests.login('committee');
+select tests.login('admin');
 select tests.set('m29m', public.add_member(9101, 'عضو م٢٩', 'A', tests.m(-2)));
+select tests.login('committee');
 select tests.ok((select r ->> 'status' = 'confirmed' and r ->> 'receipt_code' is not null
                  from (select tests.pay('m29p', 1000, jsonb_build_array(tests.month('m29m', -2, 1000))) r) x),
   'any committee member records: confirmed at once, with a receipt');
@@ -1065,9 +1096,13 @@ create function tests.levy(p_member text, p_amount integer, p_campaign text defa
 $$;
 grant execute on function tests.levy(text, integer, text) to authenticated;
 select tests.login('committee');
+select tests.login('admin');
 select tests.set('L1B', public.add_member(9102, 'عضو ب', 'B', tests.m(-1)));
+select tests.login('committee');
+select tests.login('admin');
 select tests.set('L1', public.create_levy('00000000-0000-4000-8000-0000000000e1', 'مساعدة مريض', 2000,
   array[tests.id('E'), tests.id('K'), tests.id('T'), tests.id('L1B'), tests.id('E')], 'علاج', null, 1000)::text);
+select tests.login('committee');
 select tests.ok((select count(*) = 4 and bool_and(left_amount = expected) from public.levy_shares where campaign_id = tests.id('L1')),
   'a levy puts one share on each chosen member (duplicates ignored)');
 select tests.ok((select expected from public.levy_shares where campaign_id = tests.id('L1') and member_id = tests.id('L1B')) = 1000
@@ -1084,48 +1119,100 @@ select tests.throws($$select tests.levy('K', 3000)$$, 'levy_full_share', 'nor mo
 select tests.throws($$select tests.levy('m29m', 2000)$$, 'not_levy_member', 'only the levy''s members pay a share');
 select tests.throws($$select tests.levy(null, 2000)$$, 'levy_member_required', 'a share is paid for a member');
 
+select tests.login('admin');
 select tests.throws($$select public.exempt_levy_share(tests.id('L1'), tests.id('K'), ' ')$$, 'reason_required', 'exempting needs a reason');
+select tests.login('committee');
+select tests.login('admin');
 select public.exempt_levy_share(tests.id('L1'), tests.id('K'), 'ظروف صعبة');
+select tests.login('committee');
 select tests.ok((select exempt and left_amount = 0 from public.levy_shares where campaign_id = tests.id('L1') and member_id = tests.id('K')),
   'an exempt share owes nothing');
 select tests.throws($$select tests.levy('K', 2000)$$, 'levy_exempt', 'an exempt share cannot be paid');
+select tests.login('admin');
 select tests.throws($$select public.exempt_levy_share(tests.id('L1'), tests.id('E'), 'x')$$, 'levy_share_paid', 'a paid share cannot be exempted');
+select tests.login('committee');
 select tests.ok(exists (select 1 from public.activity_log(null, 20) where action = 'exempt_levy_share' and reason = 'ظروف صعبة'),
   'the exemption is in «سجل العمليات» with its reason');
+select tests.login('admin');
 select public.unexempt_levy_share(tests.id('L1'), tests.id('K'));
+select tests.login('committee');
 select tests.ok((select not exempt and left_amount = 2000 from public.levy_shares where campaign_id = tests.id('L1') and member_id = tests.id('K')),
   'taking the exemption back makes the share owed again');
 
+select tests.login('admin');
 select public.set_levy_share(tests.id('L1'), tests.id('T'), 1500);
+select tests.login('committee');
 select tests.ok((tests.levy('T', 1500) ->> 'status') = 'confirmed', 'a per-member share is paid at its own amount');
+select tests.login('admin');
 select tests.throws($$select public.set_levy_share(tests.id('L1'), tests.id('T'), 1000)$$, 'levy_share_paid', 'a paid share keeps its amount');
+select tests.login('committee');
+select tests.login('admin');
 select tests.ok(public.add_levy_members(tests.id('L1'), array[tests.id('K'), tests.id('m29m')], 2000) = 1,
   'adding members keeps the ones already in');
+select tests.login('committee');
 
 select tests.ok((select levy_left = 2000 and levies -> 0 ->> 'title' = 'مساعدة مريض' from public.arrears where member_id = tests.id('K')),
   'unpaid shares are arrears');
 select tests.ok((select jsonb_array_length(s -> 'levies') = 1 and (s -> 'owed' ->> 'levy_left')::int = 2000
                  from (select public.member_statement(tests.id('K'))) x(s)), 'and in the member statement');
 
+select tests.login('admin');
 select public.close_campaign(tests.id('L1'), 'to_fund');
+select tests.login('committee');
 select tests.set('tr30', (select count(*)::text from public.transfers where from_campaign_id = tests.id('L1')));
 select tests.ok((tests.levy('K', 2000) ->> 'status') = 'confirmed', 'a closed levy still takes a late share');
 select tests.ok((select count(*) from public.transfers where from_campaign_id = tests.id('L1')) = tests.get('tr30')::int + 1
                 and exists (select 1 from public.transfers where from_campaign_id = tests.id('L1') and amount = 2000)
                 and (select paid = 2000 from public.levy_shares where campaign_id = tests.id('L1') and member_id = tests.id('K')),
   'the late share goes to the main fund, still recorded against the levy');
+select tests.login('admin');
 select tests.throws($$select public.add_levy_members(tests.id('L1'), array[tests.id('G')], 2000)$$, 'campaign_closed',
   'no new members on a closed levy');
+select tests.login('committee');
 select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 500, current_date,
   jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)))$$,
   'campaign_closed', 'a closed donation campaign still takes nothing');
 
 select tests.login('former');
 select tests.ok((select count(*) from public.levy_shares) = 0, 'an inactive account sees no shares');
-select tests.throws($$select public.create_levy(gen_random_uuid(), 'x', 100, array[tests.id('E')])$$, 'not_committee',
+select tests.throws($$select public.create_levy(gen_random_uuid(), 'x', 100, array[tests.id('E')])$$, 'not_admin',
   'nor creates a levy');
 select tests.login('public');
 select tests.throws('select * from public.levy_shares', '42501', 'strangers cannot read levy shares');
+
+/* ───────────── M29/M30: what only «مسؤول» may do (owner 2026-09-30) ───────────── */
+
+select tests.login('committee');
+create temp table admin_only (sql text) on commit drop;
+insert into admin_only values
+  ($$select public.cancel_payment(tests.id('m29p'), 'سبب')$$),
+  ($$select public.cancel_expense(gen_random_uuid(), 'سبب')$$),
+  ($$select public.undo_payment(tests.id('m29p'))$$),
+  ($$select public.create_campaign(gen_random_uuid(), 'حملة')$$),
+  ($$select public.update_campaign(tests.id('c6'), 'x', null, null, null)$$),
+  ($$select public.close_campaign(tests.id('c6'), 'to_fund')$$),
+  ($$select public.start_handover(gen_random_uuid())$$),
+  ($$select public.add_member(9199, 'x', 'A', current_date)$$),
+  ($$select public.change_member_status(tests.id('m29m'), current_date, 'exempt', 'سبب')$$),
+  ($$select public.change_member_group(tests.id('m29m'), current_date, 'B', 'سبب')$$),
+  ($$select public.cancel_last_period(tests.id('m29m'), 'سبب')$$),
+  ($$select public.create_levy(gen_random_uuid(), 'x', 100, array[tests.id('E')])$$),
+  ($$select public.add_levy_members(tests.id('L1'), array[tests.id('E')], 100)$$),
+  ($$select public.set_levy_share(tests.id('L1'), tests.id('E'), 100)$$),
+  ($$select public.exempt_levy_share(tests.id('L1'), tests.id('E'), 'سبب')$$),
+  ($$select public.unexempt_levy_share(tests.id('L1'), tests.id('E'))$$),
+  ($$select public.set_committee_active('00000000-0000-0000-0000-0000000000a3', false)$$);
+grant select on admin_only to authenticated;
+select tests.throws(sql, 'not_admin', 'committee refused: ' || left(sql, 40)) from admin_only;
+select tests.ok((tests.pay('m29q', 1000, jsonb_build_array(tests.month('m29m', 0, 1000))) ->> 'status') = 'confirmed'
+                and public.record_expense(gen_random_uuid(), current_date, 'other', 100, 'لوازم') is not null,
+  'every committee member records payments and expenses');
+select public.update_member(tests.id('m29m'), 'عضو م٢٩ معدل', '+22200009101', null, 9101);
+select tests.ok((select full_name from public.members where id = tests.id('m29m')) = 'عضو م٢٩ معدل',
+  'every committee member edits member details');
+select tests.login('admin');
+select public.cancel_payment(tests.id('m29q'), 'خطأ');
+select tests.ok((select status from public.payments where id = tests.id('m29q')) = 'cancelled', '«مسؤول» cancels a payment');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
@@ -1161,26 +1248,43 @@ select tests.throws($$insert into public.terms (number, started_on, opening_bala
   'only one open term');
 
 select tests.login('former');
-select tests.throws($$select public.start_handover(gen_random_uuid())$$, 'not_allowed', 'an inactive account cannot start a handover');
+select tests.throws($$select public.start_handover(gen_random_uuid())$$, 'not_admin', 'an inactive account cannot start a handover');
 select tests.login('treasurer');
+select tests.login('admin');
 select tests.set('h1', public.start_handover('00000000-0000-0000-0000-0000000000d1', 'نهاية الدورة'));
+select tests.login('treasurer');
+select tests.login('admin');
 select tests.throws($$select public.start_handover(gen_random_uuid())$$, 'handover_in_progress', 'one handover at a time');
+select tests.login('treasurer');
+select tests.login('admin');
 select tests.throws($$select public.submit_handover(tests.id('h1'))$$, 'counted_required', 'cannot submit without counted money');
+select tests.login('treasurer');
 select tests.set('bal8', app_private.current_balance());
+select tests.login('admin');
 select public.update_handover_draft(tests.id('h1'),
   jsonb_build_array(jsonb_build_object('label', 'نقداً', 'method', 'cash', 'amount', 700),
                     jsonb_build_object('label', 'بنكيلي', 'method', 'bankily', 'amount', tests.get('bal8')::int - 1200)),
   array['00000000-0000-0000-0000-0000000000a3'::uuid]);
+select tests.login('treasurer');
+select tests.login('admin');
 select tests.throws($$select public.update_handover_draft(tests.id('h1'), '[{"label":"x","amount":-5}]'::jsonb)$$, 'invalid_input',
   'negative counted amounts are refused');
+select tests.login('treasurer');
+select tests.login('admin');
 select public.submit_handover(tests.id('h1'));
+select tests.login('treasurer');
 select tests.throws($$select public.accept_handover(tests.id('h1'))$$, 'not_admin', 'the treasurer cannot accept');
 -- money confirmed between submit and accept is fund activity, not a handover difference (audit H1)
 select tests.pay('hp', 1000, jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 1000)));
 select tests.login('deputy');
 select public.confirm_payment(tests.id('hp'));
 select tests.login('admin');
-select tests.ok(public.accept_handover(tests.id('h1'), 'الدورة الثانية') = 2, 'the incoming admin accepts: term 2 opens');
+select tests.throws($$select public.accept_handover(tests.id('h1'))$$, 'same_person', 'the «مسؤول» who started it cannot accept it');
+-- m29: start/submit are «مسؤول» only too, so accepting needs a second «مسؤول» (the incoming one)
+select tests.login('server');
+select public.set_committee_member('00000000-0000-0000-0000-0000000000a2', 'الأمين', 'admin', tests.id('T'));
+select tests.login('treasurer');
+select tests.ok(public.accept_handover(tests.id('h1'), 'الدورة الثانية') = 2, 'the incoming «مسؤول» accepts: term 2 opens');
 select tests.ok(public.accept_handover(tests.id('h1')) = 2, 'accepting twice is a no-op');
 select tests.login('public');
 select tests.login('server');
@@ -1196,14 +1300,14 @@ select tests.ok((select amount from public.activity_feed where kind = 'balance_a
 select tests.login('public');
 select tests.login('server');
 select tests.ok((select difference from public.handovers where id = tests.id('h1')) = -500, 'difference recorded');
-select tests.ok((select array_agg(display_name order by display_name) from public.committee where active) = array['المدير', 'النائب'],
-  'only the carried-over deputy and the accepting admin stay active');
+select tests.ok((select array_agg(display_name order by display_name) from public.committee where active) = array['الأمين', 'النائب'],
+  'only the carried-over deputy and the incoming «مسؤول» stay active');
 
-select tests.login('admin');
+select tests.login('treasurer');
 select tests.set('h2', public.start_handover(gen_random_uuid()));
 select public.update_handover_draft(tests.id('h2'), '[{"label":"نقداً","amount":10}]'::jsonb);
 select public.submit_handover(tests.id('h2'));
-select tests.throws($$select public.accept_handover(tests.id('h2'))$$, 'same_person', 'the admin who submitted cannot also accept');
+select tests.throws($$select public.accept_handover(tests.id('h2'))$$, 'same_person', 'the «مسؤول» who submitted cannot also accept');
 select public.cancel_handover(tests.id('h2'), 'خطأ');
 select tests.ok((select status from public.handovers where id = tests.id('h2')) = 'cancelled', 'a handover can be cancelled with a reason');
 

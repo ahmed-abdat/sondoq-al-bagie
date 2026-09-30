@@ -4,9 +4,9 @@
 --
 -- A levy is a campaign of kind 'levy': a fixed share set on chosen members (one amount, an
 -- optional group-B amount, or a per-member override). Each unpaid share is debt until paid:
--- it shows in arrears and the member statement. A share is paid in full, in one payment. Any
--- committee member creates a levy, adds members, changes a share or exempts one (reason required,
--- audited). A closed levy still takes late share payments; that money goes to the main fund at once
+-- it shows in arrears and the member statement. A share is paid in full, in one payment (any
+-- committee member records it). «مسؤول» creates a levy, adds members, changes a share or exempts one
+-- (reason required, audited). A closed levy still takes late share payments; that money goes to the main fund at once
 -- (a transfer), still recorded against the levy.
 -- Undo: supabase/rollback/m30_revert.sql.
 -- ════════════════════════════════════════════════════════════════════════════════════════
@@ -143,7 +143,7 @@ create function app_private.create_levy(
 ) returns uuid
 language plpgsql security definer set search_path = '' as $$
 begin
-  perform app_private.require_committee();
+  perform app_private.require_admin();
   if exists (select 1 from public.campaigns where id = p_id) then return p_id; end if;   -- retried request
   if btrim(coalesce(p_title, '')) = '' or coalesce(p_amount, 0) <= 0 or p_amount_b <= 0
      or coalesce(cardinality(p_member_ids), 0) = 0 then
@@ -197,7 +197,7 @@ language plpgsql security definer set search_path = '' as $$
 declare
   n integer;
 begin
-  perform app_private.require_committee();
+  perform app_private.require_admin();
   perform app_private.levy_for_change(p_id);
   if coalesce(p_amount, 0) <= 0 or coalesce(cardinality(p_member_ids), 0) = 0 then perform app_private.fail('invalid_input'); end if;
   if exists (select 1 from unnest(p_member_ids) x where not exists (select 1 from public.members m where m.id = x)) then
@@ -215,7 +215,7 @@ end $$;
 create function app_private.set_levy_share(p_id uuid, p_member_id uuid, p_amount integer) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
-  perform app_private.require_committee();
+  perform app_private.require_admin();
   perform app_private.levy_for_change(p_id);
   if coalesce(p_amount, 0) <= 0 then perform app_private.fail('invalid_input'); end if;
   if not exists (select 1 from public.campaign_participants where campaign_id = p_id and member_id = p_member_id) then
@@ -231,7 +231,7 @@ end $$;
 create function app_private.exempt_levy_share(p_id uuid, p_member_id uuid, p_reason text) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
-  perform app_private.require_committee();
+  perform app_private.require_admin();
   if btrim(coalesce(p_reason, '')) = '' then perform app_private.fail('reason_required'); end if;
   if not exists (select 1 from public.campaign_participants cp join public.campaigns c on c.id = cp.campaign_id
                  where cp.campaign_id = p_id and cp.member_id = p_member_id and c.kind = 'levy') then
@@ -246,7 +246,7 @@ end $$;
 create function app_private.unexempt_levy_share(p_id uuid, p_member_id uuid) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
-  perform app_private.require_committee();
+  perform app_private.require_admin();
   if not exists (select 1 from public.campaign_participants cp join public.campaigns c on c.id = cp.campaign_id
                  where cp.campaign_id = p_id and cp.member_id = p_member_id and c.kind = 'levy') then
     perform app_private.fail('not_levy_member');

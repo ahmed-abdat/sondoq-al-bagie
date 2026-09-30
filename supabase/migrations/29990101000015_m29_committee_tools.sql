@@ -2,11 +2,11 @@
 -- M29 · committee tools (owner decisions 2026-09-30, docs/COMMITTEE-ONLY-PLAN.md §7, §8;
 -- supabase/drafts/M29-DESIGN.md).
 --
--- One committee level: every active committee member records, confirms and cancels; a recorded
--- payment is confirmed at once (receipt issued), the own-membership rule is gone, paper records
--- are no longer admin-only, and member, price, settings and fund-account changes need any committee
--- member. «مسؤول» (role admin) keeps only account management and accepting the handover. Roles and
--- data are unchanged.
+-- Two levels (owner 2026-09-30). Every active committee member records payments (confirmed at once,
+-- receipt issued; no own-membership rule; paper included), expenses and credit use, edits member
+-- details, group prices, settings and fund accounts. «مسؤول» (role admin) only: committee accounts,
+-- the handover, member status/group/join month and adding members, cancelling payments/expenses,
+-- campaigns and levies (m30). Roles and data are unchanged.
 -- New reads for the committee: activity_log («سجل العمليات») and member_statement («كشف حساب»).
 -- Push: each subscription chooses the kinds of events it receives.
 -- Undo: supabase/rollback/m29_revert.sql.
@@ -132,77 +132,8 @@ begin
   return jsonb_build_object('id', p_id, 'replay', false, 'pending_overlap', overlap) || public.confirm_payment(p_id);
 end $$;
 
-create or replace function app_private.change_member_status(
-  p_member_id uuid, p_from_month date, p_status public.membership_status, p_reason text, p_group_code text default null
-) returns uuid
-language plpgsql security definer set search_path = '' as $$
-declare
-  cur public.membership_periods;
-  m date := date_trunc('month', p_from_month)::date;
-  gid smallint;
-  pid uuid;
-begin
-  perform app_private.require_committee();
-  if btrim(coalesce(p_reason, '')) = '' then perform app_private.fail('reason_required'); end if;
-  select * into cur from public.membership_periods
-  where member_id = p_member_id and cancelled_at is null and to_month is null for update;
-  if cur.id is null then perform app_private.fail('no_open_period'); end if;
-  if m <= cur.from_month then perform app_private.fail('before_current_period'); end if;
-  if p_group_code is null then gid := cur.group_id;
-  else
-    select id into gid from public.groups where code = p_group_code;
-    if gid is null then perform app_private.fail('unknown_group'); end if;
-  end if;
-  if exists (select 1 from public.payment_months pm where pm.member_id = p_member_id and pm.released_at is null
-             and make_date(pm.year, pm.month, 1) >= m and p_status <> 'active') then
-    perform app_private.fail('months_already_paid_after');
-  end if;
-  if p_status <> 'active' and exists (
-       select 1 from public.payment_allocations a join public.payments p on p.id = a.payment_id
-       where a.member_id = p_member_id and a.kind = 'months' and p.status = 'pending'
-         and make_date(a.year, a.month, 1) >= m) then
-    perform app_private.fail('months_pending_after');
-  end if;
-  perform app_private.set_action('change_member_status');
-  update public.membership_periods set to_month = (m - interval '1 month')::date where id = cur.id;
-  insert into public.membership_periods (member_id, group_id, status, from_month, reason, created_by)
-  values (p_member_id, gid, p_status, m, btrim(p_reason), auth.uid())
-  returning id into pid;
-  return pid;
-end $$;
-
--- Day-to-day member, price, settings and fund-account work: any committee member (was «مسؤول»).
--- The current bodies (pg_get_functiondef at m28) with only require_admin → require_committee.
--- «مسؤول» keeps: set_committee_member / set_committee_active / set_committee_not_member /
--- delete_committee_member, committee_accounts, accept_handover.
-CREATE OR REPLACE FUNCTION app_private.add_member(p_number integer, p_full_name text, p_group_code text, p_from_month date, p_phone text DEFAULT NULL::text, p_note text DEFAULT NULL::text, p_status public.membership_status DEFAULT 'active'::public.membership_status, p_list_code text DEFAULT NULL::text)
- RETURNS uuid
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-declare
-  mid uuid;
-  gid smallint;
-  lst text := upper(coalesce(nullif(btrim(p_list_code), ''), p_group_code));
-begin
-  perform app_private.require_committee();
-  select id into gid from public.groups where code = p_group_code;
-  if gid is null then perform app_private.fail('unknown_group'); end if;
-  if lst !~ '^[A-Z]$' then perform app_private.fail('unknown_list'); end if;
-  if exists (select 1 from public.members where list_code = lst and number = p_number) then
-    perform app_private.fail('number_taken');
-  end if;
-  perform app_private.set_action('add_member');
-  insert into public.members (list_code, number, full_name, phone, note, created_by)
-  values (lst, p_number, btrim(p_full_name), nullif(btrim(p_phone), ''), p_note, auth.uid())
-  returning id into mid;
-  insert into public.membership_periods (member_id, group_id, status, from_month, reason, created_by)
-  values (mid, gid, p_status, date_trunc('month', p_from_month)::date, 'join', auth.uid());
-  return mid;
-end $function$
-;
-
+-- Day-to-day work open to every committee member (was «مسؤول»): member details, group prices,
+-- settings, fund accounts. Current bodies (pg_get_functiondef at m28), require_admin → require_committee.
 CREATE OR REPLACE FUNCTION app_private.update_member(p_member_id uuid, p_full_name text, p_phone text, p_note text, p_number integer DEFAULT NULL::integer)
  RETURNS void
  LANGUAGE plpgsql
@@ -223,93 +154,6 @@ begin
   update public.members set full_name = btrim(p_full_name), phone = nullif(btrim(p_phone), ''), note = p_note,
                             number = coalesce(p_number, number)
   where id = p_member_id;
-end $function$
-;
-
-CREATE OR REPLACE FUNCTION app_private.change_member_group(p_member_id uuid, p_from_month date, p_group_code text, p_reason text DEFAULT 'تغيير المجموعة'::text)
- RETURNS uuid
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-declare
-  cur public.membership_periods;
-begin
-  perform app_private.require_committee();
-  select * into cur from public.membership_periods
-  where member_id = p_member_id and cancelled_at is null and to_month is null;
-  if cur.id is null then perform app_private.fail('no_open_period'); end if;
-  return public.change_member_status(p_member_id, p_from_month, cur.status, p_reason, p_group_code);
-end $function$
-;
-
-CREATE OR REPLACE FUNCTION app_private.set_join_month(p_member_id uuid, p_from_month date, p_reason text)
- RETURNS uuid
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-declare
-  first public.membership_periods;
-  m date := date_trunc('month', p_from_month)::date;
-  pid uuid;
-begin
-  perform app_private.require_committee();
-  if btrim(coalesce(p_reason, '')) = '' then perform app_private.fail('reason_required'); end if;
-  if m is null then perform app_private.fail('invalid_input'); end if;
-  select * into first from public.membership_periods
-  where member_id = p_member_id and cancelled_at is null
-  order by from_month limit 1 for update;
-  if first.id is null then perform app_private.fail('no_open_period'); end if;
-  if m = first.from_month then return first.id; end if;
-  if first.to_month is not null and m > first.to_month then perform app_private.fail('join_month_invalid'); end if;
-  if m > first.from_month and app_private.member_has_months(p_member_id, first.from_month, (m - interval '1 month')::date) then
-    perform app_private.fail('period_has_payments');
-  end if;
-
-  perform app_private.set_action('set_join_month');
-  update public.membership_periods
-  set cancelled_at = now(), cancelled_by = auth.uid(), cancel_reason = btrim(p_reason)
-  where id = first.id;
-  insert into public.membership_periods (member_id, group_id, status, from_month, to_month, reason, created_by)
-  values (p_member_id, first.group_id, first.status, m, first.to_month, first.reason, auth.uid())
-  returning id into pid;
-  return pid;
-end $function$
-;
-
-CREATE OR REPLACE FUNCTION app_private.cancel_last_period(p_member_id uuid, p_reason text)
- RETURNS uuid
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-declare
-  cur public.membership_periods;
-  prev public.membership_periods;
-  pid uuid;
-begin
-  perform app_private.require_committee();
-  if btrim(coalesce(p_reason, '')) = '' then perform app_private.fail('reason_required'); end if;
-  select * into cur from public.membership_periods
-  where member_id = p_member_id and cancelled_at is null and to_month is null for update;
-  if cur.id is null then perform app_private.fail('no_open_period'); end if;
-  select * into prev from public.membership_periods
-  where member_id = p_member_id and cancelled_at is null and to_month = (cur.from_month - interval '1 month')::date
-  for update;
-  if prev.id is null then perform app_private.fail('no_previous_period'); end if;
-  if app_private.member_has_months(p_member_id, cur.from_month, null) then
-    perform app_private.fail('period_has_payments');
-  end if;
-
-  perform app_private.set_action('cancel_last_period');
-  update public.membership_periods
-  set cancelled_at = now(), cancelled_by = auth.uid(), cancel_reason = btrim(p_reason)
-  where id in (cur.id, prev.id);
-  insert into public.membership_periods (member_id, group_id, status, from_month, reason, created_by)
-  values (p_member_id, prev.group_id, prev.status, prev.from_month, prev.reason, auth.uid())
-  returning id into pid;
-  return pid;
 end $function$
 ;
 
@@ -402,6 +246,103 @@ begin
   set holder_name = btrim(p_holder_name), note = nullif(btrim(p_note), ''), sort_order = p_sort_order, active = p_active,
       updated_at = now(), updated_by = auth.uid()
   where id = p_id;
+end $function$
+;
+
+-- «مسؤول» only (owner 2026-09-30): cancelling a payment or an expense (also the 30-second undo),
+-- campaigns (create/edit/close), the handover (start/count/submit/cancel; accept was already).
+-- Member status/group/join month, adding members and committee accounts stay «مسؤول» as before.
+-- Current bodies (pg_get_functiondef at m28) with the check replaced by require_admin.
+CREATE OR REPLACE FUNCTION app_private.require_money_keeper()
+ RETURNS void
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO ''
+AS $function$
+begin
+  perform app_private.require_admin();
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION app_private.require_campaign_manager()
+ RETURNS void
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO ''
+AS $function$
+begin
+  perform app_private.require_admin();
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION app_private.cancel_expense(p_expense_id uuid, p_reason text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  e public.expenses;
+begin
+  perform app_private.require_admin();
+  if btrim(coalesce(p_reason, '')) = '' then perform app_private.fail('reason_required'); end if;
+  select * into e from public.expenses where id = p_expense_id for update;
+  if e.id is null then perform app_private.fail('not_found'); end if;
+  if e.cancelled_at is not null then return; end if;
+  perform app_private.set_action('cancel_expense');
+  update public.expenses set cancelled_at = now(), cancelled_by = auth.uid(), cancel_reason = btrim(p_reason) where id = e.id;
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION app_private.cancel_payment(p_payment_id uuid, p_reason text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  p public.payments;
+begin
+  perform app_private.require_committee();
+  if btrim(coalesce(p_reason, '')) = '' then perform app_private.fail('reason_required'); end if;
+  select * into p from public.payments where id = p_payment_id for update;
+  if p.id is null then perform app_private.fail('not_found'); end if;
+  if p.status = 'cancelled' then return; end if;
+  if p.status = 'rejected' then perform app_private.fail('not_pending'); end if;
+  perform app_private.require_admin();
+  if p.status = 'confirmed' and exists (
+       select 1 from public.payment_allocations a join public.campaigns c on c.id = a.campaign_id
+       where a.payment_id = p.id and a.kind = 'campaign' and c.status = 'closed') then
+    perform app_private.fail('campaign_closed');
+  end if;
+  perform app_private.set_action('cancel_payment');
+  update public.payments set status = 'cancelled', cancelled_at = now(), cancelled_by = auth.uid(), cancel_reason = btrim(p_reason)
+  where id = p.id;
+  update public.payment_months set released_at = now() where payment_id = p.id and released_at is null;
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION app_private.undo_payment(p_payment_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  p public.payments;
+begin
+  perform app_private.require_admin();
+  select * into p from public.payments where id = p_payment_id for update;
+  if p.id is null then perform app_private.fail('not_found'); end if;
+  if p.status = 'cancelled' then return; end if;
+  if p.created_by is distinct from auth.uid() or p.created_at < now() - interval '30 seconds' then
+    perform app_private.fail('undo_expired');
+  end if;
+  if p.status = 'rejected' then perform app_private.fail('not_pending'); end if;
+  perform app_private.set_action('undo_payment');
+  update public.payments set status = 'cancelled', cancelled_at = now(), cancelled_by = auth.uid(), cancel_reason = 'undo'
+  where id = p.id;
+  update public.payment_months set released_at = now() where payment_id = p.id and released_at is null;
 end $function$
 ;
 
