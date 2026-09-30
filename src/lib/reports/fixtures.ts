@@ -471,6 +471,7 @@ export const fxStats: StatsReport = {
   previous: {
     ...fxFeeStats,
     year: 2025,
+    asOf: "2025-09-30",
     overall: { ...fxFeeStats.overall, paidUp: 48, paidUpPct: 54.5 },
   },
   levies: [fxLevyStats],

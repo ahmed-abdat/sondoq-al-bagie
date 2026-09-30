@@ -450,9 +450,10 @@ function feeStatBlocks(f: FeeStats, previous: FeeStats | null): Block[] {
         }
       : { t: "note", text: "لا أحد عليه رسوم." },
   );
-  if (previous) {
-    const same = previous.refMonth === f.refMonth;
-    const when = same ? (f.refMonth >= 12 ? "كاملة" : "في مثل هذا الوقت") : "كاملة";
+  // last year as it stood on the same day (asOf), or the whole year before a past year; nothing
+  // when that day is before the first recorded payment (Lane A m34, lead: no full-year fallback)
+  if (previous && !previous.beforeRecords) {
+    const when = previous.asOf ? "في مثل هذا الوقت" : "كاملة";
     blocks.push({
       t: "note",
       text: `السنة الماضية ${when}: ${percent(previous.overall.paidUp, previous.overall.active)} دفعوا.`,

@@ -3,7 +3,7 @@
 // paid months (owner grid rules: no tints, nothing marks the current month). No link, no QR.
 import type { CanvasFonts } from "../canvas-share";
 import { formatNumber } from "../format";
-import { ASSOC_NAME } from "../share-receipt";
+import { ASSOC_NAME } from "../brand";
 import { makePen, T, type Pen } from "../share-report";
 import {
   blockHeight,

@@ -19,7 +19,7 @@ import {
 import type { ReportData } from "./data/types";
 import { formatDay, monthName } from "./dates";
 import { formatNumber } from "./format";
-import { ASSOC_NAME, FUND_NAME } from "./share-receipt";
+import { ASSOC_NAME, FUND_NAME } from "./brand";
 import { waLink } from "./whatsapp";
 
 /** What the cover draws. Built from Lane A's ReportData with `reportSummary()`. */

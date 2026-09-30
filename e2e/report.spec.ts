@@ -1,7 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// /committee/reports: the catalog, one report's real pages and «صور لواتساب» · «PDF» · «نص»
-// (Lane B renderers). Needs a production build; fictional data: SONDOQ_FIXTURES=1.
+// /committee/reports: the reports catalog (plan §9): each report opens as its pages and goes out as
+// images, a PDF or text (src/lib/reports). Needs a production build with fictional data:
+// SONDOQ_FIXTURES=1 pnpm build && SONDOQ_FIXTURES=1 pnpm start.
 
 type SharedFile = {
   name: string;
@@ -13,12 +14,10 @@ type SharedFile = {
   /** a PDF's page count */
   pages: number;
 };
-type Win = { __opened: string[]; __printed: number; __shared: SharedFile[]; __text: string };
+type Win = { __opened: string[]; __shared: SharedFile[]; __text: string };
 
 const win = <K extends keyof Win>(page: Page, k: K): Promise<Win[K]> =>
   page.evaluate((key) => (window as unknown as Win)[key], k) as Promise<Win[K]>;
-
-const heading = (page: Page) => page.getByRole("heading", { level: 1, name: "التقارير" });
 
 async function waitForServiceWorker(page: Page) {
   await page.evaluate(async () => {
@@ -84,103 +83,150 @@ async function noShare(page: Page) {
   });
 }
 
-/** The catalog, then one report; its pages are drawn before sharing. */
+/** «التقارير» tab → a report from the catalog; waits until its pages are drawn. */
 async function openReport(page: Page, name: RegExp) {
-  await page.goto("/committee/reports");
+  await page.goto("/committee");
+  await page
+    .getByRole("navigation", { name: "التنقل" })
+    .getByRole("link", { name: "التقارير" })
+    .click();
+  await page.waitForURL("**/committee/reports");
   await page.getByRole("button", { name }).click();
-  await expect(page.locator(".pa-doc img").first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("img", { name: /صفحة 1 من \d+/ })).toBeVisible({ timeout: 20_000 });
 }
 
-test("opens; offline it is the offline page (committee-only: nothing kept)", async ({
+const Y = new Date().getFullYear();
+const noSpaces = (t: string) => t.replace(/[   ⁦-⁩]/g, " ");
+
+test("the catalog: reports for the group, reports for the committee, «الإحصاءات»", async ({
   page,
-  context,
 }) => {
   await page.goto("/committee/reports");
-  await expect(heading(page)).toBeVisible();
-  await waitForServiceWorker(page);
-  await page.reload();
-  await expect(heading(page)).toBeVisible();
-  await context.setOffline(true);
-  await page.reload();
-  await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toBeVisible();
-  await context.setOffline(false);
+  await expect(page.getByRole("heading", { name: "التقارير", level: 1 })).toBeVisible();
+  const group = page.getByRole("region", { name: "للمجموعة" });
+  for (const name of ["التقرير السنوي الكامل", "الملخص", "جدول الأشهر", "المتأخرات", "المصاريف"])
+    await expect(group.getByRole("button", { name: new RegExp(`^${name}`) })).toBeVisible();
+  const committee = page.getByRole("region", { name: "للجنة" });
+  for (const name of ["تقرير التسليم", "المبالغ حسب المحفظة", "عمل اللجنة"])
+    await expect(committee.getByRole("button", { name: new RegExp(`^${name}`) })).toBeVisible();
+  await group.getByRole("link", { name: /^الإحصاءات/ }).click();
+  await expect(page).toHaveURL(/\/committee\/stats$/);
 });
 
-test("the catalog: «للمجموعة» with «الإحصاءات», and «للجنة»", async ({ page }) => {
-  await page.goto("/committee/reports");
-  await expect(page.getByRole("heading", { name: "للمجموعة" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "للجنة" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /الإحصاءات/ })).toHaveAttribute(
-    "href",
-    "/committee/stats",
-  );
-});
-
-test("report images: every page as a 1080×1350 PNG in one share", async ({ page }) => {
+test("annual report: every page as a 1080×1350 PNG in one share", async ({ page }) => {
   await shareSheet(page);
-  await openReport(page, /التقرير السنوي الكامل/);
-  await page.getByRole("button", { name: /صور لواتساب/ }).click();
-  await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).not.toHaveLength(0);
+  await openReport(page, /^التقرير السنوي الكامل/);
+  const shown = await page.getByRole("img", { name: /^التقرير السنوي الكامل، صفحة/ }).count();
+  await page.getByRole("button", { name: "صور لواتساب" }).click();
+  await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).toHaveLength(shown);
   const files = await win(page, "__shared");
   files.forEach((f, i) => {
     expect(f).toMatchObject({ type: "image/png", w: 1080, h: 1350 });
-    expect(f.name).toMatch(new RegExp(`^التقرير-السنوي-\\d{4}-${i + 1}\\.png$`));
+    expect(f.name).toBe(`التقرير-السنوي-${Y}-${i + 1}.png`);
+    expect(f.size).toBeGreaterThan(20_000);
   });
+  expect(await win(page, "__text")).toContain("التقرير السنوي الكامل");
   // the share sheet opened; nothing is claimed about delivery
-  await expect(page.getByText(/أُرسل التقرير/)).toHaveCount(0);
+  await expect(page.getByText(/أُرسل/)).toHaveCount(0);
 });
 
 test("PDF: one A4 file to the share sheet", async ({ page }) => {
   await shareSheet(page);
-  await openReport(page, /الملخص/);
-  await page.getByRole("button", { name: /^PDF$/ }).click();
+  await openReport(page, /^التقرير السنوي الكامل/);
+  await page.getByRole("button", { name: "PDF", exact: true }).click();
   await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).toHaveLength(1);
   const [f] = await win(page, "__shared");
   expect(f).toMatchObject({ type: "application/pdf", head: "%PDF-" });
-  expect(f.name).toMatch(/^الملخص-.+\.pdf$/);
+  expect(f.name).toBe(`التقرير-السنوي-${Y}.pdf`);
+  expect(f.pages).toBeGreaterThanOrEqual(1);
   expect(f.size).toBeLessThan(1_500_000);
-});
-
-test("«المتأخرات»: names and months, no money", async ({ page }) => {
-  await shareSheet(page);
-  await openReport(page, /المتأخرات/);
-  await page.getByRole("button", { name: /صور لواتساب/ }).click();
-  await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).not.toHaveLength(0);
-  const files = await win(page, "__shared");
-  files.forEach((f, i) => {
-    expect(f).toMatchObject({ type: "image/png", w: 1080, h: 1350 });
-    expect(f.name).toMatch(new RegExp(`^المتأخرات-\\d{4}-${i + 1}\\.png$`));
-  });
 });
 
 test("PDF without a share sheet is downloaded", async ({ page }) => {
   await noShare(page);
-  await openReport(page, /الملخص/);
+  await openReport(page, /^التقرير السنوي الكامل/);
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: /^PDF$/ }).click();
-  expect((await download).suggestedFilename()).toMatch(/^الملخص-.+\.pdf$/);
-  await expect(page.getByText("حُفظ الملف في التنزيلات.")).toBeVisible();
+  await page.getByRole("button", { name: "PDF", exact: true }).click();
+  expect((await download).suggestedFilename()).toBe(`التقرير-السنوي-${Y}.pdf`);
+  await expect(
+    page.getByRole("status").filter({ hasText: "حُفظ الملف في التنزيلات." }),
+  ).toBeVisible();
 });
 
-test("report images without a share sheet open WhatsApp with the report as text", async ({
+test("images without a share sheet: WhatsApp opens with the report as text, no link", async ({
   page,
 }) => {
   await noShare(page);
-  await openReport(page, /الملخص/);
-  await page.getByRole("button", { name: /صور لواتساب/ }).click();
+  await openReport(page, /^الملخص/);
+  await page.getByRole("button", { name: "صور لواتساب" }).click();
   await expect.poll(() => win(page, "__opened")).toHaveLength(1);
   const [url] = await win(page, "__opened");
   expect(url).toMatch(/^https:\/\/wa\.me\/\?text=/);
-  expect(decodeURIComponent(url.split("text=")[1])).toContain("الملخص");
-  await expect(page.getByText(/فُتح واتساب بنص التقرير/)).toBeVisible();
+  const text = noSpaces(decodeURIComponent(url.split("text=")[1]));
+  expect(text).toContain("*الملخص*");
+  expect(text).toMatch(/\d+ \d{3}/); // amounts
+  expect(text).not.toMatch(/https?:\/\//);
+  await expect(page.getByRole("status")).toHaveText(/فُتح واتساب بنص التقرير/);
 });
 
-test("a period: the year sheet with 12 months and «السنة كلها»", async ({ page }) => {
+test("«نص»: the report as text, copied for WhatsApp", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await openReport(page, /^المصاريف/);
+  await page.getByRole("button", { name: "نص", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("نُسخ نص التقرير. الصقه في واتساب.");
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text).toContain("*المصاريف*");
+  expect(text).toContain("المبالغ بالأوقية القديمة");
+});
+
+test("«المتأخرات»: names and months only, no amounts, in the images, PDF and text", async ({
+  page,
+  context,
+}) => {
+  await shareSheet(page);
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await openReport(page, /^المتأخرات/);
+  await page.getByRole("button", { name: "صور لواتساب" }).click();
+  await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).not.toHaveLength(0);
+  for (const [i, f] of (await win(page, "__shared")).entries())
+    expect(f.name).toBe(`المتأخرات-${Y}-${i + 1}.png`);
+  await page.evaluate(() => ((window as unknown as Win).__shared = []));
+  await page.getByRole("button", { name: "PDF", exact: true }).click();
+  await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).toHaveLength(1);
+  expect((await win(page, "__shared"))[0].name).toBe(`المتأخرات-${Y}.pdf`);
+  await page.getByRole("button", { name: "نص", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText(/نُسخ نص التقرير/);
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text).toContain("*المتأخرات*");
+  expect(text).not.toContain("أوقية");
+  expect(noSpaces(text)).not.toMatch(/\d+ \d{3}/);
+});
+
+test("«الإحصاءات»: counts and percentages only, shared as the same pages", async ({ page }) => {
+  await shareSheet(page);
+  await page.goto("/committee/stats");
+  await expect(page.getByRole("heading", { name: "الإحصاءات", level: 1 })).toBeVisible();
+  await page.getByRole("button", { name: "شارك الإحصاءات في المجموعة" }).click();
+  const sheet = page.getByRole("dialog", { name: "شارك الإحصاءات" });
+  await expect(sheet.getByRole("img", { name: /صفحة 1 من \d+/ })).toBeVisible({ timeout: 20_000 });
+  await sheet.getByRole("button", { name: "صور لواتساب" }).click();
+  await expect.poll(() => win(page, "__shared"), { timeout: 20_000 }).not.toHaveLength(0);
+  for (const [i, f] of (await win(page, "__shared")).entries()) {
+    expect(f).toMatchObject({ type: "image/png", w: 1080, h: 1350 });
+    expect(f.name).toBe(`الإحصاءات-${Y}-${i + 1}.png`);
+  }
+});
+
+test("offline, a report page is the offline page (committee-only: nothing kept)", async ({
+  page,
+  context,
+}) => {
   await page.goto("/committee/reports");
-  await page.getByRole("button", { name: /الملخص/ }).click();
-  await page.getByRole("button", { name: /الفترة: سنة \d{4}/ }).click();
-  const sheet = page.getByRole("dialog", { name: "أي فترة؟" });
-  await expect(sheet.getByRole("button", { name: /السنة كلها/ })).toBeVisible();
-  await sheet.getByRole("button", { name: "مارس" }).click();
-  await expect(page.getByRole("button", { name: /الفترة: مارس \d{4}/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "التقارير", level: 1 })).toBeVisible();
+  await waitForServiceWorker(page);
+  await page.reload();
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toBeVisible();
+  await context.setOffline(false);
 });
