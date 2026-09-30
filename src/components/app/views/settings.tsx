@@ -155,7 +155,6 @@ export function SaveNote({ s, id }: { s: SaveState; id?: string }) {
 export function SettingsView({
   role,
   displayName,
-  showOwed,
   whatsapp,
   openingBalance,
   openingBalanceOn,
@@ -165,11 +164,10 @@ export function SettingsView({
   selfId,
   children,
 }: {
-  /** extra cards after «ما يراه الأعضاء» (year prices, backup) */
+  /** extra cards after «أرقام الصندوق» (year prices, backup) */
   children?: ReactNode;
   role: CommitteeRole;
   displayName: string;
-  showOwed: boolean;
   whatsapp: string | null;
   openingBalance: number;
   /** "YYYY-MM-DD"; null when unknown */
@@ -183,7 +181,6 @@ export function SettingsView({
   const online = useOnline();
   const { updateFundAccount, updateSettings } = useAct();
   const say = useSnack();
-  const [owed, setOwed] = useState(showOwed);
   const [over, setOver] = useState<Record<string, boolean>>({});
   const demoAccounts = useDemoState().accounts;
   const list = [...accounts, ...demoAccounts].map((a) => ({
@@ -198,25 +195,18 @@ export function SettingsView({
   const [openingOn, setOpeningOn] = useState(yearStart);
   const [savedOpeningOn, setSavedOpeningOn] = useState(yearStart);
   const openingNum = Number(opening.replace(/\s/g, "")) || 0;
-  const [confirmOwed, setConfirmOwed] = useState(false);
-  const [owedSave, setOwedSave] = useState<SaveState>(IDLE);
   const [waSave, setWaSave] = useState<SaveState>(IDLE);
   const [openSave, setOpenSave] = useState<SaveState>(IDLE);
   const [accSave, setAccSave] = useState<Record<string, SaveState>>({});
-  const saveOwed = async (next: boolean) => {
-    setOwed(next);
-    if (!(await runSave(setOwedSave, () => updateSettings({ showAmountOwed: next }))))
-      setOwed(!next);
-    else router.refresh();
-  };
+
   const [adding, setAdding] = useState(false);
   const admin = role === "admin";
 
   return (
     <>
       <header className="bq-page-h">
-        <Link href="/committee" className="bq-link bq-link-s bq-press">
-          {I.back(18)} رجوع إلى اللجنة
+        <Link href="/committee/more" className="bq-link bq-link-s bq-press">
+          {I.back(18)} المزيد
         </Link>
         <h1>الإعدادات</h1>
         <p className="bq-lead">
@@ -224,65 +214,9 @@ export function SettingsView({
         </p>
       </header>
 
-      <section className="bq-sec bq-sec-first" aria-labelledby="bq-pub-h">
-        <h2 id="bq-pub-h">ما يراه الأعضاء</h2>
+      <section className="bq-sec bq-sec-first" aria-labelledby="bq-wallets-h">
+        <h2 id="bq-wallets-h">أرقام الصندوق</h2>
         {!admin && <p className="bq-lead">يغيّرها المسؤول فقط.</p>}
-        {confirmOwed ? (
-          <div className="bq-rej" role="group" aria-labelledby="bq-owed-q">
-            <p className="bq-rej-l" id="bq-owed-q">
-              إظهار المتأخرات للأعضاء واللجنة؟
-            </p>
-            <p className="bq-lead">
-              من فتح رابطه الخاص يرى المبلغ المتأخر على كل عضو. الزائر لا يرى المبالغ أبدًا. يمكنك
-              إخفاؤها في أي وقت.
-            </p>
-            <div className="bq-slip-btns bq-small-top">
-              <button
-                type="button"
-                className="bq-btn bq-btn-primary bq-press"
-                onClick={() => {
-                  setConfirmOwed(false);
-                  void saveOwed(true);
-                }}
-              >
-                نعم، أظهرها
-              </button>
-              <button
-                type="button"
-                className="bq-btn bq-btn-ghost bq-press"
-                onClick={() => setConfirmOwed(false)}
-              >
-                رجوع
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={owed}
-            aria-describedby="bq-owed-note"
-            aria-busy={owedSave.status === "saving"}
-            className="bq-switch bq-press"
-            disabled={!admin || !online || owedSave.status === "saving"}
-            onClick={() => (owed ? void saveOwed(false) : setConfirmOwed(true))}
-          >
-            <span className="bq-switch-t">
-              <strong>إظهار المتأخرات للأعضاء</strong>
-              <span>
-                {owed
-                  ? "الأعضاء واللجنة يرون المبلغ المتأخر على كل عضو."
-                  : "المبالغ المتأخرة مخفية. يظهر للأعضاء «دفع حتى …» فقط."}
-              </span>
-            </span>
-            <span className="bq-switch-k" aria-hidden="true">
-              <span />
-            </span>
-          </button>
-        )}
-        <SaveNote id="bq-owed-note" s={owedSave} />
-
-        <h3 className="bq-h3">أرقام الصندوق</h3>
         <ul className="bq-pay">
           {list.map((a) => (
             <li key={a.id} className={a.active ? "" : "is-off"}>
@@ -292,7 +226,7 @@ export function SettingsView({
                   {a.accountNumber}
                 </bdi>
                 <span className="bq-row-s">
-                  باسم {a.holderName} · {a.active ? "رقم التحويل ظاهر للأعضاء" : "رقم التحويل مخفي"}
+                  باسم {a.holderName} · {a.active ? "مستعمل" : "متوقف"}
                 </span>
                 <SaveNote s={accSave[a.id] ?? IDLE} />
               </span>
@@ -301,7 +235,7 @@ export function SettingsView({
                 role="switch"
                 aria-checked={a.active}
                 aria-busy={accSave[a.id]?.status === "saving"}
-                aria-label={`${METHOD_LABELS[a.method]} ${a.accountNumber}: ${a.active ? "رقم التحويل ظاهر للأعضاء" : "رقم التحويل مخفي"}`}
+                aria-label={`${METHOD_LABELS[a.method]} ${a.accountNumber}: ${a.active ? "مستعمل" : "متوقف"}`}
                 className="bq-mini-switch bq-press"
                 disabled={!admin || !online || accSave[a.id]?.status === "saving"}
                 onClick={async () => {
@@ -421,50 +355,10 @@ export function SettingsView({
       {admin && (
         <section className="bq-sec" aria-labelledby="bq-acc-h">
           <h2 id="bq-acc-h">حسابات اللجنة</h2>
-          <p className="bq-lead">من يدخل إلى صفحة اللجنة، ودور كل واحد.</p>
+          <p className="bq-lead">من يدخل إلى التطبيق، ودور كل واحد.</p>
           <CommitteeAccounts accounts={committee} members={members} selfId={selfId} />
         </section>
       )}
-
-      {role !== "committee" && (
-        <section className="bq-sec" aria-label="نهاية الدورة">
-          <ul className="bq-list bq-menu">
-            <li>
-              <Link
-                href="/committee/handover"
-                className="bq-row bq-press"
-                transitionTypes={["tab-fwd"]}
-              >
-                <span className="bq-disc">{I.book(22)}</span>
-                <span className="bq-row-m">
-                  <span className="bq-row-t">تسليم الصندوق للجنة الجديدة</span>
-                  <span className="bq-row-s">عند نهاية الدورة فقط</span>
-                </span>
-                <span className="bq-chev">{I.go(18)}</span>
-              </Link>
-            </li>
-          </ul>
-        </section>
-      )}
-
-      <section className="bq-sec" aria-label="حسابي">
-        <ul className="bq-list bq-menu">
-          <li>
-            <Link
-              href="/committee/account"
-              className="bq-row bq-press"
-              transitionTypes={["tab-fwd"]}
-            >
-              <span className="bq-disc">{I.lock(22)}</span>
-              <span className="bq-row-m">
-                <span className="bq-row-t">حسابي</span>
-                <span className="bq-row-s">كلمة السر، الإشعارات، الخروج</span>
-              </span>
-              <span className="bq-chev">{I.go(18)}</span>
-            </Link>
-          </li>
-        </ul>
-      </section>
 
       {adding && (
         <Sheet key="account" label="إضافة رقم" onDone={() => setAdding(false)}>

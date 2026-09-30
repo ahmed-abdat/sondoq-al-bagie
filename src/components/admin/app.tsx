@@ -1,12 +1,15 @@
 "use client";
 // The committee app (committee-only, owner picks 2026-09-30): home «الصندوق أولًا», members,
 // التبرعات, التقارير and المزيد, on one data model (AdminData) built on the server.
-import { Campaign, Campaigns, Home } from "./dir-b";
+import { Home } from "./dir-b";
+import { CampaignScreen, CampaignsScreen, LevyScreen } from "./donations";
 import { Provider } from "./kit";
 import { RecordScreen } from "./record";
-import { Reports3 } from "./reports3";
-import { ExpensesScreen, LateScreen, LevyScreen, MemberScreen, MembersScreen } from "./screens";
+import { ReportsScreen } from "./reports";
+import { ExpensesScreen } from "./screens";
+import { MemberScreen, MembersScreen } from "./members";
 import { ActivityScreen, MoreScreen } from "./more";
+import { StatsScreen } from "./stats-screen";
 import type { PData } from "./types";
 
 export function AdminApp({
@@ -29,22 +32,22 @@ export function AdminApp({
     ) : (
       <MembersScreen />
     )
-  ) : p0 === "late" ? (
-    <LateScreen />
   ) : p0 === "campaigns" ? (
     p1 ? (
-      p1.startsWith("l") ? (
+      data.levies.some((l) => l.id === p1) ? (
         <LevyScreen id={p1} />
       ) : (
-        <Campaign id={p1} />
+        <CampaignScreen id={p1} />
       )
     ) : (
-      <Campaigns />
+      <CampaignsScreen />
     )
   ) : p0 === "reports" ? (
-    <Reports3 />
+    <ReportsScreen />
   ) : p0 === "expenses" ? (
     <ExpensesScreen />
+  ) : p0 === "stats" ? (
+    <StatsScreen />
   ) : p0 === "activity" ? (
     <ActivityScreen />
   ) : (

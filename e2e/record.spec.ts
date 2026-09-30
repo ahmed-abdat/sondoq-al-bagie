@@ -28,8 +28,9 @@ test("the save button names the missing step, then saves; «تراجع» takes i
   page,
 }) => {
   await page.goto("/committee/record");
-  await expect(saveBtn(page)).toHaveText("اختر العضو");
-  await expect(saveBtn(page)).toBeDisabled();
+  // nothing chosen yet: no total bar; a new phone offers who owes
+  await expect(page.locator(".r2-foot")).toHaveCount(0);
+  await expect(page.getByText("عليهم رسوم", { exact: true })).toBeVisible();
 
   await page.getByLabel("ابحث عن العضو", { exact: true }).fill("أ 4");
   await page.locator(".pa-rows button.pa-row").first().click();
@@ -50,11 +51,15 @@ test("the save button names the missing step, then saves; «تراجع» takes i
 
   // no receipt: a line, «تراجع (30)» and the next steps
   await expect(page.getByRole("status").filter({ hasText: "سُجّلت الدفعة" })).toBeVisible();
-  await expect(page.getByText(/الشيخ ولد سيدي: \d[\d\s  ]* أوقية/)).toBeVisible();
+  await expect(page.getByText(/الشيخ ولد سيدي · \d[\d\s  ]* أوقية/)).toBeVisible();
   await expect(page.getByRole("button", { name: /دفعة أخرى/ })).toBeVisible();
   await page.getByRole("button", { name: /^تراجع \(\d+\)$/ }).click();
-  await expect(page.getByText("تراجعت عن الدفعة.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "أُلغيت الدفعة، لم تُحسب." })).toBeVisible();
   await expect(page.getByRole("button", { name: /^تراجع/ })).toHaveCount(0);
+  // the form comes back filled, to correct and save again
+  await page.getByRole("button", { name: "صحّحها وسجّل من جديد" }).click();
+  await expect(page.locator(".r2-line").first()).toContainText("الشيخ ولد سيدي");
+  await expect(page.getByText("نقدًا، اليوم")).toBeVisible();
 });
 
 test("a transfer screenshot asks for the wallet, the months can be picked one by one", async ({
@@ -89,7 +94,7 @@ test("several people in one transfer: a relative from the hint, each with his mo
   await expect(page.getByText("من عائلته، عليهم رسوم:")).toBeVisible();
   await page.locator(".r2-rel-chip").first().click();
   await expect(page.locator(".r2-line")).toHaveCount(2);
-  await expect(page.getByText(/^2\s*في تحويل واحد$/)).toBeVisible();
+  await expect(page.getByText("شخصان في تحويل واحد")).toBeVisible();
   // the second person is removed again
   await page.getByRole("button", { name: "احذف من الدفعة" }).nth(1).click();
   await expect(page.locator(".r2-line")).toHaveCount(1);

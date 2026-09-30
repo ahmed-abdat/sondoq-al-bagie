@@ -239,6 +239,14 @@
     flex: 1;
     min-width: 0;
   }
+  /* a login (email or phone) on its own line, left to right, never split inside the name */
+  .bq-login-id {
+    margin: 4px 0 0;
+    text-align: start;
+    font-size: 17px;
+    overflow-wrap: anywhere;
+    unicode-bidi: plaintext;
+  }
   .bq-sr {
     position: absolute;
     width: 1px;

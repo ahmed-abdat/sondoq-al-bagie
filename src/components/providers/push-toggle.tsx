@@ -19,8 +19,8 @@ const COMMON: Record<Exclude<PushState, "on" | "off">, string> = {
 const TEXT: Record<PushKind, { title: string; on: string; off: string }> = {
   committee: {
     title: "إشعارات الدفعات الجديدة",
-    on: "يصلك تنبيه على هذا الهاتف عند وصول دفعة تنتظر التأكيد.",
-    off: "فعّلها ليصلك تنبيه عند وصول دفعة تنتظر التأكيد.",
+    on: "يصلك تنبيه على هذا الهاتف حين يسجّل أحد اللجنة دفعة أو مصروفًا.",
+    off: "فعّلها ليصلك تنبيه حين يسجّل أحد اللجنة دفعة أو مصروفًا.",
   },
   member: {
     title: "إشعارات دفعاتي",

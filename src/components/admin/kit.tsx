@@ -11,6 +11,7 @@ import { Sheet as AppSheet } from "@/components/app/sheet";
 import { formatNumber } from "@/lib/format";
 import { MONTHS_AR } from "@/lib/dates";
 import { METHOD_LABELS, methodLogo, type Method } from "@/lib/methods";
+import { feesTotal, payablePast } from "./fees";
 import type { PCampaign, PData, PHist, PLevy, PMember } from "./types";
 
 /* ───────── context ───────── */
@@ -102,7 +103,8 @@ export const findMembers = (list: PMember[], q: string): PMember[] =>
     list.map((m) => ({ fullName: m.name, number: m.no, memberRef: m.ref, m })),
     q,
   ).map((x) => x.m);
-export const isLate = (m: PMember) => m.status === "active" && m.owed.length > 0;
+export const isLate = (m: PMember) =>
+  m.status === "active" && (m.owed.length > 0 || m.pastLate.length > 0);
 export const day = (iso: string) => {
   const d = new Date(iso);
   return `${d.getUTCDate()} ${month(d.getUTCMonth() + 1)}`;
@@ -906,7 +908,9 @@ export const levyOwed = (m: PMember, d: PData): PLevy[] =>
   );
 /** One member's share of a levy (their own amount when the «مسؤول» changed it). */
 export const levyShare = (l: PLevy, ref: string) => l.amounts?.[ref] ?? l.perMember;
-export const owes = (m: PMember, d: PData) =>
-  m.status === "active" && (m.owed.length > 0 || levyOwed(m, d).length > 0);
+export const owes = (m: PMember, d: PData) => isLate(m) || levyOwed(m, d).length > 0;
+/** This year's late fees, earlier years' (each at its price) and open لوحة shares. */
+export const feesOwed = (m: PMember, d: Pick<PData, "year">) =>
+  feesTotal(m, d.year, m.owed, payablePast(m));
 export const owedAmount = (m: PMember, d: PData) =>
-  m.owed.length * m.fee + levyOwed(m, d).reduce((s, l) => s + levyShare(l, m.ref), 0);
+  feesOwed(m, d) + levyOwed(m, d).reduce((s, l) => s + levyShare(l, m.ref), 0);

@@ -22,7 +22,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <section className="bq-gate">
         <span className="bq-gate-i">{I.lock(32)}</span>
         <h1 className="bq-gate-t">ادخل بحسابك لتأكيد الدفعات</h1>
-        <p className="bq-hint">أمين الصندوق ونائبه والمشرفون فقط.</p>
+        <p className="bq-hint">لأعضاء لجنة الصندوق فقط.</p>
       </section>
       <LoginForm next={typeof next === "string" ? next : undefined} />
     </main>

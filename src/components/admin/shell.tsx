@@ -17,7 +17,7 @@ const TABS: { k: Exclude<Tab, null>; l: string; path: string; icon: keyof typeof
 export function tabOf(path: string[]): Tab {
   const p = path[0] ?? "";
   if (p === "") return "home";
-  if (p === "members" || p === "late") return "members";
+  if (p === "members") return "members";
   if (p === "campaigns") return "gifts";
   if (p === "reports") return "reports";
   if (p === "record") return null;
@@ -44,10 +44,10 @@ export function Shell({
   const href = committeeHref;
   return (
     <div className={`pa ${bare ? "pa-bare" : ""} ${above ? "pa-has-above" : ""} ${className}`}>
+      <main className="pa-main">{children}</main>
+      {/* after the content in the DOM (keyboard reaches the page first); fixed on screen */}
       {!bare && (
         <nav className="pa-nav" aria-label="التنقل">
-          {/* the install bar (providers/install.tsx) stays above `.bq-bnav` while it is shown */}
-          <span className="bq-bnav pa-nav-mark" aria-hidden />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="pa-nav-logo" src="/logo.jpg" alt="صندوق الرابطة" width={44} height={44} />
           {TABS.map((t) => (
@@ -63,7 +63,6 @@ export function Shell({
           ))}
         </nav>
       )}
-      <main className="pa-main">{children}</main>
       {above && <div className="pa-above">{above}</div>}
       {fab}
     </div>
@@ -77,5 +76,10 @@ export function CommitteeShell({ children }: { children: ReactNode }) {
     .replace(/^\/committee\/?/, "")
     .split("/")
     .filter(Boolean);
-  return <Shell tab={path.startsWith("/committee") ? tabOf(parts) : null}>{children}</Shell>;
+  return (
+    // «سجّل دفعة» is a task screen with its own back link: no nav, room for the total
+    <Shell tab={path.startsWith("/committee") ? tabOf(parts) : null} bare={parts[0] === "record"}>
+      {children}
+    </Shell>
+  );
 }

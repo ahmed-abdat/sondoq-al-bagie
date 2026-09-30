@@ -3,8 +3,8 @@
 // deputy). Cancelling never deletes: the payment stays in the record with its reason, and its
 // months leave the member's account.
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type CSSProperties } from "react";
-import { markInstallEngaged, OfflineWriteHint, useOnline } from "@/components/providers";
+import { useState, type CSSProperties } from "react";
+import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { useAct } from "./act";
 import { fmt } from "./derive";
 import { ShareBtns } from "./entries";
@@ -32,7 +32,6 @@ export function ReceiptSheetBody({
   const me = useCanceller();
   const [r, setR] = useState(initial);
   const [asking, setAsking] = useState(false);
-  useEffect(() => markInstallEngaged(), []);
   const canCancel = !!me && !!paymentId && r.status.kind === "confirmed";
   if (asking && canCancel)
     return (

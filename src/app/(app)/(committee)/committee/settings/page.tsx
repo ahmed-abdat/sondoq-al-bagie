@@ -41,7 +41,6 @@ export default async function SettingsPage({ searchParams }: PageProps<"/committ
       <SettingsView
         role={session.role}
         displayName={session.displayName}
-        showOwed={info.showAmountOwed}
         whatsapp={info.whatsappContact}
         openingBalance={settings?.openingBalance ?? summary.openingBalance}
         openingBalanceOn={settings?.openingBalanceOn ?? null}

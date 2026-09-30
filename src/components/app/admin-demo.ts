@@ -4,6 +4,8 @@ import "server-only";
 import * as fx from "./fixtures";
 import { toMemberRows } from "@/lib/data/member-lists";
 import type { Method } from "@/lib/methods";
+import type { MemberStatement } from "@/lib/data/report-types";
+import { allStats, demoStatsReport, statsFromReport } from "@/components/admin/stats";
 import type {
   PCampaign,
   PData,
@@ -284,7 +286,12 @@ export function demoAdminData(): PData {
       createdBy: "سيدي محمد",
       status: "open",
       refs: active.map((m) => m.ref),
-      paidRefs: active.filter((m, i) => i % 3 !== 1 && m.paid.length > 0).map((m) => m.ref),
+      paidRefs: active
+        .filter((m, i) => i % 3 !== 1 && m.paid.length > 0 && i !== 7)
+        .map((m) => m.ref),
+      // a member exempted by «مسؤول», and one with his own share
+      exemptRefs: active.filter((_, i) => i === 7).map((m) => m.ref),
+      amounts: Object.fromEntries(active.filter((_, i) => i === 10).map((m) => [m.ref, 1000])),
     },
     {
       id: "l2",
@@ -353,7 +360,13 @@ export function demoAdminData(): PData {
   const s = fx.fxSummary();
   const session = fx.fxSession();
   void byId;
-  return {
+  const base: Omit<PData, "stats"> = {
+    terms: fx.fxTerms().map(({ number, title, startedOn, endedOn }) => ({
+      number,
+      title,
+      startedOn,
+      endedOn,
+    })),
     today: "2026-09-28",
     year,
     due,
@@ -388,4 +401,89 @@ export function demoAdminData(): PData {
     levies,
     log,
   };
+  // the same path as production: the «الإحصاءات» report, then the screens' shape
+  const counted = allStats(base);
+  return { ...base, stats: statsFromReport(demoStatsReport(base, 55), base.due, counted.owing) };
 }
+
+/** Demo «كشف حساب» of one member, built from the same fictional months as the committee app. */
+export function demoStatement(memberId: string, year: number): MemberStatement | null {
+  const d = demoAdminData();
+  const m = d.members.find((x) => x.id === memberId);
+  if (!m) return null;
+  const key = (k: number) => `${year}-${String(k).padStart(2, "0")}`;
+  const runs: number[][] = [];
+  for (const k of [...m.paid].sort((a, b) => a - b)) {
+    const last = runs.at(-1);
+    if (last && last.length < 3 && last.at(-1) === k - 1) last.push(k);
+    else runs.push([k]);
+  }
+  const payments: MemberStatement["payments"] = runs.map((ms, i) => {
+    const on = `${key(ms[0])}-05`;
+    return {
+      paymentId: `demo-${m.ref}-${i}`,
+      paidOn: on,
+      status: "confirmed",
+      method: i % 2 ? "cash" : "bankily",
+      amount: ms.length * m.fee,
+      total: ms.length * m.fee,
+      months: ms.map(key),
+      campaigns: [],
+      note: null,
+      reason: null,
+      recordedBy: i % 2 ? "يحيى" : "سيدي محمد",
+      recordedAt: `${on}T10:00:00Z`,
+      confirmedBy: i % 2 ? "يحيى" : "سيدي محمد",
+      confirmedAt: `${on}T10:00:00Z`,
+      cancelledBy: null,
+      cancelledAt: null,
+    };
+  });
+  const levies = d.levies
+    .filter((l) => l.refs.includes(m.ref))
+    .map((l) => {
+      const expected = l.amounts?.[m.ref] ?? l.perMember;
+      const exempt = !!l.exemptRefs?.includes(m.ref);
+      const paid = l.paidRefs.includes(m.ref) ? expected : 0;
+      return { title: l.title, expected, paid, left: exempt ? 0 : expected - paid, exempt };
+    });
+  return {
+    generatedAt: `${d.today}T12:00:00Z`,
+    year,
+    member: {
+      memberId: m.id,
+      memberRef: m.ref,
+      fullName: m.name,
+      groupCode: m.group,
+      status: m.status,
+      phone: m.phone,
+    },
+    months: Array.from({ length: 12 }, (_, i) => {
+      const k = i + 1;
+      const state = m.paid.includes(k)
+        ? "paid"
+        : m.owed.includes(k)
+          ? "late"
+          : m.notOwed.includes(k)
+            ? "not_owed"
+            : "upcoming";
+      return { month: k, state, price: m.fee, paid: state === "paid", due: k <= d.due };
+    }),
+    payments,
+    levies,
+    owed: {
+      monthsCount: m.owed.length + m.pastLate.length,
+      amountOwed: m.owed.length * m.fee + m.pastLate.length * m.fee,
+      levyLeft: levies.reduce((s, l) => s + l.left, 0),
+      credit: 0,
+    },
+  };
+}
+
+/** Demo «الإحصاءات» report: the same numbers as the demo screens. */
+export const demoStats = () => {
+  const d = demoAdminData();
+  const { stats: _s, ...base } = d;
+  void _s;
+  return demoStatsReport(base, 55);
+};

@@ -84,14 +84,9 @@ async function noShare(page: Page) {
   });
 }
 
-/** Share is committee only: home → «التقارير» tab → «مشاركة التقرير», the sheet opens. */
+/** The old report view (Lane B: rewrite for the new catalog at /committee/reports). */
 async function openSheet(page: Page) {
-  await page.goto("/committee");
-  await page
-    .getByRole("navigation", { name: "التنقل" })
-    .getByRole("link", { name: "التقارير" })
-    .click();
-  await page.waitForURL("**/committee/reports");
+  await page.goto("/committee/reports/legacy");
   await page.getByRole("button", { name: "مشاركة التقرير" }).click();
   await expect(page.getByRole("dialog", { name: "مشاركة التقرير" })).toBeVisible();
 }
@@ -100,7 +95,7 @@ test("opens; offline it is the offline page (committee-only: nothing kept)", asy
   page,
   context,
 }) => {
-  await page.goto("/committee/reports");
+  await page.goto("/committee/reports/legacy");
   await expect(heading(page)).toBeVisible();
   await waitForServiceWorker(page);
   await page.reload();
@@ -117,7 +112,7 @@ test("«طباعة» opens the print dialog", async ({ page }) => {
     w.__printed = 0;
     window.print = () => void w.__printed++;
   });
-  await page.goto("/committee/reports");
+  await page.goto("/committee/reports/legacy");
   await page.getByRole("button", { name: "طباعة" }).click();
   expect(await win(page, "__printed")).toBe(1);
 });
@@ -235,7 +230,7 @@ test("summary image alone goes to the share sheet as a 1080×1350 PNG", async ({
 test("members grid: one bordered table, a plain ✓ in each paid month, empty cells otherwise", async ({
   page,
 }) => {
-  await page.goto("/committee/reports");
+  await page.goto("/committee/reports/legacy");
   const legend = page.locator(".rp-legend");
   await expect(legend).toContainText("مدفوع");
   await expect(legend).toContainText("12 = ديسمبر");
