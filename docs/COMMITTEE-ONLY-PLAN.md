@@ -351,3 +351,15 @@ Record payment details (owner): **no receipt at all** (no receipt screen, image 
 Relatives suggestion = people paid together with this member before (same past transfer), then same
 family name as a second hint; no family field. The record screen does not show the fund balance
 header (only home does). All 10 report types in round 3 approved.
+
+## 10. Analytics (owner, 2026-09-30)
+
+Numbers to decide from, shareable with the group («رابطة الشباب»):
+- **Fees («المتأخرات» analytics), year:** % of members paid up to the current month, by group (A/B) and
+  overall; per month: how many paid / didn't (12-month bar or line); how many owe 1, 2–3, 4+ months;
+  trend vs last year. Counts and percentages; no names in the analytics (names stay in «المتأخرات»).
+- **Each لوحة:** % of members who paid their share, paid / not yet / exempt counts, collected vs
+  expected, by group; days since it opened.
+- **Each تبرع:** how many gave (members + outside donors), % of members who gave, collected vs target.
+- On screen: on home (one line + «الإحصاءات»), on each لوحة/تبرع page, and a report «الإحصاءات»
+  (year) + per-campaign analytics in the campaign report, shared as images/PDF/text like the others.
