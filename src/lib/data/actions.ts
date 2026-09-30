@@ -241,6 +241,9 @@ export async function recordExpense(input: s.RecordExpenseInput) {
         p_note: p.note,
         p_campaign_id: p.campaignId,
         p_receipt_path: p.receiptPath,
+        // sent only when set, so this works before m31 adds them
+        ...(p.fundAccountId ? { p_fund_account_id: p.fundAccountId } : {}),
+        ...(p.paidInCash ? { p_paid_in_cash: true } : {}),
       }),
     { touchesPublic: true, result: (d) => d as string },
   );

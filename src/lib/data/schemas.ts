@@ -70,6 +70,9 @@ export const recordExpenseSchema = z.object({
   note: optText(500),
   campaignId: id.optional(),
   receiptPath: optText(200),
+  /** «من أي محفظة» (m31): a fund account, or cash; neither = not specified */
+  fundAccountId: id.optional(),
+  paidInCash: z.boolean().optional(),
 });
 
 export const logReminderSchema = z.object({
