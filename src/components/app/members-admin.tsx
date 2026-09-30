@@ -1,36 +1,30 @@
 "use client";
 import { failure } from "@/lib/data/errors";
 import { toWesternDigits } from "@/lib/money";
-// Committee «الأعضاء»: find a member, add one, edit details, change state, move between lists.
-// Two lists, each numbered from 1 (A-12, B-12). States: نشط · معفى · غادر.
+// A new member and one member's details and state (the sheets of «الأعضاء», «المسؤول» only).
+// Two paper lists, each numbered from 1 (A-12, B-12). States: نشط · معفى · غادر.
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { type MemberAdmin, type SettableStatus } from "@/lib/data/types";
-import { useAct, useDemoState } from "./act";
+import { useAct } from "./act";
 import { MemberMonths } from "./member";
 import { sendOnce, useOnceId } from "./once-id";
-import { Avatar, MemberNo, StatusTag } from "./bits";
+import { Avatar, MemberNo } from "./bits";
 import {
   fmt,
   groupLabel,
-  memberLabel,
   statusLabel,
   monthCount,
   monthsLabel,
   MONTHS,
   nextFreeNumber,
-  searchMembers,
   STATE_CHOICES,
   STATE_LABEL,
 } from "./derive";
 import { MonthPicker } from "./date-field";
 import { I } from "./icons";
 import { Num } from "./num";
-import { Segmented } from "./segmented";
-import { Sheet } from "./sheet";
-import { SearchField } from "./search-field";
-import { useSnack } from "./shell";
 import { radioKeys, radioTab } from "./radio-keys";
 
 type State = SettableStatus;
@@ -758,208 +752,5 @@ export function MemberAdminBody({
   );
 }
 
-/** One filter: who is shown. Active first; the rest is one tap away. */
-type SF = "active" | "exempt" | "gone" | "all";
-const inFilter = (m: MemberAdmin, f: SF) =>
-  f === "all" || (f === "gone" ? m.status === "left" || m.status === "deceased" : m.status === f);
-
 /** A member's credit and their late months ("YYYY-MM", oldest first) it could pay. */
 export type MemberCredit = { amount: number; months: string[] };
-
-export function MembersAdmin({
-  members: server,
-  prices,
-  thisMonth,
-  admin = false,
-  credit = {},
-  months = {},
-  monthsCtx,
-}: {
-  members: MemberAdmin[];
-  prices: Record<string, number>;
-  thisMonth: string;
-  admin?: boolean;
-  credit?: Record<string, MemberCredit>;
-  /** month codes this year by member id, for the sheet's month cells */
-  months?: Record<string, string>;
-  monthsCtx?: { year: number; dueMonth: number };
-}) {
-  const say = useSnack();
-  const demo = useDemoState();
-  const members = useMemo(
-    () =>
-      [...server, ...demo.members]
-        .map((m) => ({ ...m, ...demo.memberPatch[m.memberId] }))
-        .map((m) => {
-          // demo: months paid from credit here leave the arrears
-          const paid = demo.creditPaid[m.memberId]?.length ?? 0;
-          if (!paid) return m;
-          const p = prices[m.groupCode] ?? 0;
-          return {
-            ...m,
-            monthsBehind: Math.max(0, m.monthsBehind - paid),
-            monthsPaidThisYear: m.monthsPaidThisYear + paid,
-            amountOwed: Math.max(0, m.amountOwed - paid * p),
-          };
-        })
-        .sort((a, b) => a.listCode.localeCompare(b.listCode) || a.number - b.number),
-    [server, demo.members, demo.memberPatch, demo.creditPaid, prices],
-  );
-  const creditOf = (id: string, group: string): MemberCredit | undefined => {
-    const c = credit[id];
-    const paid = demo.creditPaid[id];
-    if (!c || !paid?.length) return c;
-    return {
-      amount: Math.max(0, c.amount - paid.length * (prices[group] ?? 0)),
-      months: c.months.filter((k) => !paid.includes(k)),
-    };
-  };
-  const [q, setQ] = useState("");
-  const [st, setSt] = useState<SF>("active");
-  const [sheet, setSheet] = useState<{ t: "add" } | { t: "member"; id: string } | null>(null);
-  // a search looks through everyone; the filter applies when browsing
-  const list = q.trim() ? searchMembers(members, q) : members.filter((m) => inFilter(m, st));
-  const count = (f: SF) => members.filter((m) => inFilter(m, f)).length;
-  const open = sheet?.t === "member" ? members.find((m) => m.memberId === sheet.id) : null;
-  const done = (t: string) => {
-    setSheet(null);
-    say(t);
-  };
-  return (
-    <>
-      <button
-        type="button"
-        className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-        onClick={() => setSheet({ t: "add" })}
-      >
-        {I.plus(20)} إضافة عضو
-      </button>
-      <div className="bq-gap-12" />
-      <SearchField
-        value={q}
-        onChange={setQ}
-        placeholder="اكتب الاسم أو الرقم، مثل ب 12"
-        label="ابحث عن عضو"
-        members={members}
-        onOpen={(m) => setSheet({ t: "member", id: m.memberId })}
-      />
-      <div className="bq-gap-12" />
-      {!q.trim() && (
-        <Segmented<SF>
-          label="من يظهر"
-          value={st}
-          onChange={setSt}
-          items={[
-            // «الكل» first, like the public list (audit C15)
-            {
-              k: "all",
-              l: (
-                <>
-                  الكل <Num className="bq-seg-n">{count("all")}</Num>
-                </>
-              ),
-            },
-            {
-              k: "active",
-              l: (
-                <>
-                  النشطون <Num className="bq-seg-n">{count("active")}</Num>
-                </>
-              ),
-            },
-            {
-              k: "exempt",
-              l: (
-                <>
-                  المعفون <Num className="bq-seg-n">{count("exempt")}</Num>
-                </>
-              ),
-            },
-            {
-              k: "gone",
-              l: (
-                <>
-                  غادروا <Num className="bq-seg-n">{count("gone")}</Num>
-                </>
-              ),
-            },
-          ]}
-        />
-      )}
-      {list.length ? (
-        (!q.trim() ? LISTS : [null]).map((l) => {
-          const items = l ? list.filter((m) => m.listCode === l) : list;
-          if (!items.length) return null;
-          return (
-            <section
-              key={l ?? "all"}
-              className="bq-group"
-              aria-label={l ? `الفئة ${groupLabel(l)}` : "النتائج"}
-            >
-              <h3 className="bq-group-h bq-group-static">
-                <span className="bq-group-t">{l ? `الفئة ${groupLabel(l)}` : "النتائج"}</span>
-                <Num className="bq-group-n">{items.length}</Num>
-              </h3>
-              <ul className="bq-list">
-                {items.map((m) => (
-                  <li key={m.memberId}>
-                    <button
-                      type="button"
-                      className="bq-row bq-press"
-                      onClick={() => setSheet({ t: "member", id: m.memberId })}
-                      aria-label={`${memberLabel(m)}، ${m.fullName}`}
-                    >
-                      <Avatar m={m} scoped={!!l} />
-                      <span className="bq-row-m">
-                        <span className="bq-row-t">{m.fullName}</span>
-                        <span className="bq-row-s">
-                          {[
-                            m.groupCode !== m.listCode
-                              ? `مستحقات الفئة ${groupLabel(m.groupCode)}`
-                              : "",
-                            m.phone ? "" : "بلا رقم هاتف",
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </span>
-                      </span>
-                      <StatusTag m={{ ...m, months: months[m.memberId] }} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          );
-        })
-      ) : (
-        <div className="bq-empty">
-          <p className="bq-empty-t">
-            {q.trim() ? "لم نجد عضوًا بهذا الاسم أو الرقم" : "لا أحد بهذه الحالة"}
-          </p>
-          <p className="bq-hint">جرّب جزءًا من الاسم، أو رقمًا مثل ب 12.</p>
-        </div>
-      )}
-
-      {sheet?.t === "add" && (
-        <Sheet key="add" label="إضافة عضو" onDone={() => setSheet(null)}>
-          <AddMemberBody members={members} prices={prices} thisMonth={thisMonth} onDone={done} />
-        </Sheet>
-      )}
-      {open && (
-        <Sheet key={open.memberId} label={open.fullName} onDone={() => setSheet(null)}>
-          <MemberAdminBody
-            m={open}
-            members={members}
-            thisMonth={thisMonth}
-            admin={admin}
-            credit={creditOf(open.memberId, open.groupCode)}
-            price={prices[open.groupCode] ?? 0}
-            months={months[open.memberId]}
-            monthsCtx={monthsCtx}
-            onDone={done}
-          />
-        </Sheet>
-      )}
-    </>
-  );
-}

@@ -217,7 +217,6 @@ function AddAccountForm({
           {I.people(20)} اختر العضو
         </button>
       )}
-      <p className="bq-hint">حتى لا يؤكد دفعاته بنفسه.</p>
       <div className="bq-rec-foot">
         {taken && (
           <div className="bq-wait" role="status">
@@ -451,7 +450,7 @@ function AccountSheet({
       )}
       {!self && a.active && a.needsMemberLink && (
         <div className="bq-wait" role="status">
-          <p>هذا الحساب يؤكد الدفعات وليس مربوطًا بعضو، فقد يؤكد دفعاته بنفسه.</p>
+          <p>هذا الحساب غير مربوط بعضو.</p>
           <p className="bq-hint">اربطه بعضويته، أو قل إنه ليس عضوًا في الصندوق.</p>
           <button
             type="button"

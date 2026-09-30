@@ -153,3 +153,17 @@ test("«المحافظ»: «المسؤول» adds a wallet and an account, sets 
     "نقدًا",
   ]);
 });
+
+test("a new committee account is linked to a member with the shared member search", async ({
+  page,
+}) => {
+  await page.goto("/committee/settings");
+  await page.getByRole("button", { name: "إضافة حساب" }).click();
+  const add = page.getByRole("dialog", { name: "إضافة حساب" });
+  await add.getByRole("button", { name: "اختر العضو" }).click();
+  const pick = page.getByRole("dialog", { name: "اختر العضو" });
+  await pick.getByLabel("ابحث عن العضو").fill("أ4");
+  await pick.getByRole("button", { name: /الشيخ ولد سيدي/ }).click();
+  await expect(pick).toBeHidden();
+  await expect(add.getByText("الشيخ ولد سيدي")).toBeVisible();
+});
