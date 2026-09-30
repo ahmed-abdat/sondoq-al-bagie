@@ -11,7 +11,7 @@ import type { ReportCampaign, ReportData, ReportExpense, ReportMember } from "./
 import { formatDay, monthName } from "./dates";
 import { monthPaid, paidTotal } from "./report-check";
 import { formatNumber } from "./format";
-import { FUND_NAME } from "./share-receipt";
+import { FUND_NAME } from "./brand";
 import {
   drawReportSummary,
   hasReminder,

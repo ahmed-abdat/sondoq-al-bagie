@@ -17,9 +17,11 @@ import {
   type ShareImageOptions,
   type ShareResult,
 } from "./canvas-share";
+import { ASSOC_NAME, FUND_NAME, memberNumber } from "./brand";
 
-export const FUND_NAME = "صندوق الرابطة";
-export const ASSOC_NAME = "رابطة شباب قرية البقيع";
+// Receipts are gone (owner, committee-only app): this file goes once the last receipt screen
+// does. The names moved to ./brand.
+export { ASSOC_NAME, FUND_NAME, memberNumber } from "./brand";
 
 export interface ReceiptCover {
   /** Member the months belong to (may differ from the payer, e.g. a father paying for sons). */
@@ -69,20 +71,6 @@ export function monthsInWords(months: number[], year: number): string {
     )
     .join("، ");
   return `${txt} ${year}`;
-}
-
-const LETTERS: Record<string, string> = { A: "أ", B: "ب" };
-
-/**
- * Member number as people know it: «A-12» → «أ 12» (group letter, space, number).
- * `isolate` wraps it in RIGHT-TO-LEFT ISOLATE … POP (U+2067 … U+2069) for text sent to WhatsApp,
- * so the letter stays before the number whatever surrounds it.
- */
-export function memberNumber(ref: string, isolate = false): string {
-  const [list, ...rest] = ref.split("-");
-  const no = rest.join("-");
-  const s = no ? `${LETTERS[list.trim().toUpperCase()] ?? list} ${no}` : ref;
-  return isolate ? `\u2067${s}\u2069` : s;
 }
 
 /**

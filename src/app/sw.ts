@@ -43,7 +43,7 @@ const runtimeCaching: RuntimeCaching[] = [
     handler: new NetworkOnly(),
   },
   // On-device OCR (worker, WASM core, Arabic/French models, ~8 MB): downloaded once on first use,
-  // then kept. Not precached, so members who never read a receipt never download it.
+  // then kept. Not precached, so a phone that never reads a picture never downloads it.
   {
     matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith("/ocr/"),
     handler: new CacheFirst({ cacheName: "ocr", plugins: [ok, expire(12, 90 * DAY)] }),
