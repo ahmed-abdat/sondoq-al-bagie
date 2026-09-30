@@ -10,9 +10,7 @@ const of = (accs: FundAccountAdmin[], w: WalletType) => accs.filter((a) => a.wal
 
 /** Sum over every account of the wallet the server gives a balance for (undefined: none). */
 export function walletBalance(accs: FundAccountAdmin[], w: WalletType, b: Balances) {
-  const xs = of(accs, w).flatMap((a) =>
-    b.accounts[a.id] !== undefined ? [b.accounts[a.id]] : [],
-  );
+  const xs = of(accs, w).flatMap((a) => (b.accounts[a.id] !== undefined ? [b.accounts[a.id]] : []));
   return xs.length ? xs.reduce((s, x) => s + x, 0) : undefined;
 }
 
@@ -43,7 +41,9 @@ export function moveSources(
         })),
       ];
     }),
-    ...(cash ? [{ key: "cash", label: "النقد", accountId: null, balance: b.cash ?? undefined }] : []),
+    ...(cash
+      ? [{ key: "cash", label: "النقد", accountId: null, balance: b.cash ?? undefined }]
+      : []),
   ];
 }
 
