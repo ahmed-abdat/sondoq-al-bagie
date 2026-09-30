@@ -697,6 +697,8 @@ export function toFeeStats(d: Json): FeeStats {
   return {
     year: num(r.year),
     refMonth: num(r.ref_month),
+    asOf: str(r.as_of) ?? null,
+    beforeRecords: r.before_records === true,
     overall: toFeeBlock(obj(r.overall)),
     groups: arr(r.groups).map((g) => ({
       groupCode: str(obj(g).group_code) ?? "",
@@ -767,17 +769,30 @@ export function toDonationStats(d: Json): DonationStats[] {
   });
 }
 
-async function feeStats(c: Client, year: number): Promise<FeeStats> {
-  return toFeeStats(
-    read.must("report_fee_stats", await c.rpc("report_fee_stats", { p_year: year })),
-  );
+async function feeStats(c: Client, year: number, asOf?: string): Promise<FeeStats> {
+  const args = asOf ? { p_year: year, p_as_of: asOf } : { p_year: year };
+  return toFeeStats(read.must("report_fee_stats", await c.rpc("report_fee_stats", args)));
 }
 
-/** «الإحصاءات» for a year: fees (+ last year for the trend), every levy and donation. */
+/** The same day one year earlier (29 February → 28 February), as YYYY-MM-DD (UTC = Nouakchott). */
+export function yearAgo(now: Date): string {
+  const y = now.getUTCFullYear() - 1;
+  const m = now.getUTCMonth() + 1;
+  const d = Math.min(now.getUTCDate(), m === 2 ? 28 : 31);
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/**
+ * «الإحصاءات» for a year: fees, every levy and donation, and last year for the trend. For the
+ * current year, last year is a snapshot of how it stood on the same day a year ago («في مثل هذا
+ * الوقت»); none when that day is before the first recorded payment. A past year compares with the
+ * whole year before it.
+ */
 export async function loadStats(c: Client, year: number, now = new Date()): Promise<StatsReport> {
+  const current = year === now.getUTCFullYear();
   const [fees, previous, levies, donations] = await Promise.all([
     feeStats(c, year),
-    feeStats(c, year - 1),
+    feeStats(c, year - 1, current ? yearAgo(now) : undefined),
     c.rpc("report_levy_stats", {}),
     c.rpc("report_donation_stats", {}),
   ]);
@@ -785,7 +800,7 @@ export async function loadStats(c: Client, year: number, now = new Date()): Prom
     period: { year },
     generatedAt: now.toISOString(),
     fees,
-    previous: previous.overall.active > 0 ? previous : null,
+    previous: previous.overall.active > 0 && !previous.beforeRecords ? previous : null,
     levies: toLevyStats(read.must("report_levy_stats", levies)),
     donations: toDonationStats(read.must("report_donation_stats", donations)),
   };

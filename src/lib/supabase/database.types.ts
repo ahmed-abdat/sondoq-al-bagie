@@ -1758,7 +1758,10 @@ export type Database = {
         }[]
       }
       report_donation_stats: { Args: { p_id?: string }; Returns: Json }
-      report_fee_stats: { Args: { p_year: number }; Returns: Json }
+      report_fee_stats: {
+        Args: { p_as_of?: string; p_year: number }
+        Returns: Json
+      }
       report_levy_stats: { Args: { p_id?: string }; Returns: Json }
       report_period: { Args: { p_from: string; p_to: string }; Returns: Json }
       report_wallets: {
