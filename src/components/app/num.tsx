@@ -14,11 +14,6 @@ export function Num({ children, className = "" }: { children: ReactNode; classNa
   );
 }
 
-/** A money figure, stable from its first frame (QA pass 3: no digit roll-up). */
-export function Roll({ value, className }: { value: number; className?: string }) {
-  return <Num className={className}>{fmt(value)}</Num>;
-}
-
 const noSub = () => () => {};
 /**
  * "Now" for relative times («منذ 12 دقيقة»): null during the server render and hydration (so the
