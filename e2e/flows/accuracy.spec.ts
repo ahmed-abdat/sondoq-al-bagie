@@ -42,7 +42,7 @@ async function sameEverywhere(page: Page, t: Truth): Promise<Home> {
   // this year's «الملخص» ends today: the fund part of its closing is home's balance
   const closing =
     /منها في الصندوق:\s*([\d\s]+)/.exec(summary) ??
-    /في الصندوق آخر [^:]+:\s*([\d\s]+)/.exec(summary);
+    /في الصندوق (?:آخر|حتى) [^:]+:\s*([\d\s]+)/.exec(summary);
   expect(closing, summary).not.toBeNull();
   expect(Number(closing![1].replace(/\D/g, "")), "«الملخص» «في الصندوق» = home balance").toBe(
     t.balance,
