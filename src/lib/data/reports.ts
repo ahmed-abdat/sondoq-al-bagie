@@ -74,6 +74,7 @@ export function toPeriodMoney(d: Json): PeriodMoney {
       levies: num(inc.levies),
       donations: num(inc.donations),
       total: num(inc.total),
+      paper: num(inc.paper),
     },
     spending: {
       byCategory: arr(sp.by_category).map((x) => {

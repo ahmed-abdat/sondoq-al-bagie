@@ -80,7 +80,7 @@ describe("report periods", () => {
       {
         report_period: {
           opening: 100,
-          income: { fees: 50, levies: 20, donations: 10, total: 80 },
+          income: { fees: 50, levies: 20, donations: 10, total: 80, paper: 40 },
           spending: {
             by_category: [{ category: "sports", amount: 30 }],
             by_activity: [{ activity_id: 3, name: "الفريق الرياضي", amount: 30 }],
@@ -102,7 +102,7 @@ describe("report periods", () => {
       opening: 100,
       closing: 149,
       campaignsHeld: 7,
-      income: { levies: 20, total: 80 },
+      income: { levies: 20, total: 80, paper: 40 },
       spending: { fromCampaigns: 5, total: 30 },
     });
     expect(a.spending.byCategory[0]).toMatchObject({ category: "sports", amount: 30 });

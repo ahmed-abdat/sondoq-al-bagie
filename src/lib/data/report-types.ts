@@ -15,7 +15,14 @@ export type Period = { year: number; month?: number };
 
 type Base = { period: Period; generatedAt: string };
 
-export type Income = { fees: number; levies: number; donations: number; total: number };
+export type Income = {
+  fees: number;
+  levies: number;
+  donations: number;
+  total: number;
+  /** of total: the paper sheets (m44), typed in on 2026-09-28/29, so by date mostly September */
+  paper?: number;
+};
 export type Spending = {
   byCategory: { category: ExpenseCategory; label: string; amount: number }[];
   /** «النشاط» (m38): what the report shows; byCategory is the old fixed list */

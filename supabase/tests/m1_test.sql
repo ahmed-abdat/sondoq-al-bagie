@@ -1787,6 +1787,21 @@ select tests.ok((select coalesce(sum(balance), 0) from public.report_wallets((se
   'wallets + cash = all the association''s money');
 \ir local/accuracy_audit_checks.sql
 
+/* ───────────── M44: income from the paper sheets ───────────── */
+
+select tests.login('committee');
+select tests.ok((select (r -> 'income' ->> 'paper')::bigint
+                        = (select coalesce(sum(amount), 0) from public.payments where status = 'confirmed' and method = 'paper'
+                           and paid_on between make_date(2000, 1, 1) and current_date + 1)
+                        and (r -> 'income' ->> 'paper')::bigint > 0
+                        and (r -> 'income' ->> 'paper')::bigint <= (r -> 'income' ->> 'total')::bigint
+                 from (select public.report_period(make_date(2000, 1, 1), current_date + 1) r) x),
+  'm44: income.paper = the paper sheets'' money in the period (part of the total)');
+select tests.ok((select (r -> 'income' ->> 'paper')::bigint
+                 = coalesce((select sum(in_amount) from public.report_wallets(current_date - 30, current_date) where method = 'paper'), 0)
+                 from (select public.report_period(current_date - 30, current_date) r) x),
+  'income.paper = the paper row of the wallets report');
+
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
 select tests.login('server');
