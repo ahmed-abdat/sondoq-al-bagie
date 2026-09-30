@@ -101,6 +101,9 @@ export const MESSAGES = {
   not_committee_member: "أحد المختارين ليس من أعضاء اللجنة.",
   not_a_wallet: "اختر محفظة (لا نقداً ولا سجلاً ورقياً).",
   account_exists: "هذا الرقم مضاف من قبل لنفس المحفظة.",
+  account_in_use: "هذا الرقم مستعمل في دفعات أو مصاريف. غيّر الرقم بدل تعديله.",
+  same_wallet: "اختر محفظتين مختلفتين.",
+  not_enough: "المبلغ أكبر مما في المحفظة.",
 } as const satisfies Record<string, string>;
 
 export type ErrorCode = keyof typeof MESSAGES;
@@ -136,8 +139,22 @@ const MONTH_TEMPLATES: Partial<
     d.price ? `مستحقات شهر ${month} لـ ${who}: ${formatNumber(d.price)} أوقية.` : null,
 };
 
+/** not_enough (m43): DETAIL {"wallet": "بنكيلي", "balance": 36000} → «في بنكيلي 36 000 أوقية فقط.» */
+function walletShort(detail: string | null | undefined): string | null {
+  if (!detail) return null;
+  try {
+    const d = JSON.parse(detail) as { wallet?: unknown; balance?: unknown } | null;
+    if (!d || typeof d.wallet !== "string" || !d.wallet.trim()) return null;
+    if (typeof d.balance !== "number" || !Number.isInteger(d.balance) || d.balance < 0) return null;
+    return `في ${d.wallet.trim()} ${formatNumber(d.balance)} أوقية فقط.`;
+  } catch {
+    return null;
+  }
+}
+
 export function messageFor(code: string, detail?: string | null): string {
   if (!(code in MESSAGES)) return MESSAGES.unknown;
+  if (code === "not_enough") return walletShort(detail) ?? MESSAGES.not_enough;
   const template = MONTH_TEMPLATES[code as ErrorCode];
   const d = template ? monthDetail(detail) : null;
   if (template && d) {
