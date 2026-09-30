@@ -25,7 +25,14 @@ if ! supabase status >/dev/null 2>&1; then
 fi
 if [ "${1:-}" != "--no-reset" ]; then
   echo "e2e-db: resetting local database (migrations + seed.sql + seed-e2e.sql)…"
-  supabase db reset --local
+  # The reset sometimes ends with "Error status 502": it restarts the db but not kong/rest, whose
+  # health check then fails. A full stop + start and one more reset clears it.
+  if ! supabase db reset --local; then
+    echo "e2e-db: reset failed; restarting local Supabase and retrying once…"
+    supabase stop
+    supabase start
+    supabase db reset --local
+  fi
 fi
 
 STATUS="$(supabase status -o env)"
