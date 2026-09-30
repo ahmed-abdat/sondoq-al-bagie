@@ -80,22 +80,27 @@ end $function$
 
 -- Move members to p_to_group from p_from_month: chosen members (p_member_ids) or everybody whose
 -- open period is in p_from_group. Each gets a new period (same status) from that month; the old
--- one ends the month before, so past months keep their fee. Members already in the group are
--- skipped (a repeat is a no-op). Refused as a whole when any of them has a month from then on
--- already paid or waiting, or started the current period on/after that month. Returns how many moved.
+-- one ends the month before, so past months keep their fee. Members already in the target group
+-- are skipped (a repeat moves nobody). A member is blocked when a month from then on is already
+-- paid or waiting (months_already_paid_after), or his current period starts on/after that month
+-- (before_current_period). p_dry_run: nothing is written, the result says exactly what would
+-- happen (the preview). A real run with anyone blocked is refused as a whole.
+-- Returns {moved, skipped_already_in_target, blocked: [{member_id, member_ref, name, reason}],
+--          from_fee, to_fee}.
 create function app_private.move_members_to_group(
   p_to_group text, p_from_month date, p_member_ids uuid[] default null, p_from_group text default null,
-  p_reason text default null
-) returns integer
+  p_reason text default null, p_dry_run boolean default false
+) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   m date := date_trunc('month', p_from_month)::date;
   to_gid smallint;
   n integer := 0;
   r record;
-  periods uuid[];
-  members uuid[];
-  earliest date;
+  skipped integer;
+  blocked jsonb;
+  from_fee integer;
+  to_fee integer;
 begin
   perform app_private.require_admin();
   if p_from_month is null or (p_member_ids is null) = (p_from_group is null) then
@@ -106,35 +111,59 @@ begin
   if p_from_group is not null and not exists (select 1 from public.groups where code = p_from_group) then
     perform app_private.fail('unknown_group');
   end if;
-  if not exists (select 1 from public.group_prices gp where gp.group_id = to_gid and gp.year = extract(year from m)) then
-    perform app_private.fail('no_price');
-  end if;
+  select gp.monthly_amount into to_fee from public.group_prices gp where gp.group_id = to_gid and gp.year = extract(year from m);
+  if to_fee is null then perform app_private.fail('no_price'); end if;
 
-  select coalesce(array_agg(p.id), '{}'), coalesce(array_agg(p.member_id), '{}'), coalesce(min(p.from_month), 'infinity'::date)
-    into periods, members, earliest
+  -- the open periods concerned, already in the target group or not
+  if to_regclass('pg_temp.move_candidates') is null then
+    create temp table move_candidates (period_id uuid, member_id uuid, group_id smallint,
+                                       status public.membership_status, from_month date) on commit drop;
+  end if;
+  truncate move_candidates;
+  insert into move_candidates
+  select p.id, p.member_id, p.group_id, p.status, p.from_month
   from public.membership_periods p join public.groups g on g.id = p.group_id
-  where p.cancelled_at is null and p.to_month is null and p.group_id <> to_gid
+  where p.cancelled_at is null and p.to_month is null
     and ((p_member_ids is not null and p.member_id = any (p_member_ids))
          or (p_from_group is not null and g.code = p_from_group));
 
-  if earliest >= m and cardinality(periods) > 0 then
-    perform app_private.fail('before_current_period');
+  skipped := (select count(*) from move_candidates c where c.group_id = to_gid);
+  select coalesce(jsonb_agg(jsonb_build_object('member_id', x.member_id, 'member_ref', x.ref, 'name', x.full_name,
+                                               'reason', x.reason) order by x.ref), '[]'::jsonb)
+    into blocked
+  from (select c.member_id, mem.list_code || '-' || mem.number as ref, mem.full_name,
+               case when c.from_month >= m then 'before_current_period' else 'months_already_paid_after' end as reason
+        from move_candidates c join public.members mem on mem.id = c.member_id
+        where c.group_id <> to_gid
+          and (c.from_month >= m
+               or exists (select 1 from public.payment_months pm
+                          where pm.member_id = c.member_id and pm.released_at is null and make_date(pm.year, pm.month, 1) >= m)
+               or exists (select 1 from public.payment_allocations a join public.payments p on p.id = a.payment_id
+                          where a.member_id = c.member_id and a.kind = 'months' and p.status = 'pending'
+                            and make_date(a.year, a.month, 1) >= m))) x;
+  select case when count(distinct c.group_id) = 1 then max(gp.monthly_amount) end into from_fee
+  from move_candidates c left join public.group_prices gp on gp.group_id = c.group_id and gp.year = extract(year from m)
+  where c.group_id <> to_gid;
+
+  if p_dry_run then
+    return jsonb_build_object('moved', (select count(*) from move_candidates c where c.group_id <> to_gid)
+                                       - jsonb_array_length(blocked),
+                              'skipped_already_in_target', skipped, 'blocked', blocked,
+                              'from_fee', from_fee, 'to_fee', to_fee);
   end if;
-  if exists (select 1 from public.payment_months pm
-             where pm.member_id = any (members) and pm.released_at is null and make_date(pm.year, pm.month, 1) >= m)
-     or exists (select 1 from public.payment_allocations a join public.payments p on p.id = a.payment_id and p.status = 'pending'
-                where a.member_id = any (members) and a.kind = 'months' and make_date(a.year, a.month, 1) >= m) then
-    perform app_private.fail('months_already_paid_after');
+  if jsonb_array_length(blocked) > 0 then
+    perform app_private.fail(blocked -> 0 ->> 'reason', format('%s member(s) blocked', jsonb_array_length(blocked)));
   end if;
 
   perform app_private.set_action('move_members_to_group');
-  for r in select p.* from public.membership_periods p where p.id = any (periods) loop
-    update public.membership_periods set to_month = (m - interval '1 month')::date where id = r.id;
+  for r in select c.* from move_candidates c where c.group_id <> to_gid loop
+    update public.membership_periods set to_month = (m - interval '1 month')::date where id = r.period_id;
     insert into public.membership_periods (member_id, group_id, status, from_month, reason, created_by)
     values (r.member_id, to_gid, r.status, m, coalesce(nullif(btrim(p_reason), ''), 'تغيير الفئة'), auth.uid());
     n := n + 1;
   end loop;
-  return n;
+  return jsonb_build_object('moved', n, 'skipped_already_in_target', skipped, 'blocked', '[]'::jsonb,
+                            'from_fee', from_fee, 'to_fee', to_fee);
 end $$;
 
 -- Retire a group from a year: nobody may be in it from then on (history before stays).
@@ -155,6 +184,52 @@ begin
   perform app_private.set_action('retire_group');
   update public.groups set retired_from = p_from_year where id = gid;
 end $$;
+
+-- A group change (change_member_group → change_member_status) never covers a month already paid
+-- or waiting: the paid month would change price (found by the accuracy audit). Current body,
+-- pg_get_functiondef at m32, the two checks extended to group changes.
+CREATE OR REPLACE FUNCTION app_private.change_member_status(p_member_id uuid, p_from_month date, p_status public.membership_status, p_reason text, p_group_code text DEFAULT NULL::text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  cur public.membership_periods;
+  m date := date_trunc('month', p_from_month)::date;
+  gid smallint;
+  pid uuid;
+begin
+  perform app_private.require_admin();
+  if btrim(coalesce(p_reason, '')) = '' then perform app_private.fail('reason_required'); end if;
+  select * into cur from public.membership_periods
+  where member_id = p_member_id and cancelled_at is null and to_month is null for update;
+  if cur.id is null then perform app_private.fail('no_open_period'); end if;
+  if m <= cur.from_month then perform app_private.fail('before_current_period'); end if;
+  if p_group_code is null then gid := cur.group_id;
+  else
+    select id into gid from public.groups where code = p_group_code;
+    if gid is null then perform app_private.fail('unknown_group'); end if;
+  end if;
+  -- a paid month keeps the price it was paid at: no status or group change over it (accuracy audit)
+  if exists (select 1 from public.payment_months pm where pm.member_id = p_member_id and pm.released_at is null
+             and make_date(pm.year, pm.month, 1) >= m and (p_status <> 'active' or gid <> cur.group_id)) then
+    perform app_private.fail('months_already_paid_after');
+  end if;
+  if (p_status <> 'active' or gid <> cur.group_id) and exists (
+       select 1 from public.payment_allocations a join public.payments p on p.id = a.payment_id
+       where a.member_id = p_member_id and a.kind = 'months' and p.status = 'pending'
+         and make_date(a.year, a.month, 1) >= m) then
+    perform app_private.fail('months_pending_after');
+  end if;
+  perform app_private.set_action('change_member_status');
+  update public.membership_periods set to_month = (m - interval '1 month')::date where id = cur.id;
+  insert into public.membership_periods (member_id, group_id, status, from_month, reason, created_by)
+  values (p_member_id, gid, p_status, m, btrim(p_reason), auth.uid())
+  returning id into pid;
+  return pid;
+end $function$
+;
 
 /* ───────────────────────── committee read ───────────────────────── */
 
@@ -236,11 +311,12 @@ language sql security invoker set search_path = '' as $$
 $$;
 create function public.move_members_to_group(
   p_to_group text, p_from_month date, p_member_ids uuid[] default null, p_from_group text default null,
-  p_reason text default null
-) returns integer
+  p_reason text default null, p_dry_run boolean default false
+) returns jsonb
 language sql security invoker set search_path = '' as $$
   select app_private.move_members_to_group(p_to_group => p_to_group, p_from_month => p_from_month,
-                                           p_member_ids => p_member_ids, p_from_group => p_from_group, p_reason => p_reason)
+                                           p_member_ids => p_member_ids, p_from_group => p_from_group, p_reason => p_reason,
+                                           p_dry_run => p_dry_run)
 $$;
 create function public.retire_group(p_group text, p_from_year integer) returns void
 language sql security invoker set search_path = '' as $$
@@ -253,12 +329,12 @@ language sql stable security invoker set search_path = '' as $$
 $$;
 
 revoke all on function app_private.create_group(text, integer, integer), public.create_group(text, integer, integer),
-  app_private.move_members_to_group(text, date, uuid[], text, text), public.move_members_to_group(text, date, uuid[], text, text),
+  app_private.move_members_to_group(text, date, uuid[], text, text, boolean), public.move_members_to_group(text, date, uuid[], text, text, boolean),
   app_private.retire_group(text, integer), public.retire_group(text, integer),
   app_private.groups_overview(integer), public.groups_overview(integer)
 from public, anon, authenticated;
 grant execute on function app_private.create_group(text, integer, integer), public.create_group(text, integer, integer),
-  app_private.move_members_to_group(text, date, uuid[], text, text), public.move_members_to_group(text, date, uuid[], text, text),
+  app_private.move_members_to_group(text, date, uuid[], text, text, boolean), public.move_members_to_group(text, date, uuid[], text, text, boolean),
   app_private.retire_group(text, integer), public.retire_group(text, integer),
   app_private.groups_overview(integer), public.groups_overview(integer)
 to authenticated, service_role;

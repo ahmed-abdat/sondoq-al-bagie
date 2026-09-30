@@ -2,7 +2,7 @@
 -- pg_get_functiondef of the m32 state. Run as postgres; also run first by m2_down.sql.
 set client_min_messages = warning;
 drop function if exists public.create_group(text, integer, integer), app_private.create_group(text, integer, integer),
-  public.move_members_to_group(text, date, uuid[], text, text), app_private.move_members_to_group(text, date, uuid[], text, text),
+  public.move_members_to_group(text, date, uuid[], text, text, boolean), app_private.move_members_to_group(text, date, uuid[], text, text, boolean),
   public.retire_group(text, integer), app_private.retire_group(text, integer),
   public.groups_overview(integer), app_private.groups_overview(integer);
 drop trigger if exists b_group_open on public.membership_periods;
@@ -68,6 +68,48 @@ begin
     from public.campaigns c
     left join per t on t.campaign_id = c.id and t.code is null
     where c.kind = 'levy' and (p_id is null or c.id = p_id)), '[]'::jsonb);
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION app_private.change_member_status(p_member_id uuid, p_from_month date, p_status public.membership_status, p_reason text, p_group_code text DEFAULT NULL::text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  cur public.membership_periods;
+  m date := date_trunc('month', p_from_month)::date;
+  gid smallint;
+  pid uuid;
+begin
+  perform app_private.require_admin();
+  if btrim(coalesce(p_reason, '')) = '' then perform app_private.fail('reason_required'); end if;
+  select * into cur from public.membership_periods
+  where member_id = p_member_id and cancelled_at is null and to_month is null for update;
+  if cur.id is null then perform app_private.fail('no_open_period'); end if;
+  if m <= cur.from_month then perform app_private.fail('before_current_period'); end if;
+  if p_group_code is null then gid := cur.group_id;
+  else
+    select id into gid from public.groups where code = p_group_code;
+    if gid is null then perform app_private.fail('unknown_group'); end if;
+  end if;
+  if exists (select 1 from public.payment_months pm where pm.member_id = p_member_id and pm.released_at is null
+             and make_date(pm.year, pm.month, 1) >= m and p_status <> 'active') then
+    perform app_private.fail('months_already_paid_after');
+  end if;
+  if p_status <> 'active' and exists (
+       select 1 from public.payment_allocations a join public.payments p on p.id = a.payment_id
+       where a.member_id = p_member_id and a.kind = 'months' and p.status = 'pending'
+         and make_date(a.year, a.month, 1) >= m) then
+    perform app_private.fail('months_pending_after');
+  end if;
+  perform app_private.set_action('change_member_status');
+  update public.membership_periods set to_month = (m - interval '1 month')::date where id = cur.id;
+  insert into public.membership_periods (member_id, group_id, status, from_month, reason, created_by)
+  values (p_member_id, gid, p_status, m, btrim(p_reason), auth.uid())
+  returning id into pid;
+  return pid;
 end $function$
 ;
 

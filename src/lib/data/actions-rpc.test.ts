@@ -158,7 +158,7 @@ const cases: Case[] = [
     "moveMembersToGroup",
     () => a.moveMembersToGroup({ toGroup: "C", fromMonth: "2027-01-01", fromGroup: "B" }),
     "move_members_to_group",
-    { p_to_group: "C", p_from_month: "2027-01-01", p_from_group: "B" },
+    { p_to_group: "C", p_from_month: "2027-01-01", p_from_group: "B", p_dry_run: false },
     true,
   ],
   [

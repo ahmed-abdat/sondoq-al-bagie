@@ -267,9 +267,12 @@ select tests.throws($$insert into public.payment_allocations (payment_id, kind, 
   values (tests.id('p1'), 'credit', tests.id('E'), 100)$$, 'not_pending', 'no allocations added after the decision');
 select tests.throws($$truncate public.audit_log$$, 'append_only', 'tables cannot be truncated');
 -- deferred sum check on a hand-written payment
-insert into public.payments (id, payer_name, method, amount, paid_on) values ('00000000-0000-0000-0000-00000000bad1', 'x', 'cash', 1500, current_date);
-insert into public.payment_allocations (payment_id, kind, member_id, amount) values ('00000000-0000-0000-0000-00000000bad1', 'credit', tests.id('K'), 1000);
-select tests.throws('set constraints all immediate', 'allocations_mismatch', 'allocations must sum even when written by hand');
+-- (inside one statement, so the bad rows are rolled back with it and never reach the accuracy audit)
+select tests.throws($q$do $d$ begin
+  insert into public.payments (id, payer_name, method, amount, paid_on) values ('00000000-0000-0000-0000-00000000bad1', 'x', 'cash', 1500, current_date);
+  insert into public.payment_allocations (payment_id, kind, member_id, amount) values ('00000000-0000-0000-0000-00000000bad1', 'credit', tests.id('K'), 1000);
+  set constraints all immediate;
+end $d$$q$, 'allocations_mismatch', 'allocations must sum even when written by hand');
 select tests.ok((select count(*) > 0 from public.audit_log where action = 'confirm_payment'), 'confirmations are audited');
 select tests.ok(not exists (select 1 from public.audit_log where 'phone' = any (changed) and action <> 'add_member'),
   'audit rows hold column names only');
@@ -786,8 +789,12 @@ select tests.ok((select state from public.member_months where member_id = tests.
                 and (select count(*) = 2 from public.membership_periods where member_id = tests.id('D') and cancelled_at is not null),
   'undo: the wrong period and the closed one are cancelled, the previous period is open again');
 select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'no_previous_period', 'the first period cannot be undone');
-select public.record_payment(gen_random_uuid(), 'د', 'cash', 1000, current_date, jsonb_build_array(tests.month('D', -1, 1000)));
 select public.change_member_group(tests.id('D'), tests.m(-1), 'B', 'تغيير');
+select public.record_payment(gen_random_uuid(), 'د', 'cash', 500, current_date, jsonb_build_array(tests.month('D', -1, 500)));
+select tests.set('GZ', public.add_member(9006, 'عضو ز٢', 'A', tests.m(-3)));
+select public.record_payment(gen_random_uuid(), 'ز', 'cash', 1000, current_date, jsonb_build_array(tests.month('GZ', -1, 1000)));
+select tests.throws($$select public.change_member_group(tests.id('GZ'), tests.m(-2), 'B', 'x')$$, 'months_already_paid_after',
+  'no group change over a paid month (its price would change)');
 select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'period_has_payments',
   'no undo over a paid month');
 select public.set_join_month(tests.id('D'), tests.m(-6), 'تاريخ الانضمام الصحيح');
@@ -1352,7 +1359,11 @@ select tests.throws($$select public.move_members_to_group('D', tests.m(-1), arra
   'moving members is «مسؤول» only');
 select tests.login('admin');
 select tests.set('ln', (select list_code || '-' || number from public.members where id = tests.id('mv1')));
-select tests.ok(public.move_members_to_group('D', tests.m(-1), array[tests.id('mv1')]) = 1, 'a chosen member moves');
+select tests.ok((select r ->> 'moved' = '1' and r ->> 'to_fee' = '700' and r ->> 'from_fee' = '1000' and r -> 'blocked' = '[]'::jsonb
+                 from (select public.move_members_to_group('D', tests.m(-1), array[tests.id('mv1')], null, null, true) r) x)
+                and (select count(*) from public.membership_periods where member_id = tests.id('mv1') and cancelled_at is null) = 1,
+  'a dry run says what would happen and writes nothing');
+select tests.ok((public.move_members_to_group('D', tests.m(-1), array[tests.id('mv1')]) ->> 'moved')::int = 1, 'a chosen member moves');
 select tests.login('server');
 select tests.ok(app_private.price_at(tests.id('mv1'), extract(year from tests.m(-2))::int, extract(month from tests.m(-2))::int) = 1000
                 and app_private.price_at(tests.id('mv1'), extract(year from tests.m(-1))::int, extract(month from tests.m(-1))::int) = 700
@@ -1367,14 +1378,23 @@ select tests.set('mv2', public.add_member(9402, 'دفع مقدمًا', 'A', test
 select tests.login('committee');
 select tests.pay('mv2p', 1000, jsonb_build_array(tests.month('mv2', 0, 1000)));
 select tests.login('admin');
+select tests.ok((select r ->> 'moved' = '0' and r -> 'blocked' -> 0 ->> 'reason' = 'months_already_paid_after'
+                        and r -> 'blocked' -> 0 ->> 'member_ref' = 'A-9402'
+                 from (select public.move_members_to_group('D', tests.m(0), array[tests.id('mv2')], null, null, true) r) x),
+  'the dry run names who blocks the move and why');
 select tests.throws($$select public.move_members_to_group('D', tests.m(0), array[tests.id('mv2')])$$, 'months_already_paid_after',
   'never change a month already paid');
 
 -- a whole group at once, then again (nothing left to move)
 select tests.set('mv3', public.add_member(9403, 'ج ١', 'D', tests.m(-2)));
 select tests.set('mv4', public.add_member(9404, 'ج ٢', 'D', tests.m(-2)));
-select tests.ok(public.move_members_to_group('E', tests.m(0), null, 'D') = 3, 'a whole group moves');
-select tests.ok(public.move_members_to_group('E', tests.m(0), null, 'D') = 0, 'a repeat moves nobody');
+select tests.ok((public.move_members_to_group('E', tests.m(0), null, 'D', null, true) ->> 'moved')::int = 3,
+  'the dry run counts the whole group');
+select tests.ok((public.move_members_to_group('E', tests.m(0), null, 'D') ->> 'moved')::int = 3, 'a whole group moves, as the dry run said');
+select tests.ok((select r ->> 'moved' = '0' and r ->> 'skipped_already_in_target' = '0'
+                 from (select public.move_members_to_group('E', tests.m(0), null, 'D') r) x), 'a repeat moves nobody');
+select tests.ok((public.move_members_to_group('E', tests.m(0), array[tests.id('mv3')]) ->> 'skipped_already_in_target')::int = 1,
+  'members already in the group are counted as skipped');
 select tests.throws($$select public.move_members_to_group('E', tests.m(0))$$, 'invalid_input', 'members or a group, one of them');
 select tests.ok((select members from public.groups_overview(extract(year from current_date)::int) where code = 'E') = 3
                 and (select members from public.groups_overview(extract(year from current_date)::int) where code = 'D') = 0
@@ -1399,6 +1419,11 @@ select tests.login('committee');
 select tests.ok((select count(*) from public.groups_overview(extract(year from current_date)::int)) = 5, 'every committee member reads the groups');
 select tests.login('public');
 select tests.throws($$select * from public.groups_overview(2026::int)$$, '42501', 'strangers do not');
+
+/* ───────────── accuracy audit (supabase/tests/accuracy_audit.sql) ───────────── */
+
+select tests.login('server');
+\ir local/accuracy_audit_checks.sql
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

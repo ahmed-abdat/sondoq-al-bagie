@@ -209,6 +209,8 @@ export const moveMembersSchema = z
     memberIds: z.array(id).min(1).max(1000).optional(),
     fromGroup: groupCode.optional(),
     reason: optText(200),
+    /** preview only: nothing is written, the result says exactly what would happen */
+    dryRun: z.boolean().optional(),
   })
   .refine((v) => (v.memberIds ? 1 : 0) + (v.fromGroup ? 1 : 0) === 1, { message: "invalid_input" });
 export const retireGroupSchema = z.object({ groupCode, fromYear: year });

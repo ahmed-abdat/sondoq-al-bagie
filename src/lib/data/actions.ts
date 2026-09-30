@@ -619,7 +619,19 @@ export async function createGroup(input: s.CreateGroupInput) {
   );
 }
 
-/** Move chosen members, or a whole group, to another group from a month; returns how many moved. */
+export type MoveResult = {
+  moved: number;
+  skippedAlreadyInTarget: number;
+  /** who blocks the move and why (a real run with anyone blocked is refused) */
+  blocked: { memberId: string; memberRef: string; name: string; reason: string }[];
+  fromFee: number | null;
+  toFee: number | null;
+};
+
+/**
+ * Move chosen members, or a whole group, to another group from a month. With dryRun nothing is
+ * written: the preview gets the exact counts and who blocks it.
+ */
 export async function moveMembersToGroup(input: s.MoveMembersInput) {
   return run(
     s.moveMembersSchema,
@@ -631,8 +643,32 @@ export async function moveMembersToGroup(input: s.MoveMembersInput) {
         p_member_ids: p.memberIds,
         p_from_group: p.fromGroup,
         p_reason: p.reason,
+        p_dry_run: p.dryRun ?? false,
       }),
-    { touchesPublic: true, result: (d) => d as number },
+    {
+      touchesPublic: !input.dryRun,
+      result: (d): MoveResult => {
+        const r = (d ?? {}) as {
+          moved?: number;
+          skipped_already_in_target?: number;
+          blocked?: { member_id: string; member_ref: string; name: string; reason: string }[];
+          from_fee?: number | null;
+          to_fee?: number | null;
+        };
+        return {
+          moved: r.moved ?? 0,
+          skippedAlreadyInTarget: r.skipped_already_in_target ?? 0,
+          blocked: (r.blocked ?? []).map((b) => ({
+            memberId: b.member_id,
+            memberRef: b.member_ref,
+            name: b.name,
+            reason: b.reason,
+          })),
+          fromFee: r.from_fee ?? null,
+          toFee: r.to_fee ?? null,
+        };
+      },
+    },
   );
 }
 

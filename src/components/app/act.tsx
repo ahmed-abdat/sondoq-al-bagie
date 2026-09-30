@@ -472,7 +472,14 @@ const demo = {
   unexemptLevyShare: async () => ok(undefined),
   setPushKinds: async () => ok(undefined),
   createGroup: async () => ok("C"),
-  moveMembersToGroup: async (p) => ok(p.memberIds?.length ?? 0),
+  moveMembersToGroup: async (p) =>
+    ok({
+      moved: p.memberIds?.length ?? 0,
+      skippedAlreadyInTarget: 0,
+      blocked: [],
+      fromFee: null,
+      toFee: null,
+    }),
   retireGroup: async () => ok(undefined),
 } satisfies Sim;
 

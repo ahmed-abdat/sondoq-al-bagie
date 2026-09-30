@@ -1735,10 +1735,11 @@ export type Database = {
           p_from_group?: string
           p_from_month: string
           p_member_ids?: string[]
+          p_dry_run?: boolean
           p_reason?: string
           p_to_group: string
         }
-        Returns: number
+        Returns: Json
       }
       retire_group: {
         Args: { p_from_year: number; p_group: string }
