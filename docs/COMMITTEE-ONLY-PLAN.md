@@ -394,3 +394,9 @@ Simple screen «الفئات» (in المزيد → الإعدادات), «مس�
    48px targets. A UX pass (tap counts per job) on every screen before sign-off.
 
 Stats design pick: **a (numbers first)**.
+
+## 13. Expense activities (owner, 2026-09-30)
+
+«لأي نشاط؟» is a list the «مسؤول» manages (add, rename, retire), not a fixed set. Existing
+expenses map to «التدريس المحوري», «تكريم الناجحين», «الفريق الرياضي», «أخرى». The owner sends the full list
+of the association's activities to seed. Reports group spending by activity.
