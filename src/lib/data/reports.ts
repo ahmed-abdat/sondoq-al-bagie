@@ -59,7 +59,8 @@ type PeriodMoney = {
   adjustments: number;
   closing: number;
   campaignsHeld: number;
-  months: { year: number; month: number; income: number; spending: number }[];
+  incomeDue: { total: number; feesForOtherMonths: number; feesPaidOutside: number };
+  months: { year: number; month: number; income: number; dueIncome: number; spending: number }[];
 };
 
 export function toPeriodMoney(d: Json): PeriodMoney {
@@ -90,12 +91,18 @@ export function toPeriodMoney(d: Json): PeriodMoney {
     adjustments: num(r.adjustments),
     closing: num(r.closing),
     campaignsHeld: num(r.campaigns_held),
+    incomeDue: {
+      total: num(obj(r.income_due).total),
+      feesForOtherMonths: num(obj(r.income_due).fees_for_other_months),
+      feesPaidOutside: num(obj(r.income_due).fees_paid_outside),
+    },
     months: arr(r.months).map((x) => {
       const o = obj(x);
       return {
         year: num(o.year),
         month: num(o.month),
         income: num(o.income),
+        dueIncome: num(o.due_income),
         spending: num(o.spending),
       };
     }),

@@ -88,7 +88,8 @@ describe("report periods", () => {
           adjustments: -1,
           closing: 149,
           campaigns_held: 7,
-          months: [{ year: 2026, month: 1, income: 80, spending: 30 }],
+          income_due: { total: 70, fees_for_other_months: 20, fees_paid_outside: 10 },
+          months: [{ year: 2026, month: 1, income: 80, due_income: 70, spending: 30 }],
         },
       },
     );
@@ -105,6 +106,12 @@ describe("report periods", () => {
     expect(a.spending.byCategory[0]).toMatchObject({ category: "sports", amount: 30 });
     expect(a.spending.byCategory[0].label).toBeTruthy();
     expect(a.spending.byActivity).toEqual([{ activityId: 3, name: "الفريق الرياضي", amount: 30 }]);
+    expect(a.incomeDue).toEqual({ total: 70, feesForOtherMonths: 20, feesPaidOutside: 10 });
+    expect(a.months[0]).toEqual({ year: 2026, month: 1, income: 80, dueIncome: 70, spending: 30 });
+    // total by due month = total by date − other months + paid outside
+    expect(a.incomeDue.total).toBe(
+      a.income.total - a.incomeDue.feesForOtherMonths + a.incomeDue.feesPaidOutside,
+    );
   });
 
   it("expenses: each item names its activity; totals per activity add up", async () => {
