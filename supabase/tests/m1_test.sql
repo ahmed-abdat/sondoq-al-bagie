@@ -1586,6 +1586,24 @@ select tests.ok(((select jsonb_agg(m) from jsonb_array_elements(tests.get('y39')
                 and (tests.get('y39')::jsonb -> 'income' ->> 'total') is not null,
   'income by date is unchanged next to it');
 
+/* ───────────── M40: «سجل العمليات» scope ───────────── */
+
+select tests.login('committee');
+select tests.ok(not exists (select 1 from public.activity_log(null, 200)
+                            where table_name not in ('payments', 'payment_allocations', 'payment_months', 'expenses', 'campaigns',
+                                                     'campaign_participants', 'members', 'membership_periods', 'transfers',
+                                                     'balance_adjustments', 'handovers', 'terms'))
+                and exists (select 1 from public.activity_log(null, 200) where table_name = 'payments'),
+  'by default only business actions (money)');
+select tests.ok(exists (select 1 from public.activity_log(null, 200, 'settings') where table_name in ('expense_activities', 'fund_accounts', 'settings', 'committee'))
+                and not exists (select 1 from public.activity_log(null, 200, 'settings') where table_name in ('payments', 'expenses')),
+  'settings changes on their own');
+select tests.ok((select count(*) from public.activity_log(null, 200, 'all'))
+                >= (select count(*) from public.activity_log(null, 200, 'money')) + 1,
+  'all = both');
+select tests.ok((select count(*) from public.activity_log(null, 3, 'money')) = 3, 'a page of money actions is full (filtered before the limit)');
+select tests.throws($$select * from public.activity_log(null, 10, 'x')$$, 'invalid_input', 'unknown scope refused');
+
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
 select tests.login('server');

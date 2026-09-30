@@ -415,11 +415,21 @@ export async function contributorsPublic(c: Client, campaignId: string, limit = 
 
 /* ───────────── committee tools (m29–m30) ───────────── */
 
-/** «سجل العمليات»: newest first; pass the last id shown as `before` for the next page. */
-export async function activityLog(c: Client, before?: number, limit = 50) {
+export type ActivityScope = "money" | "settings" | "all";
+
+/**
+ * «سجل العمليات»: newest first; pass the last id shown as `before` for the next page. `scope`
+ * (m40): business actions by default, settings changes apart, or both.
+ */
+export async function activityLog(
+  c: Client,
+  before?: number,
+  limit = 50,
+  scope: ActivityScope = "money",
+) {
   const rows = many(
     "activity_log",
-    await c.rpc("activity_log", { p_before: before, p_limit: limit }),
+    await c.rpc("activity_log", { p_before: before, p_limit: limit, p_scope: scope }),
   );
   return rows.map(map.toActivityEntry);
 }

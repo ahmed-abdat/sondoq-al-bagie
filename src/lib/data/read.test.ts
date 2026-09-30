@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   DataError,
   accuracyAudit,
+  activityLog,
   expenseActivities,
   fundInfo,
   fundSettings,
@@ -22,6 +23,22 @@ function fake(res: { data: unknown; error: unknown }) {
 }
 
 describe("read", () => {
+  it("activity log asks for business actions by default, settings on request", async () => {
+    const { client, rpc } = fake({ data: [], error: null });
+    await activityLog(client);
+    expect(rpc).toHaveBeenLastCalledWith("activity_log", {
+      p_before: undefined,
+      p_limit: 50,
+      p_scope: "money",
+    });
+    await activityLog(client, 10, 20, "settings");
+    expect(rpc).toHaveBeenLastCalledWith("activity_log", {
+      p_before: 10,
+      p_limit: 20,
+      p_scope: "settings",
+    });
+  });
+
   it("maps expense activities in list order", async () => {
     const { client } = fake({
       data: [{ id: 5, name: "رحلة", sort_order: 4, active: false }],

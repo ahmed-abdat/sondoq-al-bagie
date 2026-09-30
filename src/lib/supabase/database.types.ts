@@ -1593,7 +1593,7 @@ export type Database = {
         }[]
       }
       activity_log: {
-        Args: { p_before?: number; p_limit?: number }
+        Args: { p_before?: number; p_limit?: number; p_scope?: string }
         Returns: {
           action: string
           actor: string
