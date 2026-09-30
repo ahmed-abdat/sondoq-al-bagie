@@ -1,4 +1,5 @@
 // «الإحصاءات» (plan §10): counts and percentages only, never names. Pure, tested.
+import type { StatsReport } from "@/lib/data/report-types";
 import type { PCampaign, PData, PLevy, PMember } from "./types";
 
 export const pct = (n: number, of: number) => (of > 0 ? Math.round((n / of) * 100) : 0);
@@ -19,6 +20,8 @@ export function feeStats(d: Pick<PData, "members" | "due">) {
     total: active.length,
     paid,
     pct: pct(paid, active.length),
+    /** the same point last year, when known */
+    previous: null as number | null,
     A: group("A"),
     B: group("B"),
     /** months 1..due: members who paid that month / who owed it and did not */
@@ -116,5 +119,69 @@ export function allStats(d: Omit<PData, "stats">): AllStats {
     owing,
     levies: Object.fromEntries(d.levies.map((l) => [l.id, levyStats(l, d.members, d.today)])),
     campaigns: Object.fromEntries(d.campaigns.map((c) => [c.id, campaignStats(c, d.members)])),
+  };
+}
+
+/** The server's «الإحصاءات» (m32) in the screens' shape: the numbers the reports print. */
+export function statsFromReport(r: StatsReport, due: number, owing: number): AllStats {
+  const g = (code: string) => {
+    const x = r.fees.groups.find((y) => y.groupCode === code);
+    return x
+      ? { total: x.active, paid: x.paidUp, pct: Math.round(x.paidUpPct) }
+      : { total: 0, paid: 0, pct: 0 };
+  };
+  const o = r.fees.overall;
+  return {
+    fees: {
+      total: o.active,
+      paid: o.paidUp,
+      pct: Math.round(o.paidUpPct),
+      previous: r.previous ? Math.round(r.previous.overall.paidUpPct) : null,
+      A: g("A"),
+      B: g("B"),
+      months: r.fees.months
+        .filter((m) => m.month <= due)
+        .map((m) => ({ month: m.month, paid: m.paid, unpaid: m.unpaid })),
+      owe: { one: o.owe1, twoThree: o.owe2to3, fourPlus: o.owe4plus },
+    },
+    owing,
+    levies: Object.fromEntries(
+      r.levies.map((l) => {
+        const lg = (code: string) => {
+          const x = l.groups.find((y) => y.groupCode === code);
+          const of = x ? x.paid + x.unpaid : 0;
+          return { total: of, paid: x?.paid ?? 0, pct: x ? Math.round(x.paidPct) : 0 };
+        };
+        return [
+          l.id,
+          {
+            total: l.shares,
+            paid: l.paid,
+            notYet: l.unpaid,
+            exempt: l.exempt,
+            pct: Math.round(l.paidPct),
+            expected: l.expected,
+            collected: l.collected,
+            A: lg("A"),
+            B: lg("B"),
+            days: l.daysOpen,
+          },
+        ];
+      }),
+    ),
+    campaigns: Object.fromEntries(
+      r.donations.map((c) => [
+        c.id,
+        {
+          givers: c.givers,
+          members: c.memberGivers,
+          outside: c.outsideGivers,
+          pctMembers: Math.round(c.memberPct),
+          collected: c.collected,
+          target: c.target ?? 0,
+          pctTarget: c.targetPct === null ? null : Math.round(c.targetPct),
+        },
+      ]),
+    ),
   };
 }

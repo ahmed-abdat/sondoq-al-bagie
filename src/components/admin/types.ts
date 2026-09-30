@@ -134,6 +134,8 @@ export type PData = {
   prices: Record<string, number>;
   levies: PLevy[];
   log: PLog[];
+  /** terms (دورات), newest first: the handover report picks one */
+  terms: { number: number; title: string; startedOn: string; endedOn: string | null }[];
   /** analytics, computed in the data door (see stats.ts) */
   stats: AllStats;
 };

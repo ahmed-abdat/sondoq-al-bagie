@@ -94,6 +94,11 @@ export function FeesCard() {
           </div>
         ))}
       </div>
+      {s.previous !== null && (
+        <p className="st-foot">
+          السنة الماضية في مثل هذا الوقت: <P v={s.previous} />
+        </p>
+      )}
     </Card>
   );
 }

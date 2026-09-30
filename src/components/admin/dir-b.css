@@ -39,27 +39,27 @@
   color: var(--on-g);
 }
 .pb-hero-brand small {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .pb-hero-l {
   margin: 0;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .pb-hero-n {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(40px, 13vw, 52px);
+  font-size: clamp(2.5rem, 13vw, 3.25rem);
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.02em;
 }
 .pb-hero-n span {
-  font-size: 20px;
+  font-size: 1.25rem;
   letter-spacing: 0;
 }
 .pb-hero-m {
   margin: 8px 0 0;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .pb-big {
   display: grid;
@@ -69,7 +69,7 @@
 .pb-big-btn {
   min-height: 64px;
   border-radius: var(--r-lg);
-  font-size: 17px;
+  font-size: 1.0625rem;
   padding-inline: 12px;
 }
 .pb-month {
@@ -84,7 +84,7 @@
 }
 .pb-month-t {
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 1.1875rem;
   font-weight: 700;
 }
 .pb-month-s {
@@ -93,7 +93,7 @@
   gap: 4px;
   color: var(--g8);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .pb-month-s svg {
   margin-inline-start: auto;
@@ -115,7 +115,7 @@
   text-align: start;
 }
 .pb-shot-pick small {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .pb-shot-read {
   display: flex;
@@ -131,7 +131,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .pb-ocr-ok {
   margin: 0;
@@ -140,11 +140,11 @@
   gap: 6px;
   color: var(--g8);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .pb-ocr-dl {
   gap: 4px 10px;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .pb-ocr-dl dd {
   overflow-wrap: anywhere;
@@ -170,7 +170,7 @@
   padding: 12px 14px;
   border-radius: var(--r-md);
   background: var(--n1);
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .pb-foot {
   position: fixed;
@@ -200,11 +200,11 @@
 }
 .pb-foot-sum b {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 1.25rem;
 }
 .pb-foot-sum small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .pb-foot-btn {
   min-height: 52px;
@@ -216,7 +216,7 @@
   align-items: center;
   gap: 8px;
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 1.1875rem;
   font-weight: 700;
   color: var(--g8);
 }
@@ -251,12 +251,12 @@
 }
 .pb-card b {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 1.0625rem;
   line-height: 1.35;
 }
 .pb-card small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.45;
 }
 @media (hover: hover) and (pointer: fine) {
@@ -308,15 +308,15 @@
 }
 .pb-camp b {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 .pb-camp small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .pb-camp-n {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 700;
 }
 .pb-camp-n small .pa-money {
@@ -326,18 +326,18 @@
 .pb-camp-big {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 2rem;
   font-weight: 700;
 }
 .pb-camp-big small {
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 400;
   color: var(--muted);
 }
 .pb-camp-sum .pa-kv3 b {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 .pb-inline {
   display: flex;
@@ -347,7 +347,7 @@
 }
 .pb-camp-n small {
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 400;
 }
 .pb-period {

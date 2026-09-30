@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campaignStats, feeStats, levyStats, pct } from "./stats";
+import { campaignStats, feeStats, levyStats, pct, statsFromReport } from "./stats";
 import type { PCampaign, PLevy, PMember } from "./types";
 
 const mem = (ref: string, p: Partial<PMember> = {}): PMember => ({
@@ -67,5 +67,71 @@ describe("analytics", () => {
     const s = campaignStats(c, [mem("A-1"), mem("A-2"), mem("A-3"), mem("A-4")]);
     expect(s).toMatchObject({ givers: 2, members: 1, outside: 1, pctMembers: 25, pctTarget: 70 });
     expect(pct(1, 0)).toBe(0);
+  });
+});
+
+describe("the server's stats (m32) in the screens' shape", () => {
+  it("rounds percentages, keeps months up to the due one, last year when known", () => {
+    const block = { active: 88, paidUp: 42, paidUpPct: 47.7, owe1: 20, owe2to3: 15, owe4plus: 11 };
+    const fees = {
+      year: 2026,
+      refMonth: 9,
+      overall: block,
+      groups: [{ groupCode: "A", ...block, active: 60, paidUp: 30, paidUpPct: 50 }],
+      months: Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        active: 88,
+        paid: 50 - i,
+        unpaid: i,
+      })),
+    };
+    const s = statsFromReport(
+      {
+        period: { year: 2026 },
+        generatedAt: "",
+        fees,
+        previous: { ...fees, overall: { ...block, paidUpPct: 55.4 } },
+        levies: [
+          {
+            id: "l1",
+            title: "ل",
+            status: "open",
+            openedOn: "2026-09-10",
+            daysOpen: 20,
+            shares: 88,
+            paid: 34,
+            unpaid: 50,
+            exempt: 4,
+            paidPct: 40.5,
+            expected: 168000,
+            collected: 68000,
+            groups: [],
+          },
+        ],
+        donations: [
+          {
+            id: "c1",
+            title: "ت",
+            status: "open",
+            openedOn: "2026-08-01",
+            memberGivers: 5,
+            outsideGivers: 2,
+            givers: 7,
+            activeMembers: 88,
+            memberPct: 5.7,
+            collected: 52000,
+            target: null,
+            targetPct: null,
+          },
+        ],
+      },
+      9,
+      58,
+    );
+    expect([s.fees.pct, s.fees.previous, s.fees.months.length, s.owing]).toEqual([48, 55, 9, 58]);
+    expect(s.fees.A).toEqual({ total: 60, paid: 30, pct: 50 });
+    expect(s.fees.owe).toEqual({ one: 20, twoThree: 15, fourPlus: 11 });
+    expect(s.levies.l1).toMatchObject({ paid: 34, notYet: 50, exempt: 4, pct: 41, days: 20 });
+    expect(s.campaigns.c1).toMatchObject({ givers: 7, pctMembers: 6, pctTarget: null, target: 0 });
   });
 });

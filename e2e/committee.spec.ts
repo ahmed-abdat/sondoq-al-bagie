@@ -59,7 +59,7 @@ test("«المزيد» → «سجل العمليات»: who recorded what", asyn
 // from «المزيد» while any are left); the app icon counts them.
 test("the app icon shows the payments waiting, and follows a confirmation", async ({ page }) => {
   await page.goto("/committee/more");
-  await page.getByRole("link", { name: /تنتظر التأكيد/ }).click();
+  await page.getByRole("link", { name: /دفعات قديمة لم تُثبَّت/ }).click();
   await page.waitForURL("**/committee/review");
   const heading = page.locator("#bq-wait-h");
   const waiting = Number((await heading.textContent())!.match(/\d+/)![0]);

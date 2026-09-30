@@ -57,11 +57,11 @@ export function SubHead({ title, lead }: { title: string; lead?: string }) {
   return (
     <header className="bq-page-h">
       <Link
-        href="/committee"
+        href="/committee/more"
         className="bq-link bq-link-s bq-back bq-press"
         transitionTypes={["tab-back"]}
       >
-        {I.back(18)} رجوع إلى اللجنة
+        {I.back(18)} المزيد
       </Link>
       <h1>{title}</h1>
       {lead && <p className="bq-lead">{lead}</p>}

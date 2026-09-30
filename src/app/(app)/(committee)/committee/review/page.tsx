@@ -6,7 +6,7 @@ import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { CommitteeView } from "@/components/app/views/committee";
 
-export const metadata: Metadata = { title: "تنتظر التأكيد · اللجنة" };
+export const metadata: Metadata = { title: "دفعات قديمة لم تُثبَّت · صندوق الرابطة" };
 
 export default async function CommitteePage({ searchParams }: PageProps<"/committee">) {
   // demo only: try the first sign-in setup

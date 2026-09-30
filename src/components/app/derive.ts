@@ -461,11 +461,12 @@ export function maskTxn(ref: string | null | undefined) {
   return `•••• ${t.slice(-4)}`;
 }
 
+/** Two levels (plan §8/§9); the older roles read as «عضو اللجنة». */
 export const ROLE_LABEL = {
-  admin: "المسؤول",
-  treasurer: "أمين الصندوق",
-  deputy: "نائب أمين الصندوق",
-  committee: "مشرف",
+  admin: "مسؤول",
+  treasurer: "عضو اللجنة",
+  deputy: "عضو اللجنة",
+  committee: "عضو اللجنة",
 } as const;
 
 /**

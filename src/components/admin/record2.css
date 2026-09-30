@@ -26,7 +26,7 @@
 }
 .r2-line-amt {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 700;
 }
 .r2-x {
@@ -53,7 +53,7 @@
 .r2-modes .pa-chip {
   min-height: 44px;
   padding-inline: 14px;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .r2-months {
   display: grid;
@@ -68,12 +68,12 @@
   min-height: 56px;
   border-radius: 14px;
   background: var(--n1);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 .r2-months button b {
   height: 20px;
-  font-size: 17px;
+  font-size: 1.0625rem;
   color: var(--g8);
 }
 .r2-months button.on {
@@ -85,7 +85,7 @@
   color: var(--muted);
 }
 .r2-months button:disabled b {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 .r2-rel {
@@ -109,7 +109,7 @@
   color: var(--g9);
   text-align: start;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .r2-rel-chip span {
   display: flex;
@@ -118,7 +118,7 @@
 }
 .r2-rel-chip small {
   font-weight: 400;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--g8);
 }
 .r2-add {
@@ -130,10 +130,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px;
-  margin-inline: -4px;
-  border-radius: var(--r-lg);
-  background: var(--g0);
 }
 .r2-picker .pa-search {
   background: var(--paper);
@@ -178,10 +174,10 @@
 }
 .r2-how-b b {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 1rem;
 }
 .r2-how-b small {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--muted);
   line-height: 1.4;
 }
@@ -221,7 +217,7 @@
   grid-template-columns: auto 1fr;
   gap: 4px 10px;
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .r2-ocr dt {
   color: var(--muted);
@@ -233,25 +229,31 @@
 }
 
 /* sticky total */
+/* the record screen has no bottom nav: the total sits at the bottom edge; on a narrow screen or
+   with large text the button goes full width under the total instead of squeezing it */
 .r2-foot {
   position: sticky;
   z-index: 5;
-  bottom: calc(var(--nav) + 8px + var(--safe-b));
+  bottom: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   margin-inline: calc(-1 * var(--pa-gut));
-  padding: 10px var(--pa-gut);
+  padding: 10px var(--pa-gut) calc(10px + var(--safe-b));
   background: var(--paper);
   box-shadow: var(--sh-sticky-up);
 }
-@media (min-width: 1024px) {
-  .r2-foot {
-    bottom: 0;
-  }
+.r2-foot > .pa-btn {
+  flex: 1 1 10rem;
+}
+.r2-foot > .pa-hint,
+.r2-foot > .pa-alert {
+  flex-basis: 100%;
+  margin: 0;
 }
 .r2-foot-sum {
-  flex: 1;
+  flex: 1 1 10rem;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -264,11 +266,11 @@
 }
 .r2-foot-sum small {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .r2-foot-sum b {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 1.375rem;
   color: var(--g9);
 }
 .r2-check {
@@ -276,7 +278,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--ink);
 }
@@ -301,6 +303,11 @@
   font-weight: 700;
   color: var(--g8);
 }
+/* after «تراجع»: neutral, not a success */
+.r2-done-h {
+  margin: 0;
+  color: var(--ink);
+}
 .r2-rlines {
   list-style: none;
   margin: 0;
@@ -308,7 +315,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .r2-rlines li {
   display: flex;
@@ -323,7 +330,7 @@
   align-items: center;
   gap: 10px;
   padding-inline-start: 56px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   color: var(--muted);
 }
 .r2-amt input {
@@ -334,11 +341,19 @@
   border-radius: 14px;
   background: var(--n1);
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--ink);
 }
 .r2-amt input:focus {
   outline: 2px solid var(--g7);
   background: var(--paper);
+}
+
+/* earlier-year month tiles: the year on its own small line */
+.r2-months button span small {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
 }

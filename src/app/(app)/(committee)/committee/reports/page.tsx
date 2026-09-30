@@ -1,17 +1,8 @@
 import type { Metadata } from "next";
-import { ReportView } from "@/components/app/report-view";
-import * as src from "@/components/app/source";
-import { Tab } from "@/components/app/tab";
+import { AdminPage } from "@/components/admin/page";
 
-export const metadata: Metadata = { title: "التقرير · اللجنة" };
+export const metadata: Metadata = { title: "التقارير · صندوق الرابطة" };
 
-/** The fund's report behind the committee login (moved from the public /report). */
-export default async function ReportsPage() {
-  await src.requireCommittee("/committee/reports");
-  const data = await src.committeeReport();
-  return (
-    <Tab>
-      <ReportView data={data} />
-    </Tab>
-  );
+export default function Reports({ searchParams }: PageProps<"/committee/reports">) {
+  return <AdminPage path={["reports"]} searchParams={searchParams} />;
 }

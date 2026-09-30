@@ -36,7 +36,7 @@ import { currentDueMonth, fmt } from "./derive";
 import { demoAdminData, demoStatement } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
-import { allStats } from "@/components/admin/stats";
+import { allStats, statsFromReport } from "@/components/admin/stats";
 import * as fx from "./fixtures";
 import { assembleReport } from "@/lib/data/report";
 import { toFundSummary } from "@/lib/data/map";
@@ -249,27 +249,48 @@ const ROLE_WORD: Record<string, string> = {
 };
 const monthOf = (iso: string) => Number(iso.slice(5, 7));
 
+const termsOf = (
+  ts: { number: number; title: string; startedOn: string; endedOn: string | null }[],
+) =>
+  [...ts]
+    .sort((a, b) => b.number - a.number)
+    .map(({ number, title, startedOn, endedOn }) => ({ number, title, startedOn, endedOn }));
+
 /** Everything the committee screens show, from the committee's own reads (demo: fixtures). */
 export async function adminData(): Promise<PData> {
   if (usingFixtures) return demoAdminData();
   const s = await requireCommittee("/committee");
   const t = today();
   const year = t.getUTCFullYear();
-  const [admin, rows, prices, pendingRaw, recentRaw, m, exps, accounts, users, info, acts, shares] =
-    await Promise.all([
-      membersAdmin(),
-      memberRows(year),
-      groupPrices(year),
-      pendingPayments(),
-      recentPayments(),
-      money(),
-      expensesAdmin(),
-      fundAccountsAdmin(),
-      committeeAccounts(),
-      fundInfo(),
-      data.getActivityLog(undefined, 50),
-      data.getLevyShares({}),
-    ]);
+  const [
+    admin,
+    rows,
+    prices,
+    pendingRaw,
+    recentRaw,
+    m,
+    exps,
+    accounts,
+    users,
+    info,
+    acts,
+    shares,
+    statsReport,
+  ] = await Promise.all([
+    membersAdmin(),
+    memberRows(year),
+    groupPrices(year),
+    pendingPayments(),
+    recentPayments(),
+    money(),
+    expensesAdmin(),
+    fundAccountsAdmin(),
+    committeeAccounts(),
+    fundInfo(),
+    data.getActivityLog(undefined, 50),
+    data.getLevyShares({}),
+    data.getStatsReport(year).catch(() => null),
+  ]);
   const due = currentDueMonth(t, info.graceDays);
   const codeOf = new Map(rows.map((r) => [r.memberId, r.months]));
   const rowOf = new Map(rows.map((r) => [r.memberId, r]));
@@ -414,6 +435,7 @@ export async function adminData(): Promise<PData> {
     spent: spentIn(x.month),
   }));
   const base: Omit<PData, "stats"> = {
+    terms: termsOf(m?.terms ?? []),
     today: t.toISOString().slice(0, 10),
     year,
     due,
@@ -448,7 +470,12 @@ export async function adminData(): Promise<PData> {
     levies,
     log,
   };
-  return { ...base, stats: allStats(base) };
+  // the numbers the «الإحصاءات» report prints (m32); counted here only if that read fails
+  const counted = allStats(base);
+  return {
+    ...base,
+    stats: statsReport ? statsFromReport(statsReport, due, counted.owing) : counted,
+  };
 }
 
 /** One «سجل العمليات» line in plain words: who, what, how much, why. */

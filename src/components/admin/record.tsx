@@ -17,7 +17,7 @@ import { METHOD_LABELS, type Method } from "@/lib/methods";
 import { mroToMru, parseAmount, toWesternDigits } from "@/lib/money";
 import { readReceipt } from "@/lib/ocr";
 import { safeStorage } from "@/lib/safe-storage";
-import { imageOpenError } from "@/components/app/derive";
+import { imageOpenError, parseMemberRef } from "@/components/app/derive";
 import {
   Avatar,
   Back,
@@ -26,10 +26,12 @@ import {
   fmt,
   levyOwed,
   levyShare,
+  isLate,
   Money,
   monthsWords,
   Num,
   payStatus,
+  Sheet,
   upcoming,
   useP,
   Wallet,
@@ -96,11 +98,24 @@ function lineAmount(l: Line, d: PData): number {
   return l.amount;
 }
 
+/** «شخص واحد», «شخصان», «3 أشخاص», «11 شخصًا» */
+export function peopleWords(n: number) {
+  if (n === 1) return "شخص واحد";
+  if (n === 2) return "شخصان";
+  if (n <= 10) return `${n} أشخاص`;
+  return `${n} شخصًا`;
+}
+/** «أ»، «أ وب»، «أ، ب وج» */
+export const joinAnd = (xs: string[]) =>
+  xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join("، ")} و${xs[xs.length - 1]}`;
+
 let seq = 1;
 function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: boolean }) {
   const { d } = useP();
   const [lines, setLines] = useState<Line[]>(() => {
-    const m = d.members.find((x) => x.ref === start.ref);
+    // «أ-4», «أ4», «A-4»: the same member whichever way the link was typed
+    const want = start.ref ? (parseMemberRef(start.ref) ?? start.ref) : undefined;
+    const m = d.members.find((x) => x.ref === want);
     const out: Line[] = [];
     if (m && !start.levy && !start.c)
       out.push({ id: seq++, t: "fees", ref: m.ref, ...firstMode(m) });
@@ -258,11 +273,15 @@ function RecordFlow({
   const t = useTransfer(start);
   const [adding, setAdding] = useState<null | "person" | "levy" | "gift" | "outside">(null);
   const [saved, setSaved] = useState<{ id: string; text: string } | null>(null);
+  const [menu, setMenu] = useState(false);
   const first = t.lines.find((l) => l.t !== "gift") as
     Extract<Line, { t: "fees" | "levy" }> | undefined;
   const firstMember = first ? d.members.find((m) => m.ref === first.ref) : undefined;
 
-  if (saved) return <Done id={saved.id} text={saved.text} onAgain={onAgain} />;
+  if (saved)
+    return (
+      <Done id={saved.id} text={saved.text} onAgain={onAgain} onFix={() => setSaved(null)} />
+    );
 
   return (
     <div className="pa-page r2">
@@ -272,9 +291,7 @@ function RecordFlow({
         <div className="pa-sec-h">
           <h2>{t.lines.length ? "هذه الدفعة عن" : "لمن هذه الدفعة؟"}</h2>
           {t.lines.length > 1 && (
-            <span className="pa-hint">
-              <Num>{t.lines.length}</Num> في تحويل واحد
-            </span>
+            <span className="pa-hint">{peopleWords(t.lines.length)} في تحويل واحد</span>
           )}
         </div>
         {!!t.lines.length && (
@@ -297,48 +314,67 @@ function RecordFlow({
             {adding === "gift" && <GiftPicker t={t} onDone={() => setAdding(null)} />}
             {adding === "outside" && <GiftPicker t={t} outside onDone={() => setAdding(null)} />}
             {adding === null && (
-              <div className="r2-add">
-                <button
-                  type="button"
-                  className="pa-btn pa-btn-soft pa-btn-sm"
-                  onClick={() => setAdding("person")}
-                >
-                  {X.plus(18)} شخص آخر
-                </button>
-                {d.levies.some((l) => l.status === "open") && (
-                  <button
-                    type="button"
-                    className="pa-btn pa-btn-tonal pa-btn-sm"
-                    onClick={() => setAdding("levy")}
-                  >
-                    {X.plus(18)} نصيب لوحة
-                  </button>
-                )}
-                {d.campaigns.some((c) => c.status === "open") && (
-                  <>
-                    <button
-                      type="button"
-                      className="pa-btn pa-btn-tonal pa-btn-sm"
-                      onClick={() => setAdding("gift")}
-                    >
-                      {X.plus(18)} تبرع
-                    </button>
-                    <button
-                      type="button"
-                      className="pa-btn pa-btn-tonal pa-btn-sm"
-                      onClick={() => setAdding("outside")}
-                    >
-                      {X.plus(18)} متبرع من خارج الصندوق
-                    </button>
-                  </>
-                )}
-              </div>
+              <button
+                type="button"
+                className="pa-btn pa-btn-soft pa-btn-block"
+                onClick={() => setMenu(true)}
+              >
+                {X.plus(20)} أضف إلى هذه الدفعة
+              </button>
             )}
           </>
         )}
       </section>
       {!!t.lines.length && <HowSec t={t} />}
-      <Foot t={t} onSaved={(id, text) => setSaved({ id, text })} />
+      {!!t.lines.length && <Foot t={t} onSaved={(id, text) => setSaved({ id, text })} />}
+      <Sheet open={menu} onClose={() => setMenu(false)} title="أضف إلى هذه الدفعة">
+        <ul className="pa-rows">
+          {[
+            { k: "person" as const, l: "شخص آخر", s: "رسوم عضو آخر في نفس التحويل", icon: "user" as const, on: true },
+            {
+              k: "levy" as const,
+              l: "نصيب لوحة",
+              s: "نصيب أحد الأعضاء في لوحة مفتوحة",
+              icon: "list" as const,
+              on: d.levies.some((l) => l.status === "open"),
+            },
+            {
+              k: "gift" as const,
+              l: "تبرع",
+              s: "مساهمة في تبرع مفتوح",
+              icon: "heart" as const,
+              on: d.campaigns.some((c) => c.status === "open"),
+            },
+            {
+              k: "outside" as const,
+              l: "متبرع من خارج الصندوق",
+              s: "شخص ليس عضوًا يساهم في تبرع",
+              icon: "heart" as const,
+              on: d.campaigns.some((c) => c.status === "open"),
+            },
+          ]
+            .filter((o) => o.on)
+            .map((o) => (
+              <li key={o.k}>
+                <button
+                  type="button"
+                  className="pa-row"
+                  onClick={() => {
+                    setMenu(false);
+                    setAdding(o.k);
+                  }}
+                >
+                  <span className="pa-ic">{X[o.icon](22)}</span>
+                  <span className="pa-row-t">
+                    <b>{o.l}</b>
+                    <small>{o.s}</small>
+                  </span>
+                  {X.go(20)}
+                </button>
+              </li>
+            ))}
+        </ul>
+      </Sheet>
     </div>
   );
 }
@@ -452,11 +488,15 @@ function LineRow({ l, t }: { l: Line; t: T }) {
                 key={key}
                 type="button"
                 aria-pressed={on}
+                aria-label={`${MONTHS_AR[mo - 1]} ${y}`}
                 className={on ? "on" : ""}
                 onClick={() => t.togglePast(l.id, key)}
               >
                 <span>
-                  {MONTHS_AR[mo - 1]} {y}
+                  {MONTHS_AR[mo - 1]}
+                  <small>
+                    <Num>{y}</Num>
+                  </small>
                 </span>
                 <b>{on ? "✓" : ""}</b>
               </button>
@@ -553,18 +593,25 @@ function PersonPicker({ t, onDone, autoFocus }: { t: T; onDone: () => void; auto
   const [q, setQ] = useState("");
   const [recent] = useState(readRecent);
   const taken = t.lines.flatMap((l) => (l.t === "gift" || !l.ref ? [] : [l.ref])).join(",");
-  const { list, already } = useMemo(() => {
+  const { list, already, hint } = useMemo(() => {
     const inList = new Set(taken.split(","));
     const act = d.members.filter((m) => m.status === "active");
-    if (!q.trim())
-      return {
-        list: recent.flatMap((id) => act.filter((m) => m.id === id && !inList.has(m.ref))),
-        already: [],
-      };
+    if (!q.trim()) {
+      const mine = recent.flatMap((id) => act.filter((m) => m.id === id && !inList.has(m.ref)));
+      // a new phone has no recent payers: offer who owes instead of an empty screen
+      return mine.length
+        ? { list: mine, already: [], hint: "آخر من سجّلت لهم" }
+        : {
+            list: act.filter((m) => isLate(m) && !inList.has(m.ref)).slice(0, 5),
+            already: [],
+            hint: "عليهم رسوم",
+          };
+    }
     const found = findMembers(act, q);
     return {
       list: found.filter((m) => !inList.has(m.ref)).slice(0, 8),
       already: found.filter((m) => inList.has(m.ref)),
+      hint: "",
     };
   }, [q, d.members, taken, recent]);
   return (
@@ -579,7 +626,7 @@ function PersonPicker({ t, onDone, autoFocus }: { t: T; onDone: () => void; auto
           aria-label="ابحث عن العضو"
         />
       </label>
-      {!q && list.length > 0 && <p className="pa-hint">آخر من سجّلت لهم</p>}
+      {!q && list.length > 0 && <p className="pa-hint">{hint}</p>}
       <ul className="pa-rows">
         {list.map((m) => (
           <li key={m.ref}>
@@ -768,7 +815,7 @@ function HowSec({ t }: { t: T }) {
           <Wallet method="cash" size={32} />
           <span className="pa-sub">نقدًا، اليوم</span>
           <label className="pa-btn pa-btn-ghost pa-btn-sm">
-            {X.image(18)} صورة بدلًا منها
+            {X.image(18)} أضف صورة التحويل بدلًا من ذلك
             {input}
           </label>
         </div>
@@ -929,7 +976,15 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
       t.lines.flatMap((l) => (l.t !== "gift" || l.ref ? [byRef.get(l.ref as string)!.id] : [])),
     );
     router.refresh();
-    onSaved(r.data.id, `${payer}: ${fmt(t.total)} أوقية`);
+    // everyone this payment counts for, so the volunteer can check at a glance
+    const names = [
+      ...new Set(
+        t.lines.map((l) =>
+          l.t === "gift" && !l.ref ? l.name.trim() || "فاعل خير" : byRef.get(l.ref as string)!.name,
+        ),
+      ),
+    ];
+    onSaved(r.data.id, `${joinAnd(names)} · ${fmt(t.total)} أوقية`);
   };
 
   return (
@@ -961,6 +1016,11 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
           {err}
         </p>
       )}
+      {!online && (
+        <p className="pa-hint" role="status">
+          لا يوجد اتصال. سجّل عند عودة الإنترنت، ما كتبته باقٍ.
+        </p>
+      )}
       <button
         type="button"
         className="pa-btn pa-btn-primary pa-btn-lg"
@@ -974,7 +1034,18 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
 }
 
 /** Saved: no receipt (owner). «تراجع» for 30 seconds, then the next payment or home. */
-function Done({ id, text, onAgain }: { id: string; text: string; onAgain: () => void }) {
+function Done({
+  id,
+  text,
+  onAgain,
+  onFix,
+}: {
+  id: string;
+  text: string;
+  onAgain: () => void;
+  /** after «تراجع»: back to the same form, still filled */
+  onFix: () => void;
+}) {
   const { href, snack } = useP();
   const router = useRouter();
   const { undoPayment } = useAct();
@@ -986,13 +1057,32 @@ function Done({ id, text, onAgain }: { id: string; text: string; onAgain: () => 
     const k = setTimeout(() => setLeft((n) => n - 1), 1000);
     return () => clearTimeout(k);
   }, [left, undone]);
+  if (undone)
+    return (
+      <div className="pa-page r2">
+        <h1 className="r2-done-h" role="status">
+          أُلغيت الدفعة، لم تُحسب.
+        </h1>
+        <p className="pa-lead">{text}</p>
+        <button
+          type="button"
+          className="pa-btn pa-btn-primary pa-btn-lg pa-btn-block"
+          onClick={onFix}
+        >
+          صحّحها وسجّل من جديد
+        </button>
+        <Link href={href("")} className="pa-btn pa-btn-ghost pa-btn-block">
+          إلى الرئيسية
+        </Link>
+      </div>
+    );
   return (
     <div className="pa-page r2">
-      <p className="r2-done" role="status">
-        {X.check(22)} {undone ? "تراجعت عن الدفعة." : "سُجّلت الدفعة"}
-      </p>
+      <h1 className="r2-done" role="status">
+        {X.check(22)} سُجّلت الدفعة
+      </h1>
       <p className="pa-lead">{text}</p>
-      {!undone && left > 0 && (
+      {left > 0 && (
         <button
           type="button"
           className="pa-btn pa-btn-soft pa-btn-block"

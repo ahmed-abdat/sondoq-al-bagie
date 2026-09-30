@@ -5,7 +5,7 @@ import { Home } from "./dir-b";
 import { CampaignScreen, CampaignsScreen, LevyScreen } from "./donations";
 import { Provider } from "./kit";
 import { RecordScreen } from "./record";
-import { Reports3 } from "./reports3";
+import { ReportsScreen } from "./reports";
 import { ExpensesScreen } from "./screens";
 import { MemberScreen, MembersScreen } from "./members";
 import { ActivityScreen, MoreScreen } from "./more";
@@ -43,7 +43,7 @@ export function AdminApp({
       <CampaignsScreen />
     )
   ) : p0 === "reports" ? (
-    <Reports3 />
+    <ReportsScreen />
   ) : p0 === "expenses" ? (
     <ExpensesScreen />
   ) : p0 === "stats" ? (

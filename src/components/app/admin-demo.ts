@@ -361,6 +361,12 @@ export function demoAdminData(): PData {
   const session = fx.fxSession();
   void byId;
   const base: Omit<PData, "stats"> = {
+    terms: fx.fxTerms().map(({ number, title, startedOn, endedOn }) => ({
+      number,
+      title,
+      startedOn,
+      endedOn,
+    })),
     today: "2026-09-28",
     year,
     due,
