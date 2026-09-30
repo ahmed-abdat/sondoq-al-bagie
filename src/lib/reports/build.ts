@@ -803,41 +803,23 @@ export function buildHandover(d: HandoverReport): ReportDoc {
 /* ─────────────── 9 · per wallet ─────────────── */
 
 /**
- * Each wallet account and the cash (m43): what came in and went out in the period (داخل / خارج),
- * money moved between a wallet and the cash («تحويل», never income or spending) and «الرصيد», what
- * each holds at the period's end (wallets start at 0 unless «المسؤول» set an opening). The paper
- * sheets and expenses that name no wallet have their own rows; their money is in the cash.
+ * Each wallet (owner, «one pot»): only where the money came in and went out in the period
+ * (داخل / خارج), to check against each wallet's own history. No balance per wallet: the fund has
+ * one balance (the annual report, home). The paper sheets and expenses that name no wallet have
+ * their own rows; the totals are the period's income and spending.
  */
 export function buildWallets(d: WalletsReport): ReportDoc {
   const cash = d.cash;
   const all = [...d.wallets, cash];
   const withOut = all.some((w) => w.out) || !!d.unspecifiedOut;
-  const net = (w: { transferIn: number; transferOut: number }) => w.transferIn - w.transferOut;
-  const withMoves = all.some((w) => w.transferIn || w.transferOut);
-  const head = [
-    "المحفظة",
-    "الدفعات",
-    "داخل",
-    ...(withOut ? ["خارج"] : []),
-    ...(withMoves ? ["تحويل"] : []),
-    "الرصيد",
-  ];
-  const signed = (n: number) => (n > 0 ? `+${fmt(n)}` : n < 0 ? fmt(n) : "");
-  const line = (
-    label: string,
-    count: string,
-    inn: string,
-    out?: number,
-    move?: number,
-    bal?: number,
-  ) => [
+  const head = ["المحفظة", "الدفعات", "داخل", ...(withOut ? ["خارج"] : [])];
+  const line = (label: string, count: string, inn: string, out?: number) => [
     label,
     count,
     inn,
     ...(withOut ? [out ? fmt(out) : ""] : []),
-    ...(withMoves ? [move ? signed(move) : ""] : []),
-    bal !== undefined ? fmt(bal) : "",
   ];
+  const moved = (w: { in: number; count: number; out?: number }) => w.in || w.count || w.out;
   const rows = [
     ...d.wallets.map((w) =>
       line(
@@ -845,75 +827,35 @@ export function buildWallets(d: WalletsReport): ReportDoc {
         fmt(w.count),
         fmt(w.in),
         w.out,
-        net(w),
-        w.balance,
       ),
     ),
-    line("نقدًا", fmt(cash.count), fmt(cash.in), cash.out, net(cash), cash.balance),
+    ...(moved(cash) ? [line("نقدًا", fmt(cash.count), fmt(cash.in), cash.out)] : []),
     ...(d.paperIn ? [line("بلا محفظة (الأوراق)", "", fmt(d.paperIn))] : []),
     ...(d.unspecifiedOut ? [line("مصاريف بلا محفظة", "", "", d.unspecifiedOut)] : []),
   ];
   const count = all.reduce((s, w) => s + w.count, 0);
   const outTotal = all.reduce((s, w) => s + (w.out ?? 0), 0) + (d.unspecifiedOut ?? 0);
-  const held = all.reduce((s, w) => s + w.balance, 0);
-  const openings = all.filter((w) => w.opening);
-  const widths = [0.28, 0.11, 0.15, ...(withOut ? [0.15] : []), ...(withMoves ? [0.15] : []), 0.16];
-  const loose = [d.paperIn ? "الأوراق" : "", d.unspecifiedOut ? "المصاريف بلا محفظة" : ""]
-    .filter(Boolean)
-    .join(" و");
+  const widths = [0.4, 0.16, 0.22, ...(withOut ? [0.22] : [])];
   return {
     kind: "wallets",
     title: "المبالغ حسب المحفظة",
     subtitle: periodLabel(d.period),
-    message: "للجنة: الحركة والرصيد في كل محفظة، لمطابقتها.",
-    blocks: [
-      { t: "heading", text: "الحركة في الفترة والرصيد" },
-      {
-        t: "table",
-        head,
-        num: head.map((_, i) => i > 0),
-        widths: widths.map((w) => w / widths.reduce((x, y) => x + y, 0)),
-        rows,
-        foot: [
-          "المجموع",
-          fmt(count),
-          fmt(d.totalIn),
-          ...(withOut ? [fmt(outTotal)] : []),
-          ...(withMoves ? [""] : []),
-          fmt(held),
-        ],
-      },
-      {
-        t: "note",
-        text: "«الرصيد»: ما في المحفظة آخر الفترة، قارنه بما في هاتفك.",
-      },
-      ...(withMoves
-        ? [
-            {
-              t: "note" as const,
-              text: "«تحويل»: نقل بين محفظة والنقد، ليس من المداخيل ولا المصاريف.",
-            },
-          ]
-        : []),
-      ...(loose ? [{ t: "note" as const, text: `${loose} داخلة في رصيد النقد.` }] : []),
-      ...(openings.length
-        ? [
-            {
-              t: "note" as const,
-              text: `رصيد افتتاحي: ${openings
-                .map(
-                  (w) =>
-                    `${"label" in w ? w.label : "نقدًا"} ${fmt(w.opening!.amount)} من ${day(w.opening!.on)}`,
-                )
-                .join("، ")}.`,
-            },
-          ]
-        : []),
-      {
-        t: "note",
-        text: "مجموع الأرصدة: ما في الصندوق وما لدى التبرعات واللوحات.",
-      },
-    ],
+    message: "للجنة: المداخيل والمصاريف في كل محفظة خلال الفترة، لمطابقتها.",
+    blocks: rows.length
+      ? [
+          { t: "heading", text: "الحركة في الفترة" },
+          {
+            t: "table",
+            head,
+            num: head.map((_, i) => i > 0),
+            widths: widths.map((w) => w / widths.reduce((x, y) => x + y, 0)),
+            rows,
+            foot: ["المجموع", fmt(count), fmt(d.totalIn), ...(withOut ? [fmt(outTotal)] : [])],
+          },
+          { t: "note", text: "قارن «داخل» و«خارج» بسجل كل محفظة في هاتفك لنفس الفترة." },
+          { t: "note", text: "المحافظ طرق للدفع فقط. للصندوق رصيد واحد، في التقرير السنوي." },
+        ]
+      : [{ t: "note", text: "لا حركة في هذه الفترة." }],
     fileBase: `المحافظ-${periodSlug(d.period)}`,
     hasAmounts: true,
   };
