@@ -97,18 +97,6 @@ export type PLog = {
   at: string;
   kind: "pay" | "ok" | "no" | "exp" | "gift" | "edit" | "levy";
 };
-export type PHist = {
-  at: string;
-  months: number[];
-  amount: number;
-  method: Method;
-  receiptNo: string | null;
-  by: string;
-  okBy: string | null;
-  state: "confirmed" | "cancelled";
-  reason?: string;
-  levy?: string;
-};
 
 export type PData = {
   today: string;
