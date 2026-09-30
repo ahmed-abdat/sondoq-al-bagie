@@ -1425,7 +1425,7 @@ select tests.throws($$select * from public.groups_overview(2026::int)$$, '42501'
 select tests.login('server');
 \ir local/accuracy_audit_checks.sql
 select tests.login('committee');
-select tests.ok((select count(*) = 28 and bool_and(detail is not null) from public.accuracy_audit()),
+select tests.ok((select count(*) = 29 and bool_and(detail is not null) from public.accuracy_audit()),
   'every committee member runs the accuracy audit');
 select tests.ok((select string_agg(detail, ' ') from public.accuracy_audit()) !~ 'full_name|عضو تجريبي|إحصاء',
   'the audit shows counts, no names');
@@ -1561,6 +1561,30 @@ select tests.ok((select count(*) from public.audit_log where table_name = 'expen
   'activity changes are in «سجل العمليات»');
 select tests.login('public');
 select tests.throws($$select * from public.expense_activities$$, '42501', 'strangers read no activities');
+
+/* ───────────── M39: income by the month it pays for ───────────── */
+
+select tests.login('committee');
+-- the report of this year: by due month vs by date
+select tests.set('y39', app_private.report_period(make_date(extract(year from current_date)::int, 1, 1),
+                                                  make_date(extract(year from current_date)::int, 12, 31))::text);
+select tests.ok((select sum((m ->> 'due_income')::bigint) = (y -> 'income_due' ->> 'total')::bigint
+                        and (y -> 'income_due' ->> 'total')::bigint = (y -> 'income' ->> 'total')::bigint
+                            - (y -> 'income_due' ->> 'fees_for_other_months')::bigint + (y -> 'income_due' ->> 'fees_paid_outside')::bigint
+                 from (select tests.get('y39')::jsonb y) q, lateral jsonb_array_elements(q.y -> 'months') m group by q.y),
+  'income by due month adds up and reconciles with income by date');
+-- a month fee for January paid today counts in January by due month, in this month by date
+select tests.ok((select coalesce((select sum(a.amount) from public.payment_allocations a join public.payments p on p.id = a.payment_id
+                                  where p.status = 'confirmed' and p.method::text <> 'credit' and a.kind = 'months'
+                                    and a.year = extract(year from current_date) and a.month = 1), 0)
+                        + coalesce((select sum(a.amount) from public.payment_allocations a join public.payments p on p.id = a.payment_id
+                                    where p.status = 'confirmed' and p.method::text <> 'credit' and a.kind <> 'months'
+                                      and date_trunc('month', p.paid_on) = make_date(extract(year from current_date)::int, 1, 1)), 0)
+                        = ((tests.get('y39')::jsonb -> 'months' -> 0) ->> 'due_income')::bigint),
+  'January''s due income = every fee for January (any payment date) + January''s other money');
+select tests.ok(((select jsonb_agg(m) from jsonb_array_elements(tests.get('y39')::jsonb -> 'months') m) is not null)
+                and (tests.get('y39')::jsonb -> 'income' ->> 'total') is not null,
+  'income by date is unchanged next to it');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
