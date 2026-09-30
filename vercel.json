@@ -17,6 +17,10 @@
     {
       "path": "/api/backup",
       "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/audit",
+      "schedule": "40 6 * * *"
     }
   ]
 }
