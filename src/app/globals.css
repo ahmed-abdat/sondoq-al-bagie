@@ -239,6 +239,26 @@
     flex: 1;
     min-width: 0;
   }
+  /* «أعلمني عن»: one line per kind, 48 px each */
+  .bq-kinds {
+    display: grid;
+    gap: 0;
+    margin: 12px 0 0;
+    padding: 0;
+    border: 0;
+  }
+  .bq-kind-check {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    font-size: 17px;
+  }
+  .bq-kind-check input {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--g7);
+  }
   /* a login (email or phone) on its own line, left to right, never split inside the name */
   .bq-login-id {
     margin: 4px 0 0;

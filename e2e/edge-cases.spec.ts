@@ -7,14 +7,14 @@ test("handover: pending payments before submit, balance change on accept (H1/H2)
 }) => {
   await page.goto("/committee/handover");
   await page.getByRole("button", { name: "ابدأ التسليم" }).click();
-  await expect(page.getByText(/بانتظار التأكيد\. أكّدها أو ارفضها قبل التسليم\./)).toBeVisible();
+  await expect(page.getByText(/لم تُثبَّت بعد\. ثبّتها أو ارفضها قبل التسليم\./)).toBeVisible();
   await page
     .getByRole("textbox", { name: /^المبلغ: / })
     .first()
     .fill("1000");
   await page.getByRole("button", { name: "أرسل المحضر للجنة الجديدة" }).click();
   await expect(page.getByText(/زاد الرصيد بـ .* أوقية منذ إرسال التسليم/)).toBeVisible();
-  await expect(page.getByText(/أكّدها أو ارفضها قبل القبول\./)).toBeVisible();
+  await expect(page.getByText(/ثبّتها أو ارفضها قبل القبول\./)).toBeVisible();
 });
 
 /** «سجّل دفعة» for one member (committee-only record screen). */
@@ -35,7 +35,7 @@ test("a mid-year joiner is never offered the months before joining (M9)", async 
 
 test("settings: next year's fees and the last backup (M12/D2)", async ({ page }) => {
   await page.goto("/committee/settings?prices=1");
-  await expect(page.getByRole("heading", { name: "الرسوم الشهرية لسنة 2027" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "المستحقات الشهرية لسنة 2027" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "آخر نسخة احتياطية" })).toBeVisible();
 });
 
@@ -48,7 +48,7 @@ test("pay late months from a member's credit (M7)", async ({ page }) => {
   await s.getByRole("button", { name: "ادفع من الرصيد" }).click();
   await expect(s).toContainText("من يوليو إلى سبتمبر 2026");
   await s.getByRole("button", { name: "ادفع 3 أشهر" }).click();
-  await expect(page.getByText(/دُفعت رسوم 3 أشهر من رصيد/)).toBeVisible();
+  await expect(page.getByText(/دُفعت مستحقات 3 أشهر من رصيد/)).toBeVisible();
   // the demo store takes the months off her arrears and the credit down to 500
   await page.locator("button.bq-row").first().click();
   const again = page.getByRole("dialog").last();

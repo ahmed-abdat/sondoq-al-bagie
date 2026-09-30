@@ -23,7 +23,6 @@ import { dayDate, fmt, paymentCount, ROLE_LABEL } from "./derive";
 import { copyText, ManualCopy } from "./copy";
 import { I } from "./icons";
 import { Num } from "./num";
-import { Stamp } from "./receipt";
 
 type Line = CountedLine & { key: string; text: string };
 
@@ -191,13 +190,9 @@ export function HandoverView({
   const text = minutesText(h, next);
   return (
     <section className="bq-sec bq-sec-first bq-rec-done">
-      <Stamp
-        variant="confirmed"
-        date={h.acceptedAt ?? new Date().toISOString()}
-        size={112}
-        press
-        role="أمين الصندوق"
-      />
+      <span className="bq-disc is-in" aria-hidden="true">
+        {I.check(28)}
+      </span>
       <h2>بدأت الدورة {next}</h2>
       <p className="bq-lead">
         استلم {h.acceptedByName ?? "المسؤول الجديد"} الصندوق
@@ -248,7 +243,7 @@ function PendingWait({ n, before }: { n: number; before: string }) {
   return (
     <div className="bq-wait" role="status">
       <p>
-        توجد {paymentCount(n)} بانتظار التأكيد. أكّدها أو ارفضها قبل {before}.
+        توجد {paymentCount(n)} لم تُثبَّت بعد. ثبّتها أو ارفضها قبل {before}.
       </p>
       <Link className="bq-link bq-link-s bq-press" href="/committee">
         افتح الدفعات {I.go(18)}
@@ -473,7 +468,7 @@ function Draft({
           onChange={(e) => setNote(e.target.value)}
           rows={3}
           aria-label="ملاحظة التسليم"
-          placeholder="مثل: 500 أوقية صُرفت نقدًا على الشاي يوم الاجتماع"
+          placeholder="مثل: 500 أوقية مصاريف نقدًا للشاي يوم الاجتماع"
         />
       </section>
 

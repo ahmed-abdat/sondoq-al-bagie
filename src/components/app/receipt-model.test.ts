@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PendingPayment } from "@/lib/data/types";
-import { fromPending, toShareable, type ReceiptView } from "./receipt-model";
+import { fromPending } from "./receipt-model";
 
 const pending: PendingPayment = {
   id: "p1",
@@ -70,39 +70,5 @@ describe("receipt model", () => {
       reason: "رقم العملية مكرر",
       by: "سيدي محمد",
     });
-  });
-
-  it("a confirmed receipt with a code can be shared (image and text)", () => {
-    const r: ReceiptView = {
-      no: "2026-0231",
-      code: "BQ-7F3K-0231",
-      payer: "محمد ولد أحمد",
-      covers: [{ name: "محمد ولد أحمد", ref: "A-1", year: 2026, months: [7, 8, 9] }],
-      campaigns: [],
-      amount: 3000,
-      method: "bankily",
-      txn: null,
-      txnLast4: "0452",
-      paidOn: "2026-09-28",
-      recordedBy: null,
-      recordedAt: null,
-      proofPath: null,
-      status: {
-        kind: "confirmed",
-        by: "سيدي محمد",
-        role: "أمين الصندوق",
-        at: "2026-09-28T09:48:00Z",
-      },
-    };
-    const sh = r && toShareable(r);
-    expect(sh).toMatchObject({
-      no: "2026-0231",
-      amountMro: 3000,
-      methodLabel: "بنكيلي",
-      txnRef: "•••• 0452",
-      dateLabel: "الاثنين 28 سبتمبر 2026",
-      status: { kind: "confirmed", by: "سيدي محمد", role: "أمين الصندوق" },
-    });
-    expect(toShareable(fromPending(pending))).toBeNull();
   });
 });

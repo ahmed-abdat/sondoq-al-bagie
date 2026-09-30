@@ -104,8 +104,8 @@ export function AddMemberBody({
         onChange={(e) => setName(e.target.value)}
         aria-label="الاسم الكامل"
       />
-      <p className="bq-rec-k">المجموعة</p>
-      <div className="bq-chips" role="radiogroup" onKeyDown={radioKeys} aria-label="المجموعة">
+      <p className="bq-rec-k">الفئة</p>
+      <div className="bq-chips" role="radiogroup" onKeyDown={radioKeys} aria-label="الفئة">
         {LISTS.map((g, i, all) => (
           <button
             key={g}
@@ -120,7 +120,7 @@ export function AddMemberBody({
             className="bq-chip bq-press"
             onClick={() => pickList(g)}
           >
-            المجموعة {groupLabel(g)}
+            الفئة {groupLabel(g)}
             {prices[g] ? (
               <>
                 {" "}
@@ -143,7 +143,7 @@ export function AddMemberBody({
         />
       </div>
       <p className="bq-hint">
-        {taken ? "هذا الرقم مأخوذ في هذه المجموعة." : "أول رقم فارغ، غيّره إن شئت."}
+        {taken ? "هذا الرقم مأخوذ في هذه الفئة." : "أول رقم فارغ، غيّره إن شئت."}
       </p>
       <p className="bq-rec-k">رقم الهاتف (اختياري)</p>
       <input
@@ -155,7 +155,7 @@ export function AddMemberBody({
         aria-label="رقم الهاتف"
       />
       <p className="bq-hint">للتذكير عبر واتساب فقط. لا يظهر للأعضاء.</p>
-      <p className="bq-rec-k">أول شهر تُحسب عليه الرسوم</p>
+      <p className="bq-rec-k">أول شهر تُحسب عليه المستحقات</p>
       <MonthPicker value={from} onChange={setFrom} label="أول شهر" />
       <div className="bq-rec-foot">
         <Err text={err} />
@@ -273,7 +273,7 @@ export function MemberAdminBody({
         <div>
           <h2>{m.fullName}</h2>
           <p className="bq-hint">
-            رقم <MemberNo m={m} /> · المجموعة {groupLabel(m.groupCode)} ·{" "}
+            رقم <MemberNo m={m} /> · الفئة {groupLabel(m.groupCode)} ·{" "}
             {STATE_LABEL[m.status as State] ?? m.status}
           </p>
         </div>
@@ -300,13 +300,13 @@ export function MemberAdminBody({
               )}
             </>
           ) : (
-            "لا تُحسب عليه رسوم الآن."
+            "لا تُحسب عليه مستحقات الآن."
           )}
         </p>
       )}
       {!!m.formerDebtMonths?.length && (
         <p className="bq-mline">
-          عليه رسوم شهرية سابقة لم تُدفع: {monthCount(m.formerDebtMonths.length)} ·{" "}
+          عليه مستحقات شهرية سابقة لم تُدفع: {monthCount(m.formerDebtMonths.length)} ·{" "}
           <Num>{fmt(m.formerDebtAmount ?? 0)}</Num> أوقية
         </p>
       )}
@@ -346,7 +346,7 @@ export function MemberAdminBody({
         <div className="bq-rej bq-small-top">
           <p className="bq-rej-l">ادفع من الرصيد</p>
           <p className="bq-lead">
-            تُدفع رسوم {monthCount(payable.length, "obl")} ({creditMonthsLabel(payable)}) من رصيد{" "}
+            تُدفع مستحقات {monthCount(payable.length, "obl")} ({creditMonthsLabel(payable)}) من رصيد{" "}
             {m.fullName}: <Num>{fmt(payable.length * price)}</Num> أوقية. لا يدخل مال جديد إلى
             الصندوق.
           </p>
@@ -370,7 +370,7 @@ export function MemberAdminBody({
                         })),
                       }),
                     ),
-                  `دُفعت رسوم ${monthCount(payable.length, "obl")} من رصيد ${m.fullName}`,
+                  `دُفعت مستحقات ${monthCount(payable.length, "obl")} من رصيد ${m.fullName}`,
                 )
               }
             >
@@ -396,7 +396,7 @@ export function MemberAdminBody({
           <ul className="bq-list bq-menu">
             <li>
               <button type="button" className="bq-row bq-press" onClick={() => go("move")}>
-                <span className="bq-row-t">نقله إلى رسوم المجموعة {groupLabel(other)}</span>
+                <span className="bq-row-t">نقله إلى مستحقات الفئة {groupLabel(other)}</span>
                 <span className="bq-chev">{I.go(18)}</span>
               </button>
             </li>
@@ -536,7 +536,7 @@ export function MemberAdminBody({
           </div>
           {numTaken && (
             <p className="bq-hint" id="bq-num-h">
-              هذا الرقم مأخوذ في هذه المجموعة. لتبديل رقمين: اختر رقمًا غير مستخدم، ثم غيّر الرقم
+              هذا الرقم مأخوذ في هذه الفئة. لتبديل رقمين: اختر رقمًا غير مستخدم، ثم غيّر الرقم
               الآخر.
             </p>
           )}
@@ -670,7 +670,7 @@ export function MemberAdminBody({
         <div className="bq-rej bq-small-top">
           <p className="bq-rej-l">تأكيد المغادرة</p>
           <p className="bq-lead">
-            لن تُحسب على {m.fullName} رسوم من {ymLabel(from)}، ولن يظهر في قوائم الأعضاء العامة.
+            لن تُحسب على {m.fullName} مستحقات من {ymLabel(from)}، ولن يظهر في قوائم الأعضاء العامة.
             يبقى سجلّه ودفعاته السابقة كما هي.
           </p>
           <Err text={err} />
@@ -708,7 +708,7 @@ export function MemberAdminBody({
       {mode === "move" && (
         <>
           <p className="bq-lead bq-small-top">
-            يبقى رقمه <MemberNo m={m} /> كما هو. تتغيّر رسومه الشهرية إلى رسوم المجموعة{" "}
+            يبقى رقمه <MemberNo m={m} /> كما هو. تتغيّر مستحقاته الشهرية إلى مستحقات الفئة{" "}
             {groupLabel(other)} ابتداءً من الشهر الذي تختاره.
           </p>
           <p className="bq-rec-k">ابتداءً من شهر</p>
@@ -736,7 +736,7 @@ export function MemberAdminBody({
                         groupCode: other,
                         reason: reason.trim() || undefined,
                       }),
-                    `صار ${m.fullName} في المجموعة ${groupLabel(other)}`,
+                    `صار ${m.fullName} في الفئة ${groupLabel(other)}`,
                   )
                 }
               >
@@ -894,10 +894,10 @@ export function MembersAdmin({
             <section
               key={l ?? "all"}
               className="bq-group"
-              aria-label={l ? `المجموعة ${groupLabel(l)}` : "النتائج"}
+              aria-label={l ? `الفئة ${groupLabel(l)}` : "النتائج"}
             >
               <h3 className="bq-group-h bq-group-static">
-                <span className="bq-group-t">{l ? `المجموعة ${groupLabel(l)}` : "النتائج"}</span>
+                <span className="bq-group-t">{l ? `الفئة ${groupLabel(l)}` : "النتائج"}</span>
                 <Num className="bq-group-n">{items.length}</Num>
               </h3>
               <ul className="bq-list">
@@ -915,7 +915,7 @@ export function MembersAdmin({
                         <span className="bq-row-s">
                           {[
                             m.groupCode !== m.listCode
-                              ? `رسوم المجموعة ${groupLabel(m.groupCode)}`
+                              ? `مستحقات الفئة ${groupLabel(m.groupCode)}`
                               : "",
                             m.phone ? "" : "بلا رقم هاتف",
                           ]

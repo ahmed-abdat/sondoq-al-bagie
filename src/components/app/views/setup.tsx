@@ -116,7 +116,7 @@ export function SetupForm({
                   <span className="bq-role-dot" aria-hidden="true" />
                   <span className="bq-role-t">
                     <strong>لست عضوًا</strong>
-                    <span>لا تُحسب عليّ رسوم في الصندوق</span>
+                    <span>لا تُحسب عليّ مستحقات في الصندوق</span>
                   </span>
                 </button>
               )}

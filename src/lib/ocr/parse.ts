@@ -1,5 +1,6 @@
 // Receipt text → fields. Label-anchored per wallet, ported from docs/research/receipt-ocr/bench/
-// parse2.js (164/168 fields on the benchmark). Pure; unit tested. Amounts on receipts are MRU.
+// parse2.js (164/168 fields on the benchmark). Pure; unit tested. Every amount on a transfer
+// screenshot is in NEW ouguiya (MRU); the app counts OLD ouguiya = MRU × 10 (never divided).
 import { parseAmount, toWesternDigits } from "@/lib/money";
 
 export type Wallet = "bankily" | "sedad" | "masrvi";
@@ -22,7 +23,11 @@ export function cleanText(raw: string): string {
   return toWesternDigits(raw.replace(BIDI, "")).replace(/٫/g, ",").replace(/٬/g, ".");
 }
 
-const N = String.raw`(\d{1,3}(?:[.,\s]\d{3})*(?:[.,]\d{2})?|\d+(?:[.,]\d{2})?)`;
+/**
+ * One amount as printed: «1 200», «1,200.00», «1200», «12,50». Grouped thousands only when there
+ * is at least one group, and never stopping inside a number («1200» is 1200, not 120).
+ */
+const N = String.raw`(\d{1,3}(?:[.,\s]\d{3})+(?:[.,]\d{2})?(?!\d)|\d+(?:[.,]\d{2})?(?!\d))`;
 
 function detectWallet(t: string): Wallet | null {
   if (/SEDAD|السداد|رقم المعاملة/i.test(t)) return "sedad";

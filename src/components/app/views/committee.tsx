@@ -10,7 +10,6 @@ import { toastFor, usePaymentsRealtime } from "@/lib/data/realtime";
 import type {
   Arrear,
   CampaignProgress,
-  ExpenseAdmin,
   FundAccount,
   MemberAdmin,
   MemberRow,
@@ -21,13 +20,11 @@ import { useDemoState } from "../act";
 import { MethodBadge } from "../bits";
 import { CampaignAdminList, CampaignFormBody } from "../campaign-form";
 import { fmt, pendingForCampaign, relativeAgo } from "../derive";
-import { ShareBtns } from "../entries";
-import { ExpenseAdminList, RecordExpenseBody } from "../expense";
 import { I } from "../icons";
 import type { MemberCtx } from "../member";
 import { MembersAdmin, type MemberCredit } from "../members-admin";
 import { Num, useNow } from "../num";
-import { Receipt } from "../receipt";
+import { PaymentDetails } from "../cancel-payment";
 import type { ReceiptView } from "../receipt-model";
 import { PushSuggest } from "../push-suggest";
 import { Segmented } from "../segmented";
@@ -358,11 +355,11 @@ export function CommitteeView({
                 <MenuRow
                   href="/committee/campaigns"
                   icon={I.heart(22)}
-                  title="حملات التبرع"
+                  title="التبرعات"
                   sub={
                     openCamps
-                      ? `${openCamps === 1 ? "حملة مفتوحة" : `${openCamps} حملات مفتوحة`}`
-                      : "لا توجد حملة مفتوحة"
+                      ? `${openCamps === 1 ? "تبرع مفتوح" : `${openCamps} تبرعات مفتوحة`}`
+                      : "لا يوجد تبرع مفتوح"
                   }
                 />
               )}
@@ -409,11 +406,8 @@ export function CommitteeView({
         </Sheet>
       )}
       {sheet?.t === "receipt" && (
-        <Sheet key="receipt" label="وصل استلام" onDone={() => setSheet(null)}>
-          <div className="bq-rc-sheet">
-            <Receipt r={sheet.r} />
-            {sheet.r.status.kind === "confirmed" && <ShareBtns r={sheet.r} />}
-          </div>
+        <Sheet key="receipt" label="تفاصيل الدفعة" onDone={() => setSheet(null)}>
+          <PaymentDetails r={sheet.r} />
         </Sheet>
       )}
     </>
@@ -428,51 +422,6 @@ export function LatePage({ arrears, report }: { arrears: Arrear[]; report: Repor
       <section className="bq-sec bq-sec-first">
         <LateList arrears={arrears} report={report} />
       </section>
-    </>
-  );
-}
-
-export function ExpensesPage({
-  expenses: server,
-  campaigns: serverCampaigns,
-  balance,
-}: {
-  expenses: ExpenseAdmin[];
-  campaigns: CampaignProgress[];
-  /** main fund balance now (an expense above it gets a second look) */
-  balance?: number;
-}) {
-  const demo = useDemoState();
-  const expenses = [...demo.expenses, ...server];
-  const campaigns = [...demo.campaigns, ...serverCampaigns];
-  const say = useSnack();
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <SubHead title="المصاريف" />
-      <section className="bq-sec bq-sec-first">
-        <button
-          type="button"
-          className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-          onClick={() => setOpen(true)}
-        >
-          {I.plus(20)} سجّل مصروفًا
-        </button>
-        <h2 className="bq-h3">آخر المصاريف</h2>
-        <ExpenseAdminList items={expenses} onSay={say} />
-      </section>
-      {open && (
-        <Sheet key="expense" label="سجّل مصروفًا" onDone={() => setOpen(false)}>
-          <RecordExpenseBody
-            campaigns={campaigns}
-            balance={balance}
-            onDone={(t) => {
-              setOpen(false);
-              say(t);
-            }}
-          />
-        </Sheet>
-      )}
     </>
   );
 }
@@ -535,22 +484,22 @@ export function CampaignsPage({
   };
   return (
     <>
-      <SubHead title="حملات التبرع" lead="المساهمات تُحسب منفصلة عن الرسوم الشهرية." />
+      <SubHead title="التبرعات" lead="المساهمات تُحسب منفصلة عن المستحقات الشهرية." />
       <section className="bq-sec bq-sec-first">
         <button
           type="button"
           className="bq-btn bq-btn-primary bq-btn-lg bq-press"
           onClick={() => setSheet({})}
         >
-          {I.plus(20)} حملة جديدة
+          {I.plus(20)} تبرع جديد
         </button>
-        <h2 className="bq-h3">الحملات</h2>
+        <h2 className="bq-h3">التبرعات</h2>
         <CampaignAdminList campaigns={campaigns} onEdit={(c) => setSheet({ c })} />
       </section>
       {sheet && (
         <Sheet
           key={sheet.c?.campaignId ?? "new"}
-          label={sheet.c ? "الحملة" : "حملة جديدة"}
+          label={sheet.c ? "التبرع" : "تبرع جديد"}
           onDone={() => setSheet(null)}
         >
           <CampaignFormBody

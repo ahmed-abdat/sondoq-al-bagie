@@ -633,6 +633,12 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
     undo = «أُلغيت الدفعة، لم تُحسب.» + «صحّحها وسجّل من جديد» (form kept), offline reason, rem
     type, nav after main in the DOM, chips 48 px and wrapping, `?m=أ-4` deep links.
 
+- Slice 6 (part): `/committee/expenses` new (record with wallet, list, «مسؤول» cancels with a
+  reason); حسابي «أعلمني عن» (set_push_kinds per device, `app/push-kinds.tsx`); no receipts
+  anywhere (payment details sheet with who recorded and the transfer picture; stamp, receipt
+  view, receipt numbers and share buttons removed); `/committee/reports/legacy` removed.
+  Missing data: an expense's wallet and who recorded it are not in the expenses read (Lane A).
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.

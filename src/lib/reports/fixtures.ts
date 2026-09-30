@@ -46,9 +46,15 @@ export const fxAnnual: AnnualReport = {
       { category: "sports", label: "الرياضة", amount: 18_500 },
       { category: "honoring", label: "التكريم", amount: 25_000 },
     ],
+    byActivity: [
+      { activityId: 1, name: "التدريس المحوري", amount: 90_000 },
+      { activityId: 2, name: "تكريم الناجحين", amount: 25_000 },
+      { activityId: 3, name: "الفريق الرياضي", amount: 18_500 },
+    ],
     fromCampaigns: 25_000,
     total: 133_500,
   },
+  incomeDue: { total: 307_500, feesForOtherMonths: 6_000, feesPaidOutside: 0 },
   adjustments: 0,
   closing: 300_000,
   campaignsHeld: 46_000,
@@ -56,6 +62,11 @@ export const fxAnnual: AnnualReport = {
     year: 2026,
     month: k + 1,
     income: k < 9 ? [41_000, 30_500, 28_000, 26_000, 24_500, 22_000, 21_500, 60_000, 60_000][k] : 0,
+    // the same fees by the month they pay for (6 000 of them for 2027 are not in this year)
+    dueIncome: [
+      30_000, 29_500, 29_000, 28_500, 28_000, 27_500, 27_000, 26_500, 26_000, 20_000, 18_000,
+      17_500,
+    ][k],
     spending: k < 9 ? [0, 15_000, 0, 30_000, 0, 18_500, 0, 45_000, 25_000][k] : 0,
   })),
 };
@@ -67,6 +78,7 @@ export const fxSummary: SummaryReport = {
   income: 60_000,
   spending: 25_000,
   closing: 300_000,
+  campaignsHeld: 46_000,
   membersActive: 89,
   membersPaidPeriod: 47,
   membersLate: 42,
@@ -146,7 +158,9 @@ export const fxExpenses: ExpensesReport = {
     {
       spentOn: "2026-09-17",
       category: "sports",
-      label: "الرياضة",
+      label: "الفريق الرياضي",
+      activityId: 3,
+      activity: "الفريق الرياضي",
       note: "كرات وأقمصة",
       amount: 18_500,
       campaignTitle: null,
@@ -155,7 +169,9 @@ export const fxExpenses: ExpensesReport = {
     {
       spentOn: "2026-08-20",
       category: "teaching",
-      label: "التدريس",
+      label: "التدريس المحوري",
+      activityId: 1,
+      activity: "التدريس المحوري",
       note: "راتب المعلم",
       amount: 45_000,
       campaignTitle: null,
@@ -164,7 +180,9 @@ export const fxExpenses: ExpensesReport = {
     {
       spentOn: "2026-08-02",
       category: "honoring",
-      label: "التكريم",
+      label: "تكريم الناجحين",
+      activityId: 2,
+      activity: "تكريم الناجحين",
       note: "إسمنت ورمل",
       amount: 25_000,
       campaignTitle: "ترميم المسجد",
@@ -173,7 +191,9 @@ export const fxExpenses: ExpensesReport = {
     {
       spentOn: "2026-04-10",
       category: "teaching",
-      label: "التدريس",
+      label: "التدريس المحوري",
+      activityId: 1,
+      activity: "التدريس المحوري",
       note: null,
       amount: 45_000,
       campaignTitle: null,
@@ -184,6 +204,11 @@ export const fxExpenses: ExpensesReport = {
     { category: "teaching", label: "التدريس", amount: 90_000 },
     { category: "honoring", label: "التكريم", amount: 25_000 },
     { category: "sports", label: "الرياضة", amount: 18_500 },
+  ],
+  byActivity: [
+    { activityId: 1, name: "التدريس المحوري", amount: 90_000 },
+    { activityId: 2, name: "تكريم الناجحين", amount: 25_000 },
+    { activityId: 3, name: "الفريق الرياضي", amount: 18_500 },
   ],
   total: 133_500,
 };
@@ -326,7 +351,7 @@ export const fxHandover: HandoverReport = {
   counted: [
     { label: "بنكيلي", method: "bankily", amount: 150_000 },
     { label: "مصرفي", method: "masrvi", amount: 80_000 },
-    { label: "نقدًا لدى أمين الصندوق", method: "cash", amount: 70_000 },
+    { label: "نقدًا لدى المسؤول", method: "cash", amount: 70_000 },
   ],
   countedTotal: 300_000,
   difference: 0,
@@ -471,6 +496,7 @@ export const fxStats: StatsReport = {
   previous: {
     ...fxFeeStats,
     year: 2025,
+    asOf: "2025-09-30",
     overall: { ...fxFeeStats.overall, paidUp: 48, paidUpPct: 54.5 },
   },
   levies: [fxLevyStats],

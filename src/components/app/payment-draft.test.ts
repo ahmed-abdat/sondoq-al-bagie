@@ -32,7 +32,7 @@ describe("summarize: the first thing still missing, in order", () => {
   });
   it("missing price", () => {
     const b = summarize(d({ prices: { B: 500 } })).block;
-    expect(b?.msg).toBe("حدد الرسوم الشهرية لسنة 2026 أولًا.");
+    expect(b?.msg).toBe("حدد المستحقات الشهرية لسنة 2026 أولًا.");
     expect(b?.step).toBeUndefined();
   });
   it("no method", () => {
@@ -185,7 +185,7 @@ describe("earlier years and per-month prices", () => {
   });
   it("a year with no price blocks with that year", () => {
     const row = { m: { ...A1, prices: { "2025-12": null } }, months: [], past: ["2025-12"] };
-    expect(summarize(d({ rows: [row] })).block?.msg).toBe("حدد الرسوم الشهرية لسنة 2025 أولًا.");
+    expect(summarize(d({ rows: [row] })).block?.msg).toBe("حدد المستحقات الشهرية لسنة 2025 أولًا.");
   });
   it("a short transfer fits the oldest months first", () => {
     const s = summarize(d({ rows: [withPast], sentText: "1600" }));

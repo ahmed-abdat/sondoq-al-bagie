@@ -28,6 +28,7 @@ export function DateField({
   onChange,
   label,
   noFuture = false,
+  noPast = false,
   disabled = false,
   optional = false,
 }: {
@@ -37,6 +38,8 @@ export function DateField({
   label: string;
   /** paid on / spent on: no dates after today */
   noFuture?: boolean;
+  /** a deadline: no dates before today */
+  noPast?: boolean;
   disabled?: boolean;
   /** shows «بلا تاريخ» and a clear action */
   optional?: boolean;
@@ -73,14 +76,16 @@ export function DateField({
               >
                 اليوم
               </button>
-              <button
-                type="button"
-                className="bq-chip bq-press"
-                aria-pressed={value === yesterdayIso()}
-                onClick={() => pick(yesterdayIso())}
-              >
-                أمس
-              </button>
+              {!noPast && (
+                <button
+                  type="button"
+                  className="bq-chip bq-press"
+                  aria-pressed={value === yesterdayIso()}
+                  onClick={() => pick(yesterdayIso())}
+                >
+                  أمس
+                </button>
+              )}
               {optional && value && (
                 <button type="button" className="bq-chip bq-press" onClick={() => pick("")}>
                   بلا تاريخ
@@ -94,14 +99,20 @@ export function DateField({
               selected={value ? fromIso(value) : undefined}
               defaultMonth={value ? fromIso(value) : fromIso(today)}
               onSelect={(d) => d && pick(toIso(d))}
-              disabled={noFuture ? { after: fromIso(today) } : undefined}
+              disabled={
+                noFuture
+                  ? { after: fromIso(today) }
+                  : noPast
+                    ? { before: fromIso(today) }
+                    : undefined
+              }
               showOutsideDays={false}
               formatters={{
                 formatCaption: (d) => `${MONTHS_AR[d.getMonth()]} ${d.getFullYear()}`,
                 formatWeekdayName: (d) => WEEKDAYS_SHORT[d.getDay()],
                 formatDay: (d) => String(d.getDate()),
               }}
-              className="bq-cal-rdp w-full [--cell-size:44px]"
+              className="bq-cal-rdp w-full [--cell-size:min(48px,calc((100vw-48px)/7))]"
             />
           </div>
         </Sheet>

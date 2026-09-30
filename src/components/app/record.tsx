@@ -19,8 +19,6 @@ import { safeStorage } from "@/lib/safe-storage";
 import { rememberMembers, useAct } from "./act";
 import { sendOnce, useOnceId } from "./once-id";
 import { failure } from "@/lib/data/errors";
-import { ShareBtns } from "./entries";
-import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
 import {
   fitRow,
@@ -192,7 +190,7 @@ function MemberPicker({
       {allLists.length > 1 && !compact && (
         <div className="bq-pick-groups">
           <Segmented<"all" | "A" | "B">
-            label="المجموعة"
+            label="الفئة"
             fit
             value={g}
             onChange={setG}
@@ -200,7 +198,7 @@ function MemberPicker({
               { k: "all", l: "الكل" },
               ...allLists.map((l) => ({
                 k: l as "A" | "B",
-                l: `المجموعة ${groupLabel(l)}`,
+                l: `الفئة ${groupLabel(l)}`,
               })),
             ]}
           />
@@ -234,8 +232,8 @@ function MemberPicker({
       )}
       {!compact &&
         lists.map((l) => (
-          <section key={l} aria-label={`المجموعة ${groupLabel(l)}`}>
-            <h3 className="bq-pick-h">المجموعة {groupLabel(l)}</h3>
+          <section key={l} aria-label={`الفئة ${groupLabel(l)}`}>
+            <h3 className="bq-pick-h">الفئة {groupLabel(l)}</h3>
             <ul className="bq-list">
               {onTime
                 .filter((m) => listOf(m) === l)
@@ -247,7 +245,7 @@ function MemberPicker({
         ))}
       {!compact && exempt.length > 0 && (
         <section aria-label="المعفون">
-          <h3 className="bq-pick-h">المعفون من الرسوم</h3>
+          <h3 className="bq-pick-h">المعفون من المستحقات</h3>
           <ul className="bq-list">
             {exempt.map((m) => (
               <PickRow key={m.memberId} m={m} onPick={onPick} dim />
@@ -304,8 +302,8 @@ function RowCard({
               : open.length || row.m.pastLate?.length
                 ? "لم تُختر أشهر"
                 : states.some((x) => x === "paid")
-                  ? "دفع رسوم هذا العام كاملة"
-                  : "لا رسوم مستحقة عليه هذا العام"}
+                  ? "دفع مستحقات هذا العام كاملة"
+                  : "لا مستحقات عليه هذا العام"}
           </span>
         </span>
         {onRemove && (
@@ -745,16 +743,11 @@ export function RecordBody({
   if (confirmed)
     return (
       <div className="bq-rec bq-rec-done">
-        <Stamp
-          variant="confirmed"
-          date={confirmed.r.status.kind === "confirmed" ? confirmed.r.status.at : paidOn}
-          size={112}
-          press
-          role={me?.role ?? ""}
-        />
+        <span className="bq-disc is-in" aria-hidden="true">
+          {I.check(28)}
+        </span>
         <h2>سُجّلت وأُكّدت</h2>
         <p className="bq-lead">{confirmed.text}</p>
-        <ShareBtns r={confirmed.r} />
         <button
           type="button"
           className="bq-btn bq-btn-ghost bq-btn-lg bq-press"
@@ -771,8 +764,8 @@ export function RecordBody({
   const summary = [
     feeMonths > 0 &&
       (payingRows.length === 1
-        ? `رسوم ${rowLabel(payingRows[0], ctx.year)}`
-        : `رسوم ${monthCount(feeMonths, "obl")} ${forMembers(payingRows.length)}`),
+        ? `مستحقات ${rowLabel(payingRows[0], ctx.year)}`
+        : `مستحقات ${monthCount(feeMonths, "obl")} ${forMembers(payingRows.length)}`),
     campAmt > 0 && (
       <>
         مساهمة <Num>{fmt(campAmt)}</Num>
@@ -790,7 +783,7 @@ export function RecordBody({
     payer !== null && payerName !== defaultPayer ? `الدافع: ${payerName}` : "الدافع",
     txn.trim() ? "رقم العملية" : null,
     "المبلغ المحوّل",
-    openCamps.length ? "حملة" : null,
+    openCamps.length ? "تبرع" : null,
   ]
     .filter(Boolean)
     .join("، ");
@@ -1118,7 +1111,7 @@ export function RecordBody({
                 {openCamps.length > 0 && (
                   <>
                     <p className="bq-rec-k" id="bq-rec-camp">
-                      ومعها مساهمة في حملة؟
+                      ومعها مساهمة في تبرع؟
                     </p>
                     <div
                       className="bq-chips"

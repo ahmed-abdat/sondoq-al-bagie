@@ -100,7 +100,7 @@ export function summarize(d: Draft) {
   const block: Block = !rows.length
     ? { msg: "اختر العضو أولًا." }
     : unpriced
-      ? { msg: `حدد الرسوم الشهرية لسنة ${unpriced.year} أولًا.` }
+      ? { msg: `حدد المستحقات الشهرية لسنة ${unpriced.year} أولًا.` }
       : total <= 0
         ? { msg: "اختر شهرًا واحدًا على الأقل أو أضف مساهمة.", step: "months" }
         : !d.method

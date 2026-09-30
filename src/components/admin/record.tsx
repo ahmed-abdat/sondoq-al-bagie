@@ -14,10 +14,11 @@ import { failure } from "@/lib/data/errors";
 import type { AllocationInput } from "@/lib/data/schemas";
 import { MONTHS_AR, todayIso } from "@/lib/dates";
 import { METHOD_LABELS, type Method } from "@/lib/methods";
-import { mroToMru, parseAmount, toWesternDigits } from "@/lib/money";
+import { parseAmount, toWesternDigits } from "@/lib/money";
 import { readReceipt } from "@/lib/ocr";
 import { safeStorage } from "@/lib/safe-storage";
 import { imageOpenError, parseMemberRef } from "@/components/app/derive";
+import { DateField } from "@/components/app/date-field";
 import {
   Avatar,
   Back,
@@ -51,6 +52,9 @@ type Shot = {
   url: string;
   file: File;
   reading: boolean;
+  /** as printed on the screenshot: always new ouguiya (MRU) */
+  amountMru: number | null;
+  /** the same in old ouguiya (MRU × 10), what the app counts */
   amount: number | null;
   method: Method | null;
   txn: string | null;
@@ -134,6 +138,8 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
   const [cash, setCash] = useState(!!start.cash);
   const [method, setMethod] = useState<Method | null>(start.cash ? "cash" : null);
   const [shot, setShot] = useState<Shot | null>(null);
+  // the day the money was sent: the picture's date when it has one, else today; can be changed
+  const [paidOn, setPaidOn] = useState(todayIso());
   const addPerson = (ref: string) => {
     const m = d.members.find((x) => x.ref === ref);
     if (!m || lines.some((l) => l.t === "fees" && l.ref === ref)) return;
@@ -195,7 +201,16 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
       return imageOpenError(file);
     }
     setCash(false);
-    setShot({ url, file, reading: true, amount: null, method: null, txn: null, date: null });
+    setShot({
+      url,
+      file,
+      reading: true,
+      amountMru: null,
+      amount: null,
+      method: null,
+      txn: null,
+      date: null,
+    });
     readReceipt(file, {
       expectedMro: total || undefined,
       accounts: d.accounts.map((a) => ({
@@ -211,6 +226,7 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
             s && {
               ...s,
               reading: false,
+              amountMru: r.amountMru,
               amount: r.amountMro,
               method: (r.method as Method | null) ?? null,
               txn: r.txnRef,
@@ -218,6 +234,8 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
             },
         );
         if (r.method) setMethod(r.method as Method);
+        const seen = r.date && /^\d{4}-\d{2}-\d{2}/.test(r.date) ? r.date.slice(0, 10) : null;
+        if (seen && seen <= todayIso()) setPaidOn(seen);
       })
       .catch(() => k === readSeq.current && setShot((s) => s && { ...s, reading: false }));
     return null;
@@ -231,6 +249,8 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
     setMethod,
     shot,
     setShot,
+    paidOn,
+    setPaidOn,
     pickShot,
     addPerson,
     setMode,
@@ -331,7 +351,7 @@ function RecordFlow({
             {
               k: "person" as const,
               l: "شخص آخر",
-              s: "رسوم عضو آخر في نفس التحويل",
+              s: "مستحقات عضو آخر في نفس التحويل",
               icon: "user" as const,
               on: true,
             },
@@ -469,7 +489,7 @@ function LineRow({ l, t }: { l: Line; t: T }) {
         <Avatar refs={m.ref} />
         <span className="pa-row-t">
           <b>{m.name}</b>
-          <small>{what ? `رسوم ${what}` : "لم تُختر أشهر"}</small>
+          <small>{what ? `مستحقات ${what}` : "لم تُختر أشهر"}</small>
         </span>
         <span className="r2-line-amt">
           <Money v={amount} unit={false} />
@@ -536,7 +556,7 @@ function LineRow({ l, t }: { l: Line; t: T }) {
 }
 function Remove({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" className="r2-x" onClick={onClick} aria-label="احذف من الدفعة">
+    <button type="button" className="r2-x" onClick={onClick} aria-label="أخرِجه من الدفعة">
       {X.x(20)}
     </button>
   );
@@ -570,7 +590,7 @@ function Relatives({ m, t }: { m: PMember; t: T }) {
   return (
     <div className="r2-rel">
       <p className="pa-hint">
-        {withHim.length ? "دُفع لهم معه سابقًا:" : "من عائلته، عليهم رسوم:"}
+        {withHim.length ? "دُفع لهم معه سابقًا:" : "من عائلته، عليهم متأخرات:"}
       </p>
       <div className="r2-rel-chips">
         {rel.map((x) => (
@@ -608,7 +628,7 @@ function PersonPicker({ t, onDone, autoFocus }: { t: T; onDone: () => void; auto
         : {
             list: act.filter((m) => isLate(m) && !inList.has(m.ref)).slice(0, 5),
             already: [],
-            hint: "عليهم رسوم",
+            hint: "عليهم متأخرات",
           };
     }
     const found = findMembers(act, q);
@@ -733,7 +753,7 @@ function GiftPicker({ t, onDone, outside }: { t: T; onDone: () => void; outside?
   return (
     <div className="r2-picker">
       <p className="pa-label">
-        {outside ? "تبرع من خارج الصندوق، في أي حملة؟" : "تبرع في أي حملة؟"}
+        {outside ? "تبرع من خارج الصندوق، في أي تبرع؟" : "تبرع في أي تبرع؟"}
       </p>
       <ul className="pa-rows">
         {d.campaigns
@@ -817,7 +837,6 @@ function HowSec({ t }: { t: T }) {
       ) : t.cash ? (
         <div className="r2-paid">
           <Wallet method="cash" size={32} />
-          <span className="pa-sub">نقدًا، اليوم</span>
           <label className="pa-btn pa-btn-ghost pa-btn-sm">
             {X.image(18)} أضف صورة التحويل بدلًا من ذلك
             {input}
@@ -838,7 +857,7 @@ function HowSec({ t }: { t: T }) {
                 <dd>
                   {t.shot.amount ? (
                     <>
-                      <Num>{fmt(mroToMru(t.shot.amount))} MRU</Num> = <Money v={t.shot.amount} />
+                      <Num>{`${fmt(t.shot.amountMru ?? 0)} MRU`}</Num> = <Money v={t.shot.amount} />
                     </>
                   ) : (
                     "لم نقرأ المبلغ"
@@ -871,6 +890,12 @@ function HowSec({ t }: { t: T }) {
             options={wallets.map((a) => ({ k: a.method, l: METHOD_LABELS[a.method] }))}
           />
         </>
+      )}
+      {(t.cash || (t.shot && !t.shot.reading)) && (
+        <div className="pa-field">
+          <span>متى دفع؟</span>
+          <DateField value={t.paidOn} onChange={t.setPaidOn} label="متى دفع؟" noFuture />
+        </div>
       )}
       {err && (
         <p className="pa-alert" role="alert">
@@ -963,7 +988,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
           payerName: payer,
           method: t.cash ? "cash" : (t.method as Method),
           amount: t.total,
-          paidOn: (t.shot?.date && t.shot.date <= todayIso() ? t.shot.date : null) ?? todayIso(),
+          paidOn: t.paidOn || todayIso(),
           allocations,
           txnRef: t.cash ? undefined : (t.shot?.txn ?? undefined),
           proofPath: proof?.path,
@@ -1002,7 +1027,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
         </span>
         {shotAmt !== null && (
           <span className={`r2-check ${diff === 0 ? "ok" : ""}`} role="status">
-            في الصورة <Money v={shotAmt} unit={false} />
+            في الصورة <Num>{`${fmt(t.shot?.amountMru ?? 0)} MRU`}</Num> = <Money v={shotAmt} />
             {diff === 0 ? (
               <> {X.check(16)} مطابق</>
             ) : (

@@ -1,10 +1,10 @@
 "use client";
 // Committee «الدفعات الأخيرة»: confirmed payments, newest first, so a wrong one can be found and
-// cancelled from its receipt. Cancelled ones stay, dimmed, with «ملغى».
+// cancelled («مسؤول») from its details. Cancelled ones stay, dimmed, with «ملغى».
 import { useState } from "react";
 import type { PendingPayment } from "@/lib/data/types";
 import { MethodBadge, MemberNo } from "../bits";
-import { ReceiptSheetBody } from "../cancel-payment";
+import { PaymentSheetBody } from "../cancel-payment";
 import { dayWords, fmt, memberCount, monthCount } from "../derive";
 import { I } from "../icons";
 import { Num } from "../num";
@@ -29,10 +29,7 @@ export function RecentPaymentsPage({
     );
   return (
     <>
-      <SubHead
-        title="الدفعات الأخيرة"
-        lead="افتح الدفعة لترى تفاصيلها ومن سجّلها."
-      />
+      <SubHead title="الدفعات الأخيرة" lead="افتح الدفعة لترى تفاصيلها ومن سجّلها." />
       <section className="bq-sec bq-sec-first">
         {list.length ? (
           <ul className="bq-list">
@@ -45,8 +42,8 @@ export function RecentPaymentsPage({
         )}
       </section>
       {open && (
-        <Sheet key={open.id} label="وصل استلام" onDone={() => setOpen(null)}>
-          <ReceiptSheetBody
+        <Sheet key={open.id} label="تفاصيل الدفعة" onDone={() => setOpen(null)}>
+          <PaymentSheetBody
             r={fromPending(open, { campaignTitles })}
             paymentId={open.id}
             onCancelled={(reason) => setGone((g) => ({ ...g, [open.id]: reason }))}
@@ -68,7 +65,7 @@ function PaymentRow({ p, onOpen }: { p: PendingPayment; onOpen: () => void }) {
         type="button"
         className={`bq-row bq-press ${cancelled ? "is-off" : ""}`}
         onClick={onOpen}
-        aria-label={`${p.payerName}، ${fmt(p.amount)} أوقية${cancelled ? "، ملغى" : ""}. افتح الوصل`}
+        aria-label={`${p.payerName}، ${fmt(p.amount)} أوقية${cancelled ? "، ملغى" : ""}. افتح الدفعة`}
       >
         <span className={`bq-disc ${cancelled ? "" : "is-in"}`}>
           {cancelled ? I.ban(22) : I.coins(22)}
@@ -87,11 +84,11 @@ function PaymentRow({ p, onOpen }: { p: PendingPayment; onOpen: () => void }) {
                   )}{" "}
                   ·{" "}
                   {people === 1 && months.length >= 12
-                    ? "رسوم السنة كاملة"
-                    : `رسوم ${monthCount(months.length, "obl")}`}
+                    ? "مستحقات السنة كاملة"
+                    : `مستحقات ${monthCount(months.length, "obl")}`}
                 </>
               ) : (
-                "مساهمة في حملة"
+                "مساهمة في تبرع"
               )}{" "}
               · {dayWords(p.paidOn)}
             </span>
@@ -102,11 +99,7 @@ function PaymentRow({ p, onOpen }: { p: PendingPayment; onOpen: () => void }) {
         </span>
         <span className="bq-row-e">
           <Num className={`bq-amt ${cancelled ? "" : "a-in"}`}>{`+${fmt(p.amount)}`}</Num>
-          {cancelled ? (
-            <span className="bq-kind is-rej">ملغى</span>
-          ) : (
-            p.receiptNo && <Num className="bq-row-s">{p.receiptNo}</Num>
-          )}
+          {cancelled && <span className="bq-kind is-rej">ملغى</span>}
         </span>
       </button>
     </li>

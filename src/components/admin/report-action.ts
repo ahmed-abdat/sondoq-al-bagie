@@ -12,3 +12,9 @@ export async function coPaidMembers(memberId: string) {
   if (!(await src.anyCommitteeSession())) return [];
   return src.coPaid(memberId);
 }
+
+/** «المزيد»: how many old payments still wait for a confirmation (0 once all are done). */
+export async function legacyPendingCount(): Promise<number> {
+  if (!(await src.anyCommitteeSession())) return 0;
+  return (await src.pendingPayments()).filter((p) => p.status === "pending").length;
+}

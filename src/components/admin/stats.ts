@@ -1,4 +1,5 @@
 // «الإحصاءات» (plan §10): counts and percentages only, never names. Pure, tested.
+import { percent } from "@/lib/reports/doc";
 import type {
   DonationStats,
   LevyStats as LevyStatsRow,
@@ -6,7 +7,14 @@ import type {
 } from "@/lib/data/report-types";
 import type { PCampaign, PData, PLevy, PMember } from "./types";
 
-export const pct = (n: number, of: number) => (of > 0 ? Math.round((n / of) * 100) : 0);
+/**
+ * A percentage as the reports print it (Lane B's percent()): never 100 unless everyone, never 0
+ * unless nobody, so a screen and a shared report never disagree.
+ */
+export const pct = (n: number, of: number) => {
+  const t = percent(n, of);
+  return t === "—" ? 0 : parseInt(t, 10);
+};
 
 const upToDate = (m: PMember) => m.owed.length === 0 && m.pastLate.length === 0;
 
@@ -28,13 +36,13 @@ export function feeStats(d: Pick<PData, "members" | "due">) {
     previous: null as number | null,
     A: group("A"),
     B: group("B"),
-    /** months 1..due: members who paid that month / who owed it and did not */
-    months: Array.from({ length: d.due }, (_, i) => {
+    /** all 12 months: who paid it (paid ahead counts too); unpaid only once the month started */
+    months: Array.from({ length: 12 }, (_, i) => {
       const k = i + 1;
       return {
         month: k,
         paid: active.filter((m) => m.paid.includes(k)).length,
-        unpaid: active.filter((m) => m.owed.includes(k)).length,
+        unpaid: k <= d.due ? active.filter((m) => m.owed.includes(k)).length : 0,
       };
     }),
     owe: {
@@ -138,7 +146,7 @@ export function statsFromReport(r: StatsReport, due: number, owing: number): All
   const g = (code: string) => {
     const x = r.fees.groups.find((y) => y.groupCode === code);
     return x
-      ? { total: x.active, paid: x.paidUp, pct: Math.round(x.paidUpPct) }
+      ? { total: x.active, paid: x.paidUp, pct: pct(x.paidUp, x.active) }
       : { total: 0, paid: 0, pct: 0 };
   };
   const o = r.fees.overall;
@@ -146,13 +154,15 @@ export function statsFromReport(r: StatsReport, due: number, owing: number): All
     fees: {
       total: o.active,
       paid: o.paidUp,
-      pct: Math.round(o.paidUpPct),
-      previous: r.previous ? Math.round(r.previous.overall.paidUpPct) : null,
+      pct: pct(o.paidUp, o.active),
+      previous: r.previous ? pct(r.previous.overall.paidUp, r.previous.overall.active) : null,
       A: g("A"),
       B: g("B"),
-      months: r.fees.months
-        .filter((m) => m.month <= due)
-        .map((m) => ({ month: m.month, paid: m.paid, unpaid: m.unpaid })),
+      months: r.fees.months.map((m) => ({
+        month: m.month,
+        paid: m.paid,
+        unpaid: m.month <= due ? m.unpaid : 0,
+      })),
       owe: { one: o.owe1, twoThree: o.owe2to3, fourPlus: o.owe4plus },
     },
     owing,
@@ -164,7 +174,7 @@ export function statsFromReport(r: StatsReport, due: number, owing: number): All
           return {
             total: of,
             paid: x?.paid ?? 0,
-            pct: x ? Math.round(x.paidPct) : 0,
+            pct: x ? pct(x.paid, x.paid + x.unpaid) : 0,
             expected: x?.expected ?? 0,
             collected: x?.collected ?? 0,
           };
@@ -176,7 +186,7 @@ export function statsFromReport(r: StatsReport, due: number, owing: number): All
             paid: l.paid,
             notYet: l.unpaid,
             exempt: l.exempt,
-            pct: Math.round(l.paidPct),
+            pct: pct(l.paid, l.paid + l.unpaid),
             expected: l.expected,
             collected: l.collected,
             A: lg("A"),
@@ -193,10 +203,10 @@ export function statsFromReport(r: StatsReport, due: number, owing: number): All
           givers: c.givers,
           members: c.memberGivers,
           outside: c.outsideGivers,
-          pctMembers: Math.round(c.memberPct),
+          pctMembers: pct(c.memberGivers, c.activeMembers),
           collected: c.collected,
           target: c.target ?? 0,
-          pctTarget: c.targetPct === null ? null : Math.round(c.targetPct),
+          pctTarget: c.target ? pct(c.collected, c.target) : null,
         },
       ]),
     ),
@@ -296,7 +306,15 @@ export function demoStatsReport(d: Omit<PData, "stats">, previousPct: number | n
     previous:
       previousPct === null
         ? null
-        : { ...fees, year: d.year - 1, overall: { ...fees.overall, paidUpPct: previousPct } },
+        : {
+            ...fees,
+            year: d.year - 1,
+            overall: {
+              ...fees.overall,
+              paidUp: Math.round((previousPct * fees.overall.active) / 100),
+              paidUpPct: previousPct,
+            },
+          },
     levies,
     donations,
   };

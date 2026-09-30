@@ -164,7 +164,7 @@ async function fixtureReport(): Promise<ReportData> {
     prices: Object.entries(fx.FX_PRICE).map(([group, monthlyAmount]) => ({
       year,
       group,
-      groupName: `المجموعة ${group}`,
+      groupName: `الفئة ${group}`,
       monthlyAmount,
     })),
     now: today(),
@@ -245,11 +245,12 @@ export const moneyCampaigns = () => money().then((m) => m?.campaigns ?? []);
 
 /* ───────────── the committee app's one data model (owner picks, 2026-09-30) ───────────── */
 const ROLE_WORD: Record<string, string> = {
-  admin: "مسؤول",
+  admin: "المسؤول",
   treasurer: "عضو اللجنة",
   deputy: "عضو اللجنة",
   committee: "عضو اللجنة",
 };
+export const roleWord = (r: string) => ROLE_WORD[r] ?? "عضو اللجنة";
 const monthOf = (iso: string) => Number(iso.slice(5, 7));
 
 const termsOf = (
@@ -279,6 +280,7 @@ export async function adminData(): Promise<PData> {
     acts,
     shares,
     statsReport,
+    monthCash,
   ] = await Promise.all([
     membersAdmin(),
     memberRows(year),
@@ -293,6 +295,8 @@ export async function adminData(): Promise<PData> {
     data.getActivityLog(undefined, 50),
     data.getLevyShares({}),
     data.getStatsReport(year).catch(() => null),
+    // «هذا الشهر» on home: the money that moved the balance this month (the summary report)
+    data.getSummaryReport({ year, month: t.getUTCMonth() + 1 }).catch(() => null),
   ]);
   const due = currentDueMonth(t, info.graceDays);
   const codeOf = new Map(rows.map((r) => [r.memberId, r.months]));
@@ -391,7 +395,7 @@ export async function adminData(): Promise<PData> {
         id: p.id,
         at: p.at,
         title: p.payer,
-        sub: p.kind === "gift" ? "مساهمة" : "رسوم",
+        sub: p.kind === "gift" ? "مساهمة" : "مستحقات",
         amount: p.amount,
       })),
     ...expenses.map((e): POp => ({
@@ -399,7 +403,7 @@ export async function adminData(): Promise<PData> {
       id: e.id,
       at: `${e.at}T12:00:00Z`,
       title: e.note,
-      sub: e.campaign ? "مصروف حملة" : "مصروف",
+      sub: e.campaign ? "مصروف تبرع" : "مصروف",
       amount: e.amount,
     })),
   ].sort((a, b) => b.at.localeCompare(a.at));
@@ -447,8 +451,8 @@ export async function adminData(): Promise<PData> {
     opening: sum.openingBalance,
     collectedYear: sum.collectedThisYear,
     spentYear: sum.spentThisYear,
-    monthIn: monthly.find((x) => x.month === month)?.collected ?? 0,
-    monthOut: spentIn(month),
+    monthIn: monthCash?.income ?? 0,
+    monthOut: monthCash?.spending ?? spentIn(month),
     monthly,
     members,
     pending,
@@ -489,7 +493,7 @@ function activityLine(x: ActivityEntry): PLog {
   const why = x.reason ? `. السبب: ${x.reason}` : "";
   const W: Record<string, [string, PLog["kind"]]> = {
     record_payment: [`سجّل دفعة${sub}${amt}`, "pay"],
-    confirm_payment: [`أكّد دفعة${sub}${amt}`, "ok"],
+    confirm_payment: [`ثبّت دفعة${sub}${amt}`, "ok"],
     reject_payment: [`رفض دفعة${sub}${amt}${why}`, "no"],
     cancel_payment: [`ألغى دفعة${sub}${amt}${why}`, "no"],
     undo_payment: [`تراجع عن دفعة${sub}${amt}`, "no"],
@@ -508,7 +512,7 @@ function activityLine(x: ActivityEntry): PLog {
     update_member: [`عدّل بيانات${sub}`, "edit"],
     change_member_status: [`غيّر حالة${sub}${why}`, "edit"],
     set_join_month: [`غيّر شهر انضمام${sub}`, "edit"],
-    set_group_price: [`غيّر الرسوم الشهرية${sub}${amt}`, "edit"],
+    set_group_price: [`غيّر المستحقات الشهرية${sub}${amt}`, "edit"],
     update_settings: ["غيّر الإعدادات", "edit"],
     add_fund_account: [`أضاف رقم محفظة${sub}`, "edit"],
     start_handover: ["بدأ تسليم الصندوق", "edit"],
