@@ -275,11 +275,13 @@ select tests.ok((select months_behind from public.member_status where number = 1
 select tests.ok((select months_behind from public.member_status where number = 1003) = 1, 'arrears: deceased months not owed (G)');
 select tests.ok((select status_label from public.member_status where number = 1001) = 'متأخر', 'late member labelled متأخر');
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select string_agg(state, ',' order by year, month) from public.member_months
    where member_id = tests.id('F') and make_date(year, month, 1) <= tests.m(0))
   = 'late,late,not_owed,not_owed', 'member_months shows exempt months as not_owed');
 select tests.ok((select state from public.member_months where member_id = tests.id('E') and year = extract(year from tests.m(-3)) and month = extract(month from tests.m(-3))) = 'paid',
   'member_months shows paid months');
+select tests.login('public');
 
 select tests.login('server');
 update public.settings set grace_days = 0, show_amount_owed = true where id;
@@ -333,14 +335,18 @@ select tests.login('committee');
 select tests.throws($$select public.add_fund_account('masrvi', '11112222', 'x')$$, 'not_admin', 'committee cannot add accounts');
 select tests.throws($$select public.update_settings(p_whatsapp_contact => '+22200000000')$$, 'not_admin', 'committee cannot change settings');
 select tests.login('public');
-select tests.ok((select count(*) from public.fund_accounts_public) = 2, 'anon reads active fund accounts');
-select tests.ok((select whatsapp_contact from public.fund_info) = '+22233334444', 'anon reads the WhatsApp contact');
+select tests.login('server');
+select tests.ok((select count(*) from public.fund_accounts_public) = 2, 'active fund accounts are listed');
+select tests.ok((select whatsapp_contact from public.fund_info) = '+22233334444', 'the WhatsApp contact is readable');
+select tests.login('public');
 select tests.throws('select * from public.fund_accounts', '42501', 'anon cannot read the fund_accounts table');
 select tests.throws('select * from public.payment_queue', '42501', 'anon cannot read the payment queue');
 select tests.login('admin');
 select public.update_fund_account(tests.id('acc2'), 'أمين الصندوق', null, 2, false);
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select count(*) from public.fund_accounts_public) = 1, 'deactivated account hidden from the public');
+select tests.login('public');
 select tests.login('server');
 select tests.throws($$delete from public.fund_accounts where id = tests.id('acc2')$$, 'append_only', 'fund accounts are never deleted');
 select tests.throws($$update public.fund_accounts set account_number = '99998888' where id = tests.id('acc')$$, 'append_only',
@@ -408,23 +414,16 @@ select tests.login('committee');
 select tests.ok((select receipt_no from public.payment_queue where id = tests.id('r1')) ~ '^[0-9]{4}-[0-9]{4}$',
   'queue shows the receipt number');
 
-select tests.login('public');
-select tests.set('v', public.verify_receipt(lower(' ' || tests.get('r1_code') || ' ')));
-select tests.ok(tests.get('v')::jsonb ->> 'status' = 'valid', 'anon verifies a receipt (case/space-insensitive)');
-select tests.ok(tests.get('v')::jsonb -> 'members' -> 0 ->> 'number' = '1005', 'receipt lists the member number');
-select tests.ok(jsonb_array_length(tests.get('v')::jsonb -> 'members' -> 0 -> 'months') = 1, 'receipt lists the months');
-select tests.ok(not (tests.get('v')::jsonb ? 'phone') and not (tests.get('v')::jsonb ? 'proof_path'), 'no phone or proof on a receipt');
-select tests.ok(tests.get('v')::jsonb ->> 'confirmed_by_name' = 'الأمين', 'receipt names the confirmer');
 select tests.login('server');
 select tests.ok((select receipt_code from public.activity_feed where payment_id = tests.id('r1')) = tests.get('r1_code')
   and (select amount from public.activity_feed where payment_id = tests.id('r1')) = 1000, 'feed shows amount and receipt code');
 select tests.login('public');
-select tests.ok(public.verify_receipt('BQ-ZZZZ-9999') ->> 'status' = 'not_found', 'unknown code → not_found');
 select tests.throws('select * from public.receipt_counters', '42501', 'anon cannot read receipt counters');
 select tests.login('treasurer');
 select public.cancel_payment(tests.id('r1'), 'خطأ في التسجيل');
-select tests.login('public');
-select tests.ok(public.verify_receipt(tests.get('r1_code')) ->> 'status' = 'cancelled', 'a cancelled payment verifies as cancelled');
+select tests.login('server');
+select tests.ok((select status = 'cancelled' and receipt_code = tests.get('r1_code') from public.payments where id = tests.id('r1')),
+  'a cancelled payment keeps its receipt code');
 
 select tests.login('server');
 insert into public.campaigns (id, title, amount_mode) values ('00000000-0000-0000-0000-00000000c002', 'حملة اختبار', 'open');
@@ -437,8 +436,6 @@ select tests.login('server');
 select tests.ok((select contributor_name from public.campaign_contributions where campaign_id = tests.id('camp2')) = 'متبرع من الخارج'
   and (select amount from public.campaign_contributions where campaign_id = tests.id('camp2')) = 2000,
   'campaign contributions list the donor and amount');
-select tests.ok(public.verify_receipt((select receipt_code from public.activity_feed where amount = 2000 and kind = 'payment_confirmed' limit 1))
-  ->> 'txn_ref_last4' = '1234', 'receipt shows only the last 4 of the transaction number');
 select tests.login('public');
 
 select tests.login('server');
@@ -508,8 +505,10 @@ select tests.ok(public.close_campaign(tests.id('c8'), 'keep') = 700, 'closing wi
 select tests.ok((select surplus_action from public.campaigns where id = tests.id('c8')) = 'to_fund', 'and is stored as to_fund');
 
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select monthly_amount from public.group_prices_public
                  where group_code = 'B' and year = extract(year from current_date)) = 500, 'anon reads group prices');
+select tests.login('public');
 
 /* ───────────── M7: two member lists, statuses ───────────── */
 
@@ -685,8 +684,6 @@ select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'cash
   'anon still cannot call a write RPC');
 select tests.throws($$select app_private.record_payment(gen_random_uuid(), 'x', 'cash', 1000, current_date, '[]'::jsonb)$$, '42501',
   'nor the moved definer function directly');
-select public.verify_receipt('BQ-XXXX-0000');
-select tests.ok(true, 'anon still verifies receipts through the wrapper');
 
 /* ───────────── M17: month errors name the member and month ───────────── */
 
@@ -716,8 +713,10 @@ select tests.ok((select (d ->> 'price')::int = 1000 and d ->> 'ym' = to_char(tes
 /* ───────────── M18: month prices, price fallback for owed ───────────── */
 
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select price from public.member_months where member_id = tests.id('K') and year = extract(year from current_date)
                  and month = extract(month from current_date)) = 1000, 'member_months gives the price a month must be paid with');
+select tests.login('public');
 select tests.login('server');
 insert into public.groups (code, name) values ('C', 'C');
 insert into public.group_prices (group_id, year, monthly_amount)
@@ -727,9 +726,11 @@ select tests.ok((select price is null and owed = 700 from app_private.month_grid
                  where member_id = tests.id('GC') and year = extract(year from current_date)::int - 2 and month = 1),
   'a year without prices: no payable price, but owed uses the latest earlier price');
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select price is null and state = 'late' from public.member_months
                  where member_id = tests.id('GC') and year = extract(year from current_date)::int - 2 and month = 1),
   'past-year late months are listed with their (missing) price');
+select tests.login('public');
 
 /* ───────────── M19: undo a status change, correct a join month ───────────── */
 
@@ -829,8 +830,10 @@ select tests.ok((public.apply_credit(tests.id('cr1'), tests.id('F'), jsonb_build
   'two months paid from credit');
 select tests.ok((public.apply_credit(tests.id('cr1'), tests.id('F'), '[]'::jsonb) ->> 'replay')::boolean, 'a retry is a replay');
 select tests.login('public');
+select tests.login('server');
 select tests.ok((select count(*) from public.member_months where member_id = tests.id('F') and state = 'paid'
                  and make_date(year, month, 1) in (tests.m(-3), tests.m(-2))) = 2, 'the months show paid');
+select tests.login('public');
 select tests.login('server');
 select tests.ok((select balance from public.fund_summary) = tests.get('bal21')::bigint
                 and (select money_in from public.fund_summary) = tests.get('in21')::bigint,
@@ -897,102 +900,10 @@ select public.close_campaign(tests.id('c9'), 'to_fund');
 select tests.throws($$select public.cancel_payment(tests.id('cp9'), 'خطأ')$$, 'campaign_closed',
   'a contribution already moved to the fund cannot be cancelled');
 
-/* ───────────── M24: member links ───────────── */
+/* ───────────── M24/M25: member links (retired by m28) ───────────── */
 
 select tests.login('server');
 insert into tests.users values ('service', '{"role":"service_role"}', 'service_role');
--- submit through a link; p_n makes the proof unique
-create function tests.msub(p_hash text, p_key text, p_alloc jsonb, p_amount integer, p_n integer,
-                           p_method public.payment_method default 'bankily', p_proof boolean default true)
-returns jsonb language plpgsql as $$
-declare r jsonb; pid uuid := gen_random_uuid();
-begin
-  r := public.member_submit_payment(p_hash, pid, 'عضو', p_method, p_amount, current_date, p_alloc, null,
-         case when p_proof then 'payments/' || pid || '-aaaaaaaaaaaa.jpg' end,
-         case when p_proof then lpad(to_hex(p_n), 64, 'b') end);
-  perform tests.set(p_key, pid);
-  return r;
-end $$;
-grant execute on function tests.msub(text, text, jsonb, integer, integer, public.payment_method, boolean) to service_role;
-select tests.set('h1', repeat('1', 64));
-select tests.set('h2', repeat('2', 64));
-
-select tests.login('public');
-select tests.throws($$select public.create_member_link(tests.id('K'), tests.get('h1'))$$, '42501', 'anon cannot create links');
-select tests.login('committee');
-select tests.set('lk1', public.create_member_link(tests.id('K'), tests.get('h1')));
-select tests.ok((select count(*) from public.member_links_admin where member_id = tests.id('K')) = 1,
-  'the committee sees the active link (no hash)');
-select tests.throws($$select public.member_session(tests.get('h1'))$$, '42501', 'committee accounts cannot call member RPCs');
-select tests.throws('select * from public.member_links', '42501', 'nobody reads the hashes');
-select tests.login('public');
-select tests.throws($$select public.member_session(tests.get('h1'))$$, '42501', 'anon cannot call member RPCs');
-
-select tests.login('service');
-select tests.ok((select s ->> 'member_ref' = 'A-1005' and s ->> 'full_name' = 'عضو ك' and (s ->> 'credit')::int >= 0
-                 from (select public.member_session(tests.get('h1')) s) x), 'the link opens the member session');
-select tests.ok(public.member_session(repeat('f', 64)) is null, 'an unknown link is no session');
-select tests.throws($$select tests.msub(tests.get('h1'), 'mx', jsonb_build_array(tests.month('K', 1, 1000)), 1000, 1, 'bankily', false)$$,
-  'proof_required', 'members must attach the screenshot');
-select tests.throws($$select tests.msub(tests.get('h1'), 'mx', jsonb_build_array(tests.month('K', 1, 1000)), 1000, 1, 'paper')$$,
-  'invalid_input', 'members cannot record paper payments');
-select tests.ok((tests.msub(tests.get('h1'), 'ms1', jsonb_build_array(tests.month('K', 1, 1000)), 1000, 1) ->> 'status') = 'pending',
-  'a member submission is pending');
-select tests.ok((public.member_submit_payment(tests.get('h1'), tests.id('ms1'), 'x', 'bankily', 1, current_date, '[]'::jsonb)
-                 ->> 'replay')::boolean, 'the same id again is a replay');
-select tests.msub(tests.get('h1'), 'ms2', jsonb_build_array(tests.month('F', 0, 1000)), 1000, 2);
-select tests.ok((select bool_or(e ->> 'id' = tests.get('ms1') and (e ->> 'sent_by_me')::boolean and (e ->> 'for_me')::boolean)
-                        and bool_or(e ->> 'id' = tests.get('ms2') and (e ->> 'sent_by_me')::boolean and not (e ->> 'for_me')::boolean)
-                 from jsonb_array_elements(public.member_history(tests.get('h1'))) e),
-  'history lists what I sent, for me and for others');
-select tests.ok((select b -> 0 ->> 'member_ref' = 'A-9004' from (select public.member_recent_beneficiaries(tests.get('h1')) b) x),
-  'people I paid for come first in the picker');
-select tests.msub(tests.get('h1'), 'ms3', jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)), 100, 3);
-select tests.msub(tests.get('h1'), 'ms4', jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)), 100, 4);
-select tests.msub(tests.get('h1'), 'ms5', jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)), 100, 5);
-select tests.throws($$select tests.msub(tests.get('h1'), 'ms6', jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)), 100, 6)$$,
-  'member_rate_limited', 'at most 5 pending submissions per link');
-select public.member_save_push(array[tests.get('h1')], 'https://push.test/m1', 'p', 'a');
-select tests.ok((select count(*) from public.member_push_subscriptions where link_id = tests.id('lk1')) = 1, 'member push saved');
-
--- m25: several profiles on one phone
-select tests.login('committee');
-select tests.set('lkF', public.create_member_link(tests.id('F'), repeat('3', 64)));
-select tests.login('service');
-select tests.ok((select jsonb_array_length(x) = 2
-                        and x @> jsonb_build_array(jsonb_build_object('member_ref', 'A-9004', 'token_hash', repeat('3', 64)))
-                 from (select public.member_sessions(array[tests.get('h1'), repeat('3', 64), repeat('e', 64)]) x) s),
-  'member_sessions returns the valid profiles of a phone in one call');
-select tests.ok(public.member_save_push(array[tests.get('h1'), repeat('3', 64)], 'https://push.test/m2', 'p', 'a') = 2,
-  'one device follows every saved profile');
-select public.member_delete_push(repeat('3', 64), 'https://push.test/m2');
-select tests.ok((select count(*) from public.member_push_subscriptions where endpoint = 'https://push.test/m2') = 1,
-  'signing one profile out keeps the others on this device');
-select tests.throws($$select public.member_save_push(array[repeat('e', 64)], 'https://push.test/m3', 'p', 'a')$$,
-  'member_link_invalid', 'no valid profile, no subscription');
-select tests.login('public');
-select tests.throws($$select public.member_sessions(array['x'])$$, '42501', 'anon cannot list profiles');
-select tests.login('treasurer');
-select tests.ok((select submitted_by_member ->> 'member_ref' from public.payment_queue where id = tests.id('ms1')) = 'A-1005'
-                and (select created_by is null from public.payment_queue where id = tests.id('ms1')),
-  'the queue shows which member sent it');
-select tests.login('committee');
-select public.create_member_link(tests.id('K'), tests.get('h2'));
-select tests.login('service');
-select tests.ok(public.member_session(tests.get('h1')) is null and public.member_session(tests.get('h2')) is not null,
-  'a new link revokes the old one');
-select tests.login('committee');
-select public.revoke_member_link(tests.id('K'));
-select tests.login('service');
-select tests.throws($$select tests.msub(tests.get('h2'), 'mx', jsonb_build_array(tests.month('K', 2, 1000)), 1000, 7)$$,
-  'member_link_invalid', 'a revoked link cannot submit');
-select tests.login('server');
-select tests.ok((select count(*) from public.member_links where member_id = tests.id('K') and revoked_at is null) = 0
-                and (select count(*) from public.audit_log where action in ('create_member_link', 'revoke_member_link')) = 4,
-  'links are revoked, never deleted, and audited');
--- leave no pending member payments behind for later sections
-update public.payments set status = 'rejected', reject_reason = 'test', decided_at = now()
-where submitted_via_link is not null and status = 'pending';
 
 /* ───────────── M26: public views without money ───────────── */
 
@@ -1047,6 +958,38 @@ select tests.login('committee');
 select tests.ok((select count(*) from public.fund_summary) = 1, 'the committee reads the money');
 select tests.login('service');
 select tests.ok((select count(*) from public.fund_summary) = 1, 'our server reads money for members');
+
+/* ───────────── M28: committee only ───────────── */
+
+select tests.login('server');
+select tests.ok((select array_agg(c.relname::text order by 1) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                 where n.nspname in ('public', 'app_private') and c.relkind in ('v', 'r', 'm')
+                   and has_table_privilege('anon', c.oid, 'select')) = '{keepalive}',
+  'strangers read nothing but keepalive');
+-- keepalive() behind that view; trigger functions and norm_txn only run inside the committee's writes
+select tests.ok((select array_agg(n.nspname || '.' || p.proname order by 1) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                 where n.nspname in ('public', 'app_private') and has_function_privilege('anon', p.oid, 'execute')
+                   and p.proname not in ('tg_keep_an_admin', 'tg_not_before_opening', 'tg_credit_payment_guard', 'norm_txn'))
+                = '{app_private.keepalive}',
+  'strangers call no function but keepalive');
+select tests.ok(not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                            where n.nspname in ('public', 'app_private')
+                              and p.proname in ('verify_receipt', 'member_session', 'member_sessions', 'member_history',
+                                                'member_recent_beneficiaries', 'member_submit_payment', 'member_save_push',
+                                                'member_delete_push', 'create_member_link', 'revoke_member_link',
+                                                'member_links_admin', 'link_member', 'member_link_for', 'require_server'))
+                and to_regclass('public.member_links_admin') is null and to_regclass('public.member_push_subscriptions') is null,
+  'member-link and receipt-check functions are gone');
+select tests.ok(to_regclass('public.member_links') is not null, 'member_links is kept (history)');
+select tests.login('public');
+select tests.throws('select * from public.member_months', '42501', 'strangers cannot read the month grid');
+select tests.throws('select * from public.fund_info', '42501', 'strangers cannot read the fund info');
+select tests.ok((select count(*) from public.keepalive) = 1, 'the keepalive cron still reads');
+select tests.login('committee');
+select tests.ok((select count(*) from public.member_months) > 0 and (select count(*) from public.fund_info) = 1
+                and (select count(*) from public.member_status_public) > 0 and (select count(*) from public.group_prices_public) > 0,
+  'the committee still reads the former public views');
+select tests.ok((select bool_and(submitted_by_member is null) from public.payment_queue), 'the queue no longer names a link member');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

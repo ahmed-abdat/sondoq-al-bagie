@@ -1,6 +1,8 @@
--- Undo every migration after M1 (m2 … m27, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m28, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
+-- committee only (m28): its own undo file, also usable alone
+\ir m28_revert.sql
 -- money is private (m27): the money views without the guard, readable by strangers again
 create or replace view public.fund_summary with (security_invoker = true) as select * from app_private.public_fund_summary();
 create or replace view public.monthly_collection with (security_invoker = true) as select * from app_private.public_monthly_collection();
