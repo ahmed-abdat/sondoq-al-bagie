@@ -243,7 +243,28 @@ export type FundAccount = {
 };
 
 /** Admin view of a fund account (includes inactive ones). */
-export type FundAccountAdmin = FundAccount & { note: string | null };
+export type FundAccountAdmin = FundAccount & {
+  note: string | null;
+  /** the wallet it belongs to (m41) */
+  walletTypeId?: number;
+  /** set once by «المسؤول» (m41); null = not set */
+  opening?: { amount: number; on: string } | null;
+};
+
+/** A wallet («المحفظة», m41) in the list «المسؤول» manages; cash is the one with kind "cash". */
+export type WalletType = {
+  id: number;
+  name: string;
+  /** path in the public `logos` bucket, or null */
+  logoPath: string | null;
+  kind: "wallet" | "cash";
+  sortOrder: number;
+  active: boolean;
+  /** the old payment method it mirrors (null for wallets added later) */
+  legacyMethod: PaymentMethod | null;
+  /** cash in hand only: its opening, set once */
+  opening: { amount: number; on: string } | null;
+};
 
 /** Public fund settings. */
 export type FundInfo = {

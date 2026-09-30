@@ -8,7 +8,6 @@ import { makePen, T, type Pen } from "../share-report";
 import {
   blockHeight,
   gridRow,
-  lateRowHeight,
   LAYOUT,
   preparedLine,
   UNITS_NOTE,
@@ -44,7 +43,8 @@ export function drawDocPage(
   const { w, h } = o.size;
   x.fillStyle = T.paper;
   x.fillRect(0, 0, w, h);
-  band(p, doc, o);
+  const section = blocks.find((b) => b.t === "heading" && b.section);
+  band(p, doc, o, section?.t === "heading" ? section.text : undefined);
   let y = LAYOUT.band + LAYOUT.gap;
   for (const b of blocks) {
     drawBlock(p, b, y, o);
@@ -54,7 +54,7 @@ export function drawDocPage(
 }
 
 /** The band: logo and the association on the right, the report's title and period under it. */
-function band(p: Pen, doc: ReportDoc, o: DrawOptions) {
+function band(p: Pen, doc: ReportDoc, o: DrawOptions, section?: string) {
   const { w } = o.size;
   const R = w - LAYOUT.pad;
   const x = p.x;
@@ -68,7 +68,7 @@ function band(p: Pen, doc: ReportDoc, o: DrawOptions) {
   p.logo(o.logo, R - 46, LAYOUT.band / 2, 46);
   const max = w - 2 * LAYOUT.pad - 112;
   p.text(`صندوق ${ASSOC_NAME}`, R - 112, 52, { size: 22, color: T.onGreen, max });
-  p.text(doc.title, R - 112, 100, {
+  p.text(section ? `${doc.title} · ${section}` : doc.title, R - 112, 100, {
     size: 38,
     weight: 700,
     face: "display",
@@ -117,6 +117,7 @@ function drawBlock(p: Pen, b: Block, y: number, o: DrawOptions) {
   };
   switch (b.t) {
     case "heading":
+      if (b.section) return; // in the band
       p.text(b.text, R, y + 46, { size: 28, weight: 700, face: "display", color: T.forest });
       return;
     case "note": {
@@ -183,8 +184,6 @@ function drawBlock(p: Pen, b: Block, y: number, o: DrawOptions) {
       return;
     case "tiles":
       return drawTiles(p, b, y, o);
-    case "late":
-      return drawLate(p, b, y, o);
     case "counts":
       return drawCounts(p, b, y, o);
   }
@@ -207,53 +206,6 @@ function partBar(p: Pen, b: Part, left: number, right: number, top: number, h: n
   x.beginPath();
   x.roundRect(right - w, top, w, h, h / 2);
   x.fill();
-}
-
-/**
- * «المتأخرات» rows: the name on the right; then a small green-edged box with how many months are
- * left and the months themselves; the لوحة shares owed under them. Soft lines between rows.
- */
-function drawLate(p: Pen, b: Extract<Block, { t: "late" }>, y: number, o: DrawOptions) {
-  const R = o.size.w - LAYOUT.pad;
-  const P = LAYOUT.pad;
-  const x = p.x;
-  const nameW = (R - P) * 0.42;
-  const box = 46;
-  let yy = y;
-  for (const r of b.rows) {
-    const rh = lateRowHeight(r);
-    p.text(r.name, R, yy + 40, { size: 26, color: T.ink, max: nameW - 16 });
-    const bx = R - nameW - box; // the box's left edge
-    if (r.count) {
-      x.strokeStyle = T.green;
-      x.lineWidth = 2;
-      x.beginPath();
-      x.roundRect(bx, yy + 10, box, box - 6, 8);
-      x.stroke();
-      p.text(String(r.count), bx + box / 2, yy + 42, {
-        size: 24,
-        weight: 700,
-        face: "display",
-        color: T.forest,
-        align: "center",
-        dir: "ltr",
-      });
-      p.text(r.when, bx - 14, yy + 40, { size: 24, color: T.ink, max: bx - 14 - P });
-    }
-    if (r.extra)
-      p.text(r.extra, r.count ? bx - 14 : R - nameW, yy + (r.count ? 76 : 40), {
-        size: r.count ? 21 : 24,
-        color: r.count ? T.slate : T.ink,
-        max: (r.count ? bx - 14 : R - nameW) - P,
-      });
-    yy += rh;
-    x.strokeStyle = ROW_LINE;
-    x.lineWidth = 1.5;
-    x.beginPath();
-    x.moveTo(P, yy);
-    x.lineTo(R, yy);
-    x.stroke();
-  }
 }
 
 /** Two or three bordered cells: the label on top, the figure big, a small line, a bar. */
@@ -475,7 +427,11 @@ function drawGrid(p: Pen, b: Extract<Block, { t: "grid" }>, y: number, o: DrawOp
   b.rows.forEach((m, i) => {
     const mid = rowsTop + i * row + row / 2;
     p.text(m.name, nameR, mid + 10, { size: 28, weight: 600, max: nameR - monthsR - 16 });
-    for (let k = 1; k <= 12; k++) if (m.paid[k - 1]) okMark(p, cx(k), mid, 12);
+    for (let k = 1; k <= 12; k++) {
+      if (m.paid[k - 1]) okMark(p, cx(k), mid, 12);
+      else if (m.none?.[k - 1])
+        p.text("—", cx(k), mid + 8, { size: 22, color: T.slate, align: "center", dir: "ltr" });
+    }
   });
 }
 

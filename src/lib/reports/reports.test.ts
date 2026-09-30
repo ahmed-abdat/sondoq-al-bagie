@@ -12,7 +12,6 @@ import {
   buildWallets,
   buildWork,
   daysWord,
-  lateWhen,
   refLabel,
 } from "./build";
 import {
@@ -216,38 +215,62 @@ describe("the 10 reports", () => {
     expect(txt(doc)).toContain("✓ مدفوع · خانة فارغة: لم يُدفع");
   });
 
-  it("«المتأخرات»: names only, a box with the months left, the months exactly, the لوحة owed", () => {
+  it("«المتأخرات»: a paper grid per الفئة, names only, ✓ / empty / «—», no number or amount", () => {
     const doc = buildLate(fx.fxLate);
     expect(doc.hasAmounts).toBe(false);
+    expect(doc.subtitle).toBe("سنة 2026 · الدورة 1");
+    const pages = paginate(doc.blocks, A4);
+    // one section per الفئة, each on its own page(s)
+    const sectionOf = (pg: Block[]) =>
+      pg.find((b) => b.t === "heading" && b.section)?.t === "heading"
+        ? (pg.find((b) => b.t === "heading" && b.section) as { text: string }).text
+        : null;
+    expect(pages.map(sectionOf)).toEqual(["الفئة أ", "الفئة ب"]);
+    const grids = doc.blocks.filter((b) => b.t === "grid");
+    const rows = grids.flatMap((g) => (g.t === "grid" ? g.rows : []));
+    const row = (name: string) => rows.find((r) => r.name === name)!;
+    // A-5: Jan–May paid, the rest empty
+    expect(row("المختار ولد محمد").paid.slice(0, 6)).toEqual([true, true, true, true, true, false]);
+    // B-8 joined in April: January–March «—», never empty (it must not look unpaid)
+    expect(row("باب ولد عبد الله").none?.slice(0, 4)).toEqual([true, true, true, false]);
+    expect(row("باب ولد عبد الله").paid.some(Boolean)).toBe(false);
     const text = txt(doc);
-    expect(text).toContain("*الفئة أ*");
-    expect(text).toContain("الحسن ولد عبد الله: [9] يناير – سبتمبر + نصيب لوحة ترميم المسجد");
-    expect(text).toContain("المختار ولد محمد: [4] يونيو – سبتمبر");
-    expect(text).toContain("*الفئة ب*");
-    expect(text).toContain("عبد الرحمن ولد سيدي: نصيب لوحة ترميم المسجد");
+    expect(text).toContain("✓ مدفوع · خانة فارغة: لم يُدفع · —: غير مستحق عليه");
+    expect(text).toContain("لم يُدفع بعد نصيب لوحة ترميم المسجد: الحسن ولد عبد الله.");
+    // the text: the names per الفئة, nothing else
+    expect(text).toMatch(/\*الفئة أ\*[\s\S]*\nالحسن ولد عبد الله\nالمختار ولد محمد\n/);
     for (const t of [text, ...drawn(doc)]) {
       expect(t).not.toMatch(AMOUNT);
-      expect(t).not.toMatch(/أوقية|المستحقات الشهرية|الرسوم الشهرية|المجموع/);
-      // no paper number, no count of members (owner: internal)
-      expect(t).not.toMatch(/[أب] \d|[AB]-\d|عضو/);
+      expect(t).not.toMatch(/أوقية|المستحقات الشهرية|المجموع/);
+      expect(t).not.toMatch(/[AB]-\d|عضو/);
     }
+    // the band says which الفئة («المتأخرات · الفئة أ»)
+    expect(drawn(doc)).toEqual(
+      expect.arrayContaining(["المتأخرات · الفئة أ", "المتأخرات · الفئة ب"]),
+    );
     expect(buildLate({ ...fx.fxLate, members: [] }).blocks).toEqual([
       { t: "note", text: "لا أحد عليه متأخرات الآن." },
     ]);
   });
 
-  it("«المتأخرات» months: never a range over a paid month; the year when there are several", () => {
-    expect(lateWhen(["2026-01", "2026-02", "2026-03"])).toBe("يناير – مارس");
-    expect(lateWhen(["2026-01", "2026-03", "2026-04", "2026-05"])).toBe("يناير، مارس – مايو");
-    expect(lateWhen(["2026-02"])).toBe("فبراير");
-    expect(lateWhen(["2025-11", "2025-12", "2026-01"])).toBe("نوفمبر – ديسمبر 2025، يناير 2026");
-    // the box says exactly how many months are listed
-    const row = (months: string[]) =>
-      buildLate({
-        ...fx.fxLate,
-        members: [{ ...fx.fxLate.members[0], lateMonths: months, monthsCount: 99, levies: [] }],
-      }).blocks.find((b) => b.t === "late");
-    expect(row(["2026-01", "2026-03"])).toMatchObject({ rows: [{ count: 2 }] });
+  it("«المتأخرات»: months owed from an earlier year are named under the grid", () => {
+    const m = { ...fx.fxLate.members[3], lateMonths: ["2025-11", "2025-12"], levies: [] };
+    const text = txt(buildLate({ ...fx.fxLate, members: [m] }));
+    expect(text).toContain("عليهم متأخرات من سنة 2025: عبد الرحمن ولد سيدي.");
+  });
+
+  it("«المتأخرات»: a long الفئة runs onto more pages, its title on each, no name lost", () => {
+    const many = Array.from({ length: 70 }, (_, i) => ({
+      ...fx.fxLate.members[1],
+      fullName: `عضو تجريبي ${i}`,
+    }));
+    const doc = buildLate({ ...fx.fxLate, members: many });
+    const pages = paginate(doc.blocks, A4);
+    expect(pages.length).toBeGreaterThan(1);
+    for (const pg of pages)
+      expect(pg[0]).toMatchObject({ t: "heading", section: true, text: "الفئة أ" });
+    const names = pages.flat().flatMap((b) => (b.t === "grid" ? b.rows.map((r) => r.name) : []));
+    expect(names).toHaveLength(70);
   });
 
   it("expenses: by kind with the total, then by month newest first", () => {
@@ -299,27 +322,43 @@ describe("the 10 reports", () => {
     });
   });
 
-  it("wallets: the movement in the period (داخل / خارج), never a per-wallet balance", () => {
+  it("wallets: the movement in the period (داخل / خارج); «الرصيد» only where an opening exists", () => {
     const doc = buildWallets(fx.fxWallets);
     const table = doc.blocks.find((b) => b.t === "table");
     expect(table?.t === "table" && table.head).toEqual(["المحفظة", "الدفعات", "داخل"]);
     expect(table?.t === "table" && table.foot?.[2].replace(/\D/g, "")).toBe("313500");
     expect(txt(doc)).toContain("*الحركة في الفترة*");
-    // even when the data carries a balance: no opening balance per wallet, so not shown
-    const withOut = buildWallets({
+    // a balance without an opening is never shown (it cannot be known)
+    const noOpening = buildWallets({
       ...fx.fxWallets,
       wallets: fx.fxWallets.wallets.map((w) => ({ ...w, out: 1000, balance: 5000 })),
-      cash: { ...fx.fxWallets.cash, out: 2000, balance: 73_000 },
+      cash: { ...fx.fxWallets.cash, out: 2000 },
       unspecifiedOut: 3000,
+      paperIn: 4000,
     });
-    const t2 = withOut.blocks.find((b) => b.t === "table");
-    expect(t2?.t === "table" && t2.head).toEqual(["المحفظة", "الدفعات", "داخل", "خارج"]);
-    expect(txt(withOut)).not.toContain("الرصيد");
-    const rows = t2?.t === "table" ? t2.rows.map((r) => r.map((c) => c.replace(/\D/g, ""))) : [];
-    expect(rows.at(-2)).toEqual(["", "60", "75000", "2000"]); // cash
-    expect(t2?.t === "table" && t2.rows.at(-1)?.[0]).toBe("مصاريف بلا محفظة");
+    const t2 = noOpening.blocks.find((b) => b.t === "table");
+    expect(t2?.t === "table" && t2.head).toEqual(["المحفظة", "الدفعات", "داخل", "خارج", "الرصيد"]);
+    const cells = t2?.t === "table" ? t2.rows.map((r) => r.map((c) => c.replace(/\D/g, ""))) : [];
+    for (const r of cells) expect(r[4]).toBe("");
+    expect(t2?.t === "table" && t2.rows.map((r) => r[0]).slice(-2)).toEqual([
+      "بلا محفظة (الأوراق)",
+      "مصاريف بلا محفظة",
+    ]);
     // خارج: 3 wallets × 1 000 + cash 2 000 + without a wallet 3 000
     expect(t2?.t === "table" && t2.foot?.[3].replace(/\D/g, "")).toBe("8000");
+    // with an opening: that wallet's balance, the date in the note
+    const opened = buildWallets({
+      ...fx.fxWallets,
+      wallets: fx.fxWallets.wallets.map((w, i) =>
+        i === 0
+          ? { ...w, out: 0, opening: { amount: 10_000, on: "2026-01-01" }, balance: 155_000 }
+          : w,
+      ),
+    });
+    const t3 = opened.blocks.find((b) => b.t === "table");
+    expect(t3?.t === "table" && t3.rows[0].at(-1)?.replace(/\D/g, "")).toBe("155000");
+    expect(t3?.t === "table" && t3.rows[1].at(-1)).toBe("");
+    expect(txt(opened)).toContain("«الرصيد» لمحفظة لها رصيد افتتاحي فقط (من 1 يناير 2026)");
   });
 
   it("committee work: who recorded what, the inactive without activity left out, what was cancelled", () => {
@@ -516,7 +555,7 @@ describe("the WhatsApp group is public (owner): no app, no site, no link", () =>
       expect(shareText(doc).split("\n")).toEqual([`*${doc.title} · ${doc.subtitle}*`, doc.message]);
     }
     expect(shareText(buildLate(fx.fxLate))).toBe(
-      "*المتأخرات · سنة 2026*\nهذه الأسماء عليها متأخرات لم تُدفع بعد. للدفع أو السؤال تواصل مع اللجنة.",
+      "*المتأخرات · سنة 2026 · الدورة 1*\nهذه الأسماء عليها متأخرات لم تُدفع بعد. للدفع أو السؤال تواصل مع اللجنة.",
     );
   });
 });

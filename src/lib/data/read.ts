@@ -11,6 +11,7 @@ import type {
   PublicActivityItem,
   CommitteeAccount,
   ExpenseActivity,
+  WalletType,
   ExpenseAdmin,
   FundAccountAdmin,
   FundSettings,
@@ -338,6 +339,37 @@ export async function fundAccountsAdmin(c: Client): Promise<FundAccountAdmin[]> 
     sortOrder: r.sort_order,
     active: r.active,
     note: r.note,
+    walletTypeId: r.wallet_type_id,
+    opening:
+      r.opening_balance !== null && r.opening_on
+        ? { amount: r.opening_balance, on: r.opening_on }
+        : null,
+  }));
+}
+
+/** Every wallet («المحافظ», m41), in list order; stopped ones too (history). */
+export async function walletTypes(c: Client): Promise<WalletType[]> {
+  return many(
+    "wallet_types",
+    await c
+      .from("wallet_types")
+      .select(
+        "id, name, logo_path, kind, sort_order, active, legacy_method, opening_balance, opening_on",
+      )
+      .order("sort_order")
+      .order("id"),
+  ).map((w) => ({
+    id: w.id,
+    name: w.name,
+    logoPath: w.logo_path,
+    kind: w.kind === "cash" ? "cash" : "wallet",
+    sortOrder: w.sort_order,
+    active: w.active,
+    legacyMethod: w.legacy_method,
+    opening:
+      w.opening_balance !== null && w.opening_on
+        ? { amount: w.opening_balance, on: w.opening_on }
+        : null,
   }));
 }
 

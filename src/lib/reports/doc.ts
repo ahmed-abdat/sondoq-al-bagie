@@ -26,7 +26,16 @@ export type Block =
    * a small heading inside the page («المداخيل»). `keep`: its section (up to the next heading)
    * starts on a new page rather than split, when it fits on one page.
    */
-  | { t: "heading"; text: string; keep?: boolean }
+  | {
+      t: "heading";
+      text: string;
+      keep?: boolean;
+      /**
+       * a section («الفئة أ»): starts a new page, is not drawn itself but joins the page's band
+       * title («المتأخرات · الفئة أ»), and is repeated on every page the section runs onto
+       */
+      section?: boolean;
+    }
   /**
    * label / amount lines, with an optional bold total under a rule. `keepNext`: never the last
    * block of a page (it goes to the next page with the block after it).
@@ -52,15 +61,18 @@ export type Block =
       /** column widths as parts of the page width (default: the first column takes the rest) */
       widths?: number[];
     }
-  /** the paper grid: names and 12 months, a plain ✓ in each paid month (owner rules) */
-  | { t: "grid"; rows: { name: string; paid: boolean[] }[] }
+  /**
+   * the paper grid: names and 12 months, a plain ✓ in each paid month (owner rules); `none`
+   * marks a month the member does not owe («—»: exempt, before joining, away), so it never looks
+   * unpaid. `namesOnly`: the WhatsApp text lists the names alone.
+   */
+  | {
+      t: "grid";
+      rows: { name: string; paid: boolean[]; none?: boolean[] }[];
+      namesOnly?: boolean;
+    }
   /** one member's 12 months as two rows of six (statement) */
   | { t: "months"; paid: boolean[] }
-  /**
-   * «المتأخرات»: a name, a small box with how many months are left, the months themselves, and
-   * the لوحة shares owed («+ نصيب لوحة …»). No number, no amount.
-   */
-  | { t: "late"; rows: { name: string; count: number; when: string; extra?: string }[] }
   /** a simple bar chart of 12 monthly amounts */
   | { t: "bars"; values: number[] }
   /** two signature lines (handover) */
@@ -131,8 +143,6 @@ export const LAYOUT = {
   tiles: 116,
   tileSub: 34,
   tileBar: 34,
-  lateRow: 64,
-  lateRowExtra: 94,
   counts: 300,
   partBar: 40,
   /** space after each block */
@@ -151,7 +161,7 @@ export function blockHeight(b: Block, size: PageSize): number {
   const L = LAYOUT;
   switch (b.t) {
     case "heading":
-      return L.heading;
+      return b.section ? 0 : L.heading;
     case "rows":
       return b.rows.reduce((s, r) => s + (r.sub ? L.rowSub : L.row), 0) + (b.total ? L.total : 0);
     case "note":
@@ -176,14 +186,8 @@ export function blockHeight(b: Block, size: PageSize): number {
       );
     case "counts":
       return L.counts;
-    case "late":
-      return b.rows.reduce((s, r) => s + lateRowHeight(r), 0);
   }
 }
-
-/** A «المتأخرات» row: taller when a لوحة line sits under the months. */
-export const lateRowHeight = (r: { count: number; extra?: string }) =>
-  r.extra && r.count ? LAYOUT.lateRowExtra : LAYOUT.lateRow;
 
 /** Room for blocks on one page, between the band and the footer. */
 export const pageRoom = (size: PageSize) =>
@@ -210,21 +214,6 @@ function splitBlock(b: Block, room: number, size: PageSize): [Block, Block] | nu
       { ...b, rows: b.rows.slice(n) },
     ];
   }
-  if (b.t === "late") {
-    let h = 0;
-    let n = 0;
-    for (const r of b.rows) {
-      const rh = lateRowHeight(r);
-      if (h + rh > room) break;
-      h += rh;
-      n++;
-    }
-    if (n === 0 || n >= b.rows.length) return null;
-    return [
-      { t: "late", rows: b.rows.slice(0, n) },
-      { t: "late", rows: b.rows.slice(n) },
-    ];
-  }
   if (b.t === "table" || b.t === "grid") {
     const rowH = b.t === "table" ? L.tableRow : gridRow(size);
     const n = Math.floor((room - L.tableHead) / rowH);
@@ -235,8 +224,8 @@ function splitBlock(b: Block, room: number, size: PageSize): [Block, Block] | nu
         { ...b, rows: b.rows.slice(n) },
       ];
     return [
-      { t: "grid", rows: b.rows.slice(0, n) },
-      { t: "grid", rows: b.rows.slice(n) },
+      { ...b, rows: b.rows.slice(0, n) },
+      { ...b, rows: b.rows.slice(n) },
     ];
   }
   return null;
@@ -253,17 +242,28 @@ export function paginate(blocks: Block[], size: PageSize): Block[][] {
   let page: Block[] = [];
   let used = 0;
   const queue = [...blocks];
+  let section: Block | null = null;
   const flush = () => {
     // never leave a heading alone at the bottom: carry it to the next page
     const carry: Block[] = [];
     while (page.length > 1 && page[page.length - 1].t === "heading") carry.unshift(page.pop()!);
     if (page.length) pages.push(page);
-    page = carry;
-    used = carry.reduce((s, b) => s + blockHeight(b, size) + LAYOUT.after, 0);
+    // a section goes on: its title again at the top of the next page
+    page = section && !carry.includes(section) ? [section, ...carry] : carry;
+    used = page.reduce((s, b) => s + blockHeight(b, size) + LAYOUT.after, 0);
   };
   while (queue.length) {
     const b = queue.shift()!;
     const h = blockHeight(b, size);
+    if (b.t === "heading" && b.section) {
+      // a new section on a new page
+      section = null;
+      if (page.length) flush();
+      section = b;
+      page = [b];
+      used = LAYOUT.after;
+      continue;
+    }
     if (b.t === "rows" && b.keepNext && page.length && queue.length) {
       // with the block after it: both on the next page when they do not fit here together
       const need = h + LAYOUT.after + blockHeight(queue[0], size);
@@ -392,6 +392,10 @@ export function docText(doc: ReportDoc, meta: DocMeta): string {
         break;
       }
       case "grid":
+        if (b.namesOnly) {
+          for (const r of b.rows) out.push(r.name);
+          break;
+        }
         for (const r of b.rows) {
           const paid = r.paid.flatMap((p, i) => (p ? [i + 1] : []));
           out.push(`${r.name}: ${paid.length ? `✓ ${monthsText(paid)}` : "—"}`);
@@ -414,12 +418,6 @@ export function docText(doc: ReportDoc, meta: DocMeta): string {
             .flatMap((m, i) => (m.started || m.paid ? [`${monthName(i + 1)} ${m.paid}`] : []))
             .join("، "),
         );
-        break;
-      case "late":
-        for (const r of b.rows)
-          out.push(
-            `${r.name}: ${r.count ? `[${r.count}] ${r.when}` : ""}${r.extra ? `${r.count ? " " : ""}${r.extra}` : ""}`,
-          );
         break;
       case "bars":
       case "sign":

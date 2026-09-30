@@ -249,69 +249,64 @@ export function buildGrid(d: GridReport): ReportDoc {
 
 /* ─────────────── 4 · «المتأخرات» (no amounts at all) ─────────────── */
 
-/**
- * Unpaid 'YYYY-MM' months as people read them: runs of following months with «–»
- * («يناير – سبتمبر»), others listed («يناير، مارس – مايو»), so a range never covers a paid month;
- * the year after each year's months when there are several («نوفمبر – ديسمبر 2025، يناير 2026»).
- */
-export function lateWhen(yms: string[]): string {
-  const byYear = new Map<number, number[]>();
-  for (const ym of yms) {
-    const [y, m] = ym.split("-").map(Number);
-    if (!y || !m) continue;
-    byYear.set(
-      y,
-      [...new Set([...(byYear.get(y) ?? []), m])].sort((a, b) => a - b),
-    );
-  }
-  const years = [...byYear.keys()].sort();
-  return years
-    .map((y) => {
-      const runs: [number, number][] = [];
-      for (const m of byYear.get(y)!) {
-        const last = runs[runs.length - 1];
-        if (last && m === last[1] + 1) last[1] = m;
-        else runs.push([m, m]);
-      }
-      const text = runs
-        .map(([a, b]) => (a === b ? monthName(a) : `${monthName(a)} – ${monthName(b)}`))
-        .join("، ");
-      return years.length > 1 ? `${text} ${y}` : text;
-    })
-    .join("، ");
+/** «عليه متأخرات من سنة 2025: فلان، فلان.» for months owed from an earlier year. */
+function earlierYears(rows: LateReport["members"], year: number): Block[] {
+  const byYear = new Map<string, string[]>();
+  for (const m of rows)
+    for (const y of new Set(m.lateMonths.map((ym) => ym.slice(0, 4)).filter((y) => +y < year)))
+      byYear.set(y, [...(byYear.get(y) ?? []), m.fullName]);
+  return [...byYear.keys()]
+    .sort()
+    .map((y) => ({ t: "note", text: `عليهم متأخرات من سنة ${y}: ${byYear.get(y)!.join("، ")}.` }));
 }
 
 /**
- * «المتأخرات» (owner): names only, no member number, no count of members, no amount. Each person:
- * how many months are left in a small box, the months themselves, and «+ نصيب لوحة …» for a لوحة
- * share still owed. One section per الفئة.
+ * «المتأخرات» (owner, paper grid): one page per الفئة («المتأخرات · الفئة أ» in the band), the
+ * NAMES of who owes (no number, no count, no amount), 12 month columns: ✓ paid, empty not paid,
+ * «—» a month he does not owe (exempt, before joining, away) so it never looks unpaid. A لوحة
+ * share still owed: one line under the grid. The text: the names per الفئة, nothing else.
  */
 export function buildLate(d: LateReport): ReportDoc {
   const list = d.members.filter((m) => m.lateMonths.length > 0 || m.levies.length > 0);
   const groups = [...new Set(list.map((m) => m.groupCode ?? ""))].sort();
-  const blocks: Block[] = list.length
-    ? groups.flatMap((g): Block[] => [
-        { t: "heading", text: g ? groupLabel(g) : "بلا فئة" },
-        {
-          t: "late",
-          rows: list
-            .filter((m) => (m.groupCode ?? "") === g)
-            .map((m) => {
-              const levies = m.levies.map((l) => `نصيب لوحة ${l.title}`).join(" + ");
-              return {
-                name: m.fullName,
-                count: m.lateMonths.length,
-                when: lateWhen(m.lateMonths),
-                ...(levies ? { extra: `${m.lateMonths.length ? "+ " : ""}${levies}` } : {}),
-              };
-            }),
-        },
-      ])
-    : [{ t: "note", text: "لا أحد عليه متأخرات الآن." }];
+  const blocks: Block[] = [];
+  for (const g of groups) {
+    const rows = list.filter((m) => (m.groupCode ?? "") === g);
+    const cells = rows.map((m) => ({
+      name: m.fullName,
+      paid: Array.from({ length: 12 }, (_, k) => monthPaid(m.months[k])),
+      none: Array.from({ length: 12 }, (_, k) => m.months[k] === "not_owed"),
+    }));
+    const anyNone = cells.some((c) => c.none.some(Boolean));
+    const levyTitles = [...new Set(rows.flatMap((m) => m.levies.map((l) => l.title)))];
+    blocks.push(
+      { t: "heading", text: g ? groupLabel(g) : "بلا فئة", section: true },
+      { t: "note", text: "1 = يناير … 12 = ديسمبر" },
+      {
+        t: "grid",
+        namesOnly: true,
+        rows: cells,
+      },
+      {
+        t: "note",
+        text: `✓ مدفوع · خانة فارغة: لم يُدفع${anyNone ? " · —: غير مستحق عليه" : ""}`,
+      },
+      // months of an earlier year are not in this year's grid: name them so no row looks paid up
+      ...earlierYears(rows, d.year),
+      ...levyTitles.map((title): Block => ({
+        t: "note",
+        text: `لم يُدفع بعد نصيب لوحة ${title}: ${rows
+          .filter((m) => m.levies.some((l) => l.title === title))
+          .map((m) => m.fullName)
+          .join("، ")}.`,
+      })),
+    );
+  }
+  if (!blocks.length) blocks.push({ t: "note", text: "لا أحد عليه متأخرات الآن." });
   return {
     kind: "late",
     title: "المتأخرات",
-    subtitle: `سنة ${d.year}`,
+    subtitle: [`سنة ${d.year}`, d.termLabel].filter(Boolean).join(" · "),
     message: "هذه الأسماء عليها متأخرات لم تُدفع بعد. للدفع أو السؤال تواصل مع اللجنة.",
     blocks,
     fileBase: `المتأخرات-${d.year}`,
@@ -762,19 +757,28 @@ export function buildHandover(d: HandoverReport): ReportDoc {
 /* ─────────────── 9 · per wallet ─────────────── */
 
 /**
- * The money that moved through each wallet in the period («الحركة في الفترة»): داخل / خارج. No
- * «الرصيد» per wallet: there is no opening balance per wallet, so it cannot be known (accuracy,
- * Codex pass 8). Expenses that name no wallet sit on their own row, «مصاريف بلا محفظة».
+ * Each wallet account (m41): what came in and went out in the period (داخل / خارج), and «الرصيد»
+ * only for a wallet whose opening balance «المسؤول» set (opening + in − out up to the period's end);
+ * without an opening nothing is guessed (accuracy). Money with no wallet (the paper sheets) and
+ * expenses that name no wallet have their own rows.
  */
 export function buildWallets(d: WalletsReport): ReportDoc {
   const all = [...d.wallets, d.cash];
   const withOut = all.some((w) => w.out !== undefined) || !!d.unspecifiedOut;
-  const head = ["المحفظة", "الدفعات", "داخل", ...(withOut ? ["خارج"] : [])];
-  const line = (label: string, count: string, inn: string, out?: number) => [
+  const withBal = all.some((w) => w.balance !== undefined);
+  const head = [
+    "المحفظة",
+    "الدفعات",
+    "داخل",
+    ...(withOut ? ["خارج"] : []),
+    ...(withBal ? ["الرصيد"] : []),
+  ];
+  const line = (label: string, count: string, inn: string, out?: number, bal?: number) => [
     label,
     count,
     inn,
     ...(withOut ? [out ? fmt(out) : ""] : []),
+    ...(withBal ? [bal !== undefined ? fmt(bal) : ""] : []),
   ];
   const cash = d.cash;
   const rows = [
@@ -784,15 +788,27 @@ export function buildWallets(d: WalletsReport): ReportDoc {
         fmt(w.count),
         fmt(w.in),
         w.out,
+        w.opening ? w.balance : undefined,
       ),
     ),
     ...(cash.count || cash.in || cash.out
-      ? [line("نقدًا", fmt(cash.count), fmt(cash.in), cash.out)]
+      ? [
+          line(
+            "نقدًا",
+            fmt(cash.count),
+            fmt(cash.in),
+            cash.out,
+            cash.opening ? cash.balance : undefined,
+          ),
+        ]
       : []),
+    ...(d.paperIn ? [line("بلا محفظة (الأوراق)", "", fmt(d.paperIn))] : []),
     ...(d.unspecifiedOut ? [line("مصاريف بلا محفظة", "", "", d.unspecifiedOut)] : []),
   ];
   const count = all.reduce((s, w) => s + w.count, 0);
   const outTotal = all.reduce((s, w) => s + (w.out ?? 0), 0) + (d.unspecifiedOut ?? 0);
+  const openings = [...d.wallets, cash].filter((w) => w.opening);
+  const widths = [0.34, 0.14, 0.18, 0.17, 0.17].slice(0, head.length);
   return {
     kind: "wallets",
     title: "المبالغ حسب المحفظة",
@@ -805,13 +821,27 @@ export function buildWallets(d: WalletsReport): ReportDoc {
             t: "table",
             head,
             num: head.map((_, i) => i > 0),
-            widths: withOut ? [0.4, 0.16, 0.22, 0.22] : undefined,
+            widths:
+              head.length > 3
+                ? widths.map((w) => w / widths.reduce((a, b) => a + b, 0))
+                : undefined,
             rows,
-            foot: ["المجموع", fmt(count), fmt(d.totalIn), ...(withOut ? [fmt(outTotal)] : [])],
+            foot: [
+              "المجموع",
+              fmt(count),
+              fmt(d.totalIn),
+              ...(withOut ? [fmt(outTotal)] : []),
+              ...(withBal ? [""] : []),
+            ],
           },
           {
             t: "note",
-            text: "قارن «داخل» و«خارج» بسجل كل محفظة في هاتفك لنفس الفترة. النقد يعدّه من يحمله.",
+            text: withBal
+              ? `«الرصيد» لمحفظة لها رصيد افتتاحي فقط (${openings
+                  .map((w) => `من ${day(w.opening!.on)}`)
+                  .filter((v, i, a) => a.indexOf(v) === i)
+                  .join("، ")}). قارنه برصيدها في هاتفك.`
+              : "قارن «داخل» و«خارج» بسجل كل محفظة في هاتفك لنفس الفترة. النقد يعدّه من يحمله.",
           },
         ]
       : [{ t: "note", text: "لا حركة في هذه الفترة." }],

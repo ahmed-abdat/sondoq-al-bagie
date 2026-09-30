@@ -5,6 +5,8 @@ const read = vi.hoisted(() => ({
   members: vi.fn(),
   memberMonths: vi.fn(),
   fundAccounts: vi.fn(),
+  walletTypes: vi.fn(),
+  fundAccountsAdmin: vi.fn(),
 }));
 vi.mock("./read", async (orig) => ({ ...(await orig<typeof import("./read")>()), ...read }));
 const r = await import("./reports");
@@ -175,6 +177,11 @@ describe("member reports", () => {
       levies: [],
     });
     expect(late.members[1].levies).toEqual([{ title: "لوحة" }]);
+    // the paper grid: 12 cells, the same states as the months table
+    expect(late.members[0].months).toHaveLength(12);
+    expect(late.members[0].months[1]).toBe("late");
+    expect(late.members[0].months[2]).toBe("late");
+    expect(late.termLabel).toBeNull();
     expect(JSON.stringify(late)).not.toMatch(/amount/i);
   });
 
@@ -273,31 +280,120 @@ describe("member reports", () => {
 });
 
 describe("money reports", () => {
-  it("wallets: in and out per wallet, cash apart, older expenses not specified", async () => {
-    read.fundAccounts.mockResolvedValue([{ method: "bankily", accountNumber: "22000001" }]);
+  it("wallets: one row per account (balance only with an opening), cash apart, paper and unspecified", async () => {
+    read.walletTypes.mockResolvedValue([
+      {
+        id: 1,
+        name: "بنكيلي",
+        logoPath: "a1b2c3d4e5f60718.png",
+        kind: "wallet",
+        sortOrder: 1,
+        active: true,
+        legacyMethod: "bankily",
+        opening: null,
+      },
+      {
+        id: 9,
+        name: "ويل",
+        logoPath: null,
+        kind: "wallet",
+        sortOrder: 8,
+        active: true,
+        legacyMethod: null,
+        opening: null,
+      },
+      {
+        id: 8,
+        name: "نقدًا",
+        logoPath: null,
+        kind: "cash",
+        sortOrder: 99,
+        active: true,
+        legacyMethod: "cash",
+        opening: { amount: 500, on: "2026-01-01" },
+      },
+    ]);
+    read.fundAccountsAdmin.mockResolvedValue([{ id: "f1", accountNumber: "22000001" }]);
+    const row = (o: Record<string, unknown>) => ({
+      wallet_type_id: null,
+      fund_account_id: null,
+      method: null,
+      in_count: 0,
+      in_amount: 0,
+      out_count: 0,
+      out_amount: 0,
+      opening_balance: null,
+      opening_on: null,
+      balance: null,
+      ...o,
+    });
     const { client } = fakeClient(
       {},
       {
         report_wallets: [
-          { method: "bankily", in_count: 2, in_amount: 3000, out_count: 1, out_amount: 700 },
-          { method: "cash", in_count: 1, in_amount: 500, out_count: 1, out_amount: 300 },
-          { method: null, in_count: 0, in_amount: 0, out_count: 2, out_amount: 900 },
+          row({
+            wallet_type_id: 1,
+            fund_account_id: "f1",
+            method: "bankily",
+            in_count: 2,
+            in_amount: 3000,
+            out_count: 1,
+            out_amount: 700,
+            opening_balance: 1000,
+            opening_on: "2026-01-01",
+            balance: 3300,
+          }),
+          row({ wallet_type_id: 9, method: "other", in_count: 1, in_amount: 200 }),
+          row({
+            wallet_type_id: 8,
+            method: "cash",
+            in_count: 1,
+            in_amount: 500,
+            out_count: 1,
+            out_amount: 300,
+            opening_balance: 500,
+            opening_on: "2026-01-01",
+            balance: 700,
+          }),
+          row({ method: "paper", in_count: 5, in_amount: 9000 }),
+          row({ out_count: 2, out_amount: 900 }),
         ],
       },
     );
     const w = await r.loadWallets(client, { year: 2026 }, now);
     expect(w.wallets).toEqual([
-      expect.objectContaining({
+      {
+        walletTypeId: 1,
+        fundAccountId: "f1",
         method: "bankily",
+        label: "بنكيلي",
+        logoPath: "a1b2c3d4e5f60718.png",
         accountNumber: "22000001",
         in: 3000,
+        count: 2,
         out: 700,
-        balance: 2300,
+        opening: { amount: 1000, on: "2026-01-01" },
+        balance: 3300,
+      },
+      expect.objectContaining({
+        walletTypeId: 9,
+        label: "ويل",
+        fundAccountId: null,
+        in: 200,
+        opening: null,
       }),
     ]);
-    expect(w.cash).toEqual({ in: 500, count: 1, out: 300, balance: 200 });
+    expect(w.wallets[1]).not.toHaveProperty("balance");
+    expect(w.cash).toEqual({
+      in: 500,
+      count: 1,
+      out: 300,
+      opening: { amount: 500, on: "2026-01-01" },
+      balance: 700,
+    });
+    expect(w.paperIn).toBe(9000);
     expect(w.unspecifiedOut).toBe(900);
-    expect(w.totalIn).toBe(3500);
+    expect(w.totalIn).toBe(3000 + 200 + 500 + 9000);
   });
 
   it("campaign: a non-member donor by name, members by ref, levy shares", async () => {

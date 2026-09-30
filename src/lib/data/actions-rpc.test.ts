@@ -190,6 +190,66 @@ const cases: Case[] = [
     true,
   ],
   [
+    "addWalletType",
+    () => a.addWalletType({ name: "ويل", logoPath: "a1b2c3d4e5f60718.png" }),
+    "add_wallet_type",
+    { p_name: "ويل", p_logo_path: "a1b2c3d4e5f60718.png" },
+    true,
+  ],
+  [
+    "updateWalletType",
+    () => a.updateWalletType({ id: 9, name: "ويل موني" }),
+    "update_wallet_type",
+    { p_id: 9, p_name: "ويل موني" },
+    true,
+  ],
+  [
+    "setWalletTypeActive",
+    () => a.setWalletTypeActive({ id: 9, active: false }),
+    "set_wallet_type_active",
+    { p_id: 9, p_active: false },
+    true,
+  ],
+  [
+    "addWalletAccount",
+    () =>
+      a.addWalletAccount({
+        walletTypeId: 9,
+        accountNumber: "٢٢ ٠٠ ٠٠ ٠١",
+        holderName: "صندوق الرابطة",
+      }),
+    "add_wallet_account",
+    {
+      p_wallet_type_id: 9,
+      p_account_number: "22000001",
+      p_holder_name: "صندوق الرابطة",
+      p_sort_order: 0,
+    },
+    true,
+  ],
+  [
+    "setFundAccountOpening",
+    () => a.setFundAccountOpening({ id, amount: 15000, on: "2026-01-01" }),
+    "set_fund_account_opening",
+    { p_id: id, p_amount: 15000, p_on: "2026-01-01" },
+    true,
+  ],
+  [
+    "setCashOpening",
+    () => a.setCashOpening({ amount: 2000, on: "2026-01-01" }),
+    "set_cash_opening",
+    { p_amount: 2000, p_on: "2026-01-01" },
+    true,
+  ],
+  [
+    "recordExpense (wallet)",
+    () =>
+      a.recordExpense({ id, spentOn: "2026-09-01", activityId: 5, amount: 700, walletTypeId: 9 }),
+    "record_expense",
+    { p_id: id, p_activity_id: 5, p_wallet_type_id: 9 },
+    true,
+  ],
+  [
     "retireGroup",
     () => a.retireGroup({ groupCode: "C", fromYear: 2028 }),
     "retire_group",

@@ -108,7 +108,8 @@ test("every screen shows the database's numbers after each step, and each step m
   await page.goto("/committee");
   await page.getByRole("button", { name: /سجّل مصروفًا/ }).click();
   const sheet = page.getByRole("dialog", { name: "سجّل مصروفًا" });
-  await sheet.getByLabel(/المبلغ بالأوقية القديمة/).fill("1500");
+  await sheet.getByLabel(/المبلغ/).fill("1500");
+  await sheet.getByRole("radiogroup", { name: "النشاط" }).getByRole("radio").first().click();
   await sheet.getByLabel(/ماذا اشتُري/).fill("اختبار الأرقام");
   const wallet = sheet.getByRole("radiogroup", { name: "المحفظة" });
   if (await wallet.count()) await wallet.getByRole("radio").first().click();

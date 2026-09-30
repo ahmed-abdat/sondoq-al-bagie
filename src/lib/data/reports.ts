@@ -3,7 +3,7 @@
 // (the signed-in committee member's session; the database checks it is the committee). Reads
 // that need the database's own rules are SQL (m29–m31: report_period, report_wallets,
 // report_committee_work, member_statement, levy_shares); the rest reads committee views.
-import { isMethod, methodLabel } from "@/lib/methods";
+import { isMethod } from "@/lib/methods";
 import type { Json } from "@/lib/supabase/database.types";
 import { CATEGORY_LABELS, STATUS_LABELS } from "./labels";
 import * as read from "./read";
@@ -216,11 +216,13 @@ async function levyShares(c: Client, filter: { campaignId?: string } = {}): Prom
 }
 
 export async function loadLate(c: Client, year: number, now = new Date()): Promise<LateReport> {
-  const [members, months, shares] = await Promise.all([
+  const [members, months, shares, report] = await Promise.all([
     read.members(c),
     read.memberMonths(c, year),
     levyShares(c),
+    loadReport(c, { year }, now),
   ]);
+  const grid = new Map(report.members.map((m) => [m.memberId, m.months]));
   const late = new Map<string, string[]>();
   for (const m of months) {
     if (m.state !== "late") continue;
@@ -234,6 +236,7 @@ export async function loadLate(c: Client, year: number, now = new Date()): Promi
   return {
     year,
     generatedAt: now.toISOString(),
+    termLabel: report.term?.title ?? null,
     members: members
       .filter((m) => m.status === "active" && (late.has(m.memberId) || levies.has(m.memberId)))
       .map((m) => {
@@ -242,6 +245,7 @@ export async function loadLate(c: Client, year: number, now = new Date()): Promi
           memberRef: m.memberRef,
           fullName: m.fullName,
           groupCode: m.groupCode,
+          months: grid.get(m.memberId) ?? [],
           lateMonths,
           monthsCount: lateMonths.length,
           levies: levies.get(m.memberId) ?? [],
@@ -596,38 +600,57 @@ export async function loadWallets(
   now = new Date(),
 ): Promise<WalletsReport> {
   const r = periodRange(period);
-  const [rows, accounts] = await Promise.all([
+  const [rows, types, accounts] = await Promise.all([
     read.many("report_wallets", await c.rpc("report_wallets", { p_from: r.from, p_to: r.to })),
-    read.fundAccounts(c),
+    read.walletTypes(c),
+    read.fundAccountsAdmin(c),
   ]);
+  const opening = (amount: number | null, on: string | null) =>
+    amount !== null && on ? { amount, on } : null;
   const wallets: WalletsReport["wallets"] = [];
-  let cash = { in: 0, count: 0, out: 0 };
+  let cash: WalletsReport["cash"] = { in: 0, count: 0, out: 0, opening: null };
+  let paperIn = 0;
   let unspecifiedOut = 0;
   for (const w of rows) {
-    if (w.method === null) {
+    const type = types.find((t) => t.id === w.wallet_type_id);
+    if (!type) {
+      // no wallet: the paper sheets in, expenses that never named a wallet out
+      paperIn += w.in_amount;
       unspecifiedOut += w.out_amount;
       continue;
     }
-    if (w.method === "cash") {
-      cash = { in: w.in_amount, count: w.in_count, out: w.out_amount };
+    const open = opening(w.opening_balance, w.opening_on);
+    if (type.kind === "cash") {
+      cash = {
+        in: w.in_amount,
+        count: w.in_count,
+        out: w.out_amount,
+        opening: open,
+        ...(w.balance !== null ? { balance: w.balance } : {}),
+      };
       continue;
     }
-    const acc = accounts.find((a) => a.method === w.method);
+    const acc = w.fund_account_id ? accounts.find((a) => a.id === w.fund_account_id) : undefined;
     wallets.push({
-      method: w.method,
-      label: isMethod(w.method) ? methodLabel(w.method) : w.method,
+      walletTypeId: type.id,
+      fundAccountId: w.fund_account_id,
+      method: (w.method ?? type.legacyMethod ?? "other") as PaymentMethod,
+      label: type.name,
+      logoPath: type.logoPath,
       accountNumber: acc?.accountNumber ?? null,
       in: w.in_amount,
       count: w.in_count,
       out: w.out_amount,
-      balance: w.in_amount - w.out_amount,
+      opening: open,
+      ...(w.balance !== null ? { balance: w.balance } : {}),
     });
   }
   return {
     period,
     generatedAt: now.toISOString(),
     wallets,
-    cash: { in: cash.in, count: cash.count, out: cash.out, balance: cash.in - cash.out },
+    cash,
+    paperIn,
     unspecifiedOut,
     totalIn: rows.reduce((s, w) => s + w.in_amount, 0),
   };

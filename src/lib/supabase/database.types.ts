@@ -317,6 +317,7 @@ export type Database = {
           paid_in_cash: boolean
           receipt_path: string | null
           spent_on: string
+          wallet_type_id: number | null
         }
         Insert: {
           activity_id: number
@@ -334,6 +335,7 @@ export type Database = {
           paid_in_cash?: boolean
           receipt_path?: string | null
           spent_on: string
+          wallet_type_id?: number | null
         }
         Update: {
           activity_id?: number
@@ -351,6 +353,7 @@ export type Database = {
           paid_in_cash?: boolean
           receipt_path?: string | null
           spent_on?: string
+          wallet_type_id?: number | null
         }
         Relationships: [
           {
@@ -374,6 +377,13 @@ export type Database = {
             referencedRelation: "fund_accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "expenses_wallet_type_id_fkey"
+            columns: ["wallet_type_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_types"
+            referencedColumns: ["id"]
+          },
         ]
       }
       fund_accounts: {
@@ -386,9 +396,12 @@ export type Database = {
           id: string
           method: Database["public"]["Enums"]["payment_method"]
           note: string | null
+          opening_balance: number | null
+          opening_on: string | null
           sort_order: number
           updated_at: string | null
           updated_by: string | null
+          wallet_type_id: number
         }
         Insert: {
           account_number: string
@@ -399,9 +412,12 @@ export type Database = {
           id?: string
           method: Database["public"]["Enums"]["payment_method"]
           note?: string | null
+          opening_balance?: number | null
+          opening_on?: string | null
           sort_order?: number
           updated_at?: string | null
           updated_by?: string | null
+          wallet_type_id: number
         }
         Update: {
           account_number?: string
@@ -412,11 +428,22 @@ export type Database = {
           id?: string
           method?: Database["public"]["Enums"]["payment_method"]
           note?: string | null
+          opening_balance?: number | null
+          opening_on?: string | null
           sort_order?: number
           updated_at?: string | null
           updated_by?: string | null
+          wallet_type_id?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fund_accounts_wallet_type_id_fkey"
+            columns: ["wallet_type_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       group_prices: {
         Row: {
@@ -893,6 +920,7 @@ export type Database = {
           created_by: string | null
           decided_at: string | null
           decided_by: string | null
+          fund_account_id: string | null
           id: string
           method: Database["public"]["Enums"]["payment_method"]
           note: string | null
@@ -907,6 +935,7 @@ export type Database = {
           status: Database["public"]["Enums"]["payment_status"]
           submitted_via_link: string | null
           txn_ref: string | null
+          wallet_type_id: number | null
         }
         Insert: {
           amount: number
@@ -917,6 +946,7 @@ export type Database = {
           created_by?: string | null
           decided_at?: string | null
           decided_by?: string | null
+          fund_account_id?: string | null
           id?: string
           method: Database["public"]["Enums"]["payment_method"]
           note?: string | null
@@ -931,6 +961,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["payment_status"]
           submitted_via_link?: string | null
           txn_ref?: string | null
+          wallet_type_id?: number | null
         }
         Update: {
           amount?: number
@@ -941,6 +972,7 @@ export type Database = {
           created_by?: string | null
           decided_at?: string | null
           decided_by?: string | null
+          fund_account_id?: string | null
           id?: string
           method?: Database["public"]["Enums"]["payment_method"]
           note?: string | null
@@ -955,13 +987,28 @@ export type Database = {
           status?: Database["public"]["Enums"]["payment_status"]
           submitted_via_link?: string | null
           txn_ref?: string | null
+          wallet_type_id?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_fund_account_id_fkey"
+            columns: ["fund_account_id"]
+            isOneToOne: false
+            referencedRelation: "fund_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_submitted_via_link_fkey"
             columns: ["submitted_via_link"]
             isOneToOne: false
             referencedRelation: "member_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_wallet_type_id_fkey"
+            columns: ["wallet_type_id"]
+            isOneToOne: false
+            referencedRelation: "wallet_types"
             referencedColumns: ["id"]
           },
         ]
@@ -1190,6 +1237,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wallet_types: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: number
+          kind: string
+          legacy_method: Database["public"]["Enums"]["payment_method"] | null
+          logo_path: string | null
+          name: string
+          opening_balance: number | null
+          opening_on: string | null
+          sort_order: number
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          kind?: string
+          legacy_method?: Database["public"]["Enums"]["payment_method"] | null
+          logo_path?: string | null
+          name: string
+          opening_balance?: number | null
+          opening_on?: string | null
+          sort_order?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          kind?: string
+          legacy_method?: Database["public"]["Enums"]["payment_method"] | null
+          logo_path?: string | null
+          name?: string
+          opening_balance?: number | null
+          opening_on?: string | null
+          sort_order?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -1635,6 +1730,20 @@ export type Database = {
         }
         Returns: string
       }
+      add_wallet_account: {
+        Args: {
+          p_account_number: string
+          p_holder_name: string
+          p_note?: string
+          p_sort_order?: number
+          p_wallet_type_id: number
+        }
+        Returns: string
+      }
+      add_wallet_type: {
+        Args: { p_logo_path?: string; p_name: string }
+        Returns: number
+      }
       apply_credit: {
         Args: { p_id: string; p_member_id: string; p_months: Json }
         Returns: Json
@@ -1781,6 +1890,7 @@ export type Database = {
           p_paid_in_cash?: boolean
           p_receipt_path?: string
           p_spent_on: string
+          p_wallet_type_id?: number
         }
         Returns: string
       }
@@ -1788,6 +1898,7 @@ export type Database = {
         Args: {
           p_allocations: Json
           p_amount: number
+          p_fund_account_id?: string
           p_id: string
           p_method: Database["public"]["Enums"]["payment_method"]
           p_note?: string
@@ -1796,6 +1907,7 @@ export type Database = {
           p_proof_hash?: string
           p_proof_path?: string
           p_txn_ref?: string
+          p_wallet_type_id?: number
         }
         Returns: Json
       }
@@ -1833,11 +1945,16 @@ export type Database = {
       report_wallets: {
         Args: { p_from: string; p_to: string }
         Returns: {
+          balance: number
+          fund_account_id: string
           in_amount: number
           in_count: number
           method: Database["public"]["Enums"]["payment_method"]
+          opening_balance: number
+          opening_on: string
           out_amount: number
           out_count: number
+          wallet_type_id: number
         }[]
       }
       retire_group: {
@@ -1851,6 +1968,10 @@ export type Database = {
           p_p256dh: string
           p_user_agent?: string
         }
+        Returns: undefined
+      }
+      set_cash_opening: {
+        Args: { p_amount: number; p_on: string }
         Returns: undefined
       }
       set_committee_active: {
@@ -1875,6 +1996,10 @@ export type Database = {
         Args: { p_active: boolean; p_id: number }
         Returns: undefined
       }
+      set_fund_account_opening: {
+        Args: { p_amount: number; p_id: string; p_on: string }
+        Returns: undefined
+      }
       set_group_price: {
         Args: { p_group_code: string; p_monthly_amount: number; p_year: number }
         Returns: undefined
@@ -1889,6 +2014,10 @@ export type Database = {
       }
       set_push_kinds: {
         Args: { p_endpoint: string; p_kinds: string[] }
+        Returns: undefined
+      }
+      set_wallet_type_active: {
+        Args: { p_active: boolean; p_id: number }
         Returns: undefined
       }
       start_handover: {
@@ -1952,6 +2081,10 @@ export type Database = {
           p_show_amount_owed?: boolean
           p_whatsapp_contact?: string
         }
+        Returns: undefined
+      }
+      update_wallet_type: {
+        Args: { p_id: number; p_logo_path?: string; p_name: string }
         Returns: undefined
       }
     }

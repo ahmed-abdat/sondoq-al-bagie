@@ -53,6 +53,10 @@ export const recordPaymentSchema = z
       .regex(/^[0-9a-f]{64}$/i)
       .optional(),
     note: optText(500),
+    /** the wallet (m41); the server fills it from the method when omitted */
+    walletTypeId: z.number().int().positive().max(32767).optional(),
+    /** the account it came into; the server fills it when the wallet has one active account */
+    fundAccountId: id.optional(),
   })
   .refine((p) => p.allocations.reduce((s, a) => s + a.amount, 0) === p.amount, {
     message: "allocations_mismatch",
@@ -78,6 +82,8 @@ export const recordExpenseSchema = z
     /** «من أي محفظة» (m31): a fund account, or cash; neither = not specified */
     fundAccountId: id.optional(),
     paidInCash: z.boolean().optional(),
+    /** the wallet (m41); cash = the cash wallet */
+    walletTypeId: z.number().int().positive().max(32767).optional(),
   })
   .refine((e) => e.activityId !== undefined || e.category !== undefined, { message: "activity" });
 
@@ -349,6 +355,32 @@ export type SetGroupPriceInput = z.input<typeof setGroupPriceSchema>;
 export type SetCommitteeMemberInput = z.input<typeof setCommitteeMemberSchema>;
 export type UpdateSettingsInput = z.input<typeof updateSettingsSchema>;
 export type AddFundAccountInput = z.input<typeof addFundAccountSchema>;
+
+/* ───────────── «المحافظ» wallets (m41, «المسؤول») ───────────── */
+
+const walletTypeId = z.number().int().positive().max(32767);
+/** a logo uploaded by uploadWalletLogo: `<sha256 first 16>.<ext>` in the public `logos` bucket */
+const logoPath = z
+  .string()
+  .regex(/^[0-9a-f]{16}\.(png|jpg|webp)$/)
+  .optional();
+export const addWalletTypeSchema = z.object({ name: text(40), logoPath });
+export const updateWalletTypeSchema = z.object({ id: walletTypeId, name: text(40), logoPath });
+export const setWalletTypeActiveSchema = z.object({ id: walletTypeId, active: z.boolean() });
+export const addWalletAccountSchema = z.object({
+  walletTypeId,
+  accountNumber: z
+    .string()
+    .transform((v) => toWesternDigits(v).replace(/[\s-]/g, ""))
+    .pipe(z.string().regex(/^[0-9A-Za-z+]{4,30}$/)),
+  holderName: text(120),
+  note: optText(300),
+  sortOrder: z.number().int().min(0).max(1000).default(0),
+});
+const openingAmount = z.number().int().min(0).max(100_000_000);
+export const setFundAccountOpeningSchema = z.object({ id, amount: openingAmount, on: day });
+export const setCashOpeningSchema = z.object({ amount: openingAmount, on: day });
+export type AddWalletAccountInput = z.input<typeof addWalletAccountSchema>;
 export type UpdateFundAccountInput = z.input<typeof updateFundAccountSchema>;
 
 /** PushSubscription.toJSON() from the browser. */

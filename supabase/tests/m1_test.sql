@@ -681,7 +681,7 @@ select public.set_committee_member('00000000-0000-0000-0000-0000000000a3', 'ال
 select tests.login('server');
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000a6', 'mistake@test.invalid');
 select tests.ok((select count(*) from pg_constraint where contype = 'f' and confrelid = 'auth.users'::regclass
-                   and connamespace = 'public'::regnamespace) = 28,
+                   and connamespace = 'public'::regnamespace) = 30,
   'every column pointing at auth.users is checked by account_has_history (update it when this count changes)');
 select tests.login('admin');
 select public.set_committee_member('00000000-0000-0000-0000-0000000000a6', 'خطأ', 'committee');
@@ -1264,8 +1264,8 @@ select tests.ok((select sum(in_amount) from public.report_wallets('2000-01-01', 
 -- an expense names its wallet (a fund account or cash) from m31; older ones are «غير محدد» (method null)
 select tests.set('w1', public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_category => 'other', p_amount => 700, p_note => 'وقود', p_fund_account_id => tests.id('acc'))::text);
 select tests.set('w2', public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_category => 'other', p_amount => 300, p_note => 'ماء', p_paid_in_cash => true)::text);
-select tests.ok((select out_amount >= 700 from public.report_wallets(current_date, current_date) where method = 'bankily')
-                and (select out_amount >= 300 from public.report_wallets(current_date, current_date) where method = 'cash'),
+select tests.ok((select sum(out_amount) >= 700 from public.report_wallets(current_date, current_date) where method = 'bankily')
+                and (select sum(out_amount) >= 300 from public.report_wallets(current_date, current_date) where method = 'cash'),
   'money out per wallet from the expense''s wallet');
 select tests.ok(exists (select 1 from public.report_wallets('2000-01-01', '2100-01-01') where method is null and out_amount > 0),
   'older expenses without a wallet are counted as not specified');
@@ -1603,6 +1603,90 @@ select tests.ok((select count(*) from public.activity_log(null, 200, 'all'))
   'all = both');
 select tests.ok((select count(*) from public.activity_log(null, 3, 'money')) = 3, 'a page of money actions is full (filtered before the limit)');
 select tests.throws($$select * from public.activity_log(null, 10, 'x')$$, 'invalid_input', 'unknown scope refused');
+
+/* ───────────── M41: wallets («المحافظ») ───────────── */
+
+select tests.login('committee');
+select tests.ok((select count(*) from public.wallet_types where legacy_method is not null) = 8
+                and (select name from public.wallet_types where kind = 'cash') = 'نقدًا',
+  'the 8 wallets are seeded, cash included');
+select tests.ok(not exists (select 1 from public.fund_accounts f join public.wallet_types w on w.id = f.wallet_type_id
+                            where w.legacy_method is distinct from f.method),
+  'every account has the wallet of its method');
+select tests.ok(not exists (select 1 from public.payments p where p.method::text not in ('paper', 'credit') and p.wallet_type_id is null),
+  'every older payment got its wallet');
+-- a wallet with one active account: the payment names that account
+select tests.set('pw1', public.record_payment(gen_random_uuid(), 'محفظة', 'bankily', 100, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('sX'), 'amount', 100))) ->> 'id');
+select tests.ok((select fund_account_id = tests.id('acc') and wallet_type_id = (select id from public.wallet_types where legacy_method = 'bankily')
+                 from public.payments where id = tests.id('pw1')), 'the only active account of the wallet is filled in');
+select tests.throws($$select public.add_wallet_type('ويل')$$, 'not_admin', 'only «المسؤول» adds a wallet');
+select tests.login('admin');
+select tests.set('wt', public.add_wallet_type('ويل', 'logos/wil.png')::text);
+select tests.throws($$select public.add_wallet_type('ويل')$$, 'wallet_name_taken', 'wallet names are unique');
+select tests.set('wa', public.add_wallet_account(tests.get('wt')::int, '5555 6666', 'صندوق الرابطة')::text);
+select tests.ok((select method = 'other' and wallet_type_id = tests.get('wt')::smallint from public.fund_accounts where id = tests.id('wa')),
+  'an account of a new wallet mirrors the method as other');
+select tests.throws(format($$select public.add_wallet_account(%s, '55556666', 'x')$$, tests.get('wt')), 'account_exists',
+  'one active account per wallet and number');
+select tests.login('committee');
+select tests.set('pw2', public.record_payment(gen_random_uuid(), 'محفظة', 'other', 200, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('sX'), 'amount', 200)), 'W-1',
+  p_wallet_type_id => tests.get('wt')::int) ->> 'id');
+select tests.ok((select fund_account_id = tests.id('wa') and method = 'other' from public.payments where id = tests.id('pw2')),
+  'a payment into a new wallet names its account');
+select tests.throws(format($$select public.record_payment(gen_random_uuid(), 'x', 'other', 50, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', %L::uuid, 'amount', 50)), 'W-1', p_wallet_type_id => %s)$$,
+  tests.get('sX'), tests.get('wt')), 'duplicate_txn_ref', 'the same transfer number twice in one wallet');
+select tests.throws(format($$select public.record_payment(gen_random_uuid(), 'x', 'bankily', 50, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', %L::uuid, 'amount', 50)), p_wallet_type_id => %s,
+  p_fund_account_id => %L::uuid)$$, tests.get('sX'), tests.get('wt'), tests.get('acc')), 'wallet_mismatch',
+  'an account of another wallet is refused');
+select tests.set('ew', public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_amount => 30, p_category => 'other',
+  p_wallet_type_id => (select id from public.wallet_types where kind = 'cash'))::text);
+select tests.ok((select paid_in_cash and fund_account_id is null from public.expenses where id = tests.id('ew')), 'cash expense by wallet');
+select tests.set('ew2', public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_amount => 70, p_category => 'other',
+  p_wallet_type_id => tests.get('wt')::int)::text);
+select tests.ok((select fund_account_id = tests.id('wa') and not paid_in_cash from public.expenses where id = tests.id('ew2')),
+  'an expense from a wallet names its account');
+-- opening balance: once, then the report gives the balance
+select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 1000, current_date - 1)$$, tests.get('wa')), 'not_admin',
+  'only «المسؤول» sets an opening');
+select tests.login('admin');
+select public.set_fund_account_opening(tests.id('wa'), 1000, current_date - 1);
+select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 5, current_date)$$, tests.get('wa')), 'opening_already_set',
+  'the opening is set once');
+select tests.login('committee');
+select tests.ok((select in_amount = 200 and out_amount = 70 and balance = 1000 + 200 - 70
+                 from public.report_wallets(current_date - 1, current_date) where fund_account_id = tests.id('wa')),
+  'wallet report: in, out and balance from the opening');
+select tests.ok((select balance is null from public.report_wallets(current_date - 1, current_date) where fund_account_id = tests.id('acc')),
+  'no balance without an opening');
+select tests.ok((select sum(in_amount) from public.report_wallets(make_date(2000, 1, 1), current_date + 1))
+                = (select sum(amount) from public.payments where status = 'confirmed' and method::text <> 'credit'
+                   and paid_on between make_date(2000, 1, 1) and current_date + 1),
+  'wallet rows add up to all money in');
+-- cash in hand: its opening once, then a cash balance
+select tests.login('admin');
+select public.set_cash_opening(500, current_date - 1);
+select tests.throws($$select public.set_cash_opening(1, current_date)$$, 'opening_already_set', 'the cash opening is set once');
+select tests.login('committee');
+select tests.ok((select balance = 500
+                        + coalesce((select sum(amount) from public.payments where status = 'confirmed' and method = 'cash'
+                                    and paid_on between current_date - 1 and current_date), 0)
+                        - coalesce((select sum(amount) from public.expenses where cancelled_at is null and paid_in_cash
+                                    and spent_on between current_date - 1 and current_date), 0)
+                 from public.report_wallets(current_date - 1, current_date) where method = 'cash' and fund_account_id is null),
+  'cash in hand: opening + cash in − cash out');
+select tests.ok((select public and file_size_limit = 204800 and not ('image/svg+xml' = any (allowed_mime_types))
+                 from storage.buckets where id = 'logos'), 'logos: a public bucket, small images only (no SVG)');
+select tests.login('admin');
+select public.set_wallet_type_active(tests.get('wt')::int, false);
+select tests.login('committee');
+select tests.throws(format($$select public.record_payment(gen_random_uuid(), 'x', 'other', 50, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', %L::uuid, 'amount', 50)), p_wallet_type_id => %s)$$,
+  tests.get('sX'), tests.get('wt')), 'wallet_inactive', 'a stopped wallet takes no new money');
+select tests.throws(format($$delete from public.wallet_types where id = %s$$, tests.get('wt')), '42501', 'wallets are never deleted');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
