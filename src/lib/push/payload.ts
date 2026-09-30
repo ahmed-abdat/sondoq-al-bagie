@@ -109,6 +109,16 @@ export function levyPayload(p: {
 }
 
 /** «محمد» from «محمد ولد أحمد»: short enough for a notification title. */
+/** The daily accuracy check found a number that does not add up («مسؤول» only). */
+export function auditAlertPayload(day: string): PushPayload {
+  return {
+    title: "تنبيه: رقم في الصندوق لا يتطابق",
+    body: "افتح التطبيق.",
+    url: "/committee",
+    tag: `audit-${day}`,
+  };
+}
+
 function firstName(full: string): string {
   return full.trim().split(/\s+/)[0] ?? full.trim();
 }

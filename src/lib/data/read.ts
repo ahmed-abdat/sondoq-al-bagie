@@ -426,6 +426,18 @@ export async function levyShares(
 }
 
 /** «الفئات»: every group with its fee this year and next, members now, retired year (m33). */
+/**
+ * The accuracy audit (m35): every figure the app shows recomputed from the base tables, one row
+ * per check. `ok: false` means a wrong number somewhere (counts only, no names).
+ */
+export async function accuracyAudit(c: Client) {
+  return many("accuracy_audit", await c.rpc("accuracy_audit")).map((r) => ({
+    check: r.check_name,
+    ok: r.ok === true,
+    detail: r.detail ?? "",
+  }));
+}
+
 export async function groupsOverview(c: Client, year: number) {
   return many("groups_overview", await c.rpc("groups_overview", { p_year: year })).map((g) => ({
     code: g.code,

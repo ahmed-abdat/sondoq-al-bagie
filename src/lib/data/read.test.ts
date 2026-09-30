@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { DataError, fundInfo, fundSettings, ledgerPublic, memberMonths, members } from "./read";
+import {
+  DataError,
+  accuracyAudit,
+  fundInfo,
+  fundSettings,
+  ledgerPublic,
+  memberMonths,
+  members,
+} from "./read";
 import type { Client } from "./read";
 
 /** Minimal PostgREST builder stand-in: every chain method returns itself; awaiting gives `res`. */
@@ -13,6 +21,21 @@ function fake(res: { data: unknown; error: unknown }) {
 }
 
 describe("read", () => {
+  it("maps the accuracy audit; a missing ok is not ok", async () => {
+    const { client, rpc } = fake({
+      data: [
+        { check_name: "fund balance", ok: true, detail: "shown 1, recomputed 1" },
+        { check_name: "grid", ok: null, detail: null },
+      ],
+      error: null,
+    });
+    expect(await accuracyAudit(client)).toEqual([
+      { check: "fund balance", ok: true, detail: "shown 1, recomputed 1" },
+      { check: "grid", ok: false, detail: "" },
+    ]);
+    expect(rpc).toHaveBeenCalledWith("accuracy_audit");
+  });
+
   it("reads the month grid page by page past the 1000-row API limit", async () => {
     const row = { member_id: "m", year: 2026, month: 1, state: "paid" };
     const range = vi.fn(async (from: number) => ({
