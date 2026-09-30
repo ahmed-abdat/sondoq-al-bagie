@@ -10,7 +10,6 @@ import { toastFor, usePaymentsRealtime } from "@/lib/data/realtime";
 import type {
   Arrear,
   CampaignProgress,
-  ExpenseAdmin,
   FundAccount,
   MemberAdmin,
   MemberRow,
@@ -21,7 +20,6 @@ import { useDemoState } from "../act";
 import { MethodBadge } from "../bits";
 import { CampaignAdminList, CampaignFormBody } from "../campaign-form";
 import { fmt, pendingForCampaign, relativeAgo } from "../derive";
-import { ExpenseAdminList, RecordExpenseBody } from "../expense";
 import { I } from "../icons";
 import type { MemberCtx } from "../member";
 import { MembersAdmin, type MemberCredit } from "../members-admin";
@@ -424,51 +422,6 @@ export function LatePage({ arrears, report }: { arrears: Arrear[]; report: Repor
       <section className="bq-sec bq-sec-first">
         <LateList arrears={arrears} report={report} />
       </section>
-    </>
-  );
-}
-
-export function ExpensesPage({
-  expenses: server,
-  campaigns: serverCampaigns,
-  balance,
-}: {
-  expenses: ExpenseAdmin[];
-  campaigns: CampaignProgress[];
-  /** main fund balance now (an expense above it gets a second look) */
-  balance?: number;
-}) {
-  const demo = useDemoState();
-  const expenses = [...demo.expenses, ...server];
-  const campaigns = [...demo.campaigns, ...serverCampaigns];
-  const say = useSnack();
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <SubHead title="المصاريف" />
-      <section className="bq-sec bq-sec-first">
-        <button
-          type="button"
-          className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-          onClick={() => setOpen(true)}
-        >
-          {I.plus(20)} سجّل مصروفًا
-        </button>
-        <h2 className="bq-h3">آخر المصاريف</h2>
-        <ExpenseAdminList items={expenses} onSay={say} />
-      </section>
-      {open && (
-        <Sheet key="expense" label="سجّل مصروفًا" onDone={() => setOpen(false)}>
-          <RecordExpenseBody
-            campaigns={campaigns}
-            balance={balance}
-            onDone={(t) => {
-              setOpen(false);
-              say(t);
-            }}
-          />
-        </Sheet>
-      )}
     </>
   );
 }

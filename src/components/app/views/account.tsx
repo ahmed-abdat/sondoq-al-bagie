@@ -11,6 +11,7 @@ import { useAct, useIsDemo } from "../act";
 import { ROLE_LABEL } from "../derive";
 import { I } from "../icons";
 import { LogoutButton } from "../logout";
+import { PushKinds } from "../push-kinds";
 import { PasswordField } from "../member-pick";
 import { Sheet } from "../sheet";
 import { useSnack } from "../shell";
@@ -122,7 +123,10 @@ export function AccountView({ me }: { me: MyProfile }) {
         {demo ? (
           <p className="bq-hint">لا تعمل الإشعارات في النسخة التجريبية.</p>
         ) : (
-          <CommitteePushToggle className="bq-small-top" />
+          <>
+            <CommitteePushToggle className="bq-small-top" />
+            <PushKinds />
+          </>
         )}
       </section>
 

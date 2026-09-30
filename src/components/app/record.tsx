@@ -19,7 +19,6 @@ import { safeStorage } from "@/lib/safe-storage";
 import { rememberMembers, useAct } from "./act";
 import { sendOnce, useOnceId } from "./once-id";
 import { failure } from "@/lib/data/errors";
-import { Stamp } from "./receipt";
 import type { ReceiptView } from "./receipt-model";
 import {
   fitRow,
@@ -744,13 +743,9 @@ export function RecordBody({
   if (confirmed)
     return (
       <div className="bq-rec bq-rec-done">
-        <Stamp
-          variant="confirmed"
-          date={confirmed.r.status.kind === "confirmed" ? confirmed.r.status.at : paidOn}
-          size={112}
-          press
-          role={me?.role ?? ""}
-        />
+        <span className="bq-disc is-in" aria-hidden="true">
+          {I.check(28)}
+        </span>
         <h2>سُجّلت وأُكّدت</h2>
         <p className="bq-lead">{confirmed.text}</p>
         <button

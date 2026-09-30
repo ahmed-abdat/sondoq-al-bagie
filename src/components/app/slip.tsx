@@ -11,7 +11,7 @@ import { MemberNo, MethodBadge } from "./bits";
 import { dayWords, fmt, monthsInWords, relativeAgo } from "./derive";
 import { I } from "./icons";
 import { Num, prefersReduced, useNow } from "./num";
-import { ConfirmedMark, Proof, Stamp } from "./receipt";
+import { ConfirmedMark, Proof } from "./receipt";
 import { fromPending, type ReceiptView } from "./receipt-model";
 import { radioKeys, radioTab } from "./radio-keys";
 
@@ -293,18 +293,6 @@ export function PendingSlip({
           {now ? relativeAgo(p.createdAt, now) : dayWords(p.createdAt)}
         </p>
       </div>
-      {st.s !== "pending" && (
-        <span className="bq-slip-stamp">
-          <Stamp
-            variant={st.s}
-            date={st.at}
-            size={104}
-            press
-            seed={p.id.charCodeAt(0) % 7}
-            role={st.by ? "" : me.role}
-          />
-        </span>
-      )}
 
       {st.s === "pending" && st.error && (
         <p className="bq-alert" role="alert">

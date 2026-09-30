@@ -99,11 +99,7 @@ function PaymentRow({ p, onOpen }: { p: PendingPayment; onOpen: () => void }) {
         </span>
         <span className="bq-row-e">
           <Num className={`bq-amt ${cancelled ? "" : "a-in"}`}>{`+${fmt(p.amount)}`}</Num>
-          {cancelled ? (
-            <span className="bq-kind is-rej">ملغى</span>
-          ) : (
-            p.receiptNo && <Num className="bq-row-s">{p.receiptNo}</Num>
-          )}
+          {cancelled && <span className="bq-kind is-rej">ملغى</span>}
         </span>
       </button>
     </li>

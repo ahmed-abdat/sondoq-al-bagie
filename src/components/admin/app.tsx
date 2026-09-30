@@ -6,7 +6,7 @@ import { CampaignScreen, CampaignsScreen, LevyScreen } from "./donations";
 import { Provider } from "./kit";
 import { RecordScreen } from "./record";
 import { ReportsScreen } from "./reports";
-import { ExpensesScreen } from "./screens";
+import { ExpensesScreen } from "./expenses";
 import { MemberScreen, MembersScreen } from "./members";
 import { ActivityScreen, MoreScreen } from "./more";
 import { StatsScreen } from "./stats-screen";

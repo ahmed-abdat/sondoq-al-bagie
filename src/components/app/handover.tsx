@@ -23,7 +23,6 @@ import { dayDate, fmt, paymentCount, ROLE_LABEL } from "./derive";
 import { copyText, ManualCopy } from "./copy";
 import { I } from "./icons";
 import { Num } from "./num";
-import { Stamp } from "./receipt";
 
 type Line = CountedLine & { key: string; text: string };
 
@@ -191,13 +190,9 @@ export function HandoverView({
   const text = minutesText(h, next);
   return (
     <section className="bq-sec bq-sec-first bq-rec-done">
-      <Stamp
-        variant="confirmed"
-        date={h.acceptedAt ?? new Date().toISOString()}
-        size={112}
-        press
-        role="أمين الصندوق"
-      />
+      <span className="bq-disc is-in" aria-hidden="true">
+        {I.check(28)}
+      </span>
       <h2>بدأت الدورة {next}</h2>
       <p className="bq-lead">
         استلم {h.acceptedByName ?? "المسؤول الجديد"} الصندوق
