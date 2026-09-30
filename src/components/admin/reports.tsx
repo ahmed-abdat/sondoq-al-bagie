@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { MONTHS_AR } from "@/lib/dates";
 import type { ReportReq } from "@/components/app/source";
-import { findMembers, month, Num, payStatus, refLabel, Sheet, useP, X } from "./kit";
+import { month, Num, Sheet, useP, X } from "./kit";
+import { MemberPicker, readRecent } from "./member-picker";
 import { LoadedReport } from "./report-doc";
 import "./reports3.css";
 
@@ -497,38 +498,18 @@ function MemberSheet({
   onPick: (r: string) => void;
 }) {
   const { d } = useP();
-  const [q, setQ] = useState("");
-  const active = d.members.filter((m) => m.status === "active");
-  const list = (q.trim() ? findMembers(active, q) : active).slice(0, 8);
+  const [recent] = useState(readRecent);
+  const cur = d.members.filter((m) => m.ref === value);
+  const mine = recent.flatMap((id) => d.members.filter((m) => m.id === id && m.ref !== value));
   return (
     <Sheet open={open} onClose={onClose} title="كشف أي عضو؟">
-      <label className="pa-search">
-        {X.search(22)}
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="اسم العضو أو رقمه"
-          aria-label="ابحث عن العضو"
-        />
-      </label>
-      <ul className="r3-pick">
-        {list.map((m) => (
-          <li key={m.ref}>
-            <button
-              type="button"
-              className={`r3-pick-i ${value === m.ref ? "on" : ""}`}
-              onClick={() => onPick(m.ref)}
-            >
-              <span className="pa-av">{refLabel(m.ref)}</span>
-              <span className="r3-item-t">
-                <b>{m.name}</b>
-                <small>{payStatus(m)}</small>
-              </span>
-              {value === m.ref && X.check(20)}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <MemberPicker
+        autoFocus
+        selected={value ? [value] : []}
+        start={[...cur, ...mine]}
+        startHint={mine.length ? "آخر من سجّلت لهم" : undefined}
+        onPick={(m) => onPick(m.ref)}
+      />
     </Sheet>
   );
 }

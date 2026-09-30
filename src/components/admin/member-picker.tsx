@@ -3,8 +3,25 @@
 // an optional starting list with its hint, and one row per member. Used by «سجّل دفعة», a new
 // لوحة («أختارهم») and a member's report.
 import { useState } from "react";
+import { safeStorage } from "@/lib/safe-storage";
 import { Avatar, findMembers, payStatus, useP, X } from "./kit";
 import type { PMember } from "./types";
+
+/** The last members this phone recorded payments for (ids, newest first). */
+const RECENT_KEY = "bq-recent-payers";
+export const readRecent = (): string[] => {
+  try {
+    const v = JSON.parse(safeStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 4) : [];
+  } catch {
+    return [];
+  }
+};
+export const rememberRecent = (ids: string[]) =>
+  safeStorage.setItem(
+    RECENT_KEY,
+    JSON.stringify([...new Set([...ids, ...readRecent()])].slice(0, 4)),
+  );
 
 export function MemberPicker({
   onPick,

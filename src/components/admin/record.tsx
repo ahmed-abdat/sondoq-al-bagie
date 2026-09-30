@@ -16,7 +16,6 @@ import { MONTHS_AR, todayIso } from "@/lib/dates";
 import type { Method } from "@/lib/methods";
 import { parseAmount, toWesternDigits } from "@/lib/money";
 import { readReceipt } from "@/lib/ocr";
-import { safeStorage } from "@/lib/safe-storage";
 import { imageOpenError, parseMemberRef } from "@/components/app/derive";
 import { DateField } from "@/components/app/date-field";
 import {
@@ -40,7 +39,7 @@ import {
 import { feeAllocations, feesTotal, pastWords, payablePast, priceOf, ym } from "./fees";
 import { coPaidMembers } from "./report-action";
 import { WalletPicker } from "./wallet-picker";
-import { MemberPicker } from "./member-picker";
+import { MemberPicker, readRecent, rememberRecent } from "./member-picker";
 import type { PData, PMember } from "./types";
 import "./record2.css";
 
@@ -61,21 +60,6 @@ type Shot = {
   txn: string | null;
   date: string | null;
 };
-
-const RECENT_KEY = "bq-recent-payers";
-const readRecent = (): string[] => {
-  try {
-    const v = JSON.parse(safeStorage.getItem(RECENT_KEY) ?? "[]");
-    return Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 4) : [];
-  } catch {
-    return [];
-  }
-};
-const rememberRecent = (ids: string[]) =>
-  safeStorage.setItem(
-    RECENT_KEY,
-    JSON.stringify([...new Set([...ids, ...readRecent()])].slice(0, 4)),
-  );
 
 /** Late months of earlier years are always part of «الأشهر المتأخرة» and «باقي السنة». */
 const monthsFor = (m: PMember, mode: Mode) =>

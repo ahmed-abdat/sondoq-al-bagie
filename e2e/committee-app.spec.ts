@@ -44,3 +44,32 @@ test("«الفئات»: move a group's members from January next year, with a pr
   await sheet.getByRole("button", { name: "انقل", exact: true }).click();
   await expect(page.getByText(/انتقل \d+ عضوًا إلى الفئة/)).toBeVisible();
 });
+
+test("a new لوحة on chosen members uses the shared member picker", async ({ page }) => {
+  await page.goto("/committee/campaigns");
+  await page.getByRole("radio", { name: /لوحات/ }).click();
+  await page.getByRole("button", { name: "لوحة جديدة" }).click();
+  const sheet = page.getByRole("dialog", { name: "لوحة جديدة" });
+  await sheet.getByLabel("العنوان").fill("لوحة تجربة");
+  await sheet.getByLabel("المبلغ على كل عضو").fill("500");
+  await sheet.getByRole("radio", { name: "أختارهم" }).click();
+  const find = sheet.getByLabel("أضف عضوًا");
+  await find.fill("ب 2");
+  await sheet
+    .getByRole("button", { name: /عبد الله ولد الشيخ/ })
+    .first()
+    .click();
+  await find.fill("");
+  await expect(sheet.getByText("من اخترتهم:")).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "أنشئ اللوحة على عضو واحد" })).toBeEnabled();
+});
+
+test("a new member's statement in التقارير: the shared member picker", async ({ page }) => {
+  await page.goto("/committee/reports");
+  await page.getByRole("button", { name: /كشف عضو/ }).click();
+  const sheet = page.getByRole("dialog", { name: "كشف أي عضو؟" });
+  await sheet.getByLabel("ابحث عن العضو").fill("أ4");
+  await sheet.getByRole("button", { name: /الشيخ ولد سيدي/ }).click();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole("button", { name: /الشيخ ولد سيدي/ })).toBeVisible();
+});
