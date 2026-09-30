@@ -322,7 +322,7 @@ select tests.set('bal', (select balance::text from public.fund_summary));
 select tests.login('public');
 select tests.ok(tests.get('bal')::int = 3000 + 1000, 'balance = confirmed payments (p1, k1, own, p4) − 0');
 select tests.login('committee');
-select public.record_expense(gen_random_uuid(), current_date, 'sports', 300, 'كرة');
+select public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_category => 'sports', p_amount => 300, p_note => 'كرة');
 select public.log_reminder('individual', tests.id('K'));
 select tests.login('public');
 select tests.login('server');
@@ -482,7 +482,7 @@ select tests.ok((public.record_payment(gen_random_uuid(), 'دافع', 'bankily',
 select tests.login('admin');
 select public.update_campaign(tests.id('c6'), 'ترميم المسجد', 'السقف', 25000, current_date + 30);
 select tests.login('treasurer');
-select public.record_expense(gen_random_uuid(), current_date, 'other', 1000, 'مواد', tests.id('c6'));
+select public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_category => 'other', p_amount => 1000, p_note => 'مواد', p_campaign_id => tests.id('c6'));
 select tests.login('public');
 select tests.login('server');
 select tests.ok((select collected = 3000 and spent = 1000 and balance = 2000 and participants_paid = 1 and target_amount = 25000
@@ -510,7 +510,7 @@ select tests.login('treasurer');
 select tests.throws($$select public.record_payment(gen_random_uuid(), 'دافع', 'cash', 500, current_date,
   jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)))$$,
   'campaign_closed', 'no contributions after closing');
-select tests.throws($$select public.record_expense(gen_random_uuid(), current_date, 'other', 100, 'بعد الإغلاق', tests.id('c6'))$$,
+select tests.throws($$select public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_category => 'other', p_amount => 100, p_note => 'بعد الإغلاق', p_campaign_id => tests.id('c6'))$$,
   'campaign_closed', 'no expenses on a closed campaign (audit C2)');
 -- a contribution still pending when a campaign closed (older data, or a race) cannot be confirmed (audit C1)
 select tests.login('admin');
@@ -681,7 +681,7 @@ select public.set_committee_member('00000000-0000-0000-0000-0000000000a3', 'ال
 select tests.login('server');
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000a6', 'mistake@test.invalid');
 select tests.ok((select count(*) from pg_constraint where contype = 'f' and confrelid = 'auth.users'::regclass
-                   and connamespace = 'public'::regnamespace) = 26,
+                   and connamespace = 'public'::regnamespace) = 28,
   'every column pointing at auth.users is checked by account_has_history (update it when this count changes)');
 select tests.login('admin');
 select public.set_committee_member('00000000-0000-0000-0000-0000000000a6', 'خطأ', 'committee');
@@ -817,7 +817,7 @@ select tests.ok(public.set_join_month(tests.id('D'), tests.m(-6), 'x')
 select tests.login('server');
 update public.settings set opening_balance_on = make_date(extract(year from current_date)::int - 1, 1, 1) where id;
 select tests.login('admin');
-select tests.throws($$select public.record_expense(gen_random_uuid(), make_date(extract(year from current_date)::int - 2, 6, 1), 'other', 100)$$,
+select tests.throws($$select public.record_expense(p_id => gen_random_uuid(), p_spent_on => make_date(extract(year from current_date)::int - 2, 6, 1), p_category => 'other', p_amount => 100)$$,
   'before_opening', 'no expense before the records start');
 select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 100, make_date(extract(year from current_date)::int - 2, 6, 1),
   jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('K'), 'amount', 100)))$$,
@@ -1222,7 +1222,7 @@ insert into admin_only values
 grant select on admin_only to authenticated;
 select tests.throws(sql, 'not_admin', 'committee refused: ' || left(sql, 40)) from admin_only;
 select tests.ok((tests.pay('m29q', 1000, jsonb_build_array(tests.month('m29m', 0, 1000))) ->> 'status') = 'confirmed'
-                and public.record_expense(gen_random_uuid(), current_date, 'other', 100, 'لوازم') is not null,
+                and public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_category => 'other', p_amount => 100, p_note => 'لوازم') is not null,
   'every committee member records payments and expenses');
 select public.update_member(tests.id('m29m'), 'عضو م٢٩ معدل', '+22200009101', null, 9101);
 select tests.ok((select full_name from public.members where id = tests.id('m29m')) = 'عضو م٢٩ معدل',
@@ -1262,14 +1262,14 @@ select tests.ok((select sum(in_amount) from public.report_wallets('2000-01-01', 
                 = (select sum(amount) from public.expenses where cancelled_at is null),
   'wallets add up to the confirmed money in and every expense out');
 -- an expense names its wallet (a fund account or cash) from m31; older ones are «غير محدد» (method null)
-select tests.set('w1', public.record_expense(gen_random_uuid(), current_date, 'other', 700, 'وقود', null, null, tests.id('acc'))::text);
-select tests.set('w2', public.record_expense(gen_random_uuid(), current_date, 'other', 300, 'ماء', null, null, null, true)::text);
+select tests.set('w1', public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_category => 'other', p_amount => 700, p_note => 'وقود', p_fund_account_id => tests.id('acc'))::text);
+select tests.set('w2', public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_category => 'other', p_amount => 300, p_note => 'ماء', p_paid_in_cash => true)::text);
 select tests.ok((select out_amount >= 700 from public.report_wallets(current_date, current_date) where method = 'bankily')
                 and (select out_amount >= 300 from public.report_wallets(current_date, current_date) where method = 'cash'),
   'money out per wallet from the expense''s wallet');
 select tests.ok(exists (select 1 from public.report_wallets('2000-01-01', '2100-01-01') where method is null and out_amount > 0),
   'older expenses without a wallet are counted as not specified');
-select tests.throws($$select public.record_expense(gen_random_uuid(), current_date, 'other', 1, 'x', null, null, tests.id('acc'), true)$$,
+select tests.throws($$select public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_category => 'other', p_amount => 1, p_note => 'x', p_fund_account_id => tests.id('acc'), p_paid_in_cash => true)$$,
   'invalid_input', 'an expense is paid from one wallet or cash, not both');
 -- a donation from someone who is not a member: a name on the row
 select tests.login('admin');
@@ -1425,7 +1425,7 @@ select tests.throws($$select * from public.groups_overview(2026::int)$$, '42501'
 select tests.login('server');
 \ir local/accuracy_audit_checks.sql
 select tests.login('committee');
-select tests.ok((select count(*) = 28 and bool_and(detail is not null) from public.accuracy_audit()),
+select tests.ok((select count(*) = 29 and bool_and(detail is not null) from public.accuracy_audit()),
   'every committee member runs the accuracy audit');
 select tests.ok((select string_agg(detail, ' ') from public.accuracy_audit()) !~ 'full_name|عضو تجريبي|إحصاء',
   'the audit shows counts, no names');
@@ -1503,6 +1503,88 @@ select tests.login('server');
 select tests.throws($$insert into public.job_runs (job, last_run_at, ok) values ('other', now(), true)$$, '23514',
   'only known jobs');
 delete from public.job_runs where job = 'audit';
+
+/* ───────────── M37: clean-up archive (server only) ───────────── */
+
+select tests.login('committee');
+select tests.throws($$select * from app_private.cleanup_archive$$, '42501', 'the committee cannot read the clean-up archive');
+select tests.login('public');
+select tests.throws($$select * from app_private.cleanup_archive$$, '42501', 'strangers cannot either');
+
+/* ───────────── M38: expense activities («النشاط») ───────────── */
+
+select tests.login('committee');
+select tests.ok((select count(*) from public.expense_activities where legacy_category is not null) = 4
+                and (select name from public.expense_activities where legacy_category = 'honoring') = 'تكريم الناجحين',
+  'the 4 old categories are the first activities');
+select tests.ok(not exists (select 1 from public.expenses where activity_id is null)
+                and not exists (select 1 from public.expenses e join public.expense_activities a on a.id = e.activity_id
+                                where a.legacy_category is distinct from e.category and a.legacy_category is not null),
+  'every expense has the activity of its category');
+select tests.throws($$select public.add_expense_activity('رحلة')$$, 'not_admin', 'only «مسؤول» adds an activity');
+select tests.login('admin');
+select tests.set('act', public.add_expense_activity('  رحلة الشباب ')::text);
+select tests.ok((select name = 'رحلة الشباب' and active and sort_order < 99 from public.expense_activities where id = tests.get('act')::smallint),
+  'a new activity: trimmed, active, before «أخرى»');
+select tests.throws($$select public.add_expense_activity('رحلة الشباب')$$, 'activity_name_taken', 'names are unique');
+select tests.login('committee');
+select tests.set('ea', public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_amount => 400,
+                                             p_activity_id => tests.get('act')::int, p_note => 'نقل')::text);
+select tests.ok((select activity_id = tests.get('act')::smallint and category = 'other' from public.expenses where id = tests.id('ea')),
+  'an expense records its activity (old category mirror: other)');
+select tests.set('eb', public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_amount => 200,
+                                             p_category => 'sports')::text);
+select tests.ok((select a.legacy_category = 'sports' from public.expenses e join public.expense_activities a on a.id = e.activity_id
+                 where e.id = tests.id('eb')), 'the old category still works (mapped to its activity)');
+select tests.throws($$select public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_amount => 1)$$,
+  'invalid_input', 'an expense needs an activity');
+select tests.ok((select sum((x ->> 'amount')::bigint) = (r -> 'spending' ->> 'total')::bigint
+                        and bool_or(x ->> 'name' = 'رحلة الشباب' and (x ->> 'amount')::int >= 400)
+                 from (select app_private.report_period(make_date(extract(year from current_date)::int, 1, 1),
+                                                        make_date(extract(year from current_date)::int, 12, 31)) r) q,
+                      lateral jsonb_array_elements(q.r -> 'spending' -> 'by_activity') x group by q.r),
+  'reports: spending by activity adds up to the total');
+select tests.login('admin');
+select public.rename_expense_activity(tests.get('act')::smallint, 'رحلة');
+select public.set_expense_activity_active(tests.get('act')::smallint, false);
+select tests.login('committee');
+select tests.ok((select a.name from public.expenses e join public.expense_activities a on a.id = e.activity_id where e.id = tests.id('ea')) = 'رحلة',
+  'a renamed activity renames its past expenses');
+select tests.throws(format($$select public.record_expense(p_id => gen_random_uuid(), p_spent_on => current_date, p_amount => 1, p_activity_id => %s)$$,
+                           tests.get('act')), 'activity_retired', 'a retired activity takes no new expense');
+select tests.throws(format($$select public.set_expense_activity_active(%s, true)$$, tests.get('act')), 'not_admin',
+  'only «مسؤول» brings one back');
+select tests.login('admin');
+select public.set_expense_activity_active(tests.get('act')::smallint, true);
+select tests.ok((select count(*) from public.audit_log where table_name = 'expense_activities'
+                 and action in ('add_expense_activity', 'rename_expense_activity', 'retire_expense_activity', 'restore_expense_activity')) >= 4,
+  'activity changes are in «سجل العمليات»');
+select tests.login('public');
+select tests.throws($$select * from public.expense_activities$$, '42501', 'strangers read no activities');
+
+/* ───────────── M39: income by the month it pays for ───────────── */
+
+select tests.login('committee');
+-- the report of this year: by due month vs by date
+select tests.set('y39', app_private.report_period(make_date(extract(year from current_date)::int, 1, 1),
+                                                  make_date(extract(year from current_date)::int, 12, 31))::text);
+select tests.ok((select sum((m ->> 'due_income')::bigint) = (y -> 'income_due' ->> 'total')::bigint
+                        and (y -> 'income_due' ->> 'total')::bigint = (y -> 'income' ->> 'total')::bigint
+                            - (y -> 'income_due' ->> 'fees_for_other_months')::bigint + (y -> 'income_due' ->> 'fees_paid_outside')::bigint
+                 from (select tests.get('y39')::jsonb y) q, lateral jsonb_array_elements(q.y -> 'months') m group by q.y),
+  'income by due month adds up and reconciles with income by date');
+-- a month fee for January paid today counts in January by due month, in this month by date
+select tests.ok((select coalesce((select sum(a.amount) from public.payment_allocations a join public.payments p on p.id = a.payment_id
+                                  where p.status = 'confirmed' and p.method::text <> 'credit' and a.kind = 'months'
+                                    and a.year = extract(year from current_date) and a.month = 1), 0)
+                        + coalesce((select sum(a.amount) from public.payment_allocations a join public.payments p on p.id = a.payment_id
+                                    where p.status = 'confirmed' and p.method::text <> 'credit' and a.kind <> 'months'
+                                      and date_trunc('month', p.paid_on) = make_date(extract(year from current_date)::int, 1, 1)), 0)
+                        = ((tests.get('y39')::jsonb -> 'months' -> 0) ->> 'due_income')::bigint),
+  'January''s due income = every fee for January (any payment date) + January''s other money');
+select tests.ok(((select jsonb_agg(m) from jsonb_array_elements(tests.get('y39')::jsonb -> 'months') m) is not null)
+                and (tests.get('y39')::jsonb -> 'income' ->> 'total') is not null,
+  'income by date is unchanged next to it');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

@@ -62,18 +62,30 @@ export const recordPaymentSchema = z
 export const paymentIdSchema = z.object({ id });
 export const idReasonSchema = z.object({ id, reason });
 
-export const recordExpenseSchema = z.object({
-  id,
-  spentOn: day,
-  category: z.enum(E.expense_category),
-  amount: mro,
-  note: optText(500),
-  campaignId: id.optional(),
-  receiptPath: optText(200),
-  /** «من أي محفظة» (m31): a fund account, or cash; neither = not specified */
-  fundAccountId: id.optional(),
-  paidInCash: z.boolean().optional(),
-});
+const activityId = z.number().int().positive().max(32767);
+
+export const recordExpenseSchema = z
+  .object({
+    id,
+    spentOn: day,
+    /** «النشاط» (m38); the old fixed category is still accepted until every screen sends activityId */
+    activityId: activityId.optional(),
+    category: z.enum(E.expense_category).optional(),
+    amount: mro,
+    note: optText(500),
+    campaignId: id.optional(),
+    receiptPath: optText(200),
+    /** «من أي محفظة» (m31): a fund account, or cash; neither = not specified */
+    fundAccountId: id.optional(),
+    paidInCash: z.boolean().optional(),
+  })
+  .refine((e) => e.activityId !== undefined || e.category !== undefined, { message: "activity" });
+
+/* ───────────── «النشاط» expense activities (m38, «مسؤول») ───────────── */
+
+export const addExpenseActivitySchema = z.object({ name: text(60) });
+export const renameExpenseActivitySchema = z.object({ id: activityId, name: text(60) });
+export const setExpenseActivityActiveSchema = z.object({ id: activityId, active: z.boolean() });
 
 /* ───────────── «اللوحة» levies (m30) ───────────── */
 

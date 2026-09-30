@@ -258,8 +258,51 @@ export type Database = {
           },
         ]
       }
+      expense_activities: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: number
+          legacy_category:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
+          name: string
+          sort_order: number
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          legacy_category?:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
+          name: string
+          sort_order?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          legacy_category?:
+            | Database["public"]["Enums"]["expense_category"]
+            | null
+          name?: string
+          sort_order?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
+          activity_id: number
           amount: number
           campaign_id: string | null
           cancel_reason: string | null
@@ -276,6 +319,7 @@ export type Database = {
           spent_on: string
         }
         Insert: {
+          activity_id: number
           amount: number
           campaign_id?: string | null
           cancel_reason?: string | null
@@ -292,6 +336,7 @@ export type Database = {
           spent_on: string
         }
         Update: {
+          activity_id?: number
           amount?: number
           campaign_id?: string | null
           cancel_reason?: string | null
@@ -308,6 +353,13 @@ export type Database = {
           spent_on?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "expense_activities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_campaign_id_fkey"
             columns: ["campaign_id"]
@@ -1555,6 +1607,7 @@ export type Database = {
           table_name: string
         }[]
       }
+      add_expense_activity: { Args: { p_name: string }; Returns: number }
       add_fund_account: {
         Args: {
           p_account_number: string
@@ -1718,9 +1771,10 @@ export type Database = {
       next_member_number: { Args: { p_list_code: string }; Returns: number }
       record_expense: {
         Args: {
+          p_activity_id?: number
           p_amount: number
           p_campaign_id?: string
-          p_category: Database["public"]["Enums"]["expense_category"]
+          p_category?: Database["public"]["Enums"]["expense_category"]
           p_fund_account_id?: string
           p_id: string
           p_note?: string
@@ -1747,6 +1801,10 @@ export type Database = {
       }
       reject_payment: {
         Args: { p_payment_id: string; p_reason: string }
+        Returns: undefined
+      }
+      rename_expense_activity: {
+        Args: { p_id: number; p_name: string }
         Returns: undefined
       }
       report_committee_work: {
@@ -1811,6 +1869,10 @@ export type Database = {
       }
       set_committee_not_member: {
         Args: { p_not_member: boolean; p_user_id: string }
+        Returns: undefined
+      }
+      set_expense_activity_active: {
+        Args: { p_active: boolean; p_id: number }
         Returns: undefined
       }
       set_group_price: {
