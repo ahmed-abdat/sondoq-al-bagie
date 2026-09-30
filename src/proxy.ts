@@ -5,7 +5,12 @@ import { updateSession } from "@/lib/supabase/proxy";
 // The app is for the committee only (owner, 2026-09-30; docs/COMMITTEE-ONLY-PLAN.md §5.1): every
 // page needs a committee login. Open: the login itself, the first sign-in's setup and the two
 // cron routes (they check their own secret). Static files never reach here (matcher below).
-const OPEN = [/^\/login$/, /^\/auth(\/|$)/, /^\/committee\/setup$/, /^\/api\/(keepalive|backup)$/];
+const OPEN = [
+  /^\/login$/,
+  /^\/auth(\/|$)/,
+  /^\/committee\/setup$/,
+  /^\/api\/(keepalive|backup|audit)$/,
+];
 /** Former member links and receipt checks. */
 const RETIRED = /^\/(m|r)(\/|$)/;
 /** Cookies of the former member links: dropped wherever they still come in. */
