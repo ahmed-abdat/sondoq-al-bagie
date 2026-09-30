@@ -41,7 +41,11 @@ export type SummaryReport = Base & {
   opening: number;
   income: number;
   spending: number;
+  /** whole association: the fund + money still held by donations and levies (adds up) */
   closing: number;
+  /** of `closing`, still held by donations and levies; closing − campaignsHeld = the fund
+   *  (= home «في الصندوق» when the period reaches today) */
+  campaignsHeld: number;
   membersActive: number;
   /** month period: paid that month; year period: paid the whole year */
   membersPaidPeriod: number;
