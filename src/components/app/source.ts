@@ -81,7 +81,10 @@ export async function groupsOverview(year = thisYear()): Promise<GroupRow[]> {
       retiredFrom: null,
     }));
   }
-  return data.getGroupsOverview(year);
+  // «الفئة أ/ب» from the code (the old rows are named «المجموعة أ/ب»); a new group keeps its name
+  return (await data.getGroupsOverview(year)).map((g) =>
+    g.code === "A" || g.code === "B" ? { ...g, name: groupLabel(g.code) } : g,
+  );
 }
 export async function groupPrices(year = thisYear()): Promise<Record<string, number>> {
   if (usingFixtures) return fx.FX_PRICE;
