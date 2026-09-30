@@ -23,6 +23,9 @@ const png1x1 = Buffer.from(
 );
 
 const saveBtn = (page: Page) => page.locator(".r2-foot").getByRole("button");
+/** The total in the footer, in old ouguiya. */
+const total = async (page: Page) =>
+  Number((await page.locator(".r2-foot-sum b").innerText()).replace(/\D/g, ""));
 
 test("the save button names the missing step, then saves; «تراجع» takes it back", async ({
   page,
@@ -77,7 +80,11 @@ test("a transfer screenshot asks for the wallet, the months can be picked one by
     .locator('.r2-how input[type="file"]')
     .setInputFiles({ name: "t.png", mimeType: "image/png", buffer: png1x1 });
   await expect(page.getByRole("img", { name: "صورة التحويل" })).toBeVisible();
-  await expect(saveBtn(page)).toHaveText("اختر المحفظة", { timeout: 30_000 });
+  // nothing read on this picture: its amount is typed (MRU, as printed)
+  await expect(saveBtn(page)).toHaveText("اكتب المبلغ", { timeout: 30_000 });
+  await page.getByLabel("لم نقرأ المبلغ. اكتبه:").fill(String((await total(page)) / 10));
+  await expect(page.locator(".r2-chip")).toHaveText(/مطابق للصورة/);
+  await expect(saveBtn(page)).toHaveText("اختر المحفظة");
   await page
     .getByRole("radiogroup", { name: "المحفظة" })
     .getByRole("radio", { name: "بنكيلي" })
@@ -116,4 +123,44 @@ test("the payment picker: who has nothing to pay is not offered, search shows th
   // paid the year but owes a لوحة share: offered, and says so
   await find.fill("أ 2");
   await expect(page.locator(".pa-rows button.pa-row").first()).toContainText("عليه نصيب لوحة");
+});
+
+test("the picture strip: the amount typed from it is checked against the total, in place", async ({
+  page,
+}) => {
+  await startFor(page, "ب 12");
+  await page
+    .locator('.r2-how input[type="file"]')
+    .setInputFiles({ name: "t.png", mimeType: "image/png", buffer: png1x1 });
+  const typed = page.getByLabel("لم نقرأ المبلغ. اكتبه:");
+  await expect(typed).toBeVisible({ timeout: 30_000 });
+  const sum = await total(page);
+  // the picture says more than the total: «ينقص», add a person or give the reason
+  await typed.fill(String(sum / 10 + 50));
+  await expect(page.locator(".r2-chip")).toHaveText(/أقل من الصورة بـ 500/);
+  await expect(page.locator(".r2-diff")).toContainText("ينقص 500");
+  await page
+    .getByRole("radiogroup", { name: "المحفظة" })
+    .getByRole("radio", { name: "بنكيلي" })
+    .click();
+  await expect(saveBtn(page)).toHaveText("اكتب السبب");
+  await page.locator(".r2-diff").getByRole("button", { name: "اكتب السبب" }).click();
+  await page.getByLabel("السبب (يُحفظ مع الدفعة)").fill("الباقي نقدًا");
+  await expect(saveBtn(page)).toHaveText(/سجّل/);
+  // «أضف شخصًا» opens the member search
+  await page.locator(".r2-diff").getByRole("button", { name: "أضف شخصًا" }).click();
+  await expect(page.getByLabel("ابحث عن العضو", { exact: true })).toBeVisible();
+
+  // full screen and back
+  await page.getByRole("button", { name: "كبّر صورة التحويل" }).click();
+  await expect(page.getByRole("dialog", { name: "صورة التحويل" })).toBeVisible();
+  await page.getByRole("button", { name: "أغلق" }).click();
+  await expect(page.getByRole("dialog", { name: "صورة التحويل" })).toHaveCount(0);
+
+  // remove, then «تراجع» brings it back with what was typed
+  await page.getByRole("button", { name: "احذف الصورة" }).click();
+  await expect(page.locator(".r2-how")).toBeVisible();
+  await page.getByRole("status").getByRole("button", { name: "تراجع" }).click();
+  await expect(page.getByRole("img", { name: "صورة التحويل" })).toBeVisible();
+  await expect(typed).toHaveValue(String(sum / 10 + 50));
 });

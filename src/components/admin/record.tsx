@@ -6,7 +6,7 @@
 import { AmountInput, amountValue } from "@/components/app/amount-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { useOnline } from "@/components/providers";
 import { rememberMembers, useAct } from "@/components/app/act";
 import { sendOnce, useOnceId } from "@/components/app/once-id";
@@ -124,6 +124,12 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
   const [cash, setCash] = useState(!!start.cash);
   const [method, setMethod] = useState<Method | null>(start.cash ? "cash" : null);
   const [shot, setShot] = useState<Shot | null>(null);
+  // the picture could not be read: the amount typed from it, in MRU as printed (null = not yet)
+  const [typedMru, setTypedMru] = useState<number | null>(null);
+  // total ≠ picture: the reason, kept in the note (null = the field is not open)
+  const [why, setWhy] = useState<string | null>(null);
+  // «حُذفت الصورة» + «تراجع» for 5 seconds
+  const [undo, setUndo] = useState<{ shot: Shot; typedMru: number | null } | null>(null);
   // the day the money was sent: the picture's date when it has one, else today; can be changed
   const [paidOn, setPaidOn] = useState(todayIso());
   const addPerson = (ref: string) => {
@@ -187,6 +193,8 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
       return imageOpenError(file);
     }
     setCash(false);
+    setUndo(null);
+    setTypedMru(null);
     setShot({
       url,
       file,
@@ -226,9 +234,35 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
       .catch(() => k === readSeq.current && setShot((s) => s && { ...s, reading: false }));
     return null;
   };
+  /** the amount on the picture, in old ouguiya: read, or typed when reading failed */
+  const shotAmt =
+    !shot || shot.reading ? null : (shot.amount ?? (typedMru !== null ? typedMru * 10 : null));
+  const removeShot = () => {
+    if (!shot) return;
+    readSeq.current++;
+    setUndo({ shot, typedMru });
+    setShot(null);
+    setTypedMru(null);
+  };
+  const undoRemove = () => {
+    if (!undo) return;
+    setShot(undo.shot);
+    setTypedMru(undo.typedMru);
+    setCash(false);
+    setUndo(null);
+  };
   return {
     lines,
     total,
+    shotAmt,
+    typedMru,
+    setTypedMru,
+    why,
+    setWhy,
+    undo,
+    setUndo,
+    removeShot,
+    undoRemove,
     cash,
     setCash,
     method,
@@ -280,6 +314,14 @@ function RecordFlow({
   const [adding, setAdding] = useState<null | "person" | "levy" | "gift" | "outside">(null);
   const [saved, setSaved] = useState<{ id: string; text: string } | null>(null);
   const [menu, setMenu] = useState(false);
+  const peopleRef = useRef<HTMLElement>(null);
+  // «تراجع» after removing the picture lives 5 seconds
+  const { undo, setUndo } = t;
+  useEffect(() => {
+    if (!undo) return;
+    const id = setTimeout(() => setUndo(null), 5000);
+    return () => clearTimeout(id);
+  }, [undo, setUndo]);
   const first = t.lines.find((l) => l.t !== "gift") as
     Extract<Line, { t: "fees" | "levy" }> | undefined;
   const firstMember = first ? d.members.find((m) => m.ref === first.ref) : undefined;
@@ -292,7 +334,7 @@ function RecordFlow({
       <Back to="" label="الرئيسية" />
       {/* owner: no visible title, the screen starts with «لمن هذه الدفعة؟» (kept for screen readers) */}
       <h1 className="bq-sr">سجّل دفعة</h1>
-      <section className="pa-sec">
+      <section className="pa-sec" ref={peopleRef}>
         <div className="pa-sec-h">
           <h2>{t.lines.length ? "هذه الدفعة عن" : "لمن هذه الدفعة؟"}</h2>
           {t.lines.length > 1 && (
@@ -330,7 +372,23 @@ function RecordFlow({
           </>
         )}
       </section>
-      {!!t.lines.length && <HowSec t={t} />}
+      {!!t.lines.length && (
+        <HowSec
+          t={t}
+          onAddPerson={() => {
+            setAdding("person");
+            peopleRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        />
+      )}
+      {t.undo && (
+        <div className="pa-snack r2-toast" role="status">
+          <span>حُذفت الصورة</span>
+          <button type="button" onClick={t.undoRemove}>
+            {X.undo(18)} تراجع
+          </button>
+        </div>
+      )}
       {!!t.lines.length && <Foot t={t} onSaved={(id, text) => setSaved({ id, text })} />}
       <Sheet open={menu} onClose={() => setMenu(false)} title="أضف إلى هذه الدفعة">
         <ul className="pa-rows">
@@ -733,26 +791,64 @@ function GiftPicker({ t, onDone, outside }: { t: T; onDone: () => void; outside?
   );
 }
 
-/* how it was paid: the screenshot (read here) or cash */
-function HowSec({ t }: { t: T }) {
+/* how it was paid: the screenshot (read here) or cash. Owner pick p2 «شريط»: one strip with the
+   picture (tap = full screen), the amount read, «غيّر» and «احذف»; the check against the total in
+   place under it. On a computer the picture can also be pasted (Ctrl/Cmd+V) or dropped here. */
+function HowSec({ t, onAddPerson }: { t: T; onAddPerson: () => void }) {
   const { d } = useP();
   const [err, setErr] = useState("");
+  const [viewer, setViewer] = useState(false);
+  const [over, setOver] = useState(false);
+  const take = async (f: File) => setErr((await t.pickShot(f)) ?? "");
+  const takeRef = useRef(take);
+  useEffect(() => {
+    takeRef.current = take;
+  });
+  // paste a copied picture anywhere on the screen (not while typing in a field)
+  useEffect(() => {
+    const on = (e: ClipboardEvent) => {
+      if ((e.target as HTMLElement | null)?.closest?.("input, textarea")) return;
+      const f = [...(e.clipboardData?.files ?? [])].find((x) => x.type.startsWith("image/"));
+      if (!f) return;
+      e.preventDefault();
+      void takeRef.current(f);
+    };
+    window.addEventListener("paste", on);
+    return () => window.removeEventListener("paste", on);
+  }, []);
+  const drop = {
+    onDragOver: (e: DragEvent) => {
+      if (![...e.dataTransfer.types].includes("Files")) return;
+      e.preventDefault();
+      setOver(true);
+    },
+    onDragLeave: () => setOver(false),
+    onDrop: (e: DragEvent) => {
+      e.preventDefault();
+      setOver(false);
+      const f = [...e.dataTransfer.files].find((x) => x.type.startsWith("image/"));
+      if (f) void take(f);
+    },
+  };
   const input = (
     <input
       type="file"
       accept="image/*"
       className="bq-sr"
-      onChange={async (e) => {
+      onChange={(e) => {
         const f = e.target.files?.[0];
         e.target.value = "";
-        if (f) setErr((await t.pickShot(f)) ?? "");
+        if (f) void take(f);
       }}
     />
   );
+  const shot = t.shot;
+  const failed = !!shot && !shot.reading && shot.amount === null;
+  const diff = t.shotAmt === null ? 0 : t.total - t.shotAmt;
   return (
-    <section className="pa-sec">
+    <section className={`pa-sec ${over ? "r2-over" : ""}`} {...drop}>
       <h2>كيف دفع؟</h2>
-      {!t.shot && !t.cash ? (
+      {!shot && !t.cash ? (
         <div className="r2-how">
           <label className="r2-how-b r2-how-img">
             {X.image(26)}
@@ -782,44 +878,128 @@ function HowSec({ t }: { t: T }) {
           </label>
         </div>
       ) : (
-        t.shot && (
-          <div className="r2-paid">
-            {/* eslint-disable-next-line @next/next/no-img-element -- local picture */}
-            <img src={t.shot.url} alt="صورة التحويل" className="r2-shot" />
-            {t.shot.reading ? (
-              <p className="pa-hint" role="status">
-                نقرأ الصورة…
-              </p>
-            ) : (
-              <dl className="r2-ocr">
-                <dt>في الصورة</dt>
-                <dd>
-                  {t.shot.amount ? (
+        shot && (
+          <>
+            <div className="r2-strip">
+              <button
+                type="button"
+                className="r2-strip-main"
+                onClick={() => setViewer(true)}
+                aria-label="كبّر صورة التحويل"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- local picture */}
+                <img src={shot.url} alt="صورة التحويل" />
+                <span className="r2-strip-t">
+                  {shot.reading ? (
+                    <span className="r2-skel" role="status" aria-label="نقرأ الصورة…">
+                      <i />
+                      <i />
+                    </span>
+                  ) : failed ? (
                     <>
-                      <Num>{`${fmt(t.shot.amountMru ?? 0)} MRU`}</Num> = <Money v={t.shot.amount} />
+                      <b>لم نقرأ المبلغ</b>
+                      <small>اكتبه تحت</small>
                     </>
                   ) : (
-                    "لم نقرأ المبلغ"
+                    <>
+                      <b>
+                        <Num>{`${fmt(shot.amountMru ?? 0)} MRU`}</Num>
+                      </b>
+                      <small>
+                        = <Money v={shot.amount ?? 0} />
+                      </small>
+                    </>
                   )}
-                </dd>
-                {t.shot.txn && (
-                  <>
-                    <dt>رقم العملية</dt>
-                    <dd>
-                      <Num>{t.shot.txn}</Num>
-                    </dd>
-                  </>
-                )}
-              </dl>
+                </span>
+              </button>
+              <label className="r2-ib">
+                {Redo}
+                <small aria-hidden="true">غيّر</small>
+                <span className="bq-sr">غيّر الصورة</span>
+                {input}
+              </label>
+              <button
+                type="button"
+                className="r2-ib"
+                onClick={t.removeShot}
+                aria-label="احذف الصورة"
+              >
+                {X.x(22)}
+                <small aria-hidden="true">احذف</small>
+              </button>
+            </div>
+            {!shot.reading && shot.txn && (
+              <small className="r2-txn">
+                رقم العملية <Num>{shot.txn}</Num>
+              </small>
             )}
-            <label className="pa-btn pa-btn-ghost pa-btn-sm">
-              {X.image(18)} صورة أخرى
-              {input}
-            </label>
-          </div>
+            {failed && (
+              <div className="r2-type">
+                <label htmlFor="r2-typed">لم نقرأ المبلغ. اكتبه:</label>
+                <span className="r2-type-row">
+                  <AmountInput
+                    id="r2-typed"
+                    value={t.typedMru ? String(t.typedMru) : ""}
+                    onChange={(v) => t.setTypedMru(amountValue(v) || null)}
+                    placeholder="0"
+                  />
+                  <span className="pa-unit">MRU</span>
+                  {!!t.typedMru && (
+                    <span className="r2-type-eq">
+                      = <Money v={t.typedMru * 10} />
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
+            {t.shotAmt !== null && diff !== 0 && (
+              <div className="r2-diff" role="status">
+                <p>
+                  المجموع <Money v={t.total} unit={false} /> والصورة{" "}
+                  <Money v={t.shotAmt} unit={false} />.{" "}
+                  <b>
+                    {diff < 0 ? "ينقص" : "يزيد"} <Money v={Math.abs(diff)} />
+                  </b>
+                </p>
+                {diff < 0 && <p className="pa-hint">تحويل واحد عن عدة أشخاص؟ أضفهم.</p>}
+                <div className="r2-diff-acts">
+                  {diff < 0 && (
+                    <button
+                      type="button"
+                      className="pa-btn pa-btn-soft pa-btn-sm"
+                      onClick={onAddPerson}
+                    >
+                      {X.plus(18)} أضف شخصًا
+                    </button>
+                  )}
+                  {t.why === null && (
+                    <button
+                      type="button"
+                      className="pa-btn pa-btn-tonal pa-btn-sm"
+                      onClick={() => t.setWhy("")}
+                    >
+                      {X.edit(18)} اكتب السبب
+                    </button>
+                  )}
+                </div>
+                {t.why !== null && (
+                  <label className="pa-field">
+                    <span>السبب (يُحفظ مع الدفعة)</span>
+                    <input
+                      autoFocus
+                      value={t.why}
+                      maxLength={200}
+                      onChange={(e) => t.setWhy(e.target.value)}
+                      placeholder="مثل: الباقي يُدفع نقدًا"
+                    />
+                  </label>
+                )}
+              </div>
+            )}
+          </>
         )
       )}
-      {t.shot && !t.shot.reading && (
+      {shot && !shot.reading && (
         <>
           <p className="pa-label">المحفظة</p>
           <WalletPicker
@@ -829,7 +1009,7 @@ function HowSec({ t }: { t: T }) {
           />
         </>
       )}
-      {(t.cash || (t.shot && !t.shot.reading)) && (
+      {(t.cash || (shot && !shot.reading)) && (
         <div className="pa-field">
           <span>متى دفع؟</span>
           <DateField value={t.paidOn} onChange={t.setPaidOn} label="متى دفع؟" noFuture />
@@ -840,9 +1020,51 @@ function HowSec({ t }: { t: T }) {
           {err}
         </p>
       )}
+      {viewer && shot && <Viewer url={shot.url} onClose={() => setViewer(false)} />}
     </section>
   );
 }
+
+/** The transfer picture, full screen; ✕, Escape or a tap outside closes it. */
+function Viewer({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, [onClose]);
+  return (
+    <div
+      className="r2-viewer"
+      role="dialog"
+      aria-modal="true"
+      aria-label="صورة التحويل"
+      onClick={onClose}
+    >
+      <button type="button" className="r2-viewer-x" onClick={onClose} aria-label="أغلق" autoFocus>
+        {X.x(26)}
+      </button>
+      {/* eslint-disable-next-line @next/next/no-img-element -- local picture */}
+      <img src={url} alt="صورة التحويل كاملة" onClick={(e) => e.stopPropagation()} />
+    </div>
+  );
+}
+
+const Redo = (
+  <svg
+    width={22}
+    height={22}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
+    <path d="M19.5 4.5v4h-4" />
+  </svg>
+);
 
 /* sticky total = the transfer; save */
 function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => void }) {
@@ -853,11 +1075,10 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
   const { recordPayment, uploadProof } = useAct();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  // the total differs from the amount read on the picture: ask, with a short reason (kept)
-  const [asking, setAsking] = useState(false);
-  const [why, setWhy] = useState("");
-  const shotAmt = t.shot?.amount ?? null;
+  // the total differs from the picture: a short reason is needed (kept in the note)
+  const shotAmt = t.shotAmt;
   const diff = shotAmt === null ? 0 : t.total - shotAmt;
+  const why = t.why ?? "";
   const next = !t.lines.length
     ? "اختر العضو"
     : t.lines.some((l) => l.t === "fees" && !l.months.length && !l.past.length)
@@ -868,13 +1089,16 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
           ? "كيف دفع؟"
           : t.shot?.reading
             ? "نقرأ الصورة…"
-            : !t.cash && !t.method
-              ? "اختر المحفظة"
-              : null;
+            : t.shot && shotAmt === null
+              ? "اكتب المبلغ"
+              : !t.cash && !t.method
+                ? "اختر المحفظة"
+                : diff !== 0 && !why.trim()
+                  ? "اكتب السبب"
+                  : null;
 
   const save = async () => {
     if (next || busy) return;
-    if (diff !== 0 && !why.trim()) return setAsking(true);
     setBusy(true);
     setErr("");
     const year = d.year;
@@ -968,20 +1192,16 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
             <Money v={t.total} />
           </b>
         </span>
-        {shotAmt !== null && (
-          <span className={`r2-check ${diff === 0 ? "ok" : ""}`} role="status">
-            في الصورة <Num>{`${fmt(t.shot?.amountMru ?? 0)} MRU`}</Num> = <Money v={shotAmt} />
-            {diff === 0 ? (
-              <> {X.check(16)} مطابق</>
-            ) : (
-              <>
-                {" "}
-                · {diff > 0 ? "المجموع أكثر بـ" : "المجموع أقل بـ"}{" "}
-                <Money v={Math.abs(diff)} unit={false} />
-              </>
-            )}
-          </span>
-        )}
+        {shotAmt !== null &&
+          (diff === 0 ? (
+            <span className="r2-chip ok" role="status">
+              {X.check(14)} مطابق للصورة
+            </span>
+          ) : (
+            <span className="r2-chip" role="status">
+              {diff < 0 ? "أقل من الصورة بـ" : "أكثر من الصورة بـ"} <Num>{fmt(Math.abs(diff))}</Num>
+            </span>
+          ))}
       </div>
       {err && (
         <p className="pa-alert" role="alert">
@@ -993,42 +1213,13 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
           لا يوجد اتصال. سجّل عند عودة الإنترنت، ما كتبته باقٍ.
         </p>
       )}
-      {asking && shotAmt !== null && diff !== 0 && (
-        <div className="r2-diff" role="alert">
-          <p>
-            المبلغ في الصورة <Money v={shotAmt} unit={false} /> والمجموع{" "}
-            <Money v={t.total} unit={false} />. هل تريد التسجيل رغم الفرق؟
-          </p>
-          <label className="pa-field">
-            <span>السبب (يُحفظ مع الدفعة)</span>
-            <input
-              value={why}
-              maxLength={200}
-              onChange={(e) => setWhy(e.target.value)}
-              placeholder="مثل: الباقي يُدفع نقدًا"
-              autoFocus
-            />
-          </label>
-        </div>
-      )}
       <button
         type="button"
         className="pa-btn pa-btn-primary pa-btn-lg"
-        disabled={!!next || busy || !online || (asking && diff !== 0 && !why.trim())}
+        disabled={!!next || busy || !online}
         onClick={() => void save()}
       >
-        {busy
-          ? "جارٍ الحفظ…"
-          : (next ??
-            (asking && diff !== 0 ? (
-              why.trim() ? (
-                <>{X.check(20)} سجّل رغم الفرق</>
-              ) : (
-                "اكتب السبب"
-              )
-            ) : (
-              <>{X.check(20)} سجّل</>
-            )))}
+        {busy ? "جارٍ الحفظ…" : (next ?? <>{X.check(20)} سجّل</>)}
       </button>
     </div>
   );

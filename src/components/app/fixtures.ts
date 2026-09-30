@@ -686,18 +686,16 @@ export const fxWalletTypes = (): WalletType[] =>
       ["باميس", "bamis"],
     ] as const
   )
-    .map(
-      ([name, m], i): WalletType => ({
-        id: i + 1,
-        name,
-        logoPath: null,
-        kind: "wallet",
-        sortOrder: i + 1,
-        active: true,
-        legacyMethod: m,
-        opening: null,
-      }),
-    )
+    .map(([name, m], i): WalletType => ({
+      id: i + 1,
+      name,
+      logoPath: null,
+      kind: "wallet",
+      sortOrder: i + 1,
+      active: true,
+      legacyMethod: m,
+      opening: null,
+    }))
     .concat({
       id: 8,
       name: "نقدًا",
