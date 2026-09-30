@@ -21,6 +21,7 @@ export const BACKUP_TABLES = [
   "expense_activities",
   "expenses",
   "transfers",
+  "wallet_transfers",
   "reminders",
   "terms",
   "handovers",
