@@ -28,8 +28,7 @@ import { drawDocPage } from "./draw";
 import * as fx from "./fixtures";
 
 /** The report's text with plain spaces (numbers use a thin space). */
-const txt = (doc: ReportDoc) =>
-  docText(doc, META).replace(/[\u2009\u202f\u00a0]/g, " ");
+const txt = (doc: ReportDoc) => docText(doc, META).replace(/[\u2009\u202f\u00a0]/g, " ");
 const META = { generatedAt: "2026-09-28T10:00:00.000Z", preparedBy: "سيدي محمد" };
 const ALL: [string, ReportDoc][] = [
   ["annual", buildAnnual(fx.fxAnnual)],
@@ -247,9 +246,19 @@ describe("the 10 reports", () => {
     const withOut = buildWallets({
       ...fx.fxWallets,
       wallets: fx.fxWallets.wallets.map((w) => ({ ...w, out: 1000, balance: 5000 })),
+      cash: { ...fx.fxWallets.cash, out: 2000, balance: 73_000 },
+      unspecifiedOut: 3000,
     });
     const t2 = withOut.blocks.find((b) => b.t === "table");
     expect(t2?.t === "table" && t2.head).toEqual(["المحفظة", "الدفعات", "دخل", "خرج", "الرصيد"]);
+    const rows = t2?.t === "table" ? t2.rows.map((r) => r.map((c) => c.replace(/\D/g, ""))) : [];
+    expect(rows.at(-2)).toEqual(["", "60", "75000", "2000", "73000"]); // cash
+    expect(t2?.t === "table" && t2.rows.at(-1)?.[0]).toBe("مصاريف قبل تسمية المحفظة");
+    // out: 3 wallets × 1 000 + cash 2 000 + before-wallets 3 000; balance: 3 × 5 000 + 73 000
+    expect(t2?.t === "table" && t2.foot?.slice(3).map((c) => c.replace(/\D/g, ""))).toEqual([
+      "8000",
+      "88000",
+    ]);
   });
 
   it("committee work: who recorded what, the inactive without activity left out, what was cancelled", () => {
