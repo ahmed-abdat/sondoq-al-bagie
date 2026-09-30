@@ -86,40 +86,37 @@ describe("push send", () => {
   });
 });
 
-describe("notifyConfirmers", () => {
-  it("adds the current pending count as badgeCount and skips the recorder", async () => {
+describe("notifyCommittee", () => {
+  it("sends to every active committee member but the actor, only devices that chose the kind", async () => {
     vi.resetModules();
-    const sent: unknown[] = [];
+    const sent: string[] = [];
+    const calls: unknown[][] = [];
     const committee = {
       select: () => ({
-        eq: () => ({
-          in: async () => ({ data: [{ user_id: "rec" }, { user_id: "t" }], error: null }),
-        }),
+        eq: async () => ({ data: [{ user_id: "actor" }, { user_id: "t" }], error: null }),
       }),
     };
-    const payments = { select: () => ({ eq: async () => ({ count: 3, error: null }) }) };
+    const q: Record<string, unknown> = {};
+    let ids: string[] = [];
+    q.in = (_: string, v: string[]) => ((ids = v), q);
+    q.contains = (...a: unknown[]) => (calls.push(a), q);
+    q.then = (ok: (v: unknown) => unknown) =>
+      Promise.resolve({ data: ids.map((id) => row(id)), error: null }).then(ok);
     const subs = {
-      select: () => ({
-        in: async (_: string, ids: string[]) => ({ data: ids.map((id) => row(id)), error: null }),
-      }),
+      select: () => q,
       update: () => ({ eq: async () => undefined }),
       delete: () => ({ eq: async () => undefined }),
     };
-    const admin = {
-      from: (t: string) => (t === "committee" ? committee : t === "payments" ? payments : subs),
-    };
+    const admin = { from: (t: string) => (t === "committee" ? committee : subs) };
     vi.doMock("@/lib/supabase/admin", () => ({ tryCreateAdminClient: () => admin }));
     vi.doMock("web-push", () => ({
-      default: {
-        sendNotification: async (s: { endpoint: string }, body: string) =>
-          void sent.push([s.endpoint, JSON.parse(body)]),
-      },
+      default: { sendNotification: async (s: { endpoint: string }) => void sent.push(s.endpoint) },
     }));
     const m = await import("./send");
-    await m.notifyConfirmers("rec", payload);
-    expect(sent).toEqual([["https://push.test/t", { ...payload, badgeCount: 3 }]]);
+    await m.notifyCommittee("expense", "actor", payload);
+    expect(sent).toEqual(["https://push.test/t"]);
+    expect(calls).toEqual([["kinds", ["expense"]]]);
   });
-
   it("filters devices by the chosen kind when one is given (m29)", async () => {
     const calls: unknown[][] = [];
     const q = {

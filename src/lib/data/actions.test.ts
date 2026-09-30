@@ -8,9 +8,9 @@ vi.mock("next/cache", () => ({ updateTag: (t: string) => updateTag(t) }));
 vi.mock("server-only", () => ({}));
 const afterFns: (() => unknown)[] = [];
 vi.mock("next/server", () => ({ after: (fn: () => unknown) => afterFns.push(fn) }));
-const notifyConfirmers = vi.fn();
+const notifyCommittee = vi.fn();
 vi.mock("@/lib/push/send", () => ({
-  notifyConfirmers: (...a: unknown[]) => notifyConfirmers(...a),
+  notifyCommittee: (...a: unknown[]) => notifyCommittee(...a),
 }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ host: "app.test" }) }));
 let session: {
@@ -19,6 +19,7 @@ let session: {
   setupPending?: boolean;
   memberId?: string | null;
   canConfirm?: boolean;
+  displayName?: string;
 } | null = null;
 vi.mock("./committee", () => ({ getCommitteeSession: async () => session }));
 const createUser = vi.fn();
@@ -106,7 +107,7 @@ beforeEach(() => {
   updateTag.mockReset();
   configured = true;
   afterFns.length = 0;
-  notifyConfirmers.mockReset();
+  notifyCommittee.mockReset();
 });
 
 describe("actions", () => {
@@ -131,21 +132,19 @@ describe("actions", () => {
     expect(updateTag).toHaveBeenCalledWith("public");
   });
 
-  it("notifies the other confirmers after a new pending payment, not a replay or a confirmed one", async () => {
-    session = { role: "committee", userId: "u1" };
-    rpc.mockResolvedValue({ data: { id, status: "pending", replay: false }, error: null });
+  it("tells the other committee members after a new record (m29), not after a replay", async () => {
+    session = { role: "committee", userId: "u1", displayName: "محمد ولد أحمد" };
+    rpc.mockResolvedValue({ data: { id, status: "confirmed", replay: false }, error: null });
     await recordPayment(payment);
     expect(afterFns).toHaveLength(1);
     await afterFns[0]();
-    expect(notifyConfirmers).toHaveBeenCalledWith("u1", {
-      title: "دفعة بانتظار التأكيد",
+    expect(notifyCommittee).toHaveBeenCalledWith("payment", "u1", {
+      title: "سجّل محمد دفعة",
       body: "دافع · 1\u202f000 أوقية · سبتمبر 2026",
-      url: "/committee",
-      tag: `pending-${id}`,
+      url: "/committee/payments",
+      tag: `payment-${id}`,
     });
-    rpc.mockResolvedValue({ data: { id, status: "pending", replay: true }, error: null });
-    await recordPayment(payment);
-    rpc.mockResolvedValue({ data: { id, status: "confirmed", replay: false }, error: null });
+    rpc.mockResolvedValue({ data: { id, status: "confirmed", replay: true }, error: null });
     await recordPayment(payment);
     expect(afterFns).toHaveLength(1);
   });
