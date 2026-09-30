@@ -78,6 +78,21 @@ begin
   perform tests.set(p_key, r ->> 'id');
   return r;
 end $$;
+-- A pending payment like the ones recorded before m29 (record_payment now confirms at once), to
+-- test the confirm / reject rules that still apply to them.
+create function tests.pend(p_key text, p_amount integer, p_alloc jsonb, p_txn text default null) returns uuid
+language plpgsql security definer as $$
+declare pid uuid := gen_random_uuid();
+begin
+  insert into public.payments (id, payer_name, method, amount, paid_on, txn_ref, created_by)
+  values (pid, 'دافع تجريبي', 'bankily', p_amount, current_date, p_txn, auth.uid());
+  insert into public.payment_allocations (payment_id, kind, member_id, campaign_id, year, month, amount)
+  select pid, a.kind, a.member_id, a.campaign_id, a.year, a.month, a.amount
+  from jsonb_to_recordset(p_alloc) a(kind public.allocation_kind, member_id uuid, campaign_id uuid, year smallint, month smallint,
+                                     amount integer);
+  perform tests.set(p_key, pid::text);
+  return pid;
+end $$;
 grant execute on all functions in schema tests to anon, authenticated, service_role;
 
 /* ───────────── fixtures (as the server) ───────────── */
@@ -163,7 +178,6 @@ select tests.ok((select count(*) from storage.objects where bucket_id = 'proofs'
 select tests.throws($$update public.members set phone = '+22299999999' where number = 1001$$, '42501', 'committee cannot update tables directly');
 select tests.throws($$insert into public.payments (payer_name, method, amount, paid_on) values ('x', 'cash', 1, current_date)$$,
   '42501', 'committee cannot insert payments directly');
-select tests.throws($$select public.add_member(2000, 'x', 'A', current_date)$$, 'not_admin', 'only admin adds members');
 
 select tests.login('former');
 select tests.ok((select count(*) from public.members) = 0, 'inactive committee account sees no rows');
@@ -173,9 +187,8 @@ select tests.throws($$select tests.pay('x', 1000, jsonb_build_array(tests.month(
 /* ───────────── record → confirm, first wins ───────────── */
 
 select tests.login('committee');
-select tests.ok((select tests.pay('p1', 1000, jsonb_build_array(tests.month('E', -3, 1000)), 'TXN-1') ->> 'status') = 'pending',
-  'committee payment starts pending');
-select tests.throws($$select public.confirm_payment(tests.id('p1'))$$, 'not_confirmer', 'plain committee cannot confirm');
+select tests.pend('p1', 1000, jsonb_build_array(tests.month('E', -3, 1000)), 'TXN-1');
+select tests.ok((select status from public.payments where id = tests.id('p1')) = 'pending', 'an old pending payment (before m29)');
 select tests.throws($$select tests.pay('dup', 1000, jsonb_build_array(tests.month('K', -3, 1000)), 'TXN-1')$$, 'duplicate_txn_ref',
   'same wallet transaction number cannot be recorded twice');
 select tests.throws($$select tests.pay('bad', 2000, jsonb_build_array(tests.month('K', -3, 1000)))$$, 'allocations_mismatch',
@@ -184,8 +197,6 @@ select tests.throws($$select tests.pay('bad', 500, jsonb_build_array(tests.month
   'a month costs the group price');
 select tests.throws($$select tests.pay('bad', 1000, jsonb_build_array(tests.month('G', -1, 1000)))$$, 'month_not_owed',
   'cannot pay a month when the member is deceased');
-select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'paper', 1000, current_date, jsonb_build_array(tests.month('K', -3, 1000)))$$,
-  'paper_admin_only', 'only admin records paper-sheet payments');
 
 select tests.login('treasurer');
 select tests.ok((public.confirm_payment(tests.id('p1')) ->> 'already')::boolean = false, 'treasurer confirms');
@@ -201,8 +212,8 @@ select tests.login('committee');
 select tests.throws($$select tests.pay('p2', 1000, jsonb_build_array(tests.month('E', -3, 1000)))$$, 'month_already_paid',
   'recording an already-paid month is refused');
 -- two pending payments for one month: the first confirmation wins, the second is refused
-select tests.pay('k1', 1000, jsonb_build_array(tests.month('K', -3, 1000)));
-select tests.pay('k2', 1000, jsonb_build_array(tests.month('K', -3, 1000)));
+select tests.pend('k1', 1000, jsonb_build_array(tests.month('K', -3, 1000)));
+select tests.pend('k2', 1000, jsonb_build_array(tests.month('K', -3, 1000)));
 select tests.login('treasurer');
 select public.confirm_payment(tests.id('k1'));
 select tests.throws($$select public.confirm_payment(tests.id('k2'))$$, 'month_already_paid', 'second payment for the same month cannot be confirmed');
@@ -217,13 +228,11 @@ select tests.throws($$select public.reject_payment(tests.id('p2'), '')$$, 'reaso
 select tests.ok((select tests.pay('p3', 1000, jsonb_build_array(tests.month('E', -2, 1000))) ->> 'status') = 'confirmed',
   'treasurer-recorded payment is confirmed at once');
 
-/* ───────────── treasurer cannot confirm own membership ───────────── */
+/* ───────────── own membership (m29: no special rule) ───────────── */
 
-select tests.ok((select tests.pay('own', 1000, jsonb_build_array(tests.month('T', -3, 1000))) ->> 'status') = 'pending',
-  'treasurer paying own membership stays pending');
-select tests.throws($$select public.confirm_payment(tests.id('own'))$$, 'own_membership', 'treasurer cannot confirm own membership');
+select tests.ok((select tests.pay('own', 1000, jsonb_build_array(tests.month('T', -3, 1000))) ->> 'status') = 'confirmed',
+  'a committee member''s own membership is confirmed at once');
 select tests.login('deputy');
-select tests.ok((public.confirm_payment(tests.id('own')) ->> 'status') = 'confirmed', 'deputy confirms the treasurer''s payment');
 
 /* ───────────── cancel frees the month ───────────── */
 
@@ -231,8 +240,8 @@ select tests.throws($$select public.cancel_payment(tests.id('p3'), ' ')$$, 'reas
 select public.cancel_payment(tests.id('p3'), 'wrong member');
 select tests.ok((select released_at is not null from public.payment_months where payment_id = tests.id('p3')), 'cancelled payment releases its month');
 select tests.login('committee');
-select tests.ok((select tests.pay('p4', 1000, jsonb_build_array(tests.month('E', -2, 1000))) ->> 'status') = 'pending',
-  'a released month can be paid again');
+select tests.ok((select tests.pay('p4', 1000, jsonb_build_array(tests.month('E', -2, 1000))) ->> 'status') = 'confirmed',
+  'a released month can be paid again, confirmed at once');
 select tests.login('deputy');
 select public.confirm_payment(tests.id('p4'));
 
@@ -331,9 +340,9 @@ select tests.throws($$select public.add_fund_account('bankily', '22223333', 'x')
 select tests.throws($$select public.add_fund_account('cash', '22223333', 'x')$$, 'not_a_wallet', 'cash is not a wallet account');
 select tests.set('acc2', public.add_fund_account('click', '44445555', 'أمين الصندوق', 'رقم ثان', 2));
 select public.update_settings(p_whatsapp_contact => '+222 3333 4444');
-select tests.login('committee');
-select tests.throws($$select public.add_fund_account('masrvi', '11112222', 'x')$$, 'not_admin', 'committee cannot add accounts');
-select tests.throws($$select public.update_settings(p_whatsapp_contact => '+22200000000')$$, 'not_admin', 'committee cannot change settings');
+select tests.login('former');
+select tests.throws($$select public.add_fund_account('masrvi', '11112222', 'x')$$, 'not_committee', 'an inactive account cannot add accounts');
+select tests.throws($$select public.update_settings(p_whatsapp_contact => '+22200000000')$$, 'not_committee', 'an inactive account cannot change settings');
 select tests.login('public');
 select tests.login('server');
 select tests.ok((select count(*) from public.fund_accounts_public) = 2, 'active fund accounts are listed');
@@ -446,8 +455,8 @@ select tests.ok(not exists (select 1 from public.payments where method = 'paper'
 
 /* ───────────── M6: campaigns ───────────── */
 
-select tests.login('committee');
-select tests.throws($$select public.create_campaign(gen_random_uuid(), 'حملة')$$, 'not_allowed', 'plain committee cannot open a campaign');
+select tests.login('former');
+select tests.throws($$select public.create_campaign(gen_random_uuid(), 'حملة')$$, 'not_allowed', 'an inactive account cannot open a campaign');
 select tests.login('treasurer');
 select tests.set('c6', public.create_campaign('00000000-0000-0000-0000-00000000c006', 'ترميم', 'fixed', 'السقف', 20000, null,
   jsonb_build_array(jsonb_build_object('member_id', tests.id('E'), 'expected_amount', 3000))));
@@ -468,7 +477,7 @@ select tests.set('bal6', (select balance from public.fund_summary));
 select tests.login('public');
 -- a pending contribution blocks closing (audit C1)
 select tests.login('committee');
-select tests.pay('cp6', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)));
+select tests.pend('cp6', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c6'), 'member_id', null, 'amount', 500)));
 select tests.login('treasurer');
 select tests.throws($$select public.close_campaign(tests.id('c6'), 'to_fund')$$, 'campaign_has_pending',
   'a campaign with a pending contribution cannot be closed');
@@ -484,7 +493,7 @@ select tests.throws($$select public.record_expense(gen_random_uuid(), current_da
 -- a contribution still pending when a campaign closed (older data, or a race) cannot be confirmed (audit C1)
 select tests.set('c7', public.create_campaign('00000000-0000-0000-0000-00000000c007', 'حملة مغلقة'));
 select tests.login('committee');
-select tests.pay('cp7', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c7'), 'member_id', null, 'amount', 500)));
+select tests.pend('cp7', 500, jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('c7'), 'member_id', null, 'amount', 500)));
 select tests.login('server');
 update public.campaigns set status = 'closed', closed_at = now(), surplus_action = 'keep' where id = tests.id('c7');
 select tests.login('deputy');
@@ -549,25 +558,25 @@ select tests.ok((select count(*) from public.members_admin) = 0 and (select coun
 /* ───────────── admin confirms payments (owner decision) ───────────── */
 
 select tests.login('committee');
-select tests.set('ac1', tests.pay('ac1', 500, jsonb_build_array(tests.month('LB', -1, 500))) ->> 'id');
+select tests.pend('ac1', 500, jsonb_build_array(tests.month('LB', -1, 500)));
 select tests.login('admin');
 select tests.ok((public.confirm_payment(tests.id('ac1')) ->> 'status') = 'confirmed', 'the admin confirms a pending payment');
 select tests.login('committee');
-select tests.set('ac2', tests.pay('ac2', 500, jsonb_build_array(tests.month('LB', -2, 500))) ->> 'id');
+select tests.pend('ac2', 500, jsonb_build_array(tests.month('LB', -2, 500)));
 select tests.login('admin');
 select public.reject_payment(tests.id('ac2'), 'صورة غير واضحة');
 select tests.ok((select status from public.payments where id = tests.id('ac2')) = 'rejected', 'the admin rejects a pending payment');
 select tests.login('server');
 select public.set_committee_member('00000000-0000-0000-0000-0000000000a1', 'المدير', 'admin', tests.id('LB'));
 select tests.login('committee');
-select tests.set('ac3', tests.pay('ac3', 500, jsonb_build_array(tests.month('LB', -3, 500))) ->> 'id');
+select tests.pend('ac3', 500, jsonb_build_array(tests.month('LB', -3, 500)));
 select tests.login('admin');
-select tests.throws($$select public.confirm_payment(tests.id('ac3'))$$, 'own_membership',
-  'the admin cannot confirm a payment covering their own membership');
+select tests.ok((public.confirm_payment(tests.id('ac3')) ->> 'status') = 'confirmed',
+  'the admin confirms a payment covering his own membership (m29: no own-membership rule)');
 select tests.login('server');
 select public.set_committee_member('00000000-0000-0000-0000-0000000000a1', 'المدير', 'admin', null);
-select tests.login('committee');
-select tests.throws($$select public.confirm_payment(tests.id('ac3'))$$, 'not_confirmer', 'plain committee still cannot confirm');
+select tests.login('former');
+select tests.throws($$select public.confirm_payment(tests.id('ac1'))$$, 'not_confirmer', 'an inactive account cannot confirm');
 
 /* ───────────── M9: committee accounts ───────────── */
 
@@ -740,8 +749,8 @@ select public.change_member_status(tests.id('D'), tests.m(-1), 'left', 'غادر
 select tests.ok((select state from public.member_months where member_id = tests.id('D')
                  and year = extract(year from tests.m(-1)) and month = extract(month from tests.m(-1))) = 'not_owed',
   'a wrong «غادر» makes the month not owed');
-select tests.login('committee');
-select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'not_admin', 'only the admin undoes a period');
+select tests.login('former');
+select tests.throws($$select public.cancel_last_period(tests.id('D'), 'x')$$, 'not_committee', 'an inactive account cannot undo a period');
 select tests.login('admin');
 select tests.throws($$select public.cancel_last_period(tests.id('D'), '  ')$$, 'reason_required', 'undo needs a reason');
 select public.cancel_last_period(tests.id('D'), 'خطأ في الإدخال');
@@ -787,7 +796,7 @@ select tests.ok((public.record_payment(gen_random_uuid(), 'سجل', 'paper', 100
 
 select tests.set('D2', public.add_member(9003, 'عضو هـ', 'A', tests.m(-4)));
 select tests.login('committee');
-select tests.pay('d2p', 1000, jsonb_build_array(tests.month('D2', -1, 1000)));
+select tests.pend('d2p', 1000, jsonb_build_array(tests.month('D2', -1, 1000)));
 select tests.login('admin');
 select tests.throws($$select public.change_member_status(tests.id('D2'), tests.m(-2), 'exempt', 'x')$$, 'months_pending_after',
   'no back-dated exemption over a pending payment');
@@ -810,10 +819,10 @@ select tests.login('server');
 select tests.ok((select credit from app_private.member_credit() where member_id = tests.id('F')) = 2500, 'overpayment is credit');
 select tests.set('bal21', (select balance from public.fund_summary));
 select tests.set('in21', (select money_in from public.fund_summary));
-select tests.login('committee');
+select tests.login('former');
 select tests.throws($$select public.apply_credit(gen_random_uuid(), tests.id('F'),
   jsonb_build_array(jsonb_build_object('year', extract(year from tests.m(-3)), 'month', extract(month from tests.m(-3)))))$$,
-  'not_confirmer', 'only confirmers pay from credit');
+  'not_confirmer', 'an inactive account cannot pay from credit');
 select tests.login('deputy');
 select tests.throws($$select public.apply_credit(gen_random_uuid(), tests.id('F'), jsonb_build_array(
   jsonb_build_object('year', extract(year from tests.m(-3)), 'month', extract(month from tests.m(-3))),
@@ -880,10 +889,11 @@ select tests.ok(not exists (select 1 from public.arrears where member_id = tests
 select tests.login('admin');
 select tests.set('G', public.add_member(9005, 'عضو ز', 'A', tests.m(-3)));
 select tests.login('committee');
-select tests.ok(not (tests.pay('g1', 1000, jsonb_build_array(tests.month('G', -3, 1000))) ->> 'pending_overlap')::boolean,
-  'first pending payment: no overlap');
+select tests.ok(not (tests.pay('g0', 1000, jsonb_build_array(tests.month('G', -2, 1000))) ->> 'pending_overlap')::boolean,
+  'no pending twin: no overlap');
+select tests.pend('g1', 1000, jsonb_build_array(tests.month('G', -3, 1000)));
 select tests.ok((tests.pay('g2', 1000, jsonb_build_array(tests.month('G', -3, 1000))) ->> 'pending_overlap')::boolean,
-  'a second pending payment for the same month is flagged');
+  'a payment for a month an old pending payment also covers is flagged');
 select tests.pay('g3', 500, jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('G'), 'amount', 500)), '00AB 123');
 select tests.throws($$select tests.pay('g4', 500, jsonb_build_array(jsonb_build_object('kind', 'credit', 'member_id', tests.id('G'), 'amount', 500)), 'ab123')$$,
   'duplicate_txn_ref', 'the same transaction reference with other spacing, case or leading zeros is a duplicate');
@@ -991,6 +1001,60 @@ select tests.ok((select count(*) from public.member_months) > 0 and (select coun
   'the committee still reads the former public views');
 select tests.ok((select bool_and(submitted_by_member is null) from public.payment_queue), 'the queue no longer names a link member');
 
+/* ───────────── M29: one committee level, activity log, statement, push kinds ───────────── */
+
+select tests.login('committee');
+select tests.set('m29m', public.add_member(9101, 'عضو م٢٩', 'A', tests.m(-2)));
+select tests.ok((select r ->> 'status' = 'confirmed' and r ->> 'receipt_code' is not null
+                 from (select tests.pay('m29p', 1000, jsonb_build_array(tests.month('m29m', -2, 1000))) r) x),
+  'any committee member records: confirmed at once, with a receipt');
+select tests.ok((public.record_payment(gen_random_uuid(), 'سجل', 'paper', 1000, current_date,
+                   jsonb_build_array(tests.month('m29m', -1, 1000))) ->> 'status') = 'confirmed',
+  'paper records are no longer admin-only');
+select tests.throws($$select public.set_committee_active('00000000-0000-0000-0000-0000000000a3', false)$$, 'not_admin',
+  'account management stays with «مسؤول»');
+
+select tests.set('log1', (select min(id)::text from (select id from public.activity_log(null, 3)) x));
+select tests.ok((select count(*) from public.activity_log(null, 3)) = 3, 'activity log pages');
+select tests.ok((select bool_and(id < tests.get('log1')::bigint) from public.activity_log(tests.get('log1')::bigint, 50)),
+  'the next page starts before the last entry shown');
+select tests.ok(exists (select 1 from public.activity_log(null, 200)
+                        where action = 'record_payment' and actor_name = 'مشرف' and subject = 'دافع تجريبي' and amount = 1000),
+  'entries name who did it, the payer and the amount');
+select tests.ok(exists (select 1 from public.activity_log(null, 200) where action = 'cancel_payment' and reason = 'wrong member'),
+  'a cancellation shows its reason');
+select tests.ok((select count(*) = count(distinct (at, actor, action)) from public.activity_log(null, 200)),
+  'one entry per action, not per changed row');
+
+select tests.ok((select s -> 'member' ->> 'member_ref' = 'A-9101' and jsonb_array_length(s -> 'payments') = 2
+                        and s -> 'payments' -> 0 ->> 'confirmed_by_name' = 'مشرف'
+                        and s -> 'payments' -> 0 ->> 'recorded_by_name' = 'مشرف'
+                 from (select public.member_statement(tests.id('m29m'))) x(s)),
+  'the statement lists each payment with who recorded and confirmed it');
+select tests.ok((select exists (select 1 from jsonb_array_elements(s -> 'payments') e
+                                where e ->> 'status' = 'rejected' and e ->> 'reason' = 'duplicate of another transfer')
+                 from (select public.member_statement(tests.id('K'))) x(s)),
+  'the statement shows a rejected entry with its reason');
+select tests.ok((select (s -> 'owed' ? 'credit') and jsonb_typeof(s -> 'months') = 'array'
+                 from (select public.member_statement(tests.id('E'))) x(s)), 'the statement has the month grid, what is owed and credit');
+
+select public.save_push_subscription('https://push.test/c29', 'p256dh-key-for-testing-000', 'auth-key-0000');
+select tests.ok((select kinds = array['payment', 'expense', 'contribution', 'levy', 'cancel', 'member']
+                 from public.push_subscriptions where endpoint = 'https://push.test/c29'), 'a new device gets every kind');
+select public.set_push_kinds('https://push.test/c29', array['payment', 'payment', 'expense']);
+select tests.ok((select kinds from public.push_subscriptions where endpoint = 'https://push.test/c29') = array['expense', 'payment'],
+  'kinds are chosen per device (deduplicated)');
+select tests.throws($$select public.set_push_kinds('https://push.test/c29', array['spam'])$$, 'invalid_input', 'unknown kinds are refused');
+select tests.login('deputy');
+select tests.throws($$select public.set_push_kinds('https://push.test/c29', array['payment'])$$, 'not_found',
+  'nobody changes another person''s device');
+
+select tests.login('former');
+select tests.throws('select * from public.activity_log()', 'not_committee', 'an inactive account cannot read the activity log');
+select tests.throws($$select public.member_statement(tests.id('E'))$$, 'not_committee', 'nor a statement');
+select tests.login('public');
+select tests.throws('select * from public.activity_log()', '42501', 'strangers cannot read the activity log');
+
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
 select tests.login('server');
@@ -1024,8 +1088,8 @@ select tests.login('server');
 select tests.throws($$insert into public.terms (number, started_on, opening_balance) values (9, current_date, 0)$$, '23505',
   'only one open term');
 
-select tests.login('committee');
-select tests.throws($$select public.start_handover(gen_random_uuid())$$, 'not_allowed', 'a plain committee member cannot start a handover');
+select tests.login('former');
+select tests.throws($$select public.start_handover(gen_random_uuid())$$, 'not_allowed', 'an inactive account cannot start a handover');
 select tests.login('treasurer');
 select tests.set('h1', public.start_handover('00000000-0000-0000-0000-0000000000d1', 'نهاية الدورة'));
 select tests.throws($$select public.start_handover(gen_random_uuid())$$, 'handover_in_progress', 'one handover at a time');

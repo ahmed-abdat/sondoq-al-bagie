@@ -135,23 +135,28 @@ New:
 - Contributions from non-participants to a levy: refused (use a donation). The UI shows only
   participants.
 
-## Questions for the owner
+## Owner answers (2026-09-30)
 
-1. «تسليم العهدة» (handover / new term, which also deactivates committee accounts): keep it for
-   «مسؤول» only, or any committee member? Recommended: «مسؤول» only; it changes accounts.
-2. Old paper records (method «ورقي»): any committee member, or «مسؤول» only? Recommended: any
-   (everything else is equal).
-3. «اللوحة» share: can a member pay part now and the rest later? Can he pay more than his share?
-   Recommended: parts yes; more no (the extra is recorded as a donation or credit).
-4. After a «لوحة» is closed:
-   - can late shares still be paid? Recommended: yes, the debt stays.
-   - where does late money go, to the لوحة (to spend on its need) or the main fund?
-5. Same amount for everyone in a «لوحة», or can it differ per group (A / B) or per member? The
-   schema supports all three. The UI decides how simple to make it.
-6. Who may exempt a member from a «لوحة» share? Recommended: any committee member, reason
-   required, shown in «سجل العمليات».
-7. Change the one `deputy` account to plain `committee` in the data, or just treat it the same?
-   Recommended: treat it the same, no data change.
+1. Handover: «مسؤول» only (accept_handover stays admin; starting / counting it is any committee
+   member).
+2. Paper records: any committee member.
+3. «اللوحة» share: **full share only**, one payment of exactly the share (no parts, no more).
+4. After a «لوحة» closes, unpaid shares stay debt. Late payments go to the **main fund** but stay
+   recorded as coming from that «لوحة»: the allocation stays on the levy and, when the levy is
+   closed, an automatic transfer levy → fund of that amount.
+5. Amount: one amount for all, editable for a single member (per-member override). Optional A/B
+   pair at creation.
+6. Exempt a share: any committee member, reason required, audited.
+7. The `deputy` row stays as is (treated like `committee`).
+
+m29 as built (placeholder `29990101000015_m29_committee_tools.sql`):
+- `can_confirm` = any committee member.
+- confirm without the own-membership rule; record always confirms; paper for all.
+- 10 day-to-day functions become `require_committee`: change_member_status, add_member,
+  update_member, change_member_group, set_join_month, cancel_last_period, set_group_price,
+  update_settings, add_fund_account, update_fund_account.
+- New `activity_log`, `member_statement`, `push_subscriptions.kinds` + `set_push_kinds`.
+- Rollback `rollback/m29_revert.sql`: the catalog diff is identical.
 
 ## Effort (Lane A)
 
