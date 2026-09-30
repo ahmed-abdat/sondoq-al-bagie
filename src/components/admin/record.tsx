@@ -37,7 +37,7 @@ import {
   Wallet,
   X,
 } from "./kit";
-import { feeAllocations, feesTotal, pastWords, payablePast, priceOf, ym } from "./fees";
+import { feeAllocations, feesTotal, pastWords, payablePast, peopleIn, priceOf, ym } from "./fees";
 import { coPaidMembers } from "./report-action";
 import { choiceForMethod, WalletPicker, walletDone, type WalletChoice } from "./wallet-picker";
 import { MemberPicker, readRecent, rememberRecent } from "./member-picker";
@@ -326,6 +326,8 @@ function RecordFlow({
     const id = setTimeout(() => setUndo(null), 5000);
     return () => clearTimeout(id);
   }, [undo, setUndo]);
+  // how many people this transfer is for: each member once (fees + his لوحة share = one person)
+  const people = peopleIn(t.lines);
   const first = t.lines.find((l) => l.t !== "gift") as
     Extract<Line, { t: "fees" | "levy" }> | undefined;
   const firstMember = first ? d.members.find((m) => m.ref === first.ref) : undefined;
@@ -341,9 +343,7 @@ function RecordFlow({
       <section className="pa-sec" ref={peopleRef}>
         <div className="pa-sec-h">
           <h2>{t.lines.length ? "هذه الدفعة عن" : "لمن هذه الدفعة؟"}</h2>
-          {t.lines.length > 1 && (
-            <span className="pa-hint">{peopleWords(t.lines.length)} في تحويل واحد</span>
-          )}
+          {people > 1 && <span className="pa-hint">{peopleWords(people)} في تحويل واحد</span>}
         </div>
         {!!t.lines.length && (
           <ul className="r2-lines">
@@ -1060,6 +1060,22 @@ const Redo = (
 
 /* sticky total = the transfer; save */
 function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => void }) {
+  // with large text the total bar can take a third of the screen: then it ends the page instead
+  // of covering what the volunteer is reading (QA pass 9 P1-4)
+  const footRef = useRef<HTMLDivElement>(null);
+  const [tall, setTall] = useState(false);
+  useEffect(() => {
+    const el = footRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const check = () => setTall(el.offsetHeight > window.innerHeight * 0.3);
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    window.addEventListener("resize", check);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", check);
+    };
+  }, []);
   const { d } = useP();
   const router = useRouter();
   const online = useOnline();
@@ -1182,7 +1198,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
   };
 
   return (
-    <div className="r2-foot">
+    <div className={`r2-foot ${tall ? "is-tall" : ""}`} ref={footRef}>
       <div className="r2-foot-sum">
         <span>
           <small>المجموع</small>

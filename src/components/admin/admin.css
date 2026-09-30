@@ -412,14 +412,19 @@
 }
 .pa-chip {
   flex: none;
+  max-width: 100%;
   min-height: 48px;
   padding-inline: 16px;
+  padding-block: 6px;
   border-radius: 999px;
   background: var(--n1);
   color: var(--ink);
   font-size: 0.9375rem;
   font-weight: 600;
-  white-space: nowrap;
+  line-height: 1.3;
+  /* large text: a long label wraps and the pill grows instead of being cut */
+  white-space: normal;
+  text-align: center;
 }
 .pa-chip.on {
   background: var(--g8);

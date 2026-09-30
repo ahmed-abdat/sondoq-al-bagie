@@ -204,3 +204,32 @@ test("a payment's note (why it differs from the picture) shows in the member's h
   await page.goto("/committee/members/A-1");
   await expect(page.locator(".pa-hist-note")).toContainText("يختلف عن الصورة: الباقي يُدفع نقدًا");
 });
+
+test("«الفئات»: a mid-year month warns; «ابدأ من يناير» really moves the start to January", async ({
+  page,
+}) => {
+  await page.goto("/committee/settings");
+  const groups = page.getByRole("region", { name: "الفئات والمستحقات الشهرية" });
+  await groups.getByRole("button", { name: "انقل أعضاءها" }).last().click();
+  const sheet = page.getByRole("dialog", { name: "انقل أعضاء إلى فئة" });
+  await sheet.getByRole("button", { name: "ابتداءً من شهر" }).click();
+  const pick = page.getByRole("dialog", { name: "ابتداءً من شهر" });
+  await pick.getByRole("button", { name: "السنة السابقة" }).click();
+  await pick.getByRole("button", { name: "أكتوبر" }).click();
+  await expect(pick).toBeHidden();
+  await expect(sheet.getByRole("button", { name: "ابتداءً من شهر" })).toContainText("أكتوبر 2026");
+  await sheet.getByRole("button", { name: /ابدأ من يناير 2027/ }).click();
+  await expect(sheet.getByRole("button", { name: "ابتداءً من شهر" })).toContainText("يناير 2027");
+  await expect(sheet.getByRole("button", { name: /ابدأ من يناير/ })).toHaveCount(0);
+  // the picker opens on the chosen month, not the old one
+  await sheet.getByRole("button", { name: "ابتداءً من شهر" }).click();
+  const again = page.getByRole("dialog", { name: "ابتداءً من شهر" });
+  await expect(again.getByRole("button", { name: "يناير" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(again.getByRole("button", { name: "أكتوبر" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});

@@ -57,3 +57,8 @@ export function feeAllocations(
 
 export const feesTotal = (...a: Parameters<typeof feeAllocations>) =>
   feeAllocations(...a).reduce((s, x) => s + x.amount, 0);
+
+/** Distinct people in a transfer: a member counts once, each outside donor once. */
+export function peopleIn(lines: { id: number; t: string; ref?: string | null }[]) {
+  return new Set(lines.map((l) => (l.ref ? `m:${l.ref}` : `x:${l.id}`))).size;
+}

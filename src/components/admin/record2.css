@@ -38,8 +38,8 @@
   flex: none;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   margin-inline-end: -8px;
   border-radius: 999px;
   color: var(--muted);
@@ -53,10 +53,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding-inline-start: 56px;
+  padding-inline-start: min(56px, 12%);
 }
 .r2-modes .pa-chip {
-  min-height: 44px;
+  min-height: 48px;
   padding-inline: 14px;
   font-size: 0.875rem;
 }
@@ -599,4 +599,10 @@
   .r2-strip-main {
     flex: 1 1 100%;
   }
+}
+
+/* large text (the bar would cover much of the screen): it ends the page instead (set in JS) */
+.r2-foot.is-tall {
+  position: static;
+  box-shadow: none;
 }
