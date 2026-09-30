@@ -110,46 +110,49 @@ test("«المصاريف»: each expense says its activity, wallet and who recor
   await expect(first).toContainText(/سجّله /);
 });
 
-test("«المحافظ»: «المسؤول» adds a wallet and an account, sets an opening once; payments offer them", async ({
+test("«المحافظ»: one row per wallet; one sheet adds a wallet with its number, sets an opening once, stops it", async ({
   page,
 }) => {
   await page.goto("/committee/settings");
   const ws = page.getByRole("region", { name: "المحافظ" });
-  // an opening, set once (the confirmation box is required)
-  await ws.getByRole("button", { name: "حدّد رصيد أولها" }).first().click();
-  const open = page.getByRole("dialog", { name: "رصيد أول الحساب" });
-  await open.getByLabel("رصيد أول بالأوقية").fill("12000");
-  await expect(open.getByRole("button", { name: "احفظ الرصيد" })).toBeDisabled();
-  await open.getByRole("checkbox").check();
-  await open.getByRole("button", { name: "احفظ الرصيد" }).click();
-  await expect(page.getByText("حُفظ رصيد أول الحساب.")).toBeVisible();
-  await expect(ws.getByText(/رصيد أول: 12\s000 أوقية/)).toBeVisible();
+  // a row: name, number and holder; no account buttons in the list
+  await expect(ws.getByText("22200000011")).toBeVisible();
+  await expect(ws.getByRole("button", { name: /أوقف الحساب|حدّد رصيد|أضف حسابًا/ })).toHaveCount(0);
 
-  // a new wallet, then its account
+  // the opening, in the wallet's sheet, collapsed, once (the confirmation box is required)
+  await ws.getByRole("button", { name: "عدّل مصرفي" }).click();
+  let sheet = page.getByRole("dialog", { name: "عدّل المحفظة" });
+  await sheet.getByText("رصيد أول غير صفر (اختياري)").click();
+  await sheet.getByLabel("رصيد أول بالأوقية").fill("12000");
+  await expect(sheet.getByRole("button", { name: "احفظ الرصيد" })).toBeDisabled();
+  await sheet.getByRole("checkbox").check();
+  await sheet.getByRole("button", { name: "احفظ الرصيد" }).click();
+  await expect(page.getByText("حُفظ رصيد أول المحفظة.")).toBeVisible();
+
+  // a new wallet with its number in one sheet
   await ws.getByRole("button", { name: "محفظة جديدة" }).click();
-  const nw = page.getByRole("dialog", { name: "محفظة جديدة" });
-  await nw.getByLabel("اسم المحفظة").fill("محفظة التجربة");
-  await nw.getByRole("button", { name: "أضف المحفظة" }).click();
+  sheet = page.getByRole("dialog", { name: "محفظة جديدة" });
+  await sheet.getByLabel("اسم المحفظة").fill("محفظة التجربة");
+  await sheet.getByLabel("رقم الحساب").fill("22000099");
+  await sheet.getByLabel("اسم صاحب الحساب").fill("رابطة شباب البقيع");
+  await sheet.getByRole("button", { name: "أضف المحفظة" }).click();
   await expect(ws.getByText("محفظة التجربة", { exact: true })).toBeVisible();
-  await ws.getByRole("button", { name: "أضف حسابًا في محفظة التجربة" }).click();
-  const acc = page.getByRole("dialog", { name: "أضف حسابًا" });
-  await acc.getByLabel("رقم الحساب").fill("22000099");
-  await acc.getByLabel("اسم صاحب الحساب").fill("رابطة شباب البقيع");
-  await acc.getByRole("button", { name: "أضف الحساب" }).click();
   await expect(ws.getByText("22000099")).toBeVisible();
 
-  // stop one, bring it back
+  // stop one from its sheet (a wallet without a number waits in «محافظ بلا رقم»)
+  await ws.getByText(/^محافظ بلا رقم/).click();
   await ws.getByRole("button", { name: "عدّل كليك" }).click();
-  const ed = page.getByRole("dialog", { name: "عدّل المحفظة" });
-  await ed.getByRole("button", { name: "أوقف المحفظة" }).click();
-  await ed.getByRole("button", { name: "نعم، أوقفها" }).click();
+  sheet = page.getByRole("dialog", { name: "عدّل المحفظة" });
+  await sheet.getByRole("button", { name: "أوقف المحفظة" }).click();
+  await sheet.getByRole("button", { name: "نعم، أوقفها" }).click();
+  await ws.getByText(/^محافظ متوقفة/).click();
   await expect(ws.getByRole("button", { name: "أعِد كليك" })).toBeVisible();
 
   // the expense sheet offers the wallets that have an account, and cash
   await page.goto("/committee/expenses");
   await page.getByRole("button", { name: /سجّل مصروفًا/ }).click();
-  const sheet = page.getByRole("dialog", { name: "سجّل مصروفًا" });
-  await expect(sheet.getByRole("radiogroup", { name: "المحفظة" }).getByRole("radio")).toHaveText([
+  const exp = page.getByRole("dialog", { name: "سجّل مصروفًا" });
+  await expect(exp.getByRole("radiogroup", { name: "المحفظة" }).getByRole("radio")).toHaveText([
     "بنكيلي",
     "مصرفي",
     "نقدًا",

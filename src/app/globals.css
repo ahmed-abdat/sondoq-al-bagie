@@ -256,6 +256,10 @@
     gap: 8px;
   }
   /* «المحافظ» (m41): a wallet, its logo and its accounts under it */
+  .bq-wallet .bq-row-m {
+    flex: 1 1 0;
+    min-width: 0;
+  }
   .bq-wallet + .bq-wallet {
     border-block-start: 1px solid var(--line, rgba(0, 0, 0, 0.08));
   }
