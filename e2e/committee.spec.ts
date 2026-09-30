@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("the app icon shows the payments waiting, and follows a confirmation", async ({ page }) => {
-  await page.goto("/committee");
+  await page.goto("/committee/review");
   const heading = page.locator("#bq-wait-h");
   const waiting = Number((await heading.textContent())!.match(/\d+/)![0]);
   expect(waiting).toBeGreaterThan(0);
@@ -50,7 +50,7 @@ test("late members: the list in the app and «شارك المتأخرات» (no 
 });
 
 test("hub, demo queue: empty (?demoQueue=0) says so and offers a cash record", async ({ page }) => {
-  await page.goto("/committee?demoQueue=0");
+  await page.goto("/committee/review?demoQueue=0");
   await expect(page.getByText("لا دفعات تنتظر")).toBeVisible();
   await expect(page.getByRole("button", { name: /سجّل دفعة نقدًا أو تحويلًا/ })).toBeVisible();
   await expect(page.locator("article.bq-slip")).toHaveCount(0);
@@ -59,7 +59,7 @@ test("hub, demo queue: empty (?demoQueue=0) says so and offers a cash record", a
 test("hub, demo queue: 12 pending (?demoQueue=12) shows one open slip and five rows", async ({
   page,
 }) => {
-  await page.goto("/committee?demoQueue=12");
+  await page.goto("/committee/review?demoQueue=12");
   await expect(page.getByRole("button", { name: /للمراجعة\s*12/ })).toBeVisible();
   await expect(page.locator("article.bq-slip")).toHaveCount(1);
   await expect(page.locator(".bq-rev-row")).toHaveCount(4);

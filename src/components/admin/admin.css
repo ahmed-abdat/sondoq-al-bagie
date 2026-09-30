@@ -70,6 +70,17 @@
 .pa-nav-logo {
   display: none;
 }
+.pa-nav .pa-nav-mark {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  height: auto;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  pointer-events: none;
+  view-transition-name: none;
+}
 .pa-nav-i {
   display: flex;
   flex-direction: column;
@@ -107,6 +118,9 @@
   }
   .pa-bare {
     padding-inline-start: 0;
+  }
+  .pa-nav .pa-nav-mark {
+    display: none;
   }
   .pa-nav {
     inset-block: 0;

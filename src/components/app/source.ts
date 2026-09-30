@@ -9,6 +9,7 @@ import type { CommitteeRole, MoneyBundle, PendingPayment, ReportData } from "@/l
 import type {
   PCampaign,
   PData,
+  PLevy,
   PExpense,
   PLog,
   PMember,
@@ -16,6 +17,20 @@ import type {
   PPayment,
 } from "@/components/admin/types";
 import { monthStates } from "@/lib/data/month-code";
+import type { ActivityEntry } from "@/lib/data/map";
+import type {
+  AnnualReport,
+  CampaignReport,
+  CommitteeWorkReport,
+  ExpensesReport,
+  GridReport,
+  HandoverReport,
+  LateReport,
+  MemberStatement,
+  SummaryReport,
+  WalletsReport,
+} from "@/lib/data/report-types";
+import * as rfx from "@/lib/reports/fixtures";
 import type { Method } from "@/lib/methods";
 import { currentDueMonth, fmt } from "./derive";
 import { demoAdminData } from "./admin-demo";
@@ -233,14 +248,13 @@ const ROLE_WORD: Record<string, string> = {
 };
 const monthOf = (iso: string) => Number(iso.slice(5, 7));
 
-/** Everything the committee screens show, from the committee's own reads (demo: fixtures).
- *  Levies (m30) and the activity log (m29) are not live yet: empty lists, the UI hides them. */
+/** Everything the committee screens show, from the committee's own reads (demo: fixtures). */
 export async function adminData(): Promise<PData> {
   if (usingFixtures) return demoAdminData();
   const s = await requireCommittee("/committee");
   const t = today();
   const year = t.getUTCFullYear();
-  const [admin, rows, prices, pendingRaw, recentRaw, m, exps, accounts, users, info] =
+  const [admin, rows, prices, pendingRaw, recentRaw, m, exps, accounts, users, info, acts, shares] =
     await Promise.all([
       membersAdmin(),
       memberRows(year),
@@ -252,6 +266,8 @@ export async function adminData(): Promise<PData> {
       fundAccountsAdmin(),
       committeeAccounts(),
       fundInfo(),
+      data.getActivityLog(undefined, 50),
+      data.getLevyShares({}),
     ]);
   const due = currentDueMonth(t, info.graceDays);
   const codeOf = new Map(rows.map((r) => [r.memberId, r.months]));
@@ -311,7 +327,8 @@ export async function adminData(): Promise<PData> {
       amount: e.amount,
       campaign: e.campaignId,
     }));
-  const campaignsRaw = m?.campaigns ?? [];
+  const campaignsRaw = (m?.campaigns ?? []).filter((c) => c.amountMode !== "fixed");
+  const leviesRaw = (m?.campaigns ?? []).filter((c) => c.amountMode === "fixed");
   const gifts = await Promise.all(
     campaignsRaw.map((c) => data.getMoneyContributions(c.campaignId, 100).catch(() => null)),
   );
@@ -356,18 +373,28 @@ export async function adminData(): Promise<PData> {
       amount: e.amount,
     })),
   ].sort((a, b) => b.at.localeCompare(a.at));
-  // until «سجل العمليات» (m29): who recorded each payment, from the payments themselves
-  const log: PLog[] = recentRaw
-    .map((p): PLog => ({
-      who: p.createdByName ?? "اللجنة",
-      what:
-        p.status === "cancelled"
-          ? `ألغى دفعة ${p.payerName} (${fmt(p.amount)} أوقية)${p.cancelReason ? `. السبب: ${p.cancelReason}` : ""}`
-          : `سجّل دفعة ${p.payerName}: ${fmt(p.amount)} أوقية`,
-      at: p.decidedAt && p.status === "cancelled" ? p.decidedAt : p.createdAt,
-      kind: p.status === "cancelled" ? "no" : "pay",
-    }))
-    .sort((a, b) => b.at.localeCompare(a.at));
+  const log: PLog[] = acts.map((x) => activityLine(x));
+  const levies: PLevy[] = leviesRaw.map((c) => {
+    const mine = shares.filter((x) => x.campaignId === c.campaignId);
+    const expected = mine.map((x) => x.expected).filter((n) => n > 0);
+    const per = expected.length ? Math.max(...expected) : (c.targetAmount ?? 0);
+    return {
+      id: c.campaignId,
+      title: c.title,
+      purpose: c.purpose ?? "",
+      perMember: per,
+      scope: "",
+      createdOn: "",
+      createdBy: "",
+      status: c.status === "open" ? "open" : "closed",
+      refs: mine.map((x) => x.memberRef),
+      paidRefs: mine.filter((x) => !x.exempt && x.left <= 0).map((x) => x.memberRef),
+      exemptRefs: mine.filter((x) => x.exempt).map((x) => x.memberRef),
+      amounts: Object.fromEntries(
+        mine.filter((x) => x.expected !== per).map((x) => [x.memberRef, x.expected]),
+      ),
+    };
+  });
   const sum = m?.summary ?? toFundSummary(null);
   const month = t.getUTCMonth() + 1;
   const spentIn = (k: number) =>
@@ -384,7 +411,7 @@ export async function adminData(): Promise<PData> {
     today: t.toISOString().slice(0, 10),
     year,
     due,
-    me: { name: s.displayName, role: ROLE_WORD[s.role] ?? "عضو اللجنة" },
+    me: { name: s.displayName, role: ROLE_WORD[s.role] ?? "عضو اللجنة", admin: s.role === "admin" },
     balance: sum.balance,
     opening: sum.openingBalance,
     collectedYear: sum.collectedThisYear,
@@ -399,6 +426,7 @@ export async function adminData(): Promise<PData> {
     campaigns,
     expenses,
     accounts: accounts.map((a) => ({
+      id: a.id,
       method: a.method as Method,
       number: a.accountNumber,
       holder: a.holderName,
@@ -411,7 +439,120 @@ export async function adminData(): Promise<PData> {
       last: u.lastSignInAt,
     })),
     prices,
-    levies: [],
+    levies,
     log,
   };
+}
+
+/** One «سجل العمليات» line in plain words: who, what, how much, why. */
+function activityLine(x: ActivityEntry): PLog {
+  const who = x.actorName ?? "اللجنة";
+  const amt = x.amount != null ? ` (${fmt(x.amount)} أوقية)` : "";
+  const sub = x.subject ? ` ${x.subject}` : "";
+  const why = x.reason ? `. السبب: ${x.reason}` : "";
+  const W: Record<string, [string, PLog["kind"]]> = {
+    record_payment: [`سجّل دفعة${sub}${amt}`, "pay"],
+    confirm_payment: [`أكّد دفعة${sub}${amt}`, "ok"],
+    reject_payment: [`رفض دفعة${sub}${amt}${why}`, "no"],
+    cancel_payment: [`ألغى دفعة${sub}${amt}${why}`, "no"],
+    undo_payment: [`تراجع عن دفعة${sub}${amt}`, "no"],
+    apply_credit: [`دفع من رصيد${sub}${amt}`, "pay"],
+    record_expense: [`سجّل مصروف${sub}${amt}`, "exp"],
+    cancel_expense: [`ألغى مصروف${sub}${amt}${why}`, "no"],
+    create_campaign: [`فتح تبرعًا:${sub}`, "gift"],
+    update_campaign: [`عدّل التبرع${sub}`, "edit"],
+    close_campaign: [`أغلق${sub}`, "edit"],
+    create_levy: [`أنشأ لوحة${sub}${amt}`, "levy"],
+    add_levy_members: [`أضاف أعضاء إلى لوحة${sub}`, "levy"],
+    set_levy_share: [`غيّر نصيب${sub}${amt}`, "levy"],
+    exempt_levy_share: [`أعفى من لوحة${sub}${why}`, "levy"],
+    unexempt_levy_share: [`ألغى إعفاء من لوحة${sub}`, "levy"],
+    add_member: [`أضاف عضوًا:${sub}`, "edit"],
+    update_member: [`عدّل بيانات${sub}`, "edit"],
+    change_member_status: [`غيّر حالة${sub}${why}`, "edit"],
+    set_join_month: [`غيّر شهر انضمام${sub}`, "edit"],
+    set_group_price: [`غيّر الرسوم الشهرية${sub}${amt}`, "edit"],
+    update_settings: ["غيّر الإعدادات", "edit"],
+    add_fund_account: [`أضاف رقم محفظة${sub}`, "edit"],
+    start_handover: ["بدأ تسليم الصندوق", "edit"],
+    submit_handover: ["أرسل محضر التسليم", "edit"],
+    accept_handover: ["قبل تسليم الصندوق", "edit"],
+    cancel_handover: [`ألغى التسليم${why}`, "no"],
+  };
+  const [what, kind] = W[x.action] ?? [`${x.action.replaceAll("_", " ")}${sub}${amt}`, "edit"];
+  return { who, what, at: x.at, kind };
+}
+
+/* ───────────── reports (plan §9: 10 kinds; demo: Lane B's fictional report data) ───────────── */
+export type ReportReq =
+  | { kind: "annual" | "summary" | "expenses" | "wallets" | "work"; year: number; month?: number }
+  | { kind: "grid" | "late"; year: number }
+  | { kind: "campaign"; id: string }
+  | { kind: "member"; memberId: string; year: number }
+  | { kind: "handover"; term: number };
+export type ReportRes =
+  | { kind: "annual"; data: AnnualReport }
+  | { kind: "summary"; data: SummaryReport }
+  | { kind: "grid"; data: GridReport }
+  | { kind: "late"; data: LateReport }
+  | { kind: "expenses"; data: ExpensesReport }
+  | { kind: "campaign"; data: CampaignReport }
+  | { kind: "member"; data: MemberStatement }
+  | { kind: "handover"; data: HandoverReport }
+  | { kind: "wallets"; data: WalletsReport }
+  | { kind: "work"; data: CommitteeWorkReport };
+
+/** One report's data for the committee (null = not found / not allowed). */
+export async function reportFor(q: ReportReq): Promise<ReportRes | null> {
+  if (usingFixtures) {
+    const F: Record<ReportReq["kind"], ReportRes> = {
+      annual: { kind: "annual", data: rfx.fxAnnual },
+      summary: { kind: "summary", data: rfx.fxSummary },
+      grid: { kind: "grid", data: rfx.fxGrid },
+      late: { kind: "late", data: rfx.fxLate },
+      expenses: { kind: "expenses", data: rfx.fxExpenses },
+      campaign: { kind: "campaign", data: rfx.fxCampaign },
+      member: { kind: "member", data: rfx.fxStatement },
+      handover: { kind: "handover", data: rfx.fxHandover },
+      wallets: { kind: "wallets", data: rfx.fxWallets },
+      work: { kind: "work", data: rfx.fxWork },
+    };
+    if (q.kind === "campaign" && q.id.startsWith("l"))
+      return { kind: "campaign", data: rfx.fxLevy };
+    return F[q.kind];
+  }
+  const p =
+    "month" in q && q.month
+      ? { year: q.year, month: q.month }
+      : { year: "year" in q ? q.year : thisYear() };
+  const wrap = <K extends ReportRes["kind"], D>(kind: K, d: D | null) =>
+    d ? ({ kind, data: d } as unknown as ReportRes) : null;
+  switch (q.kind) {
+    case "annual":
+      return wrap("annual", await data.getAnnualReport(p));
+    case "summary":
+      return wrap("summary", await data.getSummaryReport(p));
+    case "expenses":
+      return wrap("expenses", await data.getExpensesReport(p));
+    case "wallets":
+      return wrap("wallets", await data.getWalletsReport(p));
+    case "work":
+      return wrap("work", await data.getCommitteeWorkReport(p));
+    case "grid":
+      return wrap("grid", await data.getGridReport(q.year));
+    case "late":
+      return wrap("late", await data.getLateReport(q.year));
+    case "campaign":
+      return wrap("campaign", await data.getCampaignReport(q.id));
+    case "member":
+      return wrap("member", await data.getMemberStatement(q.memberId, q.year));
+    case "handover":
+      return wrap("handover", await data.getHandoverReport(q.term));
+  }
+}
+
+/** «دفعوا معه سابقًا» (m29): members paid together with this one before (demo: none). */
+export async function coPaid(memberId: string) {
+  if (usingFixtures) return [];
+  return data.getCoPaidMembers(memberId, 5);
 }

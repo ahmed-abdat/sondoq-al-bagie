@@ -5,14 +5,8 @@ import { Campaign, Campaigns, Home } from "./dir-b";
 import { Provider } from "./kit";
 import { Record2C } from "./record2";
 import { Reports3 } from "./reports3";
-import {
-  ExpensesScreen,
-  LateScreen,
-  LevyScreen,
-  MemberScreen,
-  MembersScreen,
-  MoreScreen,
-} from "./screens";
+import { ExpensesScreen, LateScreen, LevyScreen, MemberScreen, MembersScreen } from "./screens";
+import { ActivityScreen, MoreScreen } from "./more";
 import type { PData } from "./types";
 
 export function AdminApp({
@@ -51,8 +45,10 @@ export function AdminApp({
     <Reports3 />
   ) : p0 === "expenses" ? (
     <ExpensesScreen />
+  ) : p0 === "activity" ? (
+    <ActivityScreen />
   ) : (
-    <MoreScreen sub={q.sub} />
+    <MoreScreen />
   );
   return (
     <Provider d={data} q={q}>

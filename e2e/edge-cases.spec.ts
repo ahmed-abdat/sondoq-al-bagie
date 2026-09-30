@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 // Edge cases from docs/EDGE-CASES.md on the demo committee (fixtures build, simulated writes).
 
 test("a transfer typed in new ouguiya is caught and fixed ×10 (M16)", async ({ page }) => {
-  await page.goto("/committee");
+  await page.goto("/committee/review");
   await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
   const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
   await sheet.locator(".bq-pick button.bq-row").first().click();
@@ -36,7 +36,7 @@ test("handover: pending payments before submit, balance change on accept (H1/H2)
 });
 
 test("a mid-year joiner is never offered the months before joining (M9)", async ({ page }) => {
-  await page.goto("/committee");
+  await page.goto("/committee/review");
   await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
   const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
   await sheet.getByLabel("ابحث عن العضو", { exact: true }).fill("ب 12");
@@ -50,7 +50,7 @@ test("a mid-year joiner is never offered the months before joining (M9)", async 
 test("last year's late months are on the record screen, each at its own price (M8/M11)", async ({
   page,
 }) => {
-  await page.goto("/committee");
+  await page.goto("/committee/review");
   await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
   const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
   await sheet.getByLabel("ابحث عن العضو", { exact: true }).fill("أ 4");
@@ -85,7 +85,7 @@ test("pay late months from a member's credit (M7)", async ({ page }) => {
 });
 
 test("a second payment for months already waiting says so (M5)", async ({ page }) => {
-  await page.goto("/committee");
+  await page.goto("/committee/review");
   for (let i = 0; i < 2; i++) {
     await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
     const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });

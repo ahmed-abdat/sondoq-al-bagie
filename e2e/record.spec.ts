@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 // «سجّل دفعة» on the demo committee (fixtures build): writes are simulated in the browser.
 
 test("the footer button leads to the missing step, then saves with a summary", async ({ page }) => {
-  await page.goto("/committee");
+  await page.goto("/committee/review");
   await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
   const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
   await sheet.locator(".bq-pick button.bq-row").first().click();

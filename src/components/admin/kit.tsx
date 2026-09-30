@@ -3,9 +3,10 @@
 // home, record flow, campaigns and reports layout; only small parts and the plainer screens
 // (members, one member, late, expenses, more) live here.
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { I } from "@/components/app/icons";
+import { radioKeys, radioTab } from "@/components/app/radio-keys";
+import { Sheet as AppSheet } from "@/components/app/sheet";
 import { formatNumber } from "@/lib/format";
 import { MONTHS_AR } from "@/lib/dates";
 import { METHOD_LABELS, methodLogo, type Method } from "@/lib/methods";
@@ -95,11 +96,6 @@ export function payStatus(m: PMember): string {
   return `دفع حتى ${month(last)}`;
 }
 export const isLate = (m: PMember) => m.status === "active" && m.owed.length > 0;
-export const ago = (iso: string | null) => {
-  if (!iso) return "لم يُذكَّر بعد";
-  const days = Math.round((Date.parse("2026-09-28T12:00:00Z") - Date.parse(iso)) / 86400000);
-  return days <= 0 ? "ذُكّر اليوم" : days === 1 ? "ذُكّر أمس" : `ذُكّر قبل ${days} أيام`;
-};
 export const day = (iso: string) => {
   const d = new Date(iso);
   return `${d.getUTCDate()} ${month(d.getUTCMonth() + 1)}`;
@@ -298,6 +294,10 @@ export const OCR = {
   sender: "الحسن ولد أحمد",
 };
 
+/**
+ * A bottom sheet (dialog on desktop) with a visible title: the app's accessible sheet (focus
+ * trap, Escape, focus back to the opener) with the committee app's inner layout.
+ */
 export function Sheet({
   open,
   onClose,
@@ -311,32 +311,15 @@ export function Sheet({
   children: ReactNode;
   foot?: ReactNode;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="pa-scrim" onClick={onClose}>
-      <div
-        className="pa-sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="pa-sheet-h">
-          <h2>{title}</h2>
-          <button type="button" className="pa-icon-btn" onClick={onClose} aria-label="إغلاق">
-            {I.x(22)}
-          </button>
-        </div>
+    <AppSheet label={title} onDone={onClose}>
+      <div className="pa-sheet-in">
+        <h2 className="pa-sheet-t">{title}</h2>
         <div className="pa-sheet-b">{children}</div>
         {foot && <div className="pa-sheet-f">{foot}</div>}
       </div>
-    </div>
+    </AppSheet>
   );
 }
 
@@ -381,13 +364,18 @@ export function Chips<T extends string>({
   label: string;
 }) {
   return (
-    <div className="pa-chips" role="radiogroup" aria-label={label}>
-      {options.map((o) => (
+    <div className="pa-chips" role="radiogroup" aria-label={label} onKeyDown={radioKeys}>
+      {options.map((o, i) => (
         <button
           key={o.k}
           type="button"
           role="radio"
           aria-checked={value === o.k}
+          tabIndex={radioTab(
+            value === o.k,
+            i,
+            options.some((x) => x.k === value),
+          )}
           className={`pa-chip ${value === o.k ? "on" : ""}`}
           onClick={() => onChange(o.k)}
         >
@@ -914,8 +902,12 @@ export function memberHistory(m: PMember, d: PData): PHist[] {
   return out.sort((a, b) => b.at.localeCompare(a.at));
 }
 export const levyOwed = (m: PMember, d: PData): PLevy[] =>
-  d.levies.filter((l) => l.refs.includes(m.ref) && !l.paidRefs.includes(m.ref));
+  d.levies.filter(
+    (l) => l.refs.includes(m.ref) && !l.paidRefs.includes(m.ref) && !l.exemptRefs?.includes(m.ref),
+  );
+/** One member's share of a levy (their own amount when the «مسؤول» changed it). */
+export const levyShare = (l: PLevy, ref: string) => l.amounts?.[ref] ?? l.perMember;
 export const owes = (m: PMember, d: PData) =>
   m.status === "active" && (m.owed.length > 0 || levyOwed(m, d).length > 0);
 export const owedAmount = (m: PMember, d: PData) =>
-  m.owed.length * m.fee + levyOwed(m, d).reduce((s, l) => s + l.perMember, 0);
+  m.owed.length * m.fee + levyOwed(m, d).reduce((s, l) => s + levyShare(l, m.ref), 0);

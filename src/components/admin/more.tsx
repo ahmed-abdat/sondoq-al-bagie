@@ -1,0 +1,134 @@
+"use client";
+// «المزيد» and «سجل العمليات» (plan §4, §7.1: who did what, visible to all the committee).
+import Link from "next/link";
+import { useState } from "react";
+import { InstallEntry } from "@/components/providers";
+import { LogoutButton } from "@/components/app/logout";
+import { Back, Chips, day, Num, useP, X } from "./kit";
+import type { PLog } from "./types";
+
+const LOG_ICON: Record<PLog["kind"], keyof typeof X> = {
+  pay: "coins",
+  ok: "check",
+  no: "ban",
+  exp: "bag",
+  gift: "heart",
+  edit: "edit",
+  levy: "list",
+};
+
+export function LogRow({ l, who = true }: { l: PLog; who?: boolean }) {
+  return (
+    <div className="pa-row pa-row-plain">
+      <span
+        className={`pa-ic ${l.kind === "no" ? "pa-ic-rej" : l.kind === "gift" ? "pa-ic-gold" : l.kind === "pay" || l.kind === "ok" ? "pa-ic-g" : ""}`}
+      >
+        {X[LOG_ICON[l.kind]](22)}
+      </span>
+      <span className="pa-row-t">
+        {who && <b>{l.who}</b>}
+        <span className="pa-row-body">{l.what}</span>
+        <small>
+          {!who && `${l.who} · `}
+          {day(l.at)} · <Num>{l.at.slice(11, 16)}</Num>
+        </small>
+      </span>
+    </div>
+  );
+}
+
+export function MoreScreen() {
+  const { d, href } = useP();
+  const rows: { t: string; s: string; icon: keyof typeof X; to: string; admin?: boolean }[] = [
+    { t: "المصاريف", s: "سجّل مصروفًا، وكل ما صُرف", icon: "bag", to: href("expenses") },
+    { t: "سجل العمليات", s: "من سجّل ماذا، ومتى", icon: "list", to: href("activity") },
+    { t: "المتأخرون", s: "من عليه رسوم أو نصيب لوحة", icon: "clock", to: href("late") },
+    { t: "الدفعات الأخيرة", s: "كل دفعة، ومن سجّلها", icon: "coins", to: href("payments") },
+    ...(d.pending.length
+      ? [
+          {
+            t: "تنتظر التأكيد",
+            s: `دفعات سُجّلت قبل التحديث: ${d.pending.length}`,
+            icon: "clock" as const,
+            to: href("review"),
+          },
+        ]
+      : []),
+    {
+      t: "الإعدادات",
+      s: "أرقام الصندوق، الرسوم الشهرية، حسابات اللجنة",
+      icon: "gear",
+      to: href("settings"),
+    },
+    {
+      t: "تسليم الصندوق",
+      s: "عند نهاية الدورة",
+      icon: "hand",
+      to: href("handover"),
+      admin: true,
+    },
+    { t: "حسابي", s: `${d.me.name} · ${d.me.role} · الإشعارات`, icon: "user", to: href("account") },
+  ];
+  return (
+    <div className="pa-page">
+      <header className="pa-title">
+        <h1>المزيد</h1>
+      </header>
+      <ul className="pa-rows">
+        {rows
+          .filter((r) => !r.admin || d.me.admin)
+          .map((r) => (
+            <li key={r.t}>
+              <Link href={r.to} className="pa-row">
+                <span className="pa-ic">{X[r.icon](22)}</span>
+                <span className="pa-row-t">
+                  <b>{r.t}</b>
+                  <small>{r.s}</small>
+                </span>
+                {X.go(20)}
+              </Link>
+            </li>
+          ))}
+        <li>
+          <InstallEntry />
+        </li>
+      </ul>
+      <LogoutButton className="pa-btn pa-btn-ghost pa-btn-block">خروج</LogoutButton>
+    </div>
+  );
+}
+
+export function ActivityScreen() {
+  const { d } = useP();
+  const [f, setF] = useState<string>("all");
+  const people = ["all", ...new Set(d.log.map((l) => l.who))];
+  const shown = d.log.filter((l) => f === "all" || l.who === f);
+  return (
+    <div className="pa-page">
+      <Back to="more" label="المزيد" />
+      <header className="pa-title">
+        <h1>سجل العمليات</h1>
+        <p className="pa-lead">كل ما سجّلته اللجنة أو غيّرته، ومن فعله.</p>
+      </header>
+      {people.length > 2 && (
+        <Chips
+          label="من"
+          value={f}
+          onChange={setF}
+          options={people.map((p) => ({ k: p, l: p === "all" ? "الكل" : p }))}
+        />
+      )}
+      {shown.length ? (
+        <ul className="pa-rows">
+          {shown.map((l, i) => (
+            <li key={i}>
+              <LogRow l={l} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="pa-hint">لا عمليات بعد.</p>
+      )}
+    </div>
+  );
+}

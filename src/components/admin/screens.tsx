@@ -27,7 +27,7 @@ import {
   Wallet,
   X,
 } from "./kit";
-import type { PLevy, PMember } from "./types";
+import type { PLevy } from "./types";
 
 /* ───────── members ───────── */
 type MF = "all" | "owe" | "A" | "B";

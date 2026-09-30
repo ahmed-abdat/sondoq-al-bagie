@@ -46,6 +46,8 @@ export function Shell({
     <div className={`pa ${bare ? "pa-bare" : ""} ${above ? "pa-has-above" : ""} ${className}`}>
       {!bare && (
         <nav className="pa-nav" aria-label="التنقل">
+          {/* the install bar (providers/install.tsx) stays above `.bq-bnav` while it is shown */}
+          <span className="bq-bnav pa-nav-mark" aria-hidden />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="pa-nav-logo" src="/logo.jpg" alt="صندوق الرابطة" width={44} height={44} />
           {TABS.map((t) => (

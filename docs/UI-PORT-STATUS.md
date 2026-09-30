@@ -591,6 +591,25 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   WhatsApp walk or reminder log. Record sheet: committee mode only. Receipt: no QR/link.
 - Not yet (waits for the prototype round / Lane A m29): new layout, no «للمراجعة» queue.
 
+## Phase 3: the new committee app (r36, owner picks from proto/admin a2df781)
+- Module `src/components/admin/` (ported prototype): one `PData` built on the server
+  (`source.adminData()`; demo `app/admin-demo.ts`), screens read it via `useP()`, every write via
+  `useAct()`. Routes render `AdminPage({path})` (`admin/page.tsx`). Prototype fakes are replaced
+  slice by slice; old routes stay until their slice is real.
+- Slice 1 (shell + home + المزيد): 5 tabs الرئيسية · الأعضاء · التبرعات · التقارير · المزيد
+  (`CommitteeShell`, rail on desktop). Home B: balance, «هذا الشهر: دخل … · صرف …», «سجّل دفعة»,
+  «سجّل مصروفًا» (`expense-sheet.tsx`: kind, campaign, wallet or cash), month fees, «شارك
+  المتأخرات» (report sheet via Lane B renderers, `report-doc.tsx` + `report-action.ts`), «آخر
+  العمليات» with who (getActivityLog), open campaigns and لوحات. Routes: `/committee`,
+  `/committee/more`, `/committee/activity`, `/committee/donations` → `/committee/campaigns`; the
+  old queue hub is `/committee/review`.
+- Slice 2 (record, `admin/record.tsx`, `/committee/record?m=<ref>&levy=&c=&cash=1`): member or
+  search (recent payers in `bq-recent-payers`), chips الأشهر المتأخرة / باقي السنة (السنة كاملة
+  when nothing paid) / اختر, «+ شخص آخر» (getCoPaidMembers, then same family), «+ نصيب لوحة»,
+  «+ تبرع», «+ متبرع من خارج الصندوق»; screenshot read on the phone (`readReceipt`), wallet chips;
+  sticky total vs the picture amount; confirmed at once (m29); «سُجّلت الدفعة» + «تراجع» 30 s
+  (`undoPayment`), no receipt.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.

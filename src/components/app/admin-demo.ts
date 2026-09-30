@@ -348,7 +348,7 @@ export function demoAdminData(): PData {
     today: "2026-09-28",
     year,
     due,
-    me: { name: session.displayName, role: ROLE[session.role] },
+    me: { name: session.displayName, role: ROLE[session.role], admin: true },
     balance: s.balance,
     opening: s.openingBalance,
     collectedYear: s.collectedThisYear,
@@ -363,6 +363,7 @@ export function demoAdminData(): PData {
     campaigns,
     expenses,
     accounts: fx.fxAccountsAdmin().map((a) => ({
+      id: a.id,
       method: a.method as Method,
       number: a.accountNumber,
       holder: a.holderName,

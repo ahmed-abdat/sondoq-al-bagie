@@ -81,6 +81,10 @@ export type PLevy = {
   status: "open" | "closed";
   refs: string[]; // members it is set on
   paidRefs: string[];
+  /** members exempted from this levy (by «مسؤول») */
+  exemptRefs?: string[];
+  /** a member's own amount when it differs from perMember */
+  amounts?: Record<string, number>;
 };
 export type PLog = {
   who: string;
@@ -105,7 +109,8 @@ export type PData = {
   today: string;
   year: number;
   due: number; // last due month
-  me: { name: string; role: string };
+  /** `admin` = «مسؤول» (accounts, handover, member status, cancellations, campaigns) */
+  me: { name: string; role: string; admin: boolean };
   balance: number;
   opening: number;
   collectedYear: number;
@@ -119,7 +124,7 @@ export type PData = {
   ops: POp[];
   campaigns: PCampaign[];
   expenses: PExpense[];
-  accounts: { method: Method; number: string; holder: string; active: boolean }[];
+  accounts: { id: string; method: Method; number: string; holder: string; active: boolean }[];
   users: { name: string; role: string; login: string; last: string | null }[];
   prices: Record<string, number>;
   levies: PLevy[];

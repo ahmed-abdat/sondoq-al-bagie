@@ -3,46 +3,12 @@
 // record flow is ONE long page with a sticky summary footer; reports are 7 cards + a period row.
 import Link from "next/link";
 import { useState } from "react";
-import {
-  Avatar,
-  Back,
-  Bar,
-  Chips,
-  day,
-  FakeShot,
-  fmt,
-  MemberSearch,
-  Money,
-  MonthPick,
-  month,
-  monthsWords,
-  Num,
-  OCR,
-  owes,
-  payStatus,
-  REPORTS,
-  ReceiptCard,
-  ReportPaper,
-  Seg,
-  useP,
-  useRecord,
-  Wallet,
-  X,
-  type ReportKind,
-} from "./kit";
-import { ExpenseSheet, NewGiftSheet, ShareSheet } from "./screens";
-import type { PLog } from "./types";
+import { Avatar, Back, Bar, day, fmt, Money, month, Num, owes, Seg, useP, Wallet, X } from "./kit";
+import { ExpenseSheet } from "./expense-sheet";
+import { ReportSheet } from "./report-doc";
+import { LogRow } from "./more";
+import { NewGiftSheet } from "./screens";
 import "./dir-b.css";
-
-const LOG_ICON: Record<PLog["kind"], keyof typeof X> = {
-  pay: "coins",
-  ok: "check",
-  no: "ban",
-  exp: "bag",
-  gift: "heart",
-  edit: "edit",
-  levy: "list",
-};
 
 /* ───────── home ───────── */
 export function Home() {
@@ -91,7 +57,7 @@ export function Home() {
       </div>
 
       <section className="pa-sec">
-        <h2>رسوم سبتمبر</h2>
+        <h2>رسوم {month(d.due)}</h2>
         <Link href={href("late")} className="pb-month">
           <span className="pb-month-t">
             دفع <Num>{paid}</Num> عضوًا، وبقي <Num>{left}</Num>
@@ -113,26 +79,14 @@ export function Home() {
       <section className="pa-sec">
         <div className="pa-sec-h">
           <h2>آخر العمليات</h2>
-          <Link href={href("more", { sub: "log" })} className="pa-link">
+          <Link href={href("activity")} className="pa-link">
             عرض الكل {X.go(18)}
           </Link>
         </div>
         <ul className="pa-rows">
           {d.log.slice(0, 5).map((l, i) => (
             <li key={i}>
-              <div className="pa-row pa-row-plain">
-                <span
-                  className={`pa-ic ${l.kind === "no" ? "pa-ic-rej" : l.kind === "gift" ? "pa-ic-gold" : l.kind === "pay" ? "pa-ic-g" : ""}`}
-                >
-                  {X[LOG_ICON[l.kind]](22)}
-                </span>
-                <span className="pa-row-t">
-                  <span className="pa-row-body">{l.what}</span>
-                  <small>
-                    {l.who} · {day(l.at)} · <Num>{l.at.slice(11, 16)}</Num>
-                  </small>
-                </span>
-              </div>
+              <LogRow l={l} who={false} />
             </li>
           ))}
         </ul>
@@ -178,7 +132,12 @@ export function Home() {
         </ul>
       </section>
       <ExpenseSheet open={exp} onClose={() => setExp(false)} />
-      <ShareSheet open={share} onClose={() => setShare(false)} what="المتأخرات" />
+      <ReportSheet
+        open={share}
+        onClose={() => setShare(false)}
+        title="شارك المتأخرات"
+        req={{ kind: "late", year: d.year }}
+      />
     </div>
   );
 }
@@ -399,7 +358,12 @@ export function Campaign({ id }: { id: string }) {
         </button>
       )}
       <ExpenseSheet open={exp} onClose={() => setExp(false)} campaign={c.id} />
-      <ShareSheet open={share} onClose={() => setShare(false)} what={`تقرير ${c.title}`} />
+      <ReportSheet
+        open={share}
+        onClose={() => setShare(false)}
+        title={`تقرير ${c.title}`}
+        req={{ kind: "campaign", id: c.id }}
+      />
     </div>
   );
 }
