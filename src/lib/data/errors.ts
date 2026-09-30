@@ -62,6 +62,9 @@ export const MESSAGES = {
   month_not_owed: "هذا الشهر غير مستحق على العضو: قبل انضمامه، أو بعد إعفائه أو مغادرته.",
   // members / admin
   unknown_group: "المجموعة غير معروفة.",
+  group_retired: "هذه الفئة متوقفة من تلك السنة.",
+  group_has_members: "في هذه الفئة أعضاء من تلك السنة. انقلهم أولًا.",
+  group_name_taken: "يوجد فئة بهذا الاسم.",
   price_frozen: "لا يمكن تغيير رسوم سنة فيها دفعات مسجّلة.",
   member_required: "اختر العضو.",
   number_taken: "هذا الرقم مستخدم في نفس القائمة.",

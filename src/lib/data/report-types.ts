@@ -272,6 +272,8 @@ export type LevyStats = {
     unpaid: number;
     exempt: number;
     paidPct: number;
+    expected: number;
+    collected: number;
   }[];
 };
 

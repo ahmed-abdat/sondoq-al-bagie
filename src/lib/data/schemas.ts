@@ -196,6 +196,27 @@ export const setGroupPriceSchema = z.object({
   monthlyAmount: mro,
 });
 
+/* ───────────── fee groups («الفئات», m33; «مسؤول» only) ───────────── */
+
+const year = z.number().int().min(2020).max(2100);
+const groupCode = z.string().regex(/^[A-Z]$/);
+export const createGroupSchema = z.object({ name: text(40), monthlyAmount: mro, fromYear: year });
+export const moveMembersSchema = z
+  .object({
+    toGroup: groupCode,
+    /** first month in the new group ('YYYY-MM-01'); default in the UI: January next year */
+    fromMonth: day,
+    memberIds: z.array(id).min(1).max(1000).optional(),
+    fromGroup: groupCode.optional(),
+    reason: optText(200),
+    /** preview only: nothing is written, the result says exactly what would happen */
+    dryRun: z.boolean().optional(),
+  })
+  .refine((v) => (v.memberIds ? 1 : 0) + (v.fromGroup ? 1 : 0) === 1, { message: "invalid_input" });
+export const retireGroupSchema = z.object({ groupCode, fromYear: year });
+export type CreateGroupInput = z.input<typeof createGroupSchema>;
+export type MoveMembersInput = z.input<typeof moveMembersSchema>;
+
 export const setCommitteeMemberSchema = z.object({
   userId: id,
   displayName: text(80),

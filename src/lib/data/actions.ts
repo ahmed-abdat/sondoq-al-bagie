@@ -604,6 +604,84 @@ export async function setJoinMonth(input: s.SetJoinMonthInput) {
   );
 }
 
+/** A new fee group («مسؤول»): the next free letter is returned. */
+export async function createGroup(input: s.CreateGroupInput) {
+  return run(
+    s.createGroupSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("create_group", {
+        p_name: p.name,
+        p_monthly_amount: p.monthlyAmount,
+        p_from_year: p.fromYear,
+      }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
+export type MoveResult = {
+  moved: number;
+  skippedAlreadyInTarget: number;
+  /** who blocks the move and why (a real run with anyone blocked is refused) */
+  blocked: { memberId: string; memberRef: string; name: string; reason: string }[];
+  fromFee: number | null;
+  toFee: number | null;
+};
+
+/**
+ * Move chosen members, or a whole group, to another group from a month. With dryRun nothing is
+ * written: the preview gets the exact counts and who blocks it.
+ */
+export async function moveMembersToGroup(input: s.MoveMembersInput) {
+  return run(
+    s.moveMembersSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("move_members_to_group", {
+        p_to_group: p.toGroup,
+        p_from_month: p.fromMonth,
+        p_member_ids: p.memberIds,
+        p_from_group: p.fromGroup,
+        p_reason: p.reason,
+        p_dry_run: p.dryRun ?? false,
+      }),
+    {
+      touchesPublic: !input.dryRun,
+      result: (d): MoveResult => {
+        const r = (d ?? {}) as {
+          moved?: number;
+          skipped_already_in_target?: number;
+          blocked?: { member_id: string; member_ref: string; name: string; reason: string }[];
+          from_fee?: number | null;
+          to_fee?: number | null;
+        };
+        return {
+          moved: r.moved ?? 0,
+          skippedAlreadyInTarget: r.skipped_already_in_target ?? 0,
+          blocked: (r.blocked ?? []).map((b) => ({
+            memberId: b.member_id,
+            memberRef: b.member_ref,
+            name: b.name,
+            reason: b.reason,
+          })),
+          fromFee: r.from_fee ?? null,
+          toFee: r.to_fee ?? null,
+        };
+      },
+    },
+  );
+}
+
+/** Retire an empty group from a year (history kept). */
+export async function retireGroup(input: { groupCode: string; fromYear: number }) {
+  return run(
+    s.retireGroupSchema,
+    input,
+    (sb, p) => sb.rpc("retire_group", { p_group: p.groupCode, p_from_year: p.fromYear }),
+    { touchesPublic: true },
+  );
+}
+
 export async function setGroupPrice(input: s.SetGroupPriceInput) {
   return run(
     s.setGroupPriceSchema,
