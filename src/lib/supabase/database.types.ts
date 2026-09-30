@@ -1532,6 +1532,14 @@ export type Database = {
         Args: { p_id: string; p_new_term_title?: string }
         Returns: number
       }
+      accuracy_audit: {
+        Args: never
+        Returns: {
+          check_name: string
+          detail: string
+          ok: boolean
+        }[]
+      }
       activity_log: {
         Args: { p_before?: number; p_limit?: number }
         Returns: {
