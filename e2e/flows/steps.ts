@@ -94,6 +94,8 @@ export async function recordTransfer(page: Page, member: string, wallet = "بن�
     .getByRole("radiogroup", { name: "المحفظة" })
     .getByRole("radio", { name: wallet })
     .click();
+  const account = page.getByRole("radiogroup", { name: "أي حساب" });
+  if (await account.count()) await account.getByRole("radio").first().click();
   await expect(save).toHaveText(/^\s*سجّل\s*$/);
   await save.click();
   await expect(page.getByRole("status").filter({ hasText: "سُجّلت الدفعة" })).toBeVisible();
