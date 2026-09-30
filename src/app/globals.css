@@ -256,6 +256,10 @@
     gap: 8px;
   }
   /* «المحافظ» (m41): a wallet, its logo and its accounts under it */
+  .bq-wallet .bq-row-m {
+    flex: 1 1 0;
+    min-width: 0;
+  }
   .bq-wallet + .bq-wallet {
     border-block-start: 1px solid var(--line, rgba(0, 0, 0, 0.08));
   }
@@ -565,25 +569,8 @@
     background: var(--rej-tint);
     color: var(--rej-ink);
   }
-  .bq-av {
-    flex: none;
-    display: grid;
-    place-items: center;
-    border-radius: 999px;
-    background: var(--n1);
-    color: var(--ink);
-    font-family: var(--font-display);
-    font-weight: 700;
-    align-content: center;
-    line-height: 1;
-  }
   .bq-nowrap {
     white-space: nowrap;
-  }
-  .bq-av-l {
-    margin-top: 1px;
-    font-weight: 600;
-    opacity: 0.72;
   }
   .bq-disc {
     flex: none;
@@ -617,26 +604,6 @@
   }
 
   /* status tag */
-  .bq-tag {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 4px 10px 4px 12px;
-    border-radius: 999px;
-    white-space: nowrap;
-  }
-  .bq-tag.is-ok {
-    background: var(--g1);
-    color: var(--g8);
-  }
-  .bq-tag.is-late,
-  .bq-tag.is-off {
-    background: var(--n1);
-    color: var(--muted);
-  }
   .bq-tag-inline {
     font-family: var(--font-sans);
     font-size: 14px;
@@ -728,21 +695,6 @@
   .bq-link svg {
     transition: transform 200ms var(--ease-out);
   }
-  .bq-track {
-    position: relative;
-    width: 100%;
-    height: 12px;
-    border-radius: 999px;
-    background: var(--n2);
-    overflow: hidden;
-  }
-  .bq-track > span {
-    position: absolute;
-    inset: 0;
-    border-radius: 999px;
-    background: var(--g7);
-    transform-origin: right;
-  }
   .bq-track-k {
     display: flex;
     justify-content: space-between;
@@ -765,9 +717,6 @@
     align-items: center;
     gap: 12px;
     margin-block: 12px 4px;
-  }
-  .bq-track-row .bq-track {
-    flex: 1;
   }
   .bq-track-p {
     font-size: 17px;
@@ -1816,67 +1765,10 @@
   .bq-mline .bq-num {
     font-size: 22px;
   }
-  .bq-mstatus {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-block: 6px 18px;
-    font-size: 17px;
-    font-weight: 600;
-  }
-  .bq-mstatus.is-ok {
-    color: var(--g8);
-  }
-  .bq-mstatus.is-late {
-    color: var(--muted);
-  }
   /* one month language (audit V4): the report's cells, white, bordered, a green ✓ when paid,
      plus the month word so a member reads their own months */
-  .bq-months {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1px;
-    overflow: hidden;
-    border: 1px solid #7f9a88;
-    border-radius: 14px;
-    background: #b3c5b9;
-  }
-  .bq-mo {
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-height: 64px;
-    background: var(--paper);
-  }
-  .bq-mo-n {
-    font-family: var(--font-display);
-    font-size: 17px;
-    font-weight: 600;
-  }
-  .bq-mo-s {
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-    color: var(--muted);
-  }
-  .mo-paid .bq-mo-s,
-  .mo-ahead .bq-mo-s {
-    color: var(--g8);
-    font-weight: 600;
-  }
-  .mo-future,
   .mo-none {
     color: var(--muted);
-  }
-  .bq-mo-tag {
-    padding: 0 6px;
-    border-radius: 999px;
-    background: var(--g1);
-    color: var(--g8);
-    font-size: 14px;
   }
   .bq-owed {
     margin-block-start: 18px;
@@ -4498,9 +4390,6 @@
     min-width: 0;
     flex: 1;
   }
-  .bq-payers-t .bq-track {
-    height: 8px;
-  }
   .bq-payers-n {
     display: flex;
     align-items: center;
@@ -4722,7 +4611,6 @@
   .bq-row > * {
     min-width: 0;
   }
-  .bq-row .bq-tag,
   .bq-row .bq-amt {
     flex: 0 1 auto;
     white-space: normal;

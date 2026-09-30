@@ -315,7 +315,6 @@ export async function adminData(): Promise<PData> {
     activities,
     groupRows,
     wtypes,
-    monthWallets,
   ] = await Promise.all([
     membersAdmin(),
     memberRows(year),
@@ -335,8 +334,6 @@ export async function adminData(): Promise<PData> {
     data.getExpenseActivities(),
     groupsOverview(year).catch(() => [] as GroupRow[]),
     data.getWalletTypes(),
-    // the same month's paper-sheet import, taken out of «المداخيل هذا الشهر»
-    data.getWalletsReport({ year, month: t.getUTCMonth() + 1 }).catch(() => null),
   ]);
   const groupName = new Map(groupRows.map((g) => [g.code, g.name]));
   const due = currentDueMonth(t, info.graceDays);
@@ -496,7 +493,7 @@ export async function adminData(): Promise<PData> {
     opening: sum.openingBalance,
     collectedYear: sum.collectedThisYear,
     spentYear: sum.spentThisYear,
-    monthIn: monthIncome(monthCash, monthWallets),
+    monthIn: monthIncome(monthCash),
     monthOut: monthCash?.spending ?? spentIn(month),
     monthly,
     members,

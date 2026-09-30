@@ -1459,3 +1459,14 @@ body:has(.pa) .bq-demo {
     text-align: center;
   }
 }
+
+/* «سجل العمليات»: a move between wallets can be cancelled («المسؤول») */
+.pa-log-act {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pa-log-act > .pa-row {
+  flex: 1;
+  min-width: 0;
+}
