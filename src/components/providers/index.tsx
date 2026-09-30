@@ -6,7 +6,7 @@ import { OfflineBanner } from "./offline-banner";
 import { OnlineSync } from "./online";
 import { PullToRefresh } from "./pull-to-refresh";
 import { AppToaster } from "./toaster";
-import { InstallBanner, InstallCapture, InstallWatcher } from "./install";
+import { InstallCapture, InstallWatcher } from "./install";
 import { ServiceWorkerUpdates } from "./sw-update";
 
 export { useOnline } from "./online";
@@ -49,7 +49,6 @@ export function Providers({ children }: { children: ReactNode }) {
         <PullToRefresh />
         {children}
         <InstallWatcher />
-        <InstallBanner />
         <AppToaster />
       </QueryClientProvider>
     </>

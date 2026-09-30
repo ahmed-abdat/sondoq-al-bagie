@@ -5,37 +5,12 @@
 // - The tap calls `prompt()` synchronously in the click handler (user activation), once per event.
 // - No dialog available (in-app browser, iPhone, Chrome not ready yet): a sheet with the exact
 //   steps, never a dead button.
-// - InstallBanner: a slim bar above the bottom nav, from the second visit or after a meaningful
-//   action, once per session, never over an open sheet or while typing; each «✕» pushes the next
-//   showing back 1, 3, 7, 14, then 30 days. `InstallEntry` is the quiet permanent entry for menus.
-import {
-  CopyIcon,
-  DownloadIcon,
-  EllipsisVerticalIcon,
-  ExternalLinkIcon,
-  XIcon,
-} from "lucide-react";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+// - Committee-only app: no invite banner; `InstallEntry` in «المزيد» is the one way in.
+import { CopyIcon, DownloadIcon, EllipsisVerticalIcon, ExternalLinkIcon } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Sheet } from "@/components/app/sheet";
-import {
-  BACKOFF_KEY,
-  bannerAllowedOn,
-  chromeIntentUrl,
-  detectPlatform,
-  DISMISS_KEY,
-  ENGAGED_KEY,
-  installMode,
-  offersInstallDialog,
-  recordVisitDay,
-  SESSIONS_KEY,
-  shouldInvite,
-  snooze,
-  VISITS_KEY,
-  type InstallMode,
-} from "@/lib/offline/install";
-import { safeStorage } from "@/lib/safe-storage";
+import { chromeIntentUrl, installMode, type InstallMode } from "@/lib/offline/install";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -67,51 +42,6 @@ export function InstallCapture() {
 
 const win = () => window as InstallWindow;
 let related = false; // getInstalledRelatedApps said the app is installed
-let engagedNow = false;
-/**
- * First view after a personal link: the banner waits until the member has seen their «أنت» card
- * (or moves to another page), so it never covers the card's buttons on that first open.
- */
-let welcomeHold =
-  typeof window !== "undefined" &&
-  new URLSearchParams(window.location.search).get("welcome") === "1";
-const releaseHold = () => {
-  if (!welcomeHold) return;
-  welcomeHold = false;
-  emit();
-};
-
-/** Release the hold once the «أنت» card has been on screen for a moment (or after 20 s). */
-function holdUntilCardSeen() {
-  welcomeHold = true;
-  emit();
-  const giveUp = window.setTimeout(done, 20_000);
-  let seen: number | undefined;
-  let io: IntersectionObserver | undefined;
-  const mo = new MutationObserver(watch);
-  function done() {
-    window.clearTimeout(giveUp);
-    if (seen) window.clearTimeout(seen);
-    io?.disconnect();
-    mo.disconnect();
-    releaseHold();
-  }
-  function watch() {
-    const card = document.querySelector(".bq-you");
-    if (!card || io || typeof IntersectionObserver === "undefined") return;
-    io = new IntersectionObserver(
-      ([e]) => {
-        if (seen) window.clearTimeout(seen);
-        seen = e.isIntersecting ? window.setTimeout(done, 2_500) : undefined;
-      },
-      { threshold: 0.6 },
-    );
-    io.observe(card);
-  }
-  mo.observe(document.body, { childList: true, subtree: true });
-  watch();
-}
-
 function emit() {
   window.dispatchEvent(new Event(CHANGE));
 }
@@ -172,8 +102,6 @@ function promptInstall(): Promise<"accepted" | "dismissed" | "unavailable"> {
  * lasts about 5 s, so prompt() still opens the dialog.
  */
 const PROMPT_WAIT_MS = 2500;
-/** The banner, on browsers that may still offer the dialog, waits for it this long. */
-const BANNER_WAIT_MS = 4000;
 
 /** Resolves true as soon as the browser's install event is here, false after `ms`. */
 function waitForPrompt(ms: number): Promise<boolean> {
@@ -193,83 +121,8 @@ function waitForPrompt(ms: number): Promise<boolean> {
 /** Browsers that can give the install dialog but have not (yet): Chrome/Edge/Samsung, desktop. */
 const mayStillPrompt = (m: InstallMode) => m === "android" || m === "samsung" || m === "desktop";
 
-/**
- * Call after a meaningful action (found one's name, opened a receipt, sent a proof): the invite
- * may show, but not at once: the person first reads what the action changed (the card's new
- * «دفعة بانتظار التأكيد», its buttons), so the invite waits for their next scroll, tap or key.
- */
-export function markInstallEngaged() {
-  engage(true);
-}
-
-function engage(waitForNextMove: boolean) {
-  engagedNow = true;
-  safeStorage.setItem(ENGAGED_KEY, "1");
-  if (waitForNextMove) holdUntilNextMove();
-  emit();
-}
-
-let moveHold = false;
-let dropMoveHold: (() => void) | null = null;
-function holdUntilNextMove() {
-  dropMoveHold?.();
-  moveHold = true;
-  const since = Date.now();
-  const kinds = ["scroll", "pointerdown", "keydown"] as const;
-  const onMove = () => {
-    // the action's own tap and the page settling right after it do not count
-    if (Date.now() - since < 1_000) return;
-    stop();
-    moveHold = false;
-    emit();
-  };
-  const stop = () => {
-    kinds.forEach((k) => window.removeEventListener(k, onMove, true));
-    dropMoveHold = null;
-  };
-  kinds.forEach((k) => window.addEventListener(k, onMove, { capture: true, passive: true }));
-  dropMoveHold = stop;
-}
-
-function inviteNow(): boolean {
-  return (
-    !welcomeHold &&
-    !moveHold &&
-    shouldInvite({
-      visitDays: safeStorage.getItem(VISITS_KEY),
-      sessions: Number(safeStorage.getItem(SESSIONS_KEY)) || 0,
-      engaged: engagedNow || safeStorage.getItem(ENGAGED_KEY) === "1",
-      backoff: safeStorage.getItem(BACKOFF_KEY),
-      dismissedAt: safeStorage.getItem(DISMISS_KEY),
-    })
-  );
-}
-
-/** «✕» / «ليس الآن» / the dialog dismissed: next showing after 1, 3, 7, 14, then 30 days. */
-function snoozeInvite() {
-  safeStorage.setItem(BACKOFF_KEY, snooze(safeStorage.getItem(BACKOFF_KEY)));
-  emit();
-}
-
-/** sessionStorage, quietly (private modes). */
-const session = {
-  get(k: string) {
-    try {
-      return sessionStorage.getItem(k);
-    } catch {
-      return null;
-    }
-  },
-  set(k: string, v: string) {
-    try {
-      sessionStorage.setItem(k, v);
-    } catch {
-      /* not remembered: at worst the banner shows again after a reload */
-    }
-  },
-};
-const SESSION_SEEN = "sondoq:session";
-const BANNER_SHOWN = "sondoq:install-banner-shown";
+/** Was the install invite's trigger; the invite is gone. Remove once no caller is left. */
+export function markInstallEngaged() {}
 
 /** Current install mode ("installed" on the server and while hydrating). */
 function useInstallMode(): InstallMode {
@@ -277,30 +130,11 @@ function useInstallMode(): InstallMode {
 }
 
 /**
- * Mounted once (Providers): counts visit days, asks Android whether the app is already installed,
- * and thanks the member when it gets installed.
+ * Mounted once (Providers): asks Android whether the app is already installed, and says thanks
+ * when it gets installed.
  */
 export function InstallWatcher() {
   useEffect(() => {
-    safeStorage.setItem(
-      VISITS_KEY,
-      recordVisitDay(safeStorage.getItem(VISITS_KEY), new Date().toISOString().slice(0, 10)),
-    );
-    if (!session.get(SESSION_SEEN)) {
-      session.set(SESSION_SEEN, "1");
-      const n = (Number(safeStorage.getItem(SESSIONS_KEY)) || 0) + 1;
-      safeStorage.setItem(SESSIONS_KEY, String(Math.min(n, 99)));
-      emit();
-    }
-    // just arrived from a member's personal link (/m/<token> → /?welcome=1): invite to install
-    // in this browser, and drop the marker from the address
-    const url = new URL(window.location.href);
-    if (url.searchParams.get("welcome") === "1") {
-      engage(false); // its own hold: until the «أنت» card was seen
-      holdUntilCardSeen();
-      url.searchParams.delete("welcome");
-      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-    }
     const nav = navigator as Navigator & {
       getInstalledRelatedApps?: () => Promise<{ platform: string }[]>;
     };
@@ -327,184 +161,30 @@ export function InstallWatcher() {
  * One tap: the browser's dialog when there is one (or when it arrives within a moment), else the
  * steps sheet. After «إلغاء» in the dialog Chrome offers a new event, so the next tap prompts again.
  */
-function useInstallAction(onLater?: () => void) {
+function useInstallAction() {
   const mode = useInstallMode();
   const [sheet, setSheet] = useState<InstallMode | null>(null);
   const [waiting, setWaiting] = useState(false);
-  const prompt = (fallback: InstallMode, onOutcome?: (o: "accepted" | "dismissed") => void) =>
-    void promptInstall().then((o) => {
-      if (o === "unavailable") setSheet(fallback);
-      else onOutcome?.(o);
-    });
-  const start = (onOutcome?: (o: "accepted" | "dismissed") => void) => {
+  const prompt = (fallback: InstallMode) =>
+    void promptInstall().then((o) => o === "unavailable" && setSheet(fallback));
+  const start = () => {
     if (waiting) return;
     const fallback = /Android/i.test(navigator.userAgent) ? "android" : "desktop";
     // synchronous in the click: prompt() keeps the tap's user activation
-    if (mode === "native") return prompt(fallback, onOutcome);
+    if (mode === "native") return prompt(fallback);
     if (!mayStillPrompt(mode)) return setSheet(mode);
     setWaiting(true);
     void waitForPrompt(PROMPT_WAIT_MS).then((ok) => {
       setWaiting(false);
-      if (ok) prompt(mode, onOutcome);
+      if (ok) prompt(mode);
       else setSheet(mode);
     });
   };
   const sheetEl =
     sheet && sheet !== "installed" && sheet !== "native" ? (
-      <InstallSheet mode={sheet} onDone={() => setSheet(null)} onLater={onLater} />
+      <InstallSheet mode={sheet} onDone={() => setSheet(null)} />
     ) : null;
   return { mode, start, sheetEl, waiting };
-}
-
-/* the banner stays away while a sheet/dialog is open or the member is typing */
-const TYPING =
-  "input:not([type=button]):not([type=checkbox]):not([type=radio]),textarea,select,[contenteditable=true]";
-function uiNow(): string {
-  const dialog = !!document.querySelector('[role="dialog"],[aria-modal="true"]');
-  const typing = !!document.activeElement?.matches(TYPING);
-  const nav = document.querySelector<HTMLElement>(".bq-bnav");
-  const hasNav = !!nav && getComputedStyle(nav).display !== "none";
-  return `${dialog || typing ? 1 : 0}${hasNav ? 1 : 0}`;
-}
-function subscribeUi(cb: () => void) {
-  let raf = 0;
-  const later = () => {
-    cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(cb);
-  };
-  const mo = new MutationObserver(later);
-  mo.observe(document.body, { childList: true, subtree: true });
-  window.addEventListener("focusin", later);
-  window.addEventListener("focusout", later);
-  window.addEventListener("resize", later);
-  return () => {
-    cancelAnimationFrame(raf);
-    mo.disconnect();
-    window.removeEventListener("focusin", later);
-    window.removeEventListener("focusout", later);
-    window.removeEventListener("resize", later);
-  };
-}
-
-const BANNER_CSS = `
-.bq-ib{position:fixed;inset-inline:12px;bottom:calc(var(--safe-b,0px) + 12px);z-index:45;
-max-width:560px;margin-inline:auto;display:flex;align-items:center;gap:10px;
-padding-block:8px;padding-inline:12px 6px;background:#fff;color:#14201A;border-radius:18px;
-box-shadow:0 12px 30px -12px rgba(14,58,27,.4),0 1px 4px rgba(14,58,27,.14);
-animation:bq-ib-in .2s cubic-bezier(.2,.8,.2,1) both}
-.bq-ib[data-nav="1"]{bottom:calc(var(--nav,64px) + var(--safe-b,0px) + 8px)}
-.bq-ib img{width:36px;height:36px;border-radius:10px;flex:none}
-.bq-ib-t{flex:1;min-width:0;font-weight:600;font-size:15px;line-height:1.35}
-.bq-ib .bq-btn{min-height:48px;padding-inline:16px;flex:none}
-@keyframes bq-ib-in{from{transform:translateY(calc(100% + 24px))}}
-@media (prefers-reduced-motion:reduce){.bq-ib{animation:bq-ib-fade .2s both}}
-@keyframes bq-ib-fade{from{opacity:0}}
-`;
-
-/**
- * The install invite: a slim bar above the bottom nav (mounted once in Providers). It reserves
- * its height at the bottom of the page while visible, so it never covers content.
- */
-export function InstallBanner() {
-  const pathname = usePathname();
-  const ready = useSyncExternalStore(subscribe, inviteNow, () => false);
-  const ui = useSyncExternalStore(subscribeUi, uiNow, () => "10");
-  // shown already in an earlier page load of this session: not again
-  const [seenBefore] = useState(() =>
-    typeof window === "undefined" ? true : session.get(BANNER_SHOWN) === "1",
-  );
-  const [closed, setClosed] = useState(false);
-  const later = () => {
-    snoozeInvite();
-    setClosed(true);
-  };
-  const { mode, start, sheetEl, waiting } = useInstallAction(later);
-  const bar = useRef<HTMLDivElement>(null);
-  // Chrome/Edge: the invite comes with Chrome's own dialog, whenever Chrome offers it (after its
-  // engagement check, maybe 30 s in): never menu steps from the banner. Other browsers that may
-  // still offer it (Samsung): a moment's wait, then the steps.
-  const [grace, setGrace] = useState(true);
-  const [chromium] = useState(
-    () => typeof navigator !== "undefined" && offersInstallDialog(navigator.userAgent),
-  );
-  useEffect(() => {
-    const t = window.setTimeout(() => setGrace(false), BANNER_WAIT_MS);
-    return () => clearTimeout(t);
-  }, []);
-  // leaving the welcome page ends the hold as well
-  const firstPath = useRef(pathname);
-  useEffect(() => {
-    if (pathname !== firstPath.current) releaseHold();
-  }, [pathname]);
-  const visible =
-    mode !== "installed" &&
-    ready &&
-    !seenBefore &&
-    !closed &&
-    ui[0] === "0" &&
-    !(mayStillPrompt(mode) && (grace || chromium)) &&
-    bannerAllowedOn(pathname);
-
-  useEffect(() => {
-    if (!visible) return;
-    session.set(BANNER_SHOWN, "1");
-    const h = (bar.current?.offsetHeight ?? 56) + 12;
-    const root = document.documentElement;
-    const body = document.body;
-    const before = body.style.paddingBottom;
-    root.style.setProperty("--bq-install-bar", `${h}px`);
-    body.style.paddingBottom = `${h}px`;
-    return () => {
-      root.style.removeProperty("--bq-install-bar");
-      body.style.paddingBottom = before;
-    };
-  }, [visible]);
-
-  return (
-    <>
-      {visible && (
-        <div
-          ref={bar}
-          className="bq-ib"
-          role="region"
-          aria-label="تثبيت التطبيق"
-          data-nav={ui[1]}
-          dir="rtl"
-        >
-          <style>{BANNER_CSS}</style>
-          {/* eslint-disable-next-line @next/next/no-img-element -- tiny local icon */}
-          <img src="/icons/icon-192.png" alt="" />
-          <span className="bq-ib-t">
-            {mode === "desktop" || detectPlatform(navigator.userAgent) === "other"
-              ? "أضف الصندوق إلى جهازك"
-              : "أضف الصندوق إلى هاتفك"}
-          </span>
-          <button
-            type="button"
-            className="bq-btn bq-btn-primary bq-press"
-            aria-busy={waiting || undefined}
-            onClick={() =>
-              start((o) => {
-                if (o === "dismissed") later();
-                else setClosed(true);
-              })
-            }
-          >
-            تثبيت
-          </button>
-          <button
-            type="button"
-            className="bq-icon-btn bq-press"
-            aria-label="ليس الآن"
-            onClick={later}
-          >
-            <XIcon className="size-5" />
-          </button>
-        </div>
-      )}
-      {sheetEl}
-    </>
-  );
 }
 
 /** Quiet permanent entry («تثبيت التطبيق») for a menu or settings list; hidden once installed. */
@@ -517,14 +197,14 @@ export function InstallEntry({ className = "" }: { className?: string }) {
         type="button"
         className={`bq-row bq-press ${className}`}
         aria-busy={waiting || undefined}
-        onClick={() => start()}
+        onClick={start}
       >
         <span className="bq-disc is-in" aria-hidden>
           <DownloadIcon className="size-5" />
         </span>
         <span className="bq-row-m">
           <span className="bq-row-t">تثبيت التطبيق</span>
-          <span className="bq-row-s">أيقونة على الشاشة الرئيسية، ويعمل بدون إنترنت</span>
+          <span className="bq-row-s">أيقونة على الشاشة الرئيسية، يفتح مثل أي تطبيق</span>
         </span>
       </button>
       {sheetEl}
@@ -604,12 +284,9 @@ const SHEET: Record<
 function InstallSheet({
   mode,
   onDone,
-  onLater,
 }: {
   mode: Exclude<InstallMode, "installed" | "native">;
   onDone: () => void;
-  /** Adds «ليس الآن» (snoozes the invite). */
-  onLater?: () => void;
 }) {
   const s = SHEET[mode];
   const android = /Android/i.test(navigator.userAgent);
@@ -702,18 +379,6 @@ function InstallSheet({
               <CopyLink />
             </div>
           </>
-        )}
-        {onLater && (
-          <button
-            type="button"
-            className="bq-btn bq-btn-ghost bq-press bq-small-top"
-            onClick={() => {
-              onLater();
-              onDone();
-            }}
-          >
-            ليس الآن
-          </button>
         )}
       </div>
     </Sheet>
