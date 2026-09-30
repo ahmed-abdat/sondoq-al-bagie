@@ -24,19 +24,6 @@ export function isIosSafari(userAgent: string): boolean {
   );
 }
 
-/**
- * Chromium browsers (Chrome, Edge, Opera) give their own install dialog once the site passes
- * their checks (for Chrome: a tap and about 30 s on the site, maybe on an earlier visit). Until
- * then the invite waits for it rather than showing menu steps.
- */
-export function offersInstallDialog(userAgent: string): boolean {
-  return (
-    /Chrome\/|Chromium\//.test(userAgent) &&
-    !/SamsungBrowser|Firefox|FxiOS|CriOS|EdgiOS/.test(userAgent) &&
-    !isInAppBrowser(userAgent)
-  );
-}
-
 function isSamsungInternet(userAgent: string): boolean {
   return /SamsungBrowser/i.test(userAgent);
 }
@@ -73,79 +60,4 @@ export function installMode(o: {
 export function chromeIntentUrl(href: string): string {
   const u = new URL(href);
   return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(":", "")};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(href)};end`;
-}
-
-/* ───────────── when to invite ───────────── */
-
-const DAY = 24 * 60 * 60 * 1000;
-
-/** Old single «ليس الآن» timestamp (two weeks), still honoured. */
-export const DISMISS_KEY = "sondoq:install-dismissed-at";
-export const DISMISS_FOR_MS = 14 * DAY;
-
-export function isDismissed(dismissedAt: string | null, now: number = Date.now()): boolean {
-  const t = Number(dismissedAt);
-  return Number.isFinite(t) && t > 0 && now - t < DISMISS_FOR_MS;
-}
-
-/** After each «✕»/«ليس الآن»: wait 1, then 3, 7, 14, then 30 days (capped). */
-export const BACKOFF_KEY = "sondoq:install-backoff";
-const BACKOFF_DAYS = [1, 3, 7, 14, 30] as const;
-
-/** Stored as "count,nextAt" (ms). Anything unreadable counts as never dismissed. */
-export function parseBackoff(stored: string | null): { count: number; nextAt: number } {
-  const [c, n] = (stored ?? "").split(",").map(Number);
-  return Number.isInteger(c) && c > 0 && Number.isFinite(n)
-    ? { count: c, nextAt: n }
-    : { count: 0, nextAt: 0 };
-}
-
-/** The stored value after one more dismissal at `now`. */
-export function snooze(stored: string | null, now: number = Date.now()): string {
-  const count = parseBackoff(stored).count + 1;
-  const days = BACKOFF_DAYS[Math.min(count, BACKOFF_DAYS.length) - 1];
-  return `${count},${now + days * DAY}`;
-}
-
-export function isSnoozed(stored: string | null, now: number = Date.now()): boolean {
-  return now < parseBackoff(stored).nextAt;
-}
-
-export const VISITS_KEY = "sondoq:visit-days";
-export const SESSIONS_KEY = "sondoq:sessions";
-export const ENGAGED_KEY = "sondoq:engaged";
-
-/** Adds today (YYYY-MM-DD) to the stored list of visit days; keeps the last 5. */
-export function recordVisitDay(stored: string | null, today: string): string {
-  const day = /^\d{4}-\d{2}-\d{2}$/;
-  const days = (stored ?? "").split(",").filter((d) => day.test(d));
-  if (day.test(today) && !days.includes(today)) days.push(today);
-  return days.slice(-5).join(",");
-}
-
-/**
- * Invite to install only when it means something: from the second visit (another session or
- * another day), or right after a meaningful action; never on the very first page; not while
- * snoozed.
- */
-export function shouldInvite(o: {
-  visitDays: string | null;
-  sessions?: number;
-  engaged: boolean;
-  backoff?: string | null;
-  dismissedAt?: string | null;
-  now?: number;
-}): boolean {
-  if (isSnoozed(o.backoff ?? null, o.now) || isDismissed(o.dismissedAt ?? null, o.now))
-    return false;
-  const days = (o.visitDays ?? "").split(",").filter(Boolean).length;
-  return o.engaged || days >= 2 || (o.sessions ?? 0) >= 2;
-}
-
-/**
- * Paths where the banner never shows: someone checking a receipt, signing in, and the report
- * (a page to read, print and share, with its own tools at the bottom).
- */
-export function bannerAllowedOn(pathname: string): boolean {
-  return !/^\/(r|login|report)(\/|$)/.test(pathname);
 }
