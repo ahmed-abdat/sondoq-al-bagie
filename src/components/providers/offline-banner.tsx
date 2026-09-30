@@ -69,7 +69,7 @@ const BAR =
   "bg-warn-soft text-warn border-line sticky top-0 z-50 flex items-center justify-center gap-2 border-b px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-sm font-medium";
 
 /**
- * Thin bar at the top when what is on screen may be old: offline («غير متصل. آخر تحديث قبل …»),
+ * Thin bar at the top when what is on screen may be old: offline («لا يوجد اتصال. آخر تحديث قبل …»),
  * or online but the page came from the saved copy because the network was too slow
  * («هذه نسخة محفوظة قبل …» + «تحديث»).
  */

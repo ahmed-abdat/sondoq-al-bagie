@@ -66,7 +66,7 @@ test("installed app offline: pull shows the offline message instead", async ({ p
   await page.evaluate(() => navigator.serviceWorker.ready);
   await context.setOffline(true);
   await pull(page, 260);
-  await expect(page.getByText("غير متصل. تُعرض آخر بيانات محفوظة")).toBeVisible();
+  await expect(page.getByText("لا يوجد اتصال. لم تُحدَّث البيانات.")).toBeVisible();
   await expect(indicator(page)).toHaveAttribute("data-refreshing", "false");
   await context.setOffline(false);
 });

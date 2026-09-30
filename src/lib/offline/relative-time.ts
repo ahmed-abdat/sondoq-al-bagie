@@ -16,10 +16,15 @@ export function timeAgo(then: number, now: number = Date.now()): string {
   return "قبل لحظات";
 }
 
-/** Text of the offline banner. `lastUpdated` = newest saved public data (ms), if any. */
+/**
+ * Text of the offline banner. `lastUpdated` = when what is on screen was loaded (ms), if known;
+ * without it nothing claims a saved copy (none is kept): the data may just be old.
+ */
 export function offlineMessage(lastUpdated: number | null, now: number = Date.now()): string {
-  if (!lastUpdated) return "غير متصل. تُعرض آخر نسخة محفوظة";
-  return `غير متصل. آخر تحديث ${timeAgo(lastUpdated, now)}`;
+  if (!lastUpdated) return OFFLINE_NO_DATE;
+  return `لا يوجد اتصال. آخر تحديث ${timeAgo(lastUpdated, now)}`;
 }
+
+export const OFFLINE_NO_DATE = "لا يوجد اتصال. قد تكون البيانات قديمة.";
 
 export const OFFLINE_WRITE_HINT = "يلزم اتصال بالإنترنت للحفظ. البيانات المعروضة من آخر تحديث.";
