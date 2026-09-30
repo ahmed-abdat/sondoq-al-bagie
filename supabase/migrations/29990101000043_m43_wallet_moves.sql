@@ -9,8 +9,9 @@
 --   handover: taking the money out to cash is recorded as moves, so a forgotten one stays visible).
 --   The manual opening (set_fund_account_opening / set_cash_opening, m41) stays as an override.
 -- - wallet_transfers + record_wallet_transfer(id, from account | cash, to account | cash, amount,
---   date, note): any committee member; a stopped account can still be emptied; never income or
---   spending, never the fund balance. cancel_wallet_transfer(id, reason): «المسؤول», like expenses.
+--   date, note): any committee member; never more than the wallet holds (not_enough, DETAIL
+--   {wallet, balance}); a stopped account can still be emptied; never income or spending, never
+--   the fund balance. cancel_wallet_transfer(id, reason): «المسؤول», like expenses.
 -- - replace_wallet_account(wallet type, number, holder) «المسؤول»: stops the wallet's active
 --   account(s) and adds the new number in one step; old payments keep the old account.
 --   correct_wallet_account(id, number, holder) «المسؤول»: fixes a typo in place, only while nothing
@@ -70,6 +71,7 @@ declare
   cash_id smallint := (select w.id from public.wallet_types w where w.kind = 'cash');
   fa public.fund_accounts;
   ta public.fund_accounts;
+  bal bigint;
 begin
   perform app_private.require_committee();
   if exists (select 1 from public.wallet_transfers where id = p_id) then return p_id; end if;
@@ -86,6 +88,17 @@ begin
     select * into ta from public.fund_accounts where id = p_to_account_id;
     if ta.id is null then perform app_private.fail('not_found'); end if;
     if not ta.active then perform app_private.fail('wallet_inactive'); end if;
+  end if;
+  -- never more than the wallet holds now (owner); one move at a time, so two cannot both pass
+  perform pg_advisory_xact_lock(hashtext('sondoq.wallet_transfers'));
+  select w.balance into bal
+  from app_private.report_wallets((select s.opening_balance_on from public.settings s), current_date + 1) w
+  where case when p_from_account_id is null then w.fund_account_id is null and w.wallet_type_id = cash_id
+             else w.fund_account_id = p_from_account_id end;
+  if coalesce(bal, 0) < p_amount then
+    raise exception 'sondoq: not_enough' using errcode = 'P0001', hint = 'not_enough',
+      detail = jsonb_build_object('wallet', (select w.name from public.wallet_types w where w.id = coalesce(fa.wallet_type_id, cash_id)),
+                                  'balance', greatest(coalesce(bal, 0), 0))::text;
   end if;
   perform app_private.set_action('record_wallet_transfer');
   insert into public.wallet_transfers (id, from_wallet_type_id, from_account_id, to_wallet_type_id, to_account_id, amount,

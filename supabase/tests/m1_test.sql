@@ -1703,6 +1703,9 @@ select tests.login('committee');
 -- a move: bankily account → cash; never income, spending or the fund balance
 select tests.set('bk', (select balance::text from public.report_wallets(current_date, current_date) where fund_account_id = tests.id('acc')));
 select tests.set('ca', (select balance::text from public.report_wallets(current_date, current_date) where method = 'cash' and fund_account_id is null));
+select tests.throws(format($$select public.record_wallet_transfer(gen_random_uuid(), %L::uuid, null, %s, current_date)$$,
+  tests.get('acc'), tests.get('bk')::bigint + 1), 'not_enough', 'never more than the wallet holds');
+select tests.ok(tests.get('bk')::bigint >= 150, 'the test account holds enough for the move');
 select tests.set('mv', public.record_wallet_transfer(gen_random_uuid(), tests.id('acc'), null, 150, current_date, ' سحب للتسليم ')::text);
 select tests.ok(public.record_wallet_transfer(tests.id('mv'), tests.id('acc'), null, 150, current_date) = tests.id('mv')
                 and (select count(*) from public.wallet_transfers where id = tests.id('mv')) = 1, 'a replayed move is recorded once');
@@ -1721,6 +1724,8 @@ select tests.ok((select balance::text from public.fund_summary) = tests.get('bal
 select tests.login('committee');
 select tests.ok(exists (select 1 from public.activity_log(null, 50, 'money') where table_name = 'wallet_transfers'
                         and subject like '% → نقدًا' and amount = 150), 'a move is a money action in the log');
+select tests.throws(format($$select public.record_wallet_transfer(gen_random_uuid(), null, %L::uuid, %s, current_date)$$,
+  tests.get('acc'), tests.get('ca')::bigint + 151), 'not_enough', 'cash too: never more than it holds');
 select tests.throws($$select public.record_wallet_transfer(gen_random_uuid(), null, null, 10, current_date)$$, 'same_wallet',
   'cash to cash is refused');
 select tests.throws(format($$select public.record_wallet_transfer(gen_random_uuid(), %L::uuid, %L::uuid, 10, current_date)$$,

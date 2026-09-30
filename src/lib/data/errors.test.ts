@@ -64,6 +64,16 @@ describe("errors", () => {
     ).toMatch(/^مستحقات شهر مارس 2026 لـ محمد: 1.000 أوقية\.$/);
   });
 
+  it("names the wallet and what it holds when a move is too big (m43)", () => {
+    const d = (x: object) => JSON.stringify(x);
+    expect(messageFor("not_enough", d({ wallet: "بنكيلي", balance: 36000 }))).toMatch(
+      /^في بنكيلي 36.000 أوقية فقط\.$/,
+    );
+    for (const detail of [null, "x", d({ wallet: "بنكيلي" }), d({ wallet: "", balance: 5 })]) {
+      expect(messageFor("not_enough", detail)).toBe(MESSAGES.not_enough);
+    }
+  });
+
   it("falls back to the plain message on a missing or odd detail", () => {
     for (const detail of [
       null,
