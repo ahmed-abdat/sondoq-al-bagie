@@ -43,29 +43,41 @@ export function MoreScreen() {
     { t: "المصاريف", s: "سجّل مصروفًا، وكل ما صُرف", icon: "bag", to: href("expenses") },
     { t: "سجل العمليات", s: "من سجّل ماذا، ومتى", icon: "list", to: href("activity") },
     { t: "المتأخرون", s: "من عليه رسوم أو نصيب لوحة", icon: "clock", to: href("late") },
-    { t: "الدفعات الأخيرة", s: "كل دفعة، ومن سجّلها", icon: "coins", to: href("payments") },
     ...(d.pending.length
       ? [
           {
-            t: "تنتظر التأكيد",
-            s: `دفعات سُجّلت قبل التحديث: ${d.pending.length}`,
-            icon: "clock" as const,
+            t: `دفعات قديمة لم تُثبَّت (${d.pending.length})`,
+            s: "سُجّلت قبل التحديث. ثبّتها لتُحسب.",
+            icon: "coins" as const,
             to: href("review"),
           },
         ]
       : []),
-    {
-      t: "الإعدادات",
-      s: "أرقام الصندوق، الرسوم الشهرية، حسابات اللجنة",
-      icon: "gear",
-      to: href("settings"),
-    },
     {
       t: "تسليم الصندوق",
       s: "عند نهاية الدورة",
       icon: "hand",
       to: href("handover"),
       admin: true,
+    },
+    {
+      t: "أرقام الصندوق",
+      s: "المحافظ التي يُحوَّل إليها المال",
+      icon: "wallet",
+      to: "/committee/settings#bq-wallets-h",
+    },
+    {
+      t: "أعضاء اللجنة",
+      s: "من يدخل إلى التطبيق، ودور كل واحد",
+      icon: "people",
+      to: "/committee/settings#bq-acc-h",
+      admin: true,
+    },
+    {
+      t: "الإعدادات",
+      s: "الرسوم الشهرية، رقم واتساب اللجنة، رصيد أول السنة",
+      icon: "gear",
+      to: href("settings"),
     },
     { t: "حسابي", s: `${d.me.name} · ${d.me.role} · الإشعارات`, icon: "user", to: href("account") },
   ];
@@ -108,8 +120,8 @@ export function ActivityScreen() {
       <Back to="more" label="المزيد" />
       <header className="pa-title">
         <h1>سجل العمليات</h1>
-        <p className="pa-lead">كل ما سجّلته اللجنة أو غيّرته، ومن فعله.</p>
       </header>
+      <p className="pa-lead">كل ما سجّلته اللجنة أو غيّرته، ومن فعله.</p>
       {people.length > 2 && (
         <Chips
           label="من"

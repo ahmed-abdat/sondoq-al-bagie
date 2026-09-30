@@ -1,0 +1,237 @@
+/* «الإحصاءات» design a (owner pick, proto/admin b591016): numbers first, green = paid,
+   soft grey = not yet, a label on every bar, no names, no red. */
+.st {
+  --st-ok: var(--g7);
+  --st-no: var(--n2);
+  gap: 16px;
+}
+.st .pa-title {
+  flex-wrap: wrap;
+}
+.st-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px 16px;
+  border-radius: var(--r-card);
+  background: var(--g0);
+}
+.st-card h2 {
+  font-size: 1.0625rem;
+  color: var(--g9);
+}
+.st-card h3 {
+  margin: 16px 0 0;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.st-hero {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--g9);
+}
+.st-unit {
+  font-size: 1.375rem;
+  color: var(--muted);
+}
+.st-lead {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+.st-foot,
+.st-cmp {
+  margin: 8px 0 0;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+.st-k {
+  font-size: 0.875rem;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.st-v {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
+}
+.st-ok {
+  color: var(--g8);
+}
+.st-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-block-start: 16px;
+}
+.st-pair > div,
+.st-trio > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.st-trio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-block-start: 8px;
+}
+
+/* horizontal bar: the paid part grows from the start (right) edge */
+.st-hbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--st-no);
+}
+.st-hbar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--st-ok);
+  display: flex;
+  align-items: center;
+  padding-inline: 12px;
+}
+.st-hbar b,
+.st-hbar-out {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.st-hbar-fill b {
+  color: #fff;
+}
+.st-hbar-out {
+  padding-inline: 8px;
+  color: var(--ink);
+}
+.st-b .st-hbar,
+.st-rows .st-hbar {
+  height: 32px;
+  border-radius: 10px;
+}
+.st-b .st-hbar-fill,
+.st-rows .st-hbar-fill {
+  border-radius: 10px;
+}
+.st-hbar-big {
+  height: 56px !important;
+  border-radius: 14px !important;
+}
+.st-hbar-big .st-hbar-fill {
+  border-radius: 14px !important;
+}
+.st-hbar-big b {
+  font-size: 1.1875rem;
+}
+
+/* month columns 1..12 */
+.st-months {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 4px;
+  height: 128px;
+  direction: rtl;
+}
+.st-months-tall {
+  height: 160px;
+}
+.st-months > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.st-months em {
+  font-style: normal;
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--ink);
+  height: 14px;
+}
+.st-months i {
+  flex: 1;
+  width: 100%;
+  max-width: 24px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 4px;
+  background: var(--st-no);
+  overflow: hidden;
+}
+.st-months u {
+  display: block;
+  width: 100%;
+  background: var(--st-ok);
+  border-radius: 4px 4px 0 0;
+}
+.st-months small {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.st-months .st-future i {
+  background: transparent;
+  box-shadow: inset 0 -2px 0 var(--st-no);
+}
+
+/* labelled rows (b) */
+.st-rows {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.st-rows li {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.st-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+}
+.st-count > span {
+  height: 100%;
+  border-radius: 10px;
+  background: var(--n3);
+}
+.st-count b {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+}
+.st-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 4px 0 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.st-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* share image */

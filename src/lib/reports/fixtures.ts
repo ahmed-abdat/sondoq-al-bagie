@@ -3,11 +3,15 @@ import type {
   AnnualReport,
   CampaignReport,
   CommitteeWorkReport,
+  DonationStats,
   ExpensesReport,
+  FeeStats,
   GridReport,
   HandoverReport,
   LateReport,
+  LevyStats,
   MemberStatement,
+  StatsReport,
   SummaryReport,
   WalletsReport,
 } from "../data/report-types";
@@ -388,4 +392,87 @@ export const fxWork: CommitteeWorkReport = {
       reason: "سُجّلت مرتين",
     },
   ],
+};
+
+/* «الإحصاءات»: counts only. 88 active members (A 40, B 48) in September 2026. */
+const feeMonths = (year: number, refMonth: number, paid: number[]) =>
+  paid.map((n, i) => ({
+    month: i + 1,
+    active: 88,
+    paid: n,
+    unpaid: i + 1 <= refMonth ? 88 - n : 0,
+  }));
+export const fxFeeStats: FeeStats = {
+  year: 2026,
+  refMonth: 9,
+  asOf: null,
+  beforeRecords: false,
+  overall: { active: 88, paidUp: 42, paidUpPct: 47.7, owe1: 18, owe2to3: 16, owe4plus: 12 },
+  groups: [
+    { groupCode: "A", active: 40, paidUp: 22, paidUpPct: 55, owe1: 8, owe2to3: 6, owe4plus: 4 },
+    { groupCode: "B", active: 48, paidUp: 20, paidUpPct: 41.7, owe1: 10, owe2to3: 10, owe4plus: 8 },
+  ],
+  months: feeMonths(2026, 9, [80, 78, 76, 74, 70, 66, 60, 52, 42, 5, 2, 2]),
+};
+export const fxLevyStats: LevyStats = {
+  id: "l1",
+  title: "لوحة العيد",
+  status: "open",
+  openedOn: "2026-09-18",
+  daysOpen: 12,
+  shares: 88,
+  paid: 34,
+  unpaid: 50,
+  exempt: 4,
+  paidPct: 40.5,
+  expected: 168_000,
+  collected: 68_000,
+  groups: [
+    {
+      groupCode: "A",
+      shares: 40,
+      paid: 20,
+      unpaid: 18,
+      exempt: 2,
+      paidPct: 52.6,
+      expected: 76_000,
+      collected: 40_000,
+    },
+    {
+      groupCode: "B",
+      shares: 48,
+      paid: 14,
+      unpaid: 32,
+      exempt: 2,
+      paidPct: 30.4,
+      expected: 92_000,
+      collected: 28_000,
+    },
+  ],
+};
+export const fxDonationStats: DonationStats = {
+  id: "c1",
+  title: "ترميم المصلى",
+  status: "open",
+  openedOn: "2026-06-01",
+  memberGivers: 22,
+  outsideGivers: 5,
+  givers: 27,
+  activeMembers: 88,
+  memberPct: 25,
+  collected: 64_000,
+  target: 150_000,
+  targetPct: 42.7,
+};
+export const fxStats: StatsReport = {
+  period: { year: 2026 },
+  generatedAt: AT,
+  fees: fxFeeStats,
+  previous: {
+    ...fxFeeStats,
+    year: 2025,
+    overall: { ...fxFeeStats.overall, paidUp: 48, paidUpPct: 54.5 },
+  },
+  levies: [fxLevyStats],
+  donations: [fxDonationStats],
 };

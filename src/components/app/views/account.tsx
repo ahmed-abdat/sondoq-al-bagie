@@ -1,26 +1,22 @@
 "use client";
-// «حسابي»: the signed-in committee member's own page. Name, role, login; password; the link to
-// their own membership; notifications; sign out (here or everywhere). Settings stay fund-only.
-// Linking to one's own membership happens once; after that only the admin changes it.
+// «حسابي»: the signed-in committee member's own page. Name, role, login; password;
+// notifications; sign out (here or everywhere). Settings stay fund-only.
 import { setCanceller } from "../viewer";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { CommitteePushToggle } from "@/components/providers/committee-push";
-import type { MemberRow as MemberRowData } from "@/lib/data/types";
 import { createIdbPersister } from "@/lib/offline/persister";
 import { useAct, useIsDemo } from "../act";
 import { ROLE_LABEL } from "../derive";
 import { I } from "../icons";
 import { LogoutButton } from "../logout";
-import { MemberPick, PasswordField, PickedMember } from "../member-pick";
+import { PasswordField } from "../member-pick";
 import { Sheet } from "../sheet";
 import { useSnack } from "../shell";
 import type { MyProfile } from "../types";
 import { SubHead } from "./committee";
 import { IDLE, runSave, SaveNote, type SaveState } from "./settings";
-
-const ADMIN_ONLY = "يغيّرها المسؤول فقط.";
 
 /** This browser's push endpoint, so signing out everywhere also stops its notifications. */
 async function pushEndpoint(): Promise<string | undefined> {
@@ -32,7 +28,7 @@ async function pushEndpoint(): Promise<string | undefined> {
   }
 }
 
-export function AccountView({ me, members }: { me: MyProfile; members: MemberRowData[] }) {
+export function AccountView({ me }: { me: MyProfile }) {
   const router = useRouter();
   const online = useOnline();
   const demo = useIsDemo();
@@ -43,21 +39,9 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
   const [nameSave, setNameSave] = useState<SaveState>(IDLE);
   const [pw, setPw] = useState("");
   const [pwSave, setPwSave] = useState<SaveState>(IDLE);
-  const [memberId, setMemberId] = useState(me.memberId);
-  const [canLink, setCanLink] = useState(me.canLinkMember);
-  const [sheet, setSheet] = useState<"pick" | "everywhere" | null>(null);
+  const memberId = me.memberId;
+  const [sheet, setSheet] = useState<"everywhere" | null>(null);
   const [out, setOut] = useState(false);
-  const mine = members.find((m) => m.memberId === memberId) ?? null;
-
-  const linkMember = async (id: string) => {
-    const r = await acts.updateMyProfile({ displayName: savedName, memberId: id });
-    if (!r.ok) return say(r.message);
-    setMemberId(id);
-    setCanLink(false);
-    setSheet(null);
-    say("رُبط حسابك بعضويتك");
-    router.refresh();
-  };
 
   return (
     <>
@@ -103,15 +87,11 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
             <dt>الدور</dt>
             <dd>{ROLE_LABEL[me.role]}</dd>
           </div>
-          <div>
-            <dt>البريد أو الهاتف للدخول</dt>
-            <dd>
-              <bdi dir="ltr" className="bq-num">
-                {me.login || "غير معروف"}
-              </bdi>
-            </dd>
-          </div>
         </dl>
+        <p className="bq-hint bq-small-top">البريد أو الهاتف للدخول:</p>
+        <p className="bq-login-id" dir="ltr">
+          {me.login || "غير معروف"}
+        </p>
         <p className="bq-hint">يغيّرهما المسؤول.</p>
       </section>
 
@@ -136,47 +116,15 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
         </form>
       </section>
 
-      <section className="bq-sec" aria-labelledby="bq-mine-h">
-        <h2 id="bq-mine-h">عضويتي في الصندوق</h2>
-        {mine ? (
-          <>
-            <PickedMember m={mine} />
-            <a
-              className="bq-link bq-link-s bq-press"
-              href={`/members?m=${encodeURIComponent(mine.memberRef)}`}
-            >
-              أشهري {I.go(16)}
-            </a>
-            <p className="bq-hint">{ADMIN_ONLY}</p>
-          </>
-        ) : canLink ? (
-          <>
-            <p className="bq-lead">اربط حسابك بعضويتك مرة واحدة، فلا تؤكد دفعة تخصك.</p>
-            <button
-              type="button"
-              className="bq-btn bq-btn-soft bq-press bq-small-top"
-              disabled={!online}
-              onClick={() => setSheet("pick")}
-            >
-              {I.people(20)} اختر عضويتك
-            </button>
-          </>
+      <section className="bq-sec" aria-labelledby="bq-push-h">
+        <h2 id="bq-push-h">الإشعارات</h2>
+        <p className="bq-hint">أعلمني حين يسجّل أحد اللجنة دفعة أو مصروفًا، على هذا الهاتف.</p>
+        {demo ? (
+          <p className="bq-hint">لا تعمل الإشعارات في النسخة التجريبية.</p>
         ) : (
-          <p className="bq-hint">لست مربوطًا بعضوية. {ADMIN_ONLY}</p>
+          <CommitteePushToggle className="bq-small-top" />
         )}
       </section>
-
-      {me.canConfirm && (
-        <section className="bq-sec" aria-labelledby="bq-push-h">
-          <h2 id="bq-push-h">الإشعارات</h2>
-          <p className="bq-hint">أعلمني عند وصول دفعة جديدة تنتظر التأكيد، على هذا الهاتف.</p>
-          {demo ? (
-            <p className="bq-hint">لا تعمل الإشعارات في النسخة التجريبية.</p>
-          ) : (
-            <CommitteePushToggle className="bq-small-top" />
-          )}
-        </section>
-      )}
 
       <section className="bq-sec" aria-labelledby="bq-sec-h">
         <h2 id="bq-sec-h">الأمان</h2>
@@ -194,14 +142,6 @@ export function AccountView({ me, members }: { me: MyProfile; members: MemberRow
         </div>
       </section>
 
-      {sheet === "pick" && (
-        <Sheet key="pick" label="اختر عضويتك" onDone={() => setSheet(null)}>
-          <MemberPick
-            members={members.filter((m) => m.status === "active")}
-            onPick={(m) => void linkMember(m.memberId)}
-          />
-        </Sheet>
-      )}
       {sheet === "everywhere" && (
         <Sheet key="everywhere" label="الخروج من كل الأجهزة" onDone={() => setSheet(null)}>
           <div className="bq-rec bq-cancel">

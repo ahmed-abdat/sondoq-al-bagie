@@ -29,14 +29,13 @@ const say = (r: { code: string; message: string }) =>
     ? "إنشاء الحسابات غير مفعّل بعد على الخادم. اطلب من المسؤول إضافة المفتاح السري."
     : r.message;
 
+/** Two levels (plan §8/§9): «مسؤول» and «عضو اللجنة». */
 const ROLES: { k: CommitteeRole; hint: string }[] = [
-  { k: "admin", hint: "يدير كل شيء: الإعدادات والحسابات، ويؤكد الدفعات." },
-  { k: "treasurer", hint: "يستلم المال ويؤكد الدفعات." },
-  { k: "deputy", hint: "يؤكد الدفعات عند غياب أمين الصندوق." },
-  { k: "committee", hint: "يسجّل الدفعات فقط، ولا يؤكدها." },
+  { k: "admin", hint: "يدير الحسابات والإعدادات، ويلغي الدفعات، وينشئ اللوحات." },
+  { k: "committee", hint: "يسجّل الدفعات والمصاريف والتبرعات." },
 ];
 
-/** The four roles as big choices; nothing is chosen until the admin taps one. */
+/** The two roles as big choices; nothing is chosen until the admin taps one. */
 function RolePicker({
   value,
   onChange,

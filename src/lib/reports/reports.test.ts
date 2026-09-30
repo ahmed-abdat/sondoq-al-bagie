@@ -7,9 +7,11 @@ import {
   buildHandover,
   buildLate,
   buildStatement,
+  buildStats,
   buildSummary,
   buildWallets,
   buildWork,
+  daysWord,
   refLabel,
 } from "./build";
 import {
@@ -19,6 +21,7 @@ import {
   monthsText,
   pageRoom,
   paginate,
+  percent,
   PHONE,
   UNITS_NOTE,
   type Block,
@@ -42,6 +45,7 @@ const ALL: [string, ReportDoc][] = [
   ["handover", buildHandover(fx.fxHandover)],
   ["wallets", buildWallets(fx.fxWallets)],
   ["work", buildWork(fx.fxWork)],
+  ["stats", buildStats(fx.fxStats)],
 ];
 /** Any formatted amount: «1 000», «45 000», «313 500». */
 const AMOUNT = /\d{1,3}(?:[\s  ]\d{3})+/;
@@ -283,6 +287,123 @@ describe("the 10 reports", () => {
       "التسليم-الدورة-2",
       "المحافظ-2026",
       "عمل-اللجنة-2026",
+      "الإحصاءات-2026",
     ]);
+  });
+});
+
+describe("«الإحصاءات»", () => {
+  it("percent: whole numbers, never 100٪ with someone missing, never 0٪ once someone paid", () => {
+    expect(percent(42, 88)).toBe("48٪");
+    expect(percent(995, 1000)).toBe("99٪");
+    expect(percent(1, 1000)).toBe("1٪");
+    expect(percent(0, 88)).toBe("0٪");
+    expect(percent(88, 88)).toBe("100٪");
+    expect(percent(3, 0)).toBe("—");
+  });
+  it("days as words", () => {
+    expect([1, 2, 5, 10, 12, 100].map(daysWord)).toEqual([
+      "يوم واحد",
+      "يومين",
+      "5 أيام",
+      "10 أيام",
+      "12 يومًا",
+      "100 يوم",
+    ]);
+  });
+
+  const doc = buildStats(fx.fxStats);
+  // without the direction marks that keep amounts left to right inside a sentence
+  const text = txt(doc).replace(/[\u2066-\u2069]/g, "");
+  it("fees first: paid up to the month, by group, each month, who still owes, last year", () => {
+    expect(doc.subtitle).toBe("سنة 2026 · حتى سبتمبر");
+    expect(text).toContain("*48٪* دفعوا حتى سبتمبر: 42 من 88 عضوًا.");
+    expect(text).toContain("المجموعة أ: 55٪ (22 من 40)");
+    expect(text).toContain("المجموعة ب: 42٪ (20 من 48)");
+    expect(text).toContain("يناير 80، فبراير 78");
+    // months not started yet are not counted
+    expect(text).toContain("سبتمبر 42");
+    expect(text).not.toContain("أكتوبر 5");
+    expect(text).toContain("شهر واحد: 18");
+    expect(text).toContain("شهران أو 3: 16");
+    expect(text).toContain("4 أشهر أو أكثر: 12");
+    expect(text).toContain("السنة الماضية في مثل هذا الوقت: 55٪ دفعوا.");
+  });
+  it("the owing buckets and the paid-up add up to the active members", () => {
+    const o = fx.fxStats.fees.overall;
+    expect(o.paidUp + o.owe1 + o.owe2to3 + o.owe4plus).toBe(o.active);
+  });
+  it("each لوحة and تبرع: counts, percentages and money, no names", () => {
+    expect(text).toContain("*لوحة العيد*");
+    expect(text).toContain("*40٪* دفعوا نصيبهم. فُتحت قبل 12 يومًا.");
+    expect(text).toContain("دفعوا: 34");
+    expect(text).toContain("لم يدفعوا بعد: 50");
+    expect(text).toContain("معفون: 4");
+    expect(text).toContain("جُمع 68 000 من 168 000 أوقية.");
+    expect(text).toContain(
+      "المجموعة أ: جُمع 40 000 من 76 000 أوقية. المجموعة ب: جُمع 28 000 من 92 000 أوقية.",
+    );
+    // the groups add up to the whole
+    const g = fx.fxLevyStats.groups;
+    expect(g.reduce((s, x) => s + x.collected, 0)).toBe(fx.fxLevyStats.collected);
+    expect(g.reduce((s, x) => s + x.expected, 0)).toBe(fx.fxLevyStats.expected);
+    expect(text).toContain("*تبرع: ترميم المصلى*");
+    expect(text).toContain("أوقية جُمعت من هدف 150 000 (43٪).");
+    expect(text).toContain("تبرّع 25٪ من أعضاء الرابطة.");
+    for (const name of [...new Set(fx.fxLevy.shares!.map((s) => s.fullName))])
+      expect(text).not.toContain(name);
+  });
+  it("a past year: «السنة كاملة», all 12 months counted", () => {
+    const past = buildStats({
+      ...fx.fxStats,
+      fees: { ...fx.fxFeeStats, year: 2025, refMonth: 12 },
+      previous: null,
+      levies: [],
+      donations: [],
+    });
+    expect(past.subtitle).toBe("سنة 2025");
+    expect(past.hasAmounts).toBe(false);
+    expect(txt(past)).toContain("دفعوا السنة كاملة");
+    expect(txt(past)).toContain("ديسمبر 2");
+    expect(txt(past)).not.toContain("السنة الماضية");
+  });
+  it("nobody owing says so instead of three zeros", () => {
+    const o = { ...fx.fxFeeStats.overall, paidUp: 88, owe1: 0, owe2to3: 0, owe4plus: 0 };
+    const t = txt(buildStats({ ...fx.fxStats, fees: { ...fx.fxFeeStats, overall: o } }));
+    expect(t).toContain("لا أحد عليه رسوم.");
+    expect(t).toContain("*100٪*");
+  });
+  it("a لوحة or تبرع section is never split between two pages", () => {
+    for (const size of [PHONE, A4]) {
+      const pages = paginate(doc.blocks, size);
+      for (const title of ["لوحة العيد", "تبرع: ترميم المصلى"]) {
+        const at = pages.findIndex((pg) => pg.some((b) => b.t === "heading" && b.text === title));
+        const after = pages[at].slice(
+          pages[at].findIndex((b) => b.t === "heading" && b.text === title),
+        );
+        expect(after.some((b) => b.t === "big")).toBe(true);
+        expect(after.filter((b) => b.t === "tiles").length).toBeGreaterThan(0);
+      }
+      for (const pg of pages)
+        expect(pg.reduce((s, b) => s + blockHeight(b, size), 0)).toBeLessThanOrEqual(
+          pageRoom(size),
+        );
+    }
+  });
+  it("drawn on the page: the figures, the month numbers, the counts", () => {
+    const texts = drawn(doc, PHONE);
+    for (const t of ["48٪", "55٪", "42٪", "40٪", "43٪"])
+      expect(texts.some((x) => x.includes(t))).toBe(true);
+    for (let m = 1; m <= 12; m++) expect(texts).toContain(String(m));
+  });
+  it("the campaign report opens with its figures and drops the repeated levy line", () => {
+    const levy = txt(buildCampaign(fx.fxLevy, fx.fxLevyStats));
+    expect(levy).toContain("*40٪* دفعوا نصيبهم.");
+    expect(levy).not.toContain("ولم يدفع بعد");
+    // the amounts once (the campaign's own lines), plus the per-group line
+    expect(levy.match(/^جُمع/gm)).toHaveLength(1);
+    expect(txt(buildCampaign(fx.fxLevy))).toContain("ولم يدفع بعد");
+    const gift = txt(buildCampaign(fx.fxCampaign, fx.fxDonationStats));
+    expect(gift).toContain("تبرّعوا: 27");
   });
 });

@@ -31,7 +31,7 @@ export function RecentPaymentsPage({
     <>
       <SubHead
         title="الدفعات الأخيرة"
-        lead="افتح الدفعة لترى وصلها. إن سُجّلت خطأً يمكنك إلغاؤها من هناك."
+        lead="افتح الدفعة لترى تفاصيلها ومن سجّلها."
       />
       <section className="bq-sec bq-sec-first">
         {list.length ? (

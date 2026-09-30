@@ -14,6 +14,7 @@ import {
   type Block,
   type DocMeta,
   type PageSize,
+  type Part,
   type ReportDoc,
 } from "./doc";
 
@@ -168,7 +169,131 @@ function drawBlock(p: Pen, b: Block, y: number, o: DrawOptions) {
       p.text(b.right, R, y + 90, { size: 26, color: T.ink });
       p.text(b.left, P, y + 90, { size: 26, color: T.ink, align: "left" });
       return;
+    case "big":
+      p.text(b.value, R, y + 104, {
+        size: 104,
+        weight: 700,
+        face: "display",
+        color: T.forest,
+        dir: "ltr",
+      });
+      p.text(b.lead, R, y + 154, { size: 28, color: T.ink, max: R - P });
+      if (b.bar) partBar(p, b.bar, P, R, y + LAYOUT.big + 4, 22);
+      return;
+    case "tiles":
+      return drawTiles(p, b, y, o);
+    case "counts":
+      return drawCounts(p, b, y, o);
   }
+}
+
+/**
+ * A part of a whole as a bar that fills from the right: green = done, soft grey = not yet. No
+ * words on it: the figures next to it say the numbers.
+ */
+function partBar(p: Pen, b: Part, left: number, right: number, top: number, h: number) {
+  const x = p.x;
+  x.fillStyle = T.stone;
+  x.beginPath();
+  x.roundRect(left, top, right - left, h, h / 2);
+  x.fill();
+  const k = b.whole > 0 ? Math.min(1, Math.max(0, b.part / b.whole)) : 0;
+  if (k <= 0) return;
+  const w = Math.max(h, (right - left) * k);
+  x.fillStyle = T.green;
+  x.beginPath();
+  x.roundRect(right - w, top, w, h, h / 2);
+  x.fill();
+}
+
+/** Two or three bordered cells: the label on top, the figure big, a small line, a bar. */
+function drawTiles(p: Pen, b: Extract<Block, { t: "tiles" }>, y: number, o: DrawOptions) {
+  const R = o.size.w - LAYOUT.pad;
+  const P = LAYOUT.pad;
+  const n = Math.max(1, b.items.length);
+  const cw = (R - P) / n;
+  const bottom = y + blockHeight(b, o.size);
+  const x = p.x;
+  x.strokeStyle = LINE;
+  x.lineWidth = 1.5;
+  x.beginPath();
+  for (let i = 1; i < n; i++) {
+    x.moveTo(R - i * cw, y);
+    x.lineTo(R - i * cw, bottom);
+  }
+  x.stroke();
+  x.lineWidth = 2;
+  x.strokeStyle = EDGE;
+  x.beginPath();
+  x.roundRect(P, y, R - P, bottom - y, CORNER);
+  x.stroke();
+  b.items.forEach((it, i) => {
+    const r = R - i * cw - 24;
+    const l = R - (i + 1) * cw + 24;
+    p.text(it.label, r, y + 40, { size: 22, weight: 700, color: T.forest, max: r - l });
+    p.text(it.value, r, y + 98, {
+      size: 46,
+      weight: 700,
+      face: "display",
+      color: T.ink,
+      dir: "ltr",
+    });
+    if (it.sub) p.text(it.sub, r, y + 134, { size: 21, color: T.slate, max: r - l });
+    const subH = b.items.some((i) => i.sub) ? LAYOUT.tileSub : 0;
+    if (it.bar) partBar(p, it.bar, l, r, y + LAYOUT.tiles + subH + 2, 14);
+  });
+}
+
+/**
+ * How many paid each month: 12 columns on a soft grey track as tall as the members, the paid part
+ * green, the count above; months not started yet are left empty. January on the right.
+ */
+function drawCounts(p: Pen, b: Extract<Block, { t: "counts" }>, y: number, o: DrawOptions) {
+  const R = o.size.w - LAYOUT.pad;
+  const P = LAYOUT.pad;
+  const slot = (R - P) / 12;
+  const top = y + 46;
+  const base = y + LAYOUT.counts - 48;
+  const x = p.x;
+  b.months.forEach((m, i) => {
+    const cx = R - (i + 0.5) * slot;
+    const bw = slot * 0.56;
+    if (m.started) {
+      x.fillStyle = T.stone;
+      x.beginPath();
+      x.roundRect(cx - bw / 2, top, bw, base - top, [8, 8, 0, 0]);
+      x.fill();
+      const k = m.of > 0 ? Math.min(1, m.paid / m.of) : 0;
+      const h = Math.round((base - top) * k);
+      if (h > 0) {
+        x.fillStyle = T.green;
+        x.beginPath();
+        x.roundRect(cx - bw / 2, base - h, bw, h, h >= 8 ? [8, 8, 0, 0] : 0);
+        x.fill();
+      }
+      p.text(formatNumber(m.paid), cx, top - 12, {
+        size: 22,
+        weight: 700,
+        face: "display",
+        color: T.ink,
+        align: "center",
+        dir: "ltr",
+      });
+    }
+    p.text(String(i + 1), cx, base + 34, {
+      size: 20,
+      color: T.slate,
+      align: "center",
+      face: "display",
+      dir: "ltr",
+    });
+  });
+  x.strokeStyle = LINE;
+  x.lineWidth = 1.5;
+  x.beginPath();
+  x.moveTo(P, base);
+  x.lineTo(R, base);
+  x.stroke();
 }
 
 /** Break a paragraph into lines that fit `width` at `size` px. */

@@ -5,19 +5,30 @@ import type {
   AnnualReport,
   CampaignReport,
   CommitteeWorkReport,
+  DonationStats,
   ExpensesReport,
+  FeeStats,
   GridReport,
   HandoverReport,
   LateReport,
+  LevyStats,
   MemberStatement,
   Period,
+  StatsReport,
   SummaryReport,
   WalletsReport,
 } from "../data/report-types";
 import { formatDay, monthName } from "../dates";
 import { formatNumber } from "../format";
 import { monthPaid } from "../report-check";
-import { monthsText, periodLabel, type AmountRow, type Block, type ReportDoc } from "./doc";
+import {
+  monthsText,
+  percent,
+  periodLabel,
+  type AmountRow,
+  type Block,
+  type ReportDoc,
+} from "./doc";
 
 /* ─────────────── small helpers ─────────────── */
 
@@ -291,10 +302,16 @@ export function buildExpenses(d: ExpensesReport): ReportDoc {
 
 /* ─────────────── 6 · a campaign or a لوحة (its whole life) ─────────────── */
 
-export function buildCampaign(d: CampaignReport): ReportDoc {
+/**
+ * `stats`: the campaign's «الإحصاءات» (counts and percentages, plan §10), drawn first, numbers
+ * first; the levy's own «دفع … ولم يدفع بعد …» line is then left out (the figures say it).
+ */
+export function buildCampaign(d: CampaignReport, stats?: LevyStats | DonationStats): ReportDoc {
   const since = `من ${day(d.createdAt)} ${d.closedAt ? `إلى ${day(d.closedAt)}` : "إلى اليوم"}`;
   const blocks: Block[] = [];
   if (d.purpose) blocks.push({ t: "note", text: d.purpose });
+  if (stats)
+    blocks.push(...("shares" in stats ? levyStatBlocks(stats) : donationStatBlocks(stats)));
   if (d.kind === "levy") {
     const shares = d.shares ?? [];
     const due = shares.filter((s) => !s.exempt);
@@ -309,10 +326,14 @@ export function buildCampaign(d: CampaignReport): ReportDoc {
         ],
         ["بقي على الأعضاء", due.reduce((s, x) => s + Math.max(0, x.left), 0)],
       ),
-      {
-        t: "note",
-        text: `دفع ${membersWord(paid.length)}، ولم يدفع بعد ${due.length - paid.length}${exempt ? `، ومعفى ${exempt}` : ""}.`,
-      },
+      ...(stats
+        ? []
+        : [
+            {
+              t: "note",
+              text: `دفع ${membersWord(paid.length)}، ولم يدفع بعد ${due.length - paid.length}${exempt ? `، ومعفى ${exempt}` : ""}.`,
+            } as Block,
+          ]),
       {
         t: "table",
         head: ["الاسم", "دفع"],
@@ -367,6 +388,166 @@ export function buildCampaign(d: CampaignReport): ReportDoc {
     blocks,
     fileBase: `${what}-${slug(d.title)}`,
     hasAmounts: true,
+  };
+}
+
+/* ─────────────── 11 · «الإحصاءات»: counts and percentages, never names ─────────────── */
+
+/** «يوم واحد» «يومين» «5 أيام» «12 يومًا». */
+export function daysWord(n: number): string {
+  if (n === 1) return "يوم واحد";
+  if (n === 2) return "يومين";
+  const r = n % 100;
+  if (r >= 3 && r <= 10) return `${n} أيام`;
+  return r >= 11 ? `${n} يومًا` : `${n} يوم`;
+}
+
+/** «20 من 40»: part of a whole, as a small line under a figure. */
+const ofText = (part: number, whole: number) => `${fmt(part)} من ${fmt(whole)}`;
+
+function feeStatBlocks(f: FeeStats, previous: FeeStats | null): Block[] {
+  const o = f.overall;
+  const upTo = f.refMonth >= 12 ? "السنة كاملة" : `حتى ${monthName(f.refMonth)}`;
+  const owing = o.owe1 + o.owe2to3 + o.owe4plus;
+  const blocks: Block[] = [
+    { t: "heading", text: `الرسوم الشهرية ${f.year}` },
+    {
+      t: "big",
+      value: percent(o.paidUp, o.active),
+      lead: `دفعوا ${upTo}: ${fmt(o.paidUp)} من ${membersWord(o.active)}.`,
+      bar: { part: o.paidUp, whole: o.active },
+    },
+  ];
+  if (f.groups.length > 1)
+    blocks.push({
+      t: "tiles",
+      items: f.groups.map((g) => ({
+        label: groupLabel(g.groupCode),
+        value: percent(g.paidUp, g.active),
+        sub: ofText(g.paidUp, g.active),
+        bar: { part: g.paidUp, whole: g.active },
+      })),
+    });
+  blocks.push(
+    { t: "heading", text: "كم عضوًا دفع كل شهر", keep: true },
+    {
+      t: "counts",
+      months: f.months.map((m) => ({
+        paid: m.paid,
+        of: m.active,
+        started: m.month <= f.refMonth,
+      })),
+    },
+    { t: "heading", text: "من بقيت عليه رسوم", keep: true },
+    owing
+      ? {
+          t: "tiles",
+          items: [
+            { label: "شهر واحد", value: fmt(o.owe1) },
+            { label: "شهران أو 3", value: fmt(o.owe2to3) },
+            { label: "4 أشهر أو أكثر", value: fmt(o.owe4plus) },
+          ],
+        }
+      : { t: "note", text: "لا أحد عليه رسوم." },
+  );
+  if (previous) {
+    const same = previous.refMonth === f.refMonth;
+    const when = same ? (f.refMonth >= 12 ? "كاملة" : "في مثل هذا الوقت") : "كاملة";
+    blocks.push({
+      t: "note",
+      text: `السنة الماضية ${when}: ${percent(previous.overall.paidUp, previous.overall.active)} دفعوا.`,
+    });
+  }
+  return blocks;
+}
+
+function levyStatBlocks(l: LevyStats, title?: string): Block[] {
+  const due = l.shares - l.exempt;
+  const lead =
+    l.status === "open" ? `دفعوا نصيبهم. فُتحت قبل ${daysWord(l.daysOpen)}.` : "دفعوا نصيبهم.";
+  return [
+    ...(title ? [{ t: "heading", text: title, keep: true } as Block] : []),
+    { t: "big", value: percent(l.paid, due), lead, bar: { part: l.paid, whole: due } },
+    {
+      t: "tiles",
+      items: [
+        { label: "دفعوا", value: fmt(l.paid) },
+        { label: "لم يدفعوا بعد", value: fmt(l.unpaid) },
+        { label: "معفون", value: fmt(l.exempt) },
+      ],
+    },
+    // in the campaign report the amounts follow in their own lines
+    ...(title
+      ? [{ t: "note", text: `جُمع ${amt(l.collected)} من ${amt(l.expected)} أوقية.` } as Block]
+      : []),
+    ...(l.groups.length > 1
+      ? [
+          {
+            t: "tiles",
+            items: l.groups.map((g) => ({
+              label: groupLabel(g.groupCode),
+              value: percent(g.paid, g.shares - g.exempt),
+              sub: ofText(g.paid, g.shares - g.exempt),
+              bar: { part: g.paid, whole: g.shares - g.exempt },
+            })),
+          } as Block,
+          {
+            t: "note",
+            text: l.groups
+              .map(
+                (g) =>
+                  `${groupLabel(g.groupCode)}: جُمع ${amt(g.collected)} من ${amt(g.expected)} أوقية.`,
+              )
+              .join(" "),
+          } as Block,
+        ]
+      : []),
+  ];
+}
+
+function donationStatBlocks(d: DonationStats, title?: string): Block[] {
+  const target = d.target && d.target > 0 ? d.target : null;
+  return [
+    ...(title ? [{ t: "heading", text: title, keep: true } as Block] : []),
+    {
+      t: "big",
+      value: fmt(d.collected),
+      lead: target
+        ? `أوقية جُمعت من هدف ${amt(target)} (${percent(d.collected, target)}).`
+        : "أوقية جُمعت.",
+      ...(target ? { bar: { part: d.collected, whole: target } } : {}),
+    },
+    {
+      t: "tiles",
+      items: [
+        { label: "تبرّعوا", value: fmt(d.givers) },
+        { label: "من الأعضاء", value: fmt(d.memberGivers) },
+        { label: "من خارج الرابطة", value: fmt(d.outsideGivers) },
+      ],
+    },
+    {
+      t: "note",
+      text: `تبرّع ${percent(d.memberGivers, d.activeMembers)} من أعضاء الرابطة.`,
+    },
+  ];
+}
+
+/** The year's «الإحصاءات»: fees (with last year), then every لوحة and تبرع. */
+export function buildStats(d: StatsReport): ReportDoc {
+  const f = d.fees;
+  return {
+    kind: "stats",
+    title: "الإحصاءات",
+    subtitle: f.refMonth >= 12 ? `سنة ${f.year}` : `سنة ${f.year} · حتى ${monthName(f.refMonth)}`,
+    blocks: [
+      ...feeStatBlocks(f, d.previous),
+      ...d.levies.flatMap((l) =>
+        levyStatBlocks(l, l.title.startsWith("لوحة") ? l.title : `لوحة ${l.title}`),
+      ),
+      ...d.donations.flatMap((x) => donationStatBlocks(x, `تبرع: ${x.title}`)),
+    ],
+    fileBase: `الإحصاءات-${d.period.year}`,
+    hasAmounts: d.levies.length + d.donations.length > 0,
   };
 }
 
