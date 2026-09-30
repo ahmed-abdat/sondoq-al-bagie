@@ -42,8 +42,9 @@ and every change lands in `audit_log`.
 | `*_m25_member_profiles.sql` | family phones (up to 5 profiles): `member_sessions(hashes[])` (one call for the switcher); member push unique per (link, endpoint) and `member_save_push(hashes[], …)` saves for every profile on the device |
 | `*_m26_public_without_money.sql` | money privacy phase 1 (additive): amount-free public views `fund_stats`, `activity_public`, `campaigns_public`, `expenses_public`, `terms_info`, `campaign_contributors_public`, `member_status_public`; `app_private.can_see_money()` |
 | `*_m27_money_private.sql` | money privacy phase 2: anon loses SELECT on the money views (`fund_summary`, `monthly_collection`, `expense_totals`, `recent_expenses`, `campaign_progress`, `campaign_contributions`, `activity_feed`, `terms_public`, `member_status`); each returns rows only `where app_private.can_see_money()` (active committee or the server). Strangers read the m26 views |
+| `*_m28_committee_only.sql` | committee-only app: anon reads only `keepalive` (the public views and `app_private.public_*` revoked), `verify_receipt` and every member-link RPC dropped, `member_links_admin` and `member_push_subscriptions` dropped, the one active member link revoked (audited; `member_links` kept for history), `payment_queue.submitted_by_member` always null. Undo: `rollback/m28_revert.sql` |
 
-Access: `anon` reads only the public views (no phones, no proofs, no money, no base tables). An active row in
+Access: `anon` reads only the `keepalive` view (m28: the app is committee-only). An active row in
 `committee` reads everything through RLS. Nobody writes tables directly; all writes go through the
 RPCs, which return errors as SQLSTATE `P0001` with a stable `HINT` code (e.g. `month_already_paid`,
 `own_membership`, `not_confirmer`) for the app to translate.
