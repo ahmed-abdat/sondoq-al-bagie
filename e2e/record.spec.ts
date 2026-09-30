@@ -35,7 +35,7 @@ test("the save button names the missing step, then saves; «تراجع» takes i
   await page.locator(".pa-rows button.pa-row").first().click();
   // late months by default, the total in the footer before anything is saved
   const line = page.locator(".r2-line").first();
-  await expect(line).toContainText("رسوم من يناير");
+  await expect(line).toContainText(/رسوم .*من يناير/);
   await expect(page.getByRole("radio", { name: "الأشهر المتأخرة" })).toHaveAttribute(
     "aria-checked",
     "true",
@@ -51,7 +51,7 @@ test("the save button names the missing step, then saves; «تراجع» takes i
   // no receipt: a line, «تراجع (30)» and the next steps
   await expect(page.getByRole("status").filter({ hasText: "سُجّلت الدفعة" })).toBeVisible();
   await expect(page.getByText(/الشيخ ولد سيدي: \d[\d\s  ]* أوقية/)).toBeVisible();
-  await expect(page.getByRole("link", { name: /دفعة أخرى/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /دفعة أخرى/ })).toBeVisible();
   await page.getByRole("button", { name: /^تراجع \(\d+\)$/ }).click();
   await expect(page.getByText("تراجعت عن الدفعة.")).toBeVisible();
   await expect(page.getByRole("button", { name: /^تراجع/ })).toHaveCount(0);
@@ -63,7 +63,7 @@ test("a transfer screenshot asks for the wallet, the months can be picked one by
   await startFor(page, "ب 12");
   await page.getByRole("radio", { name: "اختر" }).click();
   await page
-    .getByRole("group", { name: "الأشهر" })
+    .getByRole("group", { name: /^أشهر \d{4}$/ })
     .getByRole("button", { name: /سبتمبر/ })
     .click();
   await expect(page.locator(".r2-line").first()).toContainText("رسوم من يوليو إلى أغسطس");
