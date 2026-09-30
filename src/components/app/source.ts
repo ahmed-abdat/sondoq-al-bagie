@@ -39,7 +39,7 @@ import { demoAdminData, demoStatement, demoStats, toActivities, toWallets } from
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
 import { allStats, statsFromReport } from "@/components/admin/stats";
-import { activityLine } from "@/components/admin/activity-line";
+import { activityLines } from "@/components/admin/activity-line";
 import * as fx from "./fixtures";
 import { assembleReport } from "@/lib/data/report";
 import { toFundSummary } from "@/lib/data/map";
@@ -448,7 +448,7 @@ export async function adminData(): Promise<PData> {
       amount: e.amount,
     })),
   ].sort((a, b) => b.at.localeCompare(a.at));
-  const log: PLog[] = acts.flatMap((x) => activityLine(x) ?? []);
+  const log: PLog[] = activityLines(acts);
   const levies: PLevy[] = leviesRaw.map((c) => {
     const mine = shares.filter((x) => x.campaignId === c.campaignId);
     const expected = mine.map((x) => x.expected).filter((n) => n > 0);

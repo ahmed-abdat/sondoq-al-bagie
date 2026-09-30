@@ -15,7 +15,8 @@ export function activityLine(x: ActivityEntry): PLog | null {
   const why = x.reason ? `. السبب: ${x.reason}` : "";
   const W: Record<string, [string, PLog["kind"]]> = {
     record_payment: [`سجّل دفعة${sub}${amt}`, "pay"],
-    confirm_payment: [`ثبّت دفعة${sub}${amt}`, "ok"],
+    // an old payment (recorded before one-level) counted now; the same-moment one is hidden
+    confirm_payment: [`سجّل دفعة قديمة${sub}${amt}`, "ok"],
     reject_payment: [`رفض دفعة${sub}${amt}${why}`, "no"],
     cancel_payment: [`ألغى دفعة${sub}${amt}${why}`, "no"],
     undo_payment: [`تراجع عن دفعة${sub}${amt}`, "no"],
@@ -58,4 +59,26 @@ export function activityLine(x: ActivityEntry): PLog | null {
   if (W[key]) return { who, what: W[key][0], at: x.at, kind: W[key][1] };
   if (SETTINGS[key]) return { who, what: SETTINGS[key], at: x.at, kind: "edit", settings: true };
   return null;
+}
+
+/**
+ * The whole log, as the committee reads it. record_payment confirms at once, so the database
+ * also writes confirm_payment (on the payment and on its months) in the same transaction: those
+ * are the same payment and are hidden, leaving one «سجّل دفعة» line. Rows written by the system
+ * (no actor, e.g. a migration's backfill) are never shown. Confirmations of the months are never
+ * a line of their own.
+ */
+export function activityLines(xs: ActivityEntry[]): PLog[] {
+  const recorded = new Set(
+    xs.filter((x) => x.action === "record_payment").map((x) => `${x.at}|${x.rowId}`),
+  );
+  const recordedAt = new Set(xs.filter((x) => x.action === "record_payment").map((x) => x.at));
+  return xs.flatMap((x) => {
+    if (!x.actorName) return [];
+    if (x.action === "confirm_payment") {
+      if (x.table !== "payments") return [];
+      if (recorded.has(`${x.at}|${x.rowId}`) || recordedAt.has(x.at)) return [];
+    }
+    return activityLine(x) ?? [];
+  });
 }
