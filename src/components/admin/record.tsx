@@ -14,7 +14,7 @@ import { failure } from "@/lib/data/errors";
 import type { AllocationInput } from "@/lib/data/schemas";
 import { MONTHS_AR, todayIso } from "@/lib/dates";
 import { METHOD_LABELS, type Method } from "@/lib/methods";
-import { mroToMru, parseAmount, toWesternDigits } from "@/lib/money";
+import { parseAmount, toWesternDigits } from "@/lib/money";
 import { readReceipt } from "@/lib/ocr";
 import { safeStorage } from "@/lib/safe-storage";
 import { imageOpenError, parseMemberRef } from "@/components/app/derive";
@@ -52,6 +52,9 @@ type Shot = {
   url: string;
   file: File;
   reading: boolean;
+  /** as printed on the screenshot: always new ouguiya (MRU) */
+  amountMru: number | null;
+  /** the same in old ouguiya (MRU × 10), what the app counts */
   amount: number | null;
   method: Method | null;
   txn: string | null;
@@ -198,7 +201,16 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
       return imageOpenError(file);
     }
     setCash(false);
-    setShot({ url, file, reading: true, amount: null, method: null, txn: null, date: null });
+    setShot({
+      url,
+      file,
+      reading: true,
+      amountMru: null,
+      amount: null,
+      method: null,
+      txn: null,
+      date: null,
+    });
     readReceipt(file, {
       expectedMro: total || undefined,
       accounts: d.accounts.map((a) => ({
@@ -214,6 +226,7 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
             s && {
               ...s,
               reading: false,
+              amountMru: r.amountMru,
               amount: r.amountMro,
               method: (r.method as Method | null) ?? null,
               txn: r.txnRef,
@@ -844,7 +857,7 @@ function HowSec({ t }: { t: T }) {
                 <dd>
                   {t.shot.amount ? (
                     <>
-                      <Num>{fmt(mroToMru(t.shot.amount))} MRU</Num> = <Money v={t.shot.amount} />
+                      <Num>{`${fmt(t.shot.amountMru ?? 0)} MRU`}</Num> = <Money v={t.shot.amount} />
                     </>
                   ) : (
                     "لم نقرأ المبلغ"
@@ -1014,7 +1027,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
         </span>
         {shotAmt !== null && (
           <span className={`r2-check ${diff === 0 ? "ok" : ""}`} role="status">
-            في الصورة <Money v={shotAmt} unit={false} />
+            في الصورة <Num>{`${fmt(t.shot?.amountMru ?? 0)} MRU`}</Num> = <Money v={shotAmt} />
             {diff === 0 ? (
               <> {X.check(16)} مطابق</>
             ) : (
