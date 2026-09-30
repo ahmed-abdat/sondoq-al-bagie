@@ -79,6 +79,20 @@ export type PExpense = {
   by: string;
 };
 
+/** «المحافظ» (m41): a wallet with its accounts; cash is the one with kind "cash". */
+export type PWallet = {
+  id: number;
+  name: string;
+  /** image URL, or null */
+  logo: string | null;
+  kind: "wallet" | "cash";
+  active: boolean;
+  /** the payment method it records as (its old method, or "other") */
+  method: Method;
+  /** its active accounts */
+  accounts: { id: string; number: string; holder: string }[];
+};
+
 /** «النشاط» (m38): the list «المسؤول» manages; retired ones keep their past expenses. */
 export type PActivity = { id: number; name: string; active: boolean };
 
@@ -135,6 +149,8 @@ export type PData = {
   users: { name: string; role: string; login: string; last: string | null }[];
   prices: Record<string, number>;
   levies: PLevy[];
+  /** «المحافظ» (m41), in list order */
+  wallets: PWallet[];
   /** «النشاط» for the expense sheet (active first, in list order) */
   activities: PActivity[];
   log: PLog[];

@@ -39,7 +39,7 @@ import {
 } from "./kit";
 import { feeAllocations, feesTotal, pastWords, payablePast, priceOf, ym } from "./fees";
 import { coPaidMembers } from "./report-action";
-import { WalletPicker } from "./wallet-picker";
+import { choiceForMethod, WalletPicker, walletDone, type WalletChoice } from "./wallet-picker";
 import { MemberPicker, readRecent, rememberRecent } from "./member-picker";
 import type { PData, PMember } from "./types";
 import "./record2.css";
@@ -122,7 +122,8 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
     return out;
   });
   const [cash, setCash] = useState(!!start.cash);
-  const [method, setMethod] = useState<Method | null>(start.cash ? "cash" : null);
+  // the wallet it came into (m41); cash needs none
+  const [wallet, setWallet] = useState<WalletChoice | null>(null);
   const [shot, setShot] = useState<Shot | null>(null);
   // the picture could not be read: the amount typed from it, in MRU as printed (null = not yet)
   const [typedMru, setTypedMru] = useState<number | null>(null);
@@ -227,7 +228,10 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
               date: r.date && /^\d{4}-\d{2}-\d{2}/.test(r.date) ? r.date.slice(0, 10) : null,
             },
         );
-        if (r.method) setMethod(r.method as Method);
+        if (r.method) {
+          const c = choiceForMethod(d.wallets, r.method as Method);
+          if (c) setWallet(c);
+        }
         const seen = r.date && /^\d{4}-\d{2}-\d{2}/.test(r.date) ? r.date.slice(0, 10) : null;
         if (seen && seen <= todayIso()) setPaidOn(seen);
       })
@@ -265,8 +269,8 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
     undoRemove,
     cash,
     setCash,
-    method,
-    setMethod,
+    wallet,
+    setWallet,
     shot,
     setShot,
     paidOn,
@@ -795,7 +799,6 @@ function GiftPicker({ t, onDone, outside }: { t: T; onDone: () => void; outside?
    picture (tap = full screen), the amount read, «غيّر» and «احذف»; the check against the total in
    place under it. On a computer the picture can also be pasted (Ctrl/Cmd+V) or dropped here. */
 function HowSec({ t, onAddPerson }: { t: T; onAddPerson: () => void }) {
-  const { d } = useP();
   const [err, setErr] = useState("");
   const [viewer, setViewer] = useState(false);
   const [over, setOver] = useState(false);
@@ -856,14 +859,7 @@ function HowSec({ t, onAddPerson }: { t: T; onAddPerson: () => void }) {
             <small>نقرأ منها المبلغ ورقم العملية</small>
             {input}
           </label>
-          <button
-            type="button"
-            className="r2-how-b"
-            onClick={() => {
-              t.setCash(true);
-              t.setMethod("cash");
-            }}
-          >
+          <button type="button" className="r2-how-b" onClick={() => t.setCash(true)}>
             {X.cash(26)}
             <b>نقدًا</b>
             <small>استلمتها بيدك</small>
@@ -1002,11 +998,7 @@ function HowSec({ t, onAddPerson }: { t: T; onAddPerson: () => void }) {
       {shot && !shot.reading && (
         <>
           <p className="pa-label">المحفظة</p>
-          <WalletPicker
-            cash={false}
-            value={d.accounts.find((a) => a.active && a.method === t.method)?.id ?? ""}
-            onChange={(_, m) => t.setMethod(m && m !== "cash" ? m : null)}
-          />
+          <WalletPicker cash={false} value={t.wallet} onChange={t.setWallet} />
         </>
       )}
       {(t.cash || (shot && !shot.reading)) && (
@@ -1091,7 +1083,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
             ? "نقرأ الصورة…"
             : t.shot && shotAmt === null
               ? "اكتب المبلغ"
-              : !t.cash && !t.method
+              : !t.cash && !walletDone(d.wallets, t.wallet)
                 ? "اختر المحفظة"
                 : diff !== 0 && !why.trim()
                   ? "اكتب السبب"
@@ -1152,7 +1144,13 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
         return recordPayment({
           id,
           payerName: payer,
-          method: t.cash ? "cash" : (t.method as Method),
+          method: t.cash ? "cash" : t.wallet!.method,
+          ...(t.cash || !t.wallet
+            ? {}
+            : {
+                walletTypeId: t.wallet.walletTypeId,
+                ...(t.wallet.fundAccountId ? { fundAccountId: t.wallet.fundAccountId } : {}),
+              }),
           amount: t.total,
           paidOn: t.paidOn || todayIso(),
           allocations,
