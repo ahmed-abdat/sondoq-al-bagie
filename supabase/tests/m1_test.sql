@@ -1424,6 +1424,15 @@ select tests.throws($$select * from public.groups_overview(2026::int)$$, '42501'
 
 select tests.login('server');
 \ir local/accuracy_audit_checks.sql
+select tests.login('committee');
+select tests.ok((select count(*) = 28 and bool_and(detail is not null) from public.accuracy_audit()),
+  'every committee member runs the accuracy audit');
+select tests.ok((select string_agg(detail, ' ') from public.accuracy_audit()) !~ 'full_name|عضو تجريبي|إحصاء',
+  'the audit shows counts, no names');
+select tests.login('former');
+select tests.throws($$select * from public.accuracy_audit()$$, 'not_committee', 'the audit is committee only');
+select tests.login('public');
+select tests.throws($$select * from public.accuracy_audit()$$, '42501', 'strangers cannot run it');
 
 /* ───────────── M34: fee stats as they stood on a day (p_as_of) ───────────── */
 
