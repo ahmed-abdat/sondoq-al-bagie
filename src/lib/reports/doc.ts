@@ -15,14 +15,18 @@ export type ReportKind =
   | "member"
   | "handover"
   | "wallets"
-  | "work";
+  | "work"
+  | "stats";
 
 /** A line with an amount: «الرسوم الشهرية ····· 120 000». */
 export type AmountRow = { label: string; sub?: string; amount: number; sign?: "+" | "−" };
 
 export type Block =
-  /** a small heading inside the page («ما دخل») */
-  | { t: "heading"; text: string }
+  /**
+   * a small heading inside the page («ما دخل»). `keep`: its section (up to the next heading)
+   * starts on a new page rather than split, when it fits on one page.
+   */
+  | { t: "heading"; text: string; keep?: boolean }
   /** label / amount lines, with an optional bold total under a rule */
   | { t: "rows"; rows: AmountRow[]; total?: { label: string; amount: number } }
   /** one short paragraph */
@@ -47,7 +51,16 @@ export type Block =
   /** a simple bar chart of 12 monthly amounts */
   | { t: "bars"; values: number[] }
   /** two signature lines (handover) */
-  | { t: "sign"; left: string; right: string };
+  | { t: "sign"; left: string; right: string }
+  /** «الإحصاءات», numbers first: one big figure («62٪»), a line under it, an optional part bar */
+  | { t: "big"; value: string; lead: string; bar?: Part }
+  /** two or three figures side by side (groups, owing buckets), each with an optional bar */
+  | { t: "tiles"; items: { label: string; value: string; sub?: string; bar?: Part }[] }
+  /** how many paid each month: 12 columns (January on the right), the count above each */
+  | { t: "counts"; months: { paid: number; of: number; started: boolean }[] };
+
+/** A part of a whole, drawn as a bar: green = done (paid), soft grey = not yet. */
+export type Part = { part: number; whole: number };
 
 export type ReportDoc = {
   kind: ReportKind;
@@ -93,6 +106,12 @@ export const LAYOUT = {
   bars: 280,
   months: 212,
   sign: 140,
+  big: 170,
+  tiles: 116,
+  tileSub: 34,
+  tileBar: 34,
+  counts: 300,
+  partBar: 40,
   /** space after each block */
   after: 16,
 } as const;
@@ -124,6 +143,16 @@ export function blockHeight(b: Block, size: PageSize): number {
       return L.bars;
     case "sign":
       return L.sign;
+    case "big":
+      return L.big + (b.bar ? L.partBar : 0);
+    case "tiles":
+      return (
+        L.tiles +
+        (b.items.some((i) => i.sub) ? L.tileSub : 0) +
+        (b.items.some((i) => i.bar) ? L.tileBar : 0)
+      );
+    case "counts":
+      return L.counts;
   }
 }
 
@@ -191,6 +220,17 @@ export function paginate(blocks: Block[], size: PageSize): Block[][] {
   while (queue.length) {
     const b = queue.shift()!;
     const h = blockHeight(b, size);
+    if (b.t === "heading" && b.keep && page.length) {
+      // the whole section on the next page when it does not fit here but fits on a page
+      const end = queue.findIndex((x) => x.t === "heading");
+      const section = [b, ...(end < 0 ? queue : queue.slice(0, end))];
+      const need = section.reduce((s, x) => s + blockHeight(x, size) + LAYOUT.after, 0);
+      if (used + need > room && need <= room) {
+        flush();
+        queue.unshift(b);
+        continue;
+      }
+    }
     if (used + h <= room) {
       page.push(b);
       used += h + LAYOUT.after;
@@ -221,6 +261,17 @@ export function paginate(blocks: Block[], size: PageSize): Block[][] {
 }
 
 /* ─────────────── words ─────────────── */
+
+/**
+ * A share as a whole percent, for people: never «100٪» while someone is missing and never «0٪»
+ * once someone has paid (99.6 → 99, 0.4 → 1).
+ */
+export function percent(part: number, whole: number): string {
+  if (whole <= 0) return "—";
+  const raw = (100 * part) / whole;
+  const v = part >= whole ? 100 : part <= 0 ? 0 : Math.min(99, Math.max(1, Math.round(raw)));
+  return `${v}٪`;
+}
 
 /** «سنة 2026» or «سبتمبر 2026». */
 export function periodLabel(p: { year: number; month?: number | null }): string {
@@ -293,6 +344,19 @@ export function docText(doc: ReportDoc, meta: DocMeta): string {
         out.push(paid.length ? `الأشهر المدفوعة: ${monthsText(paid)}` : "لم يدفع أي شهر");
         break;
       }
+      case "big":
+        out.push(`*${b.value}* ${b.lead}`);
+        break;
+      case "tiles":
+        for (const i of b.items) out.push(`${i.label}: ${i.value}${i.sub ? ` (${i.sub})` : ""}`);
+        break;
+      case "counts":
+        out.push(
+          b.months
+            .flatMap((m, i) => (m.started ? [`${monthName(i + 1)} ${m.paid}`] : []))
+            .join("، "),
+        );
+        break;
       case "bars":
       case "sign":
         break; // drawn only
