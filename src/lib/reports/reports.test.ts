@@ -410,92 +410,53 @@ describe("the 10 reports", () => {
     });
   });
 
-  it("wallets: داخل / خارج, «تحويل» (not income), «الرصيد» of every wallet and the cash, adding up", () => {
+  it("wallets («one pot»): داخل / خارج per wallet only, totals = the period's income and spending", () => {
     const doc = buildWallets(fx.fxWallets);
     const table = doc.blocks.find((b) => b.t === "table");
     if (table?.t !== "table") throw new Error("no table");
     const digits = (c: string) => Number(c.replace(/\D/g, "") || 0);
-    expect(table.head).toEqual(["المحفظة", "الدفعات", "داخل", "خارج", "تحويل", "الرصيد"]);
+    expect(table.head).toEqual(["المحفظة", "الدفعات", "داخل", "خارج"]);
     expect(table.rows.map((r) => r[0])).toEqual([
       "بنكيلي 22200000011",
       "مصرفي 22200000012",
       "السداد 22200000013",
       "نقدًا",
     ]);
-    expect(table.rows.map((r) => r[4].replace(/\u202f/g, " "))).toEqual([
-      "−50 000",
-      "",
-      "",
-      "+50 000",
-    ]);
-    expect(table.rows.map((r) => digits(r[5]))).toEqual([180_000, 100_000, 33_500, 62_500]);
+    // the same year as the annual report: its income and spending
     expect(digits(table.foot![2])).toBe(fx.fxAnnual.income.total);
     expect(digits(table.foot![3])).toBe(fx.fxAnnual.spending.total);
-    // the balances are all the money: the annual report's total today
-    expect(digits(table.foot![5])).toBe(fx.fxAnnual.closing);
-    // Σ «الرصيد» = Σ opening + Σ داخل − Σ خارج (moves between wallets and the cash add to 0)
-    const moves = [...fx.fxWallets.wallets, fx.fxWallets.cash].reduce(
-      (s, w) => s + w.transferIn - w.transferOut,
-      0,
-    );
-    expect(moves).toBe(0);
-    const openings = [...fx.fxWallets.wallets, fx.fxWallets.cash].reduce(
-      (s, w) => s + (w.opening?.amount ?? 0),
-      0,
-    );
-    expect(openings).toBe(fx.fxAnnual.opening);
-    expect(digits(table.foot![5])).toBe(
-      openings + fx.fxWallets.totalIn - fx.fxAnnual.spending.total + moves,
-    );
-    expect(txt(doc)).toContain("«تحويل»: نقل بين محفظة والنقد، ليس من المداخيل ولا المصاريف.");
-    expect(txt(doc)).toContain("مجموع الأرصدة: ما في الصندوق وما لدى التبرعات واللوحات.");
+    // no balance per wallet and no moves between wallets: the fund has one balance
+    const text = txt(doc);
+    for (const t of [text, ...drawn(doc)]) {
+      expect(t).not.toContain("الرصيد:");
+      expect(t).not.toContain("تحويل");
+      expect(t).not.toContain("رصيد افتتاحي");
+    }
+    expect(text).toContain("المحافظ طرق للدفع فقط. للصندوق رصيد واحد، في التقرير السنوي.");
 
-    // no move: no «تحويل» column; the cash row stays (a 0 balance is still shown)
+    // nothing out: no «خارج» column; cash without movement is left out
     const quiet = buildWallets({
       ...fx.fxWallets,
-      wallets: fx.fxWallets.wallets.map((w) => ({
-        ...w,
-        transferOut: 0,
-        opening: null,
-        balance: w.in,
-      })),
-      cash: { in: 0, count: 0, transferIn: 0, transferOut: 0, opening: null, balance: 0 },
+      cash: { ...fx.fxWallets.cash, in: 0, count: 0, out: undefined },
       totalIn: 333_500,
     });
     const t0 = quiet.blocks.find((b) => b.t === "table");
-    expect(t0?.t === "table" && t0.head).toEqual(["المحفظة", "الدفعات", "داخل", "الرصيد"]);
-    expect(t0?.t === "table" && t0.rows.at(-1)).toEqual(["نقدًا", "0", "0", "0"]);
-    expect(txt(quiet)).not.toContain("«تحويل»");
+    expect(t0?.t === "table" && t0.head).toEqual(["المحفظة", "الدفعات", "داخل"]);
+    expect(t0?.t === "table" && t0.rows.map((r) => r[0])).not.toContain("نقدًا");
 
-    // خارج, the paper and no-wallet rows (no balance of their own: their money is in the cash)
+    // the paper and no-wallet rows
     const busy = buildWallets({
       ...fx.fxWallets,
       wallets: fx.fxWallets.wallets.map((w) => ({ ...w, out: 1000 })),
-      cash: { ...fx.fxWallets.cash, out: 2000, opening: null },
+      cash: { ...fx.fxWallets.cash, out: 2000 },
       unspecifiedOut: 3000,
       paperIn: 4000,
     });
     const t2 = busy.blocks.find((b) => b.t === "table");
     if (t2?.t !== "table") throw new Error("no table");
-    expect(t2.head).toEqual(["المحفظة", "الدفعات", "داخل", "خارج", "تحويل", "الرصيد"]);
-    expect(t2.rows.slice(-2).map((r) => [r[0], r[5]])).toEqual([
-      ["بلا محفظة (الأوراق)", ""],
-      ["مصاريف بلا محفظة", ""],
-    ]);
+    expect(t2.rows.slice(-2).map((r) => r[0])).toEqual(["بلا محفظة (الأوراق)", "مصاريف بلا محفظة"]);
     // خارج: 3 wallets × 1 000 + cash 2 000 + without a wallet 3 000
     expect(digits(t2.foot![3])).toBe(8000);
-    expect(txt(busy)).toContain("الأوراق والمصاريف بلا محفظة داخلة في رصيد النقد.");
-
-    // a manual opening is named with its date
-    const opened = buildWallets({
-      ...fx.fxWallets,
-      wallets: fx.fxWallets.wallets.map((w, i) =>
-        i === 0 ? { ...w, opening: { amount: 10_000, on: "2026-01-01" }, balance: 105_000 } : w,
-      ),
-    });
-    expect(txt(opened)).toContain(
-      "رصيد افتتاحي: بنكيلي 10 000 من 1 يناير 2026، نقدًا 15 000 من 1 يناير 2026.",
-    );
   });
 
   it("committee work: who recorded what, the inactive without activity left out, what was cancelled", () => {
