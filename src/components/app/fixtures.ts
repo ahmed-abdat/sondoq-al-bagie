@@ -14,6 +14,7 @@ import type {
   MembershipStatus,
   Expense,
   ExpenseActivity,
+  WalletType,
   ExpenseAdmin,
   ExpenseTotal,
   FundAccountAdmin,
@@ -423,6 +424,8 @@ const ACCOUNTS: FundAccountAdmin[] = [
     sortOrder: 0,
     active: true,
     note: null,
+    walletTypeId: 1,
+    opening: { amount: 30_000, on: "2026-01-01" },
   },
   {
     id: uuid("f", 2),
@@ -432,6 +435,8 @@ const ACCOUNTS: FundAccountAdmin[] = [
     sortOrder: 1,
     active: true,
     note: null,
+    walletTypeId: 2,
+    opening: null,
   },
   {
     id: uuid("f", 3),
@@ -441,6 +446,8 @@ const ACCOUNTS: FundAccountAdmin[] = [
     sortOrder: 2,
     active: false,
     note: null,
+    walletTypeId: 3,
+    opening: null,
   },
 ];
 export const fxAccountsAdmin = () => ACCOUNTS;
@@ -665,3 +672,39 @@ export const fxActivities = (): ExpenseActivity[] => [
 ];
 /** The old category → its default activity (demo expenses have no activity id). */
 export const FX_ACTIVITY_OF = { teaching: 1, honoring: 2, sports: 3, other: 4 } as const;
+
+/** «المحافظ» (m41): the defaults the migration seeds; cash is the one with kind "cash". */
+export const fxWalletTypes = (): WalletType[] =>
+  (
+    [
+      ["بنكيلي", "bankily"],
+      ["مصرفي", "masrvi"],
+      ["السداد", "sedad"],
+      ["كليك", "click"],
+      ["BIM بنك", "bim"],
+      ["أمانتي", "amanty"],
+      ["باميس", "bamis"],
+    ] as const
+  )
+    .map(
+      ([name, m], i): WalletType => ({
+        id: i + 1,
+        name,
+        logoPath: null,
+        kind: "wallet",
+        sortOrder: i + 1,
+        active: true,
+        legacyMethod: m,
+        opening: null,
+      }),
+    )
+    .concat({
+      id: 8,
+      name: "نقدًا",
+      logoPath: null,
+      kind: "cash",
+      sortOrder: 99,
+      active: true,
+      legacyMethod: "cash",
+      opening: null,
+    });
