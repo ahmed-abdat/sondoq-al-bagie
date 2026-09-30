@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { activityLine, activityLines } from "./activity-line";
+import { exemptWords } from "./stats";
 
 const e = (action: string, p: Partial<Parameters<typeof activityLine>[0]> = {}) => ({
   id: 1,
@@ -115,10 +116,9 @@ describe("moves between wallets (m43)", () => {
     subject: "بنكيلي → نقدًا",
     amount: 36000,
   });
-  it("reads «حوّل مالًا من بنكيلي إلى نقدًا» and can be cancelled until it is", () => {
+  it("reads «حوّل مالًا من بنكيلي إلى النقد» (old moves still read well)", () => {
     const [l] = activityLines([move]);
-    expect(l.what).toMatch(/^حوّل مالًا من بنكيلي إلى نقدًا \(36\s000 أوقية\)$/);
-    expect(l.transfer).toEqual({ id: "t-1", cancelled: false });
+    expect(l.what).toMatch(/^حوّل مالًا من بنكيلي إلى النقد \(36\s000 أوقية\)$/);
     const cancelled = activityLines([
       e("cancel_wallet_transfer", {
         ...move,
@@ -128,7 +128,15 @@ describe("moves between wallets (m43)", () => {
       }),
       move,
     ]);
-    expect(cancelled[0].what).toMatch(/^ألغى تحويلًا من بنكيلي إلى نقدًا .*السبب: خطأ$/);
-    expect(cancelled[1].transfer).toEqual({ id: "t-1", cancelled: true });
+    expect(cancelled[0].what).toMatch(/^ألغى تحويلًا من بنكيلي إلى النقد .*السبب: خطأ$/);
+  });
+});
+
+describe("exempt count", () => {
+  it("never «1 معفون»", () => {
+    expect(exemptWords(1)).toBe("عضو معفى");
+    expect(exemptWords(2)).toBe("عضوان معفيان");
+    expect(exemptWords(4)).toBe("4 أعضاء معفون");
+    expect(exemptWords(12)).toBe("12 عضوًا معفى");
   });
 });

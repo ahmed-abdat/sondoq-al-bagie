@@ -139,7 +139,11 @@ export function MonthPicker({
       <button
         type="button"
         className="bq-input bq-date-btn bq-press"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          // open on the chosen month's year (it may have changed from outside)
+          setYear(y0);
+          setOpen(true);
+        }}
         aria-label={label}
       >
         {I.calendar(20)}

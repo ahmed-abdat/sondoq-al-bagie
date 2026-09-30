@@ -10,7 +10,7 @@ import {
 import { BackupCard } from "@/components/app/settings-cards";
 import { GroupsSection } from "@/components/app/groups-section";
 import { ActivitiesSection } from "@/components/app/activities-section";
-import { WalletsSection, type WalletBalances } from "@/components/app/wallets-section";
+import { WalletsSection } from "@/components/app/wallets-section";
 
 export const metadata: Metadata = { title: "الإعدادات · صندوق الرابطة" };
 
@@ -23,25 +23,14 @@ export default async function SettingsPage() {
   ]);
   const admin = session.role === "admin";
   const year = src.thisYear();
-  const [groups, activities, backup, people, members, wallets, report] = await Promise.all([
+  const [groups, activities, backup, people, members, wallets] = await Promise.all([
     src.groupsOverview(year),
     src.expenseActivities(),
     admin ? src.backupStatus() : Promise.resolve(null),
     admin ? src.committeeAccounts() : Promise.resolve([]),
     admin ? src.membersAdmin() : Promise.resolve([]),
     src.walletTypes(),
-    // the balances («المبالغ حسب المحفظة», the server's numbers): only where an opening is set
-    src.reportFor({ kind: "wallets", year }).catch(() => null),
   ]);
-  const w = report?.kind === "wallets" ? report.data : null;
-  const balances: WalletBalances = {
-    accounts: Object.fromEntries(
-      (w?.wallets ?? []).flatMap((x) =>
-        x.fundAccountId && x.balance !== undefined ? [[x.fundAccountId, x.balance]] : [],
-      ),
-    ),
-    cash: w?.cash.balance ?? null,
-  };
   return (
     <Tab>
       <SettingsView
@@ -50,7 +39,7 @@ export default async function SettingsPage() {
         openingBalance={settings?.openingBalance ?? summary.openingBalance}
         openingBalanceOn={settings?.openingBalanceOn ?? null}
       >
-        <WalletsSection types={wallets} accounts={accounts} balances={balances} admin={admin} />
+        <WalletsSection types={wallets} accounts={accounts} admin={admin} />
         <GroupsSection
           groups={groups}
           year={year}

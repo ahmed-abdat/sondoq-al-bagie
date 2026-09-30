@@ -5,8 +5,6 @@ import { useEffect, useState } from "react";
 import { LogoutButton } from "@/components/app/logout";
 import { Back, Chips, committeeHref, day, Num, useP, X } from "./kit";
 import { legacyPendingCount } from "./report-action";
-import { CancelSheet } from "./cancel-sheet";
-import { useAct } from "@/components/app/act";
 import type { PLog } from "./types";
 
 const LOG_ICON: Record<PLog["kind"], keyof typeof X> = {
@@ -106,8 +104,6 @@ export function ActivityScreen() {
   const { d } = useP();
   const SETTINGS = "__settings";
   const [f, setF] = useState<string>("all");
-  const [cancel, setCancel] = useState<PLog | null>(null);
-  const { cancelWalletTransfer } = useAct();
   const main = d.log.filter((l) => !l.settings);
   const people = ["all", ...new Set(main.map((l) => l.who))];
   const hasSettings = d.me.admin && d.log.some((l) => l.settings);
@@ -136,38 +132,13 @@ export function ActivityScreen() {
       {shown.length ? (
         <ul className="pa-rows">
           {shown.map((l, i) => (
-            <li key={i} className={l.transfer ? "pa-log-act" : undefined}>
+            <li key={i}>
               <LogRow l={l} />
-              {d.me.admin && l.transfer && !l.transfer.cancelled && (
-                <button
-                  type="button"
-                  className="r2-x"
-                  aria-label={`ألغِ التحويل: ${l.what}`}
-                  onClick={() => setCancel(l)}
-                >
-                  {X.x(20)}
-                </button>
-              )}
             </li>
           ))}
         </ul>
       ) : (
         <p className="pa-hint">لا عمليات بعد.</p>
-      )}
-      {cancel?.transfer && (
-        <CancelSheet
-          title="ألغِ التحويل"
-          reasons={["خطأ في المبلغ", "خطأ في المحفظة", "لم يحدث"]}
-          done="أُلغي التحويل."
-          onClose={() => setCancel(null)}
-          onCancel={(reason) =>
-            cancelWalletTransfer({ id: cancel.transfer!.id, reason }).then((r) =>
-              r.ok ? { ok: true as const } : { ok: false as const, message: r.message },
-            )
-          }
-        >
-          {cancel.what}. يبقى في السجل مع السبب، ويرجع المال إلى مكانه.
-        </CancelSheet>
       )}
     </div>
   );

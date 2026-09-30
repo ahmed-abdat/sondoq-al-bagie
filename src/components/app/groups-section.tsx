@@ -479,7 +479,7 @@ function MoveMembers({
           <p className="bq-lead">
             السنة لها مستحقات ثابتة. الأفضل أن يبدأ التغيير من يناير {jan} حتى لا تتغيّر أشهر السنة.
           </p>
-          <div className="bq-stack">
+          <div className="bq-btn-col">
             <button
               type="button"
               className="bq-btn bq-btn-primary bq-press"

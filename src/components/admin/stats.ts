@@ -319,3 +319,12 @@ export function demoStatsReport(d: Omit<PData, "stats">, previousPct: number | n
     donations,
   };
 }
+
+/** «عضو معفى» / «عضوان معفيان» / «3 أعضاء معفون» / «11 عضوًا معفى» (never «1 معفون»). */
+export function exemptWords(n: number) {
+  if (n === 1) return "عضو معفى";
+  if (n === 2) return "عضوان معفيان";
+  const r = n % 100;
+  if (r >= 3 && r <= 10) return `${n} أعضاء معفون`;
+  return `${n} عضوًا معفى`;
+}

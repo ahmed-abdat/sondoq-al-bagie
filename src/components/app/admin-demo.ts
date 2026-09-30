@@ -506,7 +506,7 @@ export function demoStatement(memberId: string, year: number): MemberStatement |
       total: ms.length * m.fee,
       months: ms.map(key),
       campaigns: [],
-      note: null,
+      note: i === 0 && m.ref === "A-1" ? "يختلف عن الصورة: الباقي يُدفع نقدًا" : null,
       reason: null,
       recordedBy: i % 2 ? "يحيى" : "سيدي محمد",
       recordedAt: `${on}T10:00:00Z`,

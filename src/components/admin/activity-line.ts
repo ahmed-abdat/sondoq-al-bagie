@@ -13,7 +13,8 @@ export function activityLine(x: ActivityEntry): PLog | null {
   const amt = x.amount != null ? ` (${fmt(x.amount)} أوقية)` : "";
   const sub = x.subject ? ` ${x.subject}` : "";
   const why = x.reason ? `. السبب: ${x.reason}` : "";
-  const [from, to] = (x.subject ?? "").split(" → ");
+  // «نقدًا» (the cash wallet's name) reads «النقد» in a move: «إلى النقد»
+  const [from, to] = (x.subject ?? "").split(" → ").map((w) => (w === "نقدًا" ? "النقد" : w));
   const move = from && to ? ` من ${from} إلى ${to}` : sub;
   const W: Record<string, [string, PLog["kind"]]> = {
     record_payment: [`سجّل دفعة${sub}${amt}`, "pay"],
@@ -24,7 +25,7 @@ export function activityLine(x: ActivityEntry): PLog | null {
     undo_payment: [`تراجع عن دفعة${sub}${amt}`, "no"],
     apply_credit: [`دفع من رصيد${sub}${amt}`, "pay"],
     record_expense: [`سجّل مصروفًا${sub}${amt}`, "exp"],
-    // m43: a move between wallets (subject «بنكيلي → نقدًا»); never income or spending
+    // m43: a move between wallets (none new since «one pot»; old ones still read well)
     record_wallet_transfer: [`حوّل مالًا${move}${amt}`, "edit"],
     cancel_wallet_transfer: [`ألغى تحويلًا${move}${amt}${why}`, "no"],
     cancel_expense: [`ألغى مصروفًا${sub}${amt}${why}`, "no"],
@@ -80,9 +81,6 @@ export function activityLines(xs: ActivityEntry[]): PLog[] {
   const recorded = new Set(
     xs.filter((x) => x.action === "record_payment").map((x) => `${x.at}|${x.rowId}`),
   );
-  const cancelledMoves = new Set(
-    xs.filter((x) => x.action === "cancel_wallet_transfer" && x.rowId).map((x) => x.rowId!),
-  );
   const recordedAt = new Set(xs.filter((x) => x.action === "record_payment").map((x) => x.at));
   return xs.flatMap((x) => {
     if (x.system === true) return [];
@@ -90,10 +88,6 @@ export function activityLines(xs: ActivityEntry[]): PLog[] {
       if (x.table !== "payments") return [];
       if (recorded.has(`${x.at}|${x.rowId}`) || recordedAt.has(x.at)) return [];
     }
-    const l = activityLine(x);
-    if (!l) return [];
-    if (x.action === "record_wallet_transfer" && x.rowId)
-      l.transfer = { id: x.rowId, cancelled: cancelledMoves.has(x.rowId) };
-    return [l];
+    return activityLine(x) ?? [];
   });
 }

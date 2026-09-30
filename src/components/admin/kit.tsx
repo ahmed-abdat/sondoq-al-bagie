@@ -220,18 +220,31 @@ export function Bar({ value, max, gold }: { value: number; max: number; gold?: b
   );
 }
 
-/** Months of the year: a plain ✓ in paid months, otherwise an empty cell. Nothing else. */
+/**
+ * One month of the grid (QA pass 9 P0-4): paid «✓», not owed «—» (before joining, exempt, away:
+ * never looks unpaid), otherwise empty. Server states only.
+ */
+export function monthCell(m: Pick<PMember, "paid" | "notOwed">, k: number) {
+  if (m.paid.includes(k)) return { mark: "✓", label: "مدفوع" };
+  if (m.notOwed.includes(k)) return { mark: "—", label: "غير مستحق عليه" };
+  return { mark: "", label: "لم يُدفع" };
+}
+
+/** Months of the year: ✓ paid, «—» not owed, otherwise an empty cell. Nothing else. */
 export function MonthGrid({ m, cols = 6 }: { m: PMember; cols?: 4 | 6 | 12 }) {
   return (
     <div className={`pa-mgrid pa-mgrid-${cols}`} role="table" aria-label="أشهر السنة">
-      {MONTHS_AR.map((name, i) => (
-        <div key={name} className="pa-mcell" role="cell">
-          <span className="pa-mname">{name}</span>
-          <span className="pa-mtick" aria-label={m.paid.includes(i + 1) ? "مدفوع" : "فارغ"}>
-            {m.paid.includes(i + 1) ? "✓" : ""}
-          </span>
-        </div>
-      ))}
+      {MONTHS_AR.map((name, i) => {
+        const c = monthCell(m, i + 1);
+        return (
+          <div key={name} className="pa-mcell" role="cell">
+            <span className="pa-mname">{name}</span>
+            <span className={`pa-mtick ${c.mark === "—" ? "is-off" : ""}`} aria-label={c.label}>
+              {c.mark}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

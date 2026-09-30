@@ -36,6 +36,7 @@ import * as rfx from "@/lib/reports/fixtures";
 import { METHOD_LABELS, type Method } from "@/lib/methods";
 import { currentDueMonth, groupLabel } from "./derive";
 import { monthIncome } from "./month-income";
+import { isLevy } from "./levy-kind";
 import { demoAdminData, demoStatement, demoStats, toActivities, toWallets } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
@@ -402,8 +403,10 @@ export async function adminData(): Promise<PData> {
       by: e.recordedBy ?? "",
     }));
   const refByName = new Map(members.map((x) => [x.name, x.ref]));
-  const campaignsRaw = (m?.campaigns ?? []).filter((c) => c.amountMode !== "fixed");
-  const leviesRaw = (m?.campaigns ?? []).filter((c) => c.amountMode === "fixed");
+  // by kind, never by «fixed» only: a two-price لوحة (per_group) is a لوحة (QA pass 9 P0-2)
+  const shareCampaigns = new Set(shares.map((x) => x.campaignId));
+  const campaignsRaw = (m?.campaigns ?? []).filter((c) => !isLevy(c, shareCampaigns));
+  const leviesRaw = (m?.campaigns ?? []).filter((c) => isLevy(c, shareCampaigns));
   const gifts = await Promise.all(
     campaignsRaw.map((c) => data.getMoneyContributions(c.campaignId, 100).catch(() => null)),
   );

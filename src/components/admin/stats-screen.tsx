@@ -5,9 +5,10 @@
 // Every number comes from `d.stats` (the «الإحصاءات» read, same as the report); nothing recounted.
 import { useState } from "react";
 import { memberNoun } from "@/components/app/derive";
+
 import { Back, month, Num, useP, X } from "./kit";
 import { ReportSheet } from "./report-doc";
-import { pct } from "./stats";
+import { exemptWords, pct } from "./stats";
 import type { PCampaign, PLevy } from "./types";
 import "./stats.css";
 
@@ -153,14 +154,7 @@ export function LevyCard({ l, title }: { l: PLevy; title?: string }) {
           </b>{" "}
           لم يدفعوا بعد
         </span>
-        {s.exempt > 0 && (
-          <span>
-            <b>
-              <N v={s.exempt} />
-            </b>{" "}
-            معفون
-          </span>
-        )}
+        {s.exempt > 0 && <span>{exemptWords(s.exempt)}</span>}
       </p>
       <p className="st-note">
         جُمع <N v={s.collected} /> من <N v={s.expected} /> أوقية

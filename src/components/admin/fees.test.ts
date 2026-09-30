@@ -32,3 +32,18 @@ describe("record fees", () => {
     expect(pastWords(["2024-12", "2025-01"])).toBe("ديسمبر 2024 ويناير 2025");
   });
 });
+
+import { peopleIn } from "./fees";
+describe("people in one transfer (QA pass 9 P2-1)", () => {
+  it("a member with his fees and his لوحة share is one person; outside donors each count", () => {
+    const lines = [
+      { id: 1, t: "fees", ref: "B-18" },
+      { id: 2, t: "levy", ref: "B-18" },
+      { id: 3, t: "fees", ref: "A-11" },
+      { id: 4, t: "fees", ref: "A-21" },
+      { id: 5, t: "gift", ref: null },
+    ];
+    expect(peopleIn(lines)).toBe(4);
+    expect(peopleIn(lines.slice(0, 4))).toBe(3);
+  });
+});

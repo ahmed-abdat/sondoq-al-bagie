@@ -255,6 +255,13 @@
     flex-wrap: wrap;
     gap: 8px;
   }
+  /* buttons one under the other (e.g. the mid-year choice in «الفئات») */
+  .bq-btn-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
   /* «المحافظ» (m41): a wallet, its logo and its accounts under it */
   .bq-wallet .bq-row-m {
     flex: 1 1 0;
@@ -306,12 +313,6 @@
     flex: 1;
     flex-direction: column;
     gap: 8px;
-  }
-  .bq-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 8px;
   }
   .bq-move-preview {
     display: grid;
@@ -918,24 +919,6 @@
     font-size: 17px;
     color: var(--muted);
     font-weight: 600;
-  }
-  .bq-stack {
-    display: flex;
-    gap: 4px;
-    height: 18px;
-    margin-block: 12px 8px;
-  }
-  .bq-stack > span {
-    border-radius: 6px;
-    transform-origin: right;
-  }
-  .bq-stack > span:first-child {
-    border-start-start-radius: 999px;
-    border-end-start-radius: 999px;
-  }
-  .bq-stack > span:last-child {
-    border-start-end-radius: 999px;
-    border-end-end-radius: 999px;
   }
 
   /* pay-to («كيف أدفع؟») */

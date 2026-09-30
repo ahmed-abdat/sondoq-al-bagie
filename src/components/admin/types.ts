@@ -124,8 +124,6 @@ export type PLog = {
   kind: "pay" | "ok" | "no" | "exp" | "gift" | "edit" | "levy";
   /** a settings change (wallets, fees, accounts): «المسؤول» sees it under «تغييرات الإعدادات» */
   settings?: boolean;
-  /** a move between wallets (m43): its id, and whether it was cancelled since */
-  transfer?: { id: string; cancelled: boolean };
 };
 
 export type PData = {
