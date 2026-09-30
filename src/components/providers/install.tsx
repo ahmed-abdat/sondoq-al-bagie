@@ -121,9 +121,6 @@ function waitForPrompt(ms: number): Promise<boolean> {
 /** Browsers that can give the install dialog but have not (yet): Chrome/Edge/Samsung, desktop. */
 const mayStillPrompt = (m: InstallMode) => m === "android" || m === "samsung" || m === "desktop";
 
-/** Was the install invite's trigger; the invite is gone. Remove once no caller is left. */
-export function markInstallEngaged() {}
-
 /** Current install mode ("installed" on the server and while hydrating). */
 function useInstallMode(): InstallMode {
   return useSyncExternalStore(subscribe, modeNow, () => "installed");

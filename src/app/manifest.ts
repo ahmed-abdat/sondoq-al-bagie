@@ -31,7 +31,7 @@ export default function manifest(): MetadataRoute.Manifest {
         form_factor: "narrow" as const,
         label: [
           "الرئيسية: الصندوق وآخر العمليات",
-          "الأعضاء: من دفع ومن عليه رسوم",
+          "الأعضاء: من دفع ومن عليه متأخرات",
           "تقارير الصندوق",
         ][i],
       })),

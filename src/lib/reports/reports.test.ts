@@ -12,6 +12,7 @@ import {
   buildWallets,
   buildWork,
   daysWord,
+  lateWhen,
   refLabel,
 } from "./build";
 import {
@@ -23,6 +24,7 @@ import {
   paginate,
   percent,
   PHONE,
+  shareText,
   UNITS_NOTE,
   type Block,
   type ReportDoc,
@@ -109,6 +111,18 @@ describe("paginate", () => {
     }
   });
 
+  it("the closing total never ends a page without its split", () => {
+    for (const size of [PHONE, A4]) {
+      const pages = paginate(buildAnnual(fx.fxAnnual).blocks, size);
+      const at = pages.findIndex((pg) =>
+        pg.some((b) => b.t === "rows" && b.total?.label === "المجموع آخر السنة"),
+      );
+      const txtOf = (pg: Block[]) => JSON.stringify(pg);
+      expect(txtOf(pages[at])).toContain("منها في الصندوق");
+      expect(txtOf(pages[at])).toContain("منها لدى التبرعات واللوحات");
+    }
+  });
+
   it("never leaves a heading alone at the bottom of a page", () => {
     const filler: Block = {
       t: "rows",
@@ -147,22 +161,34 @@ describe("the 10 reports", () => {
     const text = txt(doc);
     for (const t of [
       "رصيد أول السنة: 120 000",
-      "الرسوم الشهرية: 212 500",
+      "المستحقات الشهرية: 212 500",
       "اللوحات: 30 000",
       "التبرعات: 71 000",
-      "*مجموع ما دخل: 313 500*",
-      "التدريس: 90 000",
-      "*مجموع ما صُرف: 133 500*",
+      "*مجموع المداخيل: 313 500*",
+      "التدريس المحوري: 90 000",
+      "*مجموع المصاريف: 133 500*",
       "*المجموع آخر السنة: 300 000*",
       // split so that «في الصندوق» is the fund alone, the same number as home
       "منها في الصندوق: 254 000",
-      "منها لدى التبرعات واللوحات، لم تُصرف بعد: 46 000",
+      "منها لدى التبرعات واللوحات: 46 000",
     ])
       expect(text).toContain(t);
     const noCampaigns = txt(buildAnnual({ ...fx.fxAnnual, campaignsHeld: 0 }));
     expect(noCampaigns).toContain("*رصيد آخر السنة: 300 000*");
     expect(noCampaigns).not.toContain("منها في الصندوق");
     expect(doc.blocks.some((b) => b.t === "bars" && b.values.length === 12)).toBe(true);
+    // owner: the chart and the table by the month the fees pay for, expenses by date
+    expect(text).toContain("*المداخيل حسب الشهر المستحق*");
+    const bars = doc.blocks.find((b) => b.t === "bars");
+    expect(bars?.t === "bars" && bars.values).toEqual(fx.fxAnnual.months.map((m) => m.dueIncome));
+    expect(text).toContain("*المجموع · 307 500 · 133 500*");
+    expect(text.replace(/[\u2066-\u2069]/g, "")).toContain(
+      "لا يظهر هنا 6 000 دُفعت هذه السنة لمستحقات سنة أخرى.",
+    );
+    // the chart adds up: by date − other years' months + this year's months paid in another year
+    const due = fx.fxAnnual.incomeDue;
+    expect(fx.fxAnnual.months.reduce((s, m) => s + m.dueIncome, 0)).toBe(due.total);
+    expect(due.total).toBe(fx.fxAnnual.income.total - due.feesForOtherMonths + due.feesPaidOutside);
     const months = doc.blocks.find((b) => b.t === "table");
     expect(months?.t === "table" && months.rows).toHaveLength(12);
   });
@@ -174,10 +200,10 @@ describe("the 10 reports", () => {
     const closing = fx.fxSummary.closing;
     expect(text).toContain(`*المجموع آخر الشهر: ${fmtN(closing)}*`);
     expect(text).toContain(`منها في الصندوق: ${fmtN(closing - 46_000)}`);
-    expect(text).toContain("منها لدى التبرعات واللوحات، لم تُصرف بعد: 46 000");
+    expect(text).toContain("منها لدى التبرعات واللوحات: 46 000");
     const none = txt(buildSummary({ ...fx.fxSummary, campaignsHeld: 0 }));
     expect(none).toContain(`*في الصندوق آخر الشهر: ${fmtN(closing)}*`);
-    expect(text).toContain("دفع رسوم سبتمبر 47 عضوًا من 89.");
+    expect(text).toContain("دفع مستحقات شهر سبتمبر 47 عضوًا من 89.");
     expect(text).not.toContain("متأخر");
   });
 
@@ -190,31 +216,48 @@ describe("the 10 reports", () => {
     expect(txt(doc)).toContain("✓ مدفوع · خانة فارغة: لم يُدفع");
   });
 
-  it("«المتأخرات»: names, months left and the levy column; no amount anywhere", () => {
+  it("«المتأخرات»: names only, a box with the months left, the months exactly, the لوحة owed", () => {
     const doc = buildLate(fx.fxLate);
     expect(doc.hasAmounts).toBe(false);
     const text = txt(doc);
-    expect(text).toContain("_الاسم · الأشهر الباقية · لوحة_");
-    expect(text).toContain("أ 4 · الحسن ولد عبد الله · يناير إلى سبتمبر · ✓");
-    expect(text).toContain("أ 5 · المختار ولد محمد · يونيو إلى سبتمبر · —");
-    expect(text).toContain("ب 11 · عبد الرحمن ولد سيدي");
+    expect(text).toContain("*الفئة أ*");
+    expect(text).toContain("الحسن ولد عبد الله: [9] يناير – سبتمبر + نصيب لوحة ترميم المسجد");
+    expect(text).toContain("المختار ولد محمد: [4] يونيو – سبتمبر");
+    expect(text).toContain("*الفئة ب*");
+    expect(text).toContain("عبد الرحمن ولد سيدي: نصيب لوحة ترميم المسجد");
     for (const t of [text, ...drawn(doc)]) {
       expect(t).not.toMatch(AMOUNT);
-      expect(t).not.toMatch(/أوقية|الرسوم الشهرية|المجموع/);
+      expect(t).not.toMatch(/أوقية|المستحقات الشهرية|الرسوم الشهرية|المجموع/);
+      // no paper number, no count of members (owner: internal)
+      expect(t).not.toMatch(/[أب] \d|[AB]-\d|عضو/);
     }
     expect(buildLate({ ...fx.fxLate, members: [] }).blocks).toEqual([
       { t: "note", text: "لا أحد عليه متأخرات الآن." },
     ]);
   });
 
+  it("«المتأخرات» months: never a range over a paid month; the year when there are several", () => {
+    expect(lateWhen(["2026-01", "2026-02", "2026-03"])).toBe("يناير – مارس");
+    expect(lateWhen(["2026-01", "2026-03", "2026-04", "2026-05"])).toBe("يناير، مارس – مايو");
+    expect(lateWhen(["2026-02"])).toBe("فبراير");
+    expect(lateWhen(["2025-11", "2025-12", "2026-01"])).toBe("نوفمبر – ديسمبر 2025، يناير 2026");
+    // the box says exactly how many months are listed
+    const row = (months: string[]) =>
+      buildLate({
+        ...fx.fxLate,
+        members: [{ ...fx.fxLate.members[0], lateMonths: months, monthsCount: 99, levies: [] }],
+      }).blocks.find((b) => b.t === "late");
+    expect(row(["2026-01", "2026-03"])).toMatchObject({ rows: [{ count: 2 }] });
+  });
+
   it("expenses: by kind with the total, then by month newest first", () => {
     const doc = buildExpenses(fx.fxExpenses);
     const heads = doc.blocks.flatMap((b) => (b.t === "heading" ? [b.text] : []));
-    expect(heads).toEqual(["حسب النوع", "سبتمبر 2026", "أغسطس 2026", "أبريل 2026"]);
+    expect(heads).toEqual(["حسب النشاط", "سبتمبر 2026", "أغسطس 2026", "أبريل 2026"]);
     expect(txt(doc)).toContain("*المجموع: 133 500*");
     expect(buildExpenses({ ...fx.fxExpenses, items: [] }).blocks[0]).toEqual({
       t: "note",
-      text: "لم يُصرف شيء في هذه الفترة.",
+      text: "لا مصاريف في هذه الفترة.",
     });
   });
 
@@ -238,9 +281,9 @@ describe("the 10 reports", () => {
     const months = doc.blocks.find((b) => b.t === "months");
     expect(months?.t === "months" && months.paid.filter(Boolean)).toHaveLength(5);
     const text = txt(doc);
-    expect(text).toContain("رسوم يناير إلى مارس (2 مارس 2026 · سجّلها سيدي محمد): 3 000");
+    expect(text).toContain("مستحقات يناير إلى مارس (2 مارس 2026 · سجّلها سيدي محمد): 3 000");
     expect(text).not.toContain("سُجّلت مرتين");
-    expect(text).toContain("رسوم يونيو إلى سبتمبر: 4 000");
+    expect(text).toContain("مستحقات يونيو إلى سبتمبر: 4 000");
     expect(text).toContain("لوحة لوحة العيد: 2 000");
   });
 
@@ -256,11 +299,13 @@ describe("the 10 reports", () => {
     });
   });
 
-  it("wallets: money in per wallet and cash; no «خرج» column until expenses name a wallet", () => {
+  it("wallets: the movement in the period (داخل / خارج), never a per-wallet balance", () => {
     const doc = buildWallets(fx.fxWallets);
     const table = doc.blocks.find((b) => b.t === "table");
-    expect(table?.t === "table" && table.head).toEqual(["المحفظة", "الدفعات", "دخل"]);
+    expect(table?.t === "table" && table.head).toEqual(["المحفظة", "الدفعات", "داخل"]);
     expect(table?.t === "table" && table.foot?.[2].replace(/\D/g, "")).toBe("313500");
+    expect(txt(doc)).toContain("*الحركة في الفترة*");
+    // even when the data carries a balance: no opening balance per wallet, so not shown
     const withOut = buildWallets({
       ...fx.fxWallets,
       wallets: fx.fxWallets.wallets.map((w) => ({ ...w, out: 1000, balance: 5000 })),
@@ -268,15 +313,13 @@ describe("the 10 reports", () => {
       unspecifiedOut: 3000,
     });
     const t2 = withOut.blocks.find((b) => b.t === "table");
-    expect(t2?.t === "table" && t2.head).toEqual(["المحفظة", "الدفعات", "دخل", "خرج", "الرصيد"]);
+    expect(t2?.t === "table" && t2.head).toEqual(["المحفظة", "الدفعات", "داخل", "خارج"]);
+    expect(txt(withOut)).not.toContain("الرصيد");
     const rows = t2?.t === "table" ? t2.rows.map((r) => r.map((c) => c.replace(/\D/g, ""))) : [];
-    expect(rows.at(-2)).toEqual(["", "60", "75000", "2000", "73000"]); // cash
-    expect(t2?.t === "table" && t2.rows.at(-1)?.[0]).toBe("مصاريف قبل تسمية المحفظة");
-    // out: 3 wallets × 1 000 + cash 2 000 + before-wallets 3 000; balance: 3 × 5 000 + 73 000
-    expect(t2?.t === "table" && t2.foot?.slice(3).map((c) => c.replace(/\D/g, ""))).toEqual([
-      "8000",
-      "88000",
-    ]);
+    expect(rows.at(-2)).toEqual(["", "60", "75000", "2000"]); // cash
+    expect(t2?.t === "table" && t2.rows.at(-1)?.[0]).toBe("مصاريف بلا محفظة");
+    // خارج: 3 wallets × 1 000 + cash 2 000 + without a wallet 3 000
+    expect(t2?.t === "table" && t2.foot?.[3].replace(/\D/g, "")).toBe("8000");
   });
 
   it("committee work: who recorded what, the inactive without activity left out, what was cancelled", () => {
@@ -332,8 +375,8 @@ describe("«الإحصاءات»", () => {
   it("fees first: paid up to the month, by group, each month, who still owes, last year", () => {
     expect(doc.subtitle).toBe("سنة 2026 · حتى سبتمبر");
     expect(text).toContain("*48٪* دفعوا حتى سبتمبر: 42 من 88 عضوًا.");
-    expect(text).toContain("المجموعة أ: 55٪ (22 من 40)");
-    expect(text).toContain("المجموعة ب: 42٪ (20 من 48)");
+    expect(text).toContain("الفئة أ: 55٪ (22 من 40)");
+    expect(text).toContain("الفئة ب: 42٪ (20 من 48)");
     expect(text).toContain("يناير 80، فبراير 78");
     expect(text).toContain("سبتمبر 42");
     // months not started yet: what is already paid in them (a whole year paid), never «مقدَّمًا»
@@ -357,7 +400,7 @@ describe("«الإحصاءات»", () => {
     expect(text).toContain("معفون: 4");
     expect(text).toContain("جُمع 68 000 من 168 000 أوقية.");
     expect(text).toContain(
-      "المجموعة أ: جُمع 40 000 من 76 000 أوقية. المجموعة ب: جُمع 28 000 من 92 000 أوقية.",
+      "الفئة أ: جُمع 40 000 من 76 000 أوقية. الفئة ب: جُمع 28 000 من 92 000 أوقية.",
     );
     // the groups add up to the whole
     const g = fx.fxLevyStats.groups;
@@ -397,7 +440,7 @@ describe("«الإحصاءات»", () => {
   it("nobody owing says so instead of three zeros", () => {
     const o = { ...fx.fxFeeStats.overall, paidUp: 88, owe1: 0, owe2to3: 0, owe4plus: 0 };
     const t = txt(buildStats({ ...fx.fxStats, fees: { ...fx.fxFeeStats, overall: o } }));
-    expect(t).toContain("لا أحد عليه رسوم.");
+    expect(t).toContain("لا أحد عليه متأخرات.");
     expect(t).toContain("*100٪*");
   });
   it("a لوحة or تبرع section is never split between two pages", () => {
@@ -434,5 +477,46 @@ describe("«الإحصاءات»", () => {
     expect(txt(buildCampaign(fx.fxLevy))).toContain("ولم يدفع بعد");
     const gift = txt(buildCampaign(fx.fxCampaign, fx.fxDonationStats));
     expect(gift).toContain("تبرّعوا: 27");
+  });
+});
+
+describe("the owner's words (docs/GLOSSARY.md)", () => {
+  /** words never to use in a report, and the word to use instead */
+  const NEVER: [RegExp, string][] = [
+    [/(^|[\s«(*·،])دخل([\s:»)*.،]|$)/m, "المداخيل"],
+    [/ما دخل|ما صُرف|صُرف|الإيرادات/, "المداخيل / المصاريف"],
+    [/رسوم|الاشتراك/, "المستحقات"],
+    [/المجموعة [أبج]/, "الفئة"],
+    [/الديون/, "المتأخرات"],
+    [/أمين الصندوق|نائب الرئيس|المشرف/, "المسؤول / عضو اللجنة"],
+    [/\bوصل\b|وصل استلام/, "no receipts"],
+    [/مقدَّمًا|مقدما/, "no «مقدَّمًا» (owner)"],
+  ];
+  const docs = [...ALL, ["stats-levy", buildCampaign(fx.fxLevy, fx.fxLevyStats)] as const];
+  for (const [name, doc] of docs)
+    it(`${name}: only the glossary's words`, () => {
+      const text = txt(doc);
+      for (const [re, use] of NEVER) expect(text, `use ${use}`).not.toMatch(re);
+    });
+});
+
+describe("the WhatsApp group is public (owner): no app, no site, no link", () => {
+  const NEVER = /http|vercel|baqie|التطبيق|www\.|\.app\b/;
+  for (const [name, doc] of ALL)
+    it(`${name}: text, share message and every drawn page`, () => {
+      expect(txt(doc)).not.toMatch(NEVER);
+      expect(shareText(doc)).not.toMatch(NEVER);
+      for (const size of [PHONE, A4])
+        for (const t of drawn(doc, size)) expect(t).not.toMatch(NEVER);
+    });
+  it("each report says what it is and whom to ask, in one short line", () => {
+    for (const [, doc] of ALL) {
+      expect(doc.message.length).toBeGreaterThan(10);
+      expect(doc.message.length).toBeLessThan(90);
+      expect(shareText(doc).split("\n")).toEqual([`*${doc.title} · ${doc.subtitle}*`, doc.message]);
+    }
+    expect(shareText(buildLate(fx.fxLate))).toBe(
+      "*المتأخرات · سنة 2026*\nهذه الأسماء عليها متأخرات لم تُدفع بعد. للدفع أو السؤال تواصل مع اللجنة.",
+    );
   });
 });

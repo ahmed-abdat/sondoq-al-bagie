@@ -62,8 +62,7 @@ export type Block =
   | { t: "expTotal"; label: string; amount: number }
   | { t: "campaign"; c: ReportCampaign }
   | { t: "note"; text: string }
-  | { t: "space" }
-  | { t: "cta" };
+  | { t: "space" };
 
 export const BLOCK_H: Record<Block["t"], number> = {
   heading: 84,
@@ -73,7 +72,6 @@ export const BLOCK_H: Record<Block["t"], number> = {
   campaign: 188,
   note: 60,
   space: 32,
-  cta: 130,
 };
 
 export type ReportPage =
@@ -142,7 +140,6 @@ export function moneyBlocks(r: ReportData): Block[] {
     out.push({ t: "heading", text: "حملات التبرع" });
     for (const c of campaigns) out.push({ t: "campaign", c });
   }
-  if (out.length) out.push({ t: "space" }, { t: "cta" });
   return out;
 }
 
@@ -365,12 +362,12 @@ function drawMembers(
   const P = L.pad;
   const all = r.members.filter((m) => isShown(m) && listOf(m) === page.list);
   const fee = (r.groupPrices as Record<string, number | undefined>)[page.list];
-  const feeLine = fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : [];
+  const feeLine = fee ? [`المستحقات الشهرية: ${formatNumber(fee)} أوقية`] : [];
   // no current-month count here (owner decision r20): the group, its size and its fee.
   // «المتأخرات»: the title only, no amount at all, not even the fee (owner), never «متأخر N»
-  if (page.reminder) band(p, w, card, o.logo, `المتأخرات · المجموعة ${listLabel(page.list)}`);
+  if (page.reminder) band(p, w, card, o.logo, `المتأخرات · الفئة ${listLabel(page.list)}`);
   else
-    band(p, w, card, o.logo, `المجموعة ${listLabel(page.list)}`, [
+    band(p, w, card, o.logo, `الفئة ${listLabel(page.list)}`, [
       membersWord(all.length),
       ...feeLine,
     ]);
@@ -447,7 +444,7 @@ function drawMoney(
   card: ReportSummaryData,
   o: PageDrawOptions,
 ) {
-  const { w, h: H } = o.size;
+  const { w } = o.size;
   const R = w - L.pad;
   const P = L.pad;
   band(p, w, card, o.logo, page.title);
@@ -535,31 +532,11 @@ function drawMoney(
           { size: 26, weight: 600, face: "display" },
         );
         p.text(
-          `صُرف ${formatNumber(c.spent)} · الباقي ${formatNumber(c.balance)} أوقية`,
+          `المصاريف ${formatNumber(c.spent)} · الباقي ${formatNumber(c.balance)} أوقية`,
           R,
           y + 164,
           { size: 24, color: T.slate },
         );
-        break;
-      }
-      case "cta": {
-        // at the foot of the page, so a short page still ends well
-        const cy = Math.max(y, H - L.foot - h);
-        p.box(P - 12, cy, w - 2 * P + 24, h - 16, 24, T.greenTint);
-        p.text("ابحث عن اسمك وتحقّق من أشهرك", R - 16, cy + 50, {
-          size: 30,
-          weight: 700,
-          face: "display",
-          color: T.forestDeep,
-        });
-        p.text(o.url.replace(/^https?:\/\//, ""), R - 16, cy + 94, {
-          size: 28,
-          weight: 600,
-          face: "display",
-          color: T.forest,
-          dir: "ltr",
-          align: "right",
-        });
         break;
       }
     }
@@ -592,9 +569,7 @@ export function drawReportPage(
   x.fillRect(0, 0, o.size.w, o.size.h);
   if (page.kind === "members") drawMembers(p, page, r, card, o);
   else drawMoney(p, page, card, o);
-  // the last page's «ابحث عن اسمك» panel already shows the link
-  const cta = page.kind === "money" && page.blocks.some((b) => b.t === "cta");
-  p.footer(o.size.w, o.size.h, footer, cta ? "" : o.url, L.pad);
+  p.footer(o.size.w, o.size.h, footer, "", L.pad);
 }
 
 /* ─────────────── browser ─────────────── */
