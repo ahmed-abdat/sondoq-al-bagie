@@ -104,6 +104,9 @@ export const MESSAGES = {
   account_in_use: "هذا الرقم مستعمل في دفعات أو مصاريف. غيّر الرقم بدل تعديله.",
   same_wallet: "اختر محفظتين مختلفتين.",
   not_enough: "المبلغ أكبر مما في المحفظة.",
+  opening_too_big: "رصيد البداية في الحسابات أكبر من رصيد بداية الصندوق.",
+  cash_opening_derived:
+    "النقد في البداية = رصيد بداية الصندوق ناقص ما في الحسابات، لا يُكتب باليد.",
 } as const satisfies Record<string, string>;
 
 export type ErrorCode = keyof typeof MESSAGES;
@@ -152,9 +155,23 @@ function walletShort(detail: string | null | undefined): string | null {
   }
 }
 
+/** opening_too_big (m45): DETAIL {"available": 30000} → «المتاح 30 000 أوقية فقط.» */
+function openingLeft(detail: string | null | undefined): string | null {
+  if (!detail) return null;
+  try {
+    const d = JSON.parse(detail) as { available?: unknown } | null;
+    if (!d || typeof d.available !== "number" || !Number.isInteger(d.available) || d.available < 0)
+      return null;
+    return `المتاح ${formatNumber(d.available)} أوقية فقط.`;
+  } catch {
+    return null;
+  }
+}
+
 export function messageFor(code: string, detail?: string | null): string {
   if (!(code in MESSAGES)) return MESSAGES.unknown;
   if (code === "not_enough") return walletShort(detail) ?? MESSAGES.not_enough;
+  if (code === "opening_too_big") return openingLeft(detail) ?? MESSAGES.opening_too_big;
   const template = MONTH_TEMPLATES[code as ErrorCode];
   const d = template ? monthDetail(detail) : null;
   if (template && d) {
