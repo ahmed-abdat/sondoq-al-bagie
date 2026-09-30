@@ -32,6 +32,9 @@ describe("analytics", () => {
     expect(s.A).toEqual({ total: 2, paid: 1, pct: 50 });
     expect(s.B).toEqual({ total: 1, paid: 0, pct: 0 });
     expect(s.months[2]).toEqual({ month: 3, paid: 1, unpaid: 2 });
+    // months not started yet: who paid ahead shows, nobody is «unpaid»
+    expect(s.months).toHaveLength(12);
+    expect(s.months[11].unpaid).toBe(0);
     expect(s.owe).toEqual({ one: 1, twoThree: 0, fourPlus: 1 });
   });
   it("levy: exempt members are out of the percentage", () => {
@@ -70,6 +73,8 @@ describe("analytics", () => {
     const s = campaignStats(c, [mem("A-1"), mem("A-2"), mem("A-3"), mem("A-4")]);
     expect(s).toMatchObject({ givers: 2, members: 1, outside: 1, pctMembers: 25, pctTarget: 70 });
     expect(pct(1, 0)).toBe(0);
+    // as the reports print it: never 100 with someone missing, never 0 once someone paid
+    expect([pct(199, 200), pct(1, 300), pct(5, 5)]).toEqual([99, 1, 100]);
   });
 });
 
@@ -95,7 +100,7 @@ describe("the server's stats (m32) in the screens' shape", () => {
         period: { year: 2026 },
         generatedAt: "",
         fees,
-        previous: { ...fees, overall: { ...block, paidUpPct: 55.4 } },
+        previous: { ...fees, overall: { ...block, paidUp: 49, paidUpPct: 55.7 } },
         levies: [
           {
             id: "l1",
@@ -133,10 +138,10 @@ describe("the server's stats (m32) in the screens' shape", () => {
       9,
       58,
     );
-    expect([s.fees.pct, s.fees.previous, s.fees.months.length, s.owing]).toEqual([48, 55, 9, 58]);
+    expect([s.fees.pct, s.fees.previous, s.fees.months.length, s.owing]).toEqual([48, 56, 12, 58]);
     expect(s.fees.A).toEqual({ total: 60, paid: 30, pct: 50 });
     expect(s.fees.owe).toEqual({ one: 20, twoThree: 15, fourPlus: 11 });
-    expect(s.levies.l1).toMatchObject({ paid: 34, notYet: 50, exempt: 4, pct: 41, days: 20 });
+    expect(s.levies.l1).toMatchObject({ paid: 34, notYet: 50, exempt: 4, pct: 40, days: 20 });
     expect(s.campaigns.c1).toMatchObject({ givers: 7, pctMembers: 6, pctTarget: null, target: 0 });
   });
 });

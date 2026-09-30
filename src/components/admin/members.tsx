@@ -68,9 +68,9 @@ export function MembersScreen() {
         onChange={setF}
         options={[
           { k: "all", l: "الكل" },
-          { k: "owe", l: `عليهم رسوم (${oweCount})` },
-          { k: "A", l: "المجموعة أ" },
-          { k: "B", l: "المجموعة ب" },
+          { k: "owe", l: `عليهم متأخرات (${oweCount})` },
+          { k: "A", l: "الفئة أ" },
+          { k: "B", l: "الفئة ب" },
         ]}
       />
       {f === "owe" && (
@@ -117,7 +117,7 @@ export function MemberScreen({ refs }: { refs: string }) {
         <div>
           <h1>{m.name}</h1>
           <p className="pa-sub">
-            المجموعة {m.group === "A" ? "أ" : "ب"} · الرسوم الشهرية <Money v={m.fee} />
+            الفئة {m.group === "A" ? "أ" : "ب"} · المستحقات الشهرية <Money v={m.fee} />
           </p>
           {m.phone && (
             <p className="pa-sub">
@@ -153,7 +153,7 @@ export function MemberScreen({ refs }: { refs: string }) {
               <span className="pa-ic">{X.edit(22)}</span>
               <span className="pa-row-t">
                 <b>تعديل البيانات والحالة</b>
-                <small>الاسم، الهاتف، المجموعة، الحالة</small>
+                <small>الاسم، الهاتف، الفئة، الحالة</small>
               </span>
               {X.go(20)}
             </Link>
@@ -193,7 +193,7 @@ function Owed({ m }: { m: PMember }) {
       <dl className="pa-dl pa-dl-owe">
         {fees > 0 && (
           <>
-            <dt>رسوم {what}</dt>
+            <dt>مستحقات {what}</dt>
             <dd>
               <Money v={fees} />
             </dd>
@@ -250,7 +250,7 @@ function Payments({ m }: { m: PMember }) {
             .map((p) => {
               const off = p.status === "cancelled" || p.status === "rejected";
               const what = [
-                p.months.length ? `رسوم ${monthsOf(p.months, d.year)}` : "",
+                p.months.length ? `مستحقات ${monthsOf(p.months, d.year)}` : "",
                 ...p.campaigns,
               ]
                 .filter(Boolean)

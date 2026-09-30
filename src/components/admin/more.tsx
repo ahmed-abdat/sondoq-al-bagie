@@ -1,10 +1,11 @@
 "use client";
 // «المزيد» and «سجل العمليات» (plan §4, §7.1: who did what, visible to all the committee).
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { InstallEntry } from "@/components/providers";
 import { LogoutButton } from "@/components/app/logout";
-import { Back, Chips, day, Num, useP, X } from "./kit";
+import { Back, Chips, committeeHref, day, Num, useP, X } from "./kit";
+import { legacyPendingCount } from "./report-action";
 import type { PLog } from "./types";
 
 const LOG_ICON: Record<PLog["kind"], keyof typeof X> = {
@@ -37,16 +38,30 @@ export function LogRow({ l, who = true }: { l: PLog; who?: boolean }) {
   );
 }
 
-export function MoreScreen() {
-  const { d, href } = useP();
+/**
+ * «المزيد» is a menu: it needs no fund data, so it shows at once. The only count (old payments
+ * not yet confirmed) is asked after it is on screen.
+ */
+export function MoreMenu({ me }: { me: { name: string; role: string; admin: boolean } }) {
+  const href = committeeHref;
+  const [pending, setPending] = useState(0);
+  useEffect(() => {
+    let live = true;
+    legacyPendingCount()
+      .then((n) => live && setPending(n))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
   const rows: { t: string; s: string; icon: keyof typeof X; to: string; admin?: boolean }[] = [
-    { t: "المصاريف", s: "سجّل مصروفًا، وكل ما صُرف", icon: "bag", to: href("expenses") },
+    { t: "المصاريف", s: "سجّل مصروفًا، وكل المصاريف", icon: "bag", to: href("expenses") },
     { t: "سجل العمليات", s: "من سجّل ماذا، ومتى", icon: "list", to: href("activity") },
-    { t: "المتأخرون", s: "من عليه رسوم أو نصيب لوحة", icon: "clock", to: href("late") },
-    ...(d.pending.length
+    { t: "المتأخرون", s: "من عليه متأخرات أو نصيب لوحة", icon: "clock", to: href("late") },
+    ...(pending
       ? [
           {
-            t: `دفعات قديمة لم تُثبَّت (${d.pending.length})`,
+            t: `دفعات قديمة لم تُثبَّت (${pending})`,
             s: "سُجّلت قبل التحديث. ثبّتها لتُحسب.",
             icon: "coins" as const,
             to: href("review"),
@@ -61,25 +76,14 @@ export function MoreScreen() {
       admin: true,
     },
     {
-      t: "أرقام الصندوق",
-      s: "المحافظ التي يُحوَّل إليها المال",
-      icon: "wallet",
-      to: "/committee/settings#bq-wallets-h",
-    },
-    {
-      t: "أعضاء اللجنة",
-      s: "من يدخل إلى التطبيق، ودور كل واحد",
-      icon: "people",
-      to: "/committee/settings#bq-acc-h",
-      admin: true,
-    },
-    {
       t: "الإعدادات",
-      s: "الرسوم الشهرية، رقم واتساب اللجنة، رصيد أول السنة",
+      s: me.admin
+        ? "أرقام الصندوق، المستحقات الشهرية، أعضاء اللجنة"
+        : "أرقام الصندوق، المستحقات الشهرية",
       icon: "gear",
       to: href("settings"),
     },
-    { t: "حسابي", s: `${d.me.name} · ${d.me.role} · الإشعارات`, icon: "user", to: href("account") },
+    { t: "حسابي", s: `${me.name} · ${me.role} · الإشعارات`, icon: "user", to: href("account") },
   ];
   return (
     <div className="pa-page">
@@ -88,7 +92,7 @@ export function MoreScreen() {
       </header>
       <ul className="pa-rows">
         {rows
-          .filter((r) => !r.admin || d.me.admin)
+          .filter((r) => !r.admin || me.admin)
           .map((r) => (
             <li key={r.t}>
               <Link href={r.to} className="pa-row">

@@ -36,7 +36,7 @@ export function Home() {
           <span> أوقية</span>
         </p>
         <p className="pb-hero-m">
-          هذا الشهر: دخل <Num>{fmt(d.monthIn)}</Num> · صرف <Num>{fmt(d.monthOut)}</Num>
+          المداخيل هذا الشهر: <Num>{fmt(d.monthIn)}</Num> · المصاريف: <Num>{fmt(d.monthOut)}</Num>
         </p>
       </section>
       <div className="pb-big">
@@ -53,12 +53,19 @@ export function Home() {
       </div>
 
       <section className="pa-sec">
-        <h2>الرسوم</h2>
+        <h2>المستحقات الشهرية</h2>
         {/* the numbers of the «الإحصاءات» report (report_fee_stats), one tap to the full page */}
         <Link href={href("stats")} className="pb-month">
-          <span className="pb-month-t">
-            دفع <Num>{fees.paid}</Num> من <Num>{fees.total}</Num> حتى {month(d.due)} ·{" "}
-            <Num>{`${fees.pct}٪`}</Num>
+          <span className="pb-month-top">
+            <b className="pb-month-pct">
+              <Num>{`${fees.pct}٪`}</Num>
+            </b>
+            <span className="pb-month-t">
+              <span>
+                دفع <Num>{fees.paid}</Num> من <Num>{fees.total}</Num>
+              </span>
+              <small>كل ما عليهم حتى {month(d.due)}</small>
+            </span>
           </span>
           <Bar value={fees.paid} max={fees.total} />
           <span className="pb-month-s">الإحصاءات {X.go(18)}</span>
@@ -69,7 +76,7 @@ export function Home() {
             <b>
               <Num>{d.stats.owing}</Num> عضوًا عليهم متأخرات
             </b>
-            <small>رسوم أو نصيب لوحة</small>
+            <small>مستحقات أو نصيب لوحة</small>
           </span>
           {X.go(20)}
         </Link>

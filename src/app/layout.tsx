@@ -19,7 +19,7 @@ const display = Alexandria({
   weight: ["600", "700", "800"],
 });
 
-const DESCRIPTION = "صندوق رابطة شباب قرية البقيع: الرسوم والمصاريف بشفافية";
+const DESCRIPTION = "صندوق رابطة شباب قرية البقيع: المستحقات والمصاريف بشفافية";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

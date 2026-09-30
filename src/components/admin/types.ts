@@ -80,7 +80,7 @@ export type PLevy = {
   title: string;
   purpose: string;
   perMember: number;
-  scope: string; // «كل الأعضاء» / «المجموعة أ» / «أعضاء مختارون»
+  scope: string; // «كل الأعضاء» / «الفئة أ» / «أعضاء مختارون»
   createdOn: string;
   createdBy: string;
   status: "open" | "closed";
@@ -96,18 +96,6 @@ export type PLog = {
   what: string;
   at: string;
   kind: "pay" | "ok" | "no" | "exp" | "gift" | "edit" | "levy";
-};
-export type PHist = {
-  at: string;
-  months: number[];
-  amount: number;
-  method: Method;
-  receiptNo: string | null;
-  by: string;
-  okBy: string | null;
-  state: "confirmed" | "cancelled";
-  reason?: string;
-  levy?: string;
 };
 
 export type PData = {

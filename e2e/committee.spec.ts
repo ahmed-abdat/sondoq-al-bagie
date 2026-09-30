@@ -66,7 +66,7 @@ test("the app icon shows the payments waiting, and follows a confirmation", asyn
   expect(waiting).toBeGreaterThan(0);
   await expect.poll(() => badge(page).then((b) => b.at(-1))).toBe(waiting);
 
-  await page.getByRole("button", { name: "أكّد الاستلام" }).first().click();
+  await page.getByRole("button", { name: "ثبّت الدفعة" }).first().click();
   await expect(heading).toContainText(String(waiting - 1));
   await expect.poll(() => badge(page).then((b) => b.at(-1))).toBe(waiting - 1 || "clear");
 });

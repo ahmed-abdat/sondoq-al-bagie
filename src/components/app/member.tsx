@@ -27,7 +27,7 @@ export function MemberRow<T extends MemberStatus>({
         <Avatar m={m} scoped={scoped} />
         <span className="bq-row-m">
           <span className="bq-row-t">{m.fullName}</span>
-          <span className="bq-row-s">المجموعة {groupLabel(m.groupCode)}</span>
+          <span className="bq-row-s">الفئة {groupLabel(m.groupCode)}</span>
         </span>
         <StatusTag m={m} />
       </button>
@@ -67,7 +67,7 @@ export function MemberMonths({
       {st === "off" ? (
         <p className="bq-mstatus is-late">
           {I.clock(18)}
-          لا تُستحق عليه رسوم الآن
+          لا تُستحق عليه مستحقات الآن
         </p>
       ) : st === "late" ? (
         <p className="bq-mstatus is-late">

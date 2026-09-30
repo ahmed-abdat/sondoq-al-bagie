@@ -1,5 +1,5 @@
 "use client";
-// Two settings cards: «الرسوم الشهرية» for the coming year (admin, from 1 December, or when this
+// Two settings cards: «المستحقات الشهرية» for the coming year (admin, from 1 December, or when this
 // year has none), and «آخر نسخة احتياطية» (the weekly backup: ok, failed, never).
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -18,11 +18,11 @@ export function CurrentPrices({ year, prices }: { year: number; prices: Record<s
   if (!groups.length) return null;
   return (
     <section className="bq-sec" aria-labelledby="bq-cp-h">
-      <h2 id="bq-cp-h">الرسوم الشهرية {year}</h2>
+      <h2 id="bq-cp-h">المستحقات الشهرية {year}</h2>
       {/* one line per group: never wider than the screen, even with large text */}
       {groups.map((g) => (
         <p key={g} className="bq-lead">
-          المجموعة {groupLabel(g)}: <Num>{fmt(prices[g])}</Num> أوقية
+          الفئة {groupLabel(g)}: <Num>{fmt(prices[g])}</Num> أوقية
         </p>
       ))}
     </section>
@@ -49,11 +49,11 @@ export function YearPrices({
   const missing = groups.filter((g) => !set[g]);
   return (
     <section className="bq-sec" aria-labelledby="bq-yp-h">
-      <h2 id="bq-yp-h">الرسوم الشهرية لسنة {year}</h2>
+      <h2 id="bq-yp-h">المستحقات الشهرية لسنة {year}</h2>
       <p className="bq-lead">
         {missing.length
-          ? `حدد الرسوم الشهرية لسنة ${year} قبل بدايتها، وإلا لا تُسجَّل رسوم أشهرها.`
-          : `حُددت الرسوم الشهرية لسنة ${year}.`}
+          ? `حدد المستحقات الشهرية لسنة ${year} قبل بدايتها، وإلا لا تُسجَّل مستحقات أشهرها.`
+          : `حُددت المستحقات الشهرية لسنة ${year}.`}
       </p>
       <ul className="bq-list">
         {groups.map((g) => (
@@ -97,14 +97,14 @@ function PriceRow({
   return (
     <li className="bq-yp-row">
       <label className="bq-field">
-        <span className="bq-strong bq-yp-g">المجموعة {groupLabel(group)}</span>
+        <span className="bq-strong bq-yp-g">الفئة {groupLabel(group)}</span>
         <input
           className="bq-input bq-grow-1"
           value={txt}
           onChange={(e) => setTxt(toWesternDigits(e.target.value).replace(/[^\d]/g, ""))}
           inputMode="numeric"
           dir="ltr"
-          aria-label={`الرسوم الشهرية للمجموعة ${groupLabel(group)} بالأوقية القديمة`}
+          aria-label={`المستحقات الشهرية للفئة ${groupLabel(group)} بالأوقية القديمة`}
           aria-describedby={id}
           disabled={!admin}
         />

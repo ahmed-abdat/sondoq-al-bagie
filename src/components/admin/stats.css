@@ -1,152 +1,130 @@
-/* «الإحصاءات» design a (owner pick, proto/admin b591016): numbers first, green = paid,
-   soft grey = not yet, a label on every bar, no names, no red. */
+/* «الإحصاءات» design a (owner pick): numbers first on one flat page. The fees are the story (one
+   big percentage); groups, months and arrears read as plain labelled rows; لوحات and تبرعات are
+   short blocks under a hairline. Green = paid, stone = not yet, no red, no names. */
 .st {
-  --st-ok: var(--g7);
-  --st-no: var(--n2);
-  gap: 16px;
+  gap: 20px;
 }
-.st .pa-title {
+.st-legend {
+  display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: -8px 0 0;
+  font-size: 0.875rem;
+  color: var(--muted);
 }
-.st-card {
+.st-key {
+  display: inline-block;
+  width: 14px;
+  height: 8px;
+  margin-inline-start: 6px;
+  border-radius: 999px;
+  background: var(--n2);
+}
+.st-key-ok {
+  margin-inline-start: 0;
+  background: var(--g7);
+}
+
+/* ── fees: the one hero ── */
+.st-fees {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 24px 16px;
-  border-radius: var(--r-card);
-  background: var(--g0);
+  gap: 10px;
 }
-.st-card h2 {
+.st-fees > h2,
+.st-more > h2 {
   font-size: 1.0625rem;
   color: var(--g9);
 }
-.st-card h3 {
-  margin: 16px 0 0;
+.st-fees h3,
+.st-block h3 {
+  margin: 20px 0 2px;
   font-family: var(--font-display);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ink);
 }
 .st-hero {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 3.5rem;
+  font-size: clamp(3.5rem, 20vw, 4.5rem);
   font-weight: 700;
-  line-height: 1.05;
-  color: var(--g9);
-}
-.st-unit {
-  font-size: 1.375rem;
-  color: var(--muted);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--g8);
 }
 .st-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   margin: 0;
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
   font-weight: 600;
+  color: var(--ink);
 }
-.st-foot,
-.st-cmp {
-  margin: 8px 0 0;
+.st-sub {
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.st-note {
+  margin: 0;
   font-size: 0.9375rem;
   color: var(--muted);
 }
-.st-k {
-  font-size: 0.875rem;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+
+/* one bar: green part from the start (right) edge, stone track */
+.st-bar {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--n2);
+  overflow: hidden;
 }
-.st-v {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--ink);
+.st-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--g7);
 }
-.st-ok {
-  color: var(--g8);
+.st-bar-thin {
+  height: 8px;
 }
-.st-pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-block-start: 16px;
-}
-.st-pair > div,
-.st-trio > div {
+
+/* «المجموعة أ ████░░ 60٪»: label, bar, number on one line */
+.st-rows {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-top: 6px;
 }
-.st-trio {
+.st-row,
+.st-owe li {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-block-start: 8px;
-}
-
-/* horizontal bar: the paid part grows from the start (right) edge */
-.st-hbar {
-  position: relative;
-  display: flex;
+  grid-template-columns: minmax(6.5rem, auto) 1fr 3rem;
   align-items: center;
-  height: 12px;
-  border-radius: 999px;
-  background: var(--st-no);
+  gap: 12px;
+  min-height: 36px;
 }
-.st-hbar-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--st-ok);
-  display: flex;
-  align-items: center;
-  padding-inline: 12px;
-}
-.st-hbar b,
-.st-hbar-out {
-  font-family: var(--font-display);
+.st-row-l {
   font-size: 0.9375rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.st-hbar-fill b {
-  color: #fff;
-}
-.st-hbar-out {
-  padding-inline: 8px;
   color: var(--ink);
 }
-.st-b .st-hbar,
-.st-rows .st-hbar {
-  height: 32px;
-  border-radius: 10px;
-}
-.st-b .st-hbar-fill,
-.st-rows .st-hbar-fill {
-  border-radius: 10px;
-}
-.st-hbar-big {
-  height: 56px !important;
-  border-radius: 14px !important;
-}
-.st-hbar-big .st-hbar-fill {
-  border-radius: 14px !important;
-}
-.st-hbar-big b {
-  font-size: 1.1875rem;
+.st-row-v {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: end;
+  color: var(--ink);
 }
 
-/* month columns 1..12 */
+/* 12 months: one column each, the count above, the month number under it */
 .st-months {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 4px;
-  height: 128px;
-  direction: rtl;
-}
-.st-months-tall {
-  height: 160px;
+  align-items: end;
 }
 .st-months > span {
   display: flex;
@@ -156,82 +134,110 @@
   min-width: 0;
 }
 .st-months em {
+  min-height: 1.1em;
   font-style: normal;
   font-family: var(--font-display);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--ink);
-  height: 14px;
 }
 .st-months i {
-  flex: 1;
-  width: 100%;
-  max-width: 24px;
   display: flex;
   align-items: flex-end;
-  border-radius: 4px;
-  background: var(--st-no);
+  width: 100%;
+  height: 112px;
+  border-radius: 6px;
+  background: var(--n1);
   overflow: hidden;
 }
 .st-months u {
   display: block;
   width: 100%;
-  background: var(--st-ok);
-  border-radius: 4px 4px 0 0;
+  border-radius: 6px 6px 0 0;
+  background: var(--g7);
 }
 .st-months small {
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
-.st-months .st-future i {
-  background: transparent;
-  box-shadow: inset 0 -2px 0 var(--st-no);
+/* months not started: only who already paid them, in a lighter green */
+.st-ahead u {
+  background: var(--g2);
+}
+.st-ahead em {
+  color: var(--muted);
 }
 
-/* labelled rows (b) */
-.st-rows {
-  list-style: none;
-  margin: 8px 0 0;
+/* how far behind: counts with a quiet stone bar (never red) */
+.st-owe {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
   padding: 0;
+  list-style: none;
+}
+.st-owe-bar {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+}
+.st-owe-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--n3);
+}
+
+/* ── لوحات and تبرعات: short blocks under one heading ── */
+.st-more {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 20px;
+  border-top: 1px solid var(--n2);
+}
+.st-block {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-block: 4px 16px;
 }
-.st-rows li {
-  display: grid;
-  grid-template-columns: 104px 1fr;
-  align-items: center;
-  gap: 8px;
+.st-block + .st-block {
+  padding-top: 16px;
+  border-top: 1px solid var(--n1);
 }
-.st-count {
+.st-mid {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
-  height: 32px;
-}
-.st-count > span {
-  height: 100%;
-  border-radius: 10px;
-  background: var(--n3);
-}
-.st-count b {
+  margin: 0;
   font-family: var(--font-display);
-  font-size: 1.0625rem;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--g8);
 }
-.st-legend {
+.st-mid > span {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.st-counts {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
-  margin: 4px 0 0;
+  gap: 4px 16px;
+  margin: 0;
   font-size: 0.9375rem;
-  font-weight: 600;
+  color: var(--muted);
 }
-.st-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.st-counts b {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  color: var(--ink);
 }
-
-/* share image */
+.st-counts b.st-ok {
+  color: var(--g8);
+}

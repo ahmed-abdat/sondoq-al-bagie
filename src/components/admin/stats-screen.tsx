@@ -1,10 +1,11 @@
 "use client";
-// «الإحصاءات» design a (owner pick, proto/admin b591016): numbers first, for villagers in a
-// WhatsApp group. Green = paid, soft grey = not yet, a label on every bar, no names, no red.
-// Every number comes from `d.stats` (computed once in the data door), never recounted here.
-import { useState, type ReactNode } from "react";
+// «الإحصاءات» design a (owner pick): numbers first, for villagers in a WhatsApp group. One page,
+// not a stack of boxes: the fees are the story (one big percentage), the لوحات and تبرعات follow
+// as short blocks. Green = paid, soft grey = not yet, a number on every bar, no names, no red.
+// Every number comes from `d.stats` (the «الإحصاءات» read, same as the report); nothing recounted.
+import { useState } from "react";
+import { Back, month, Num, useP, X } from "./kit";
 import { ReportSheet } from "./report-doc";
-import { month, Num, useP, X, Back } from "./kit";
 import { pct } from "./stats";
 import type { PCampaign, PLevy } from "./types";
 import "./stats.css";
@@ -13,205 +14,216 @@ const N = ({ v }: { v: number }) => <Num>{v.toLocaleString("en").replace(/,/g, "
 const P = ({ v }: { v: number }) => <Num>{`${v}٪`}</Num>;
 
 /** One bar: green = paid, grey track = not yet. */
-function HBar({ ok, all }: { ok: number; all: number }) {
+function Bar({ ok, all, thin }: { ok: number; all: number; thin?: boolean }) {
   const p = pct(ok, all);
   return (
-    <span className="st-hbar" role="img" aria-label={`${p}٪`}>
-      <span className="st-hbar-fill" style={{ width: `${Math.max(p, 2)}%` }} />
+    <span className={`st-bar ${thin ? "st-bar-thin" : ""}`} aria-hidden="true">
+      <span style={{ width: `${ok > 0 ? Math.max(p, 2) : 0}%` }} />
     </span>
   );
 }
-function Card({ title, children }: { title: string; children: ReactNode }) {
+
+/** «الفئة أ   ████░░  60٪» — a label, a bar and its number on one line. */
+function Row({ label, ok, all }: { label: string; ok: number; all: number }) {
   return (
-    <section className="st-card" aria-label={title}>
-      <h2>{title}</h2>
-      {children}
-    </section>
+    <div className="st-row" role="group" aria-label={`${label}: ${pct(ok, all)}٪`}>
+      <span className="st-row-l">{label}</span>
+      <Bar ok={ok} all={all} thin />
+      <b className="st-row-v">
+        <P v={pct(ok, all)} />
+      </b>
+    </div>
   );
 }
 
-/** The year's fees: paid up to the due month, by group, per month, how far behind. */
+/** The year's fees: the one big number, then groups, months and how far behind. */
 export function FeesCard() {
   const { d } = useP();
   const s = d.stats.fees;
   const groups = [
-    { k: "A", l: "المجموعة أ", ...s.A },
-    { k: "B", l: "المجموعة ب", ...s.B },
+    { k: "A", l: "الفئة أ", ...s.A },
+    { k: "B", l: "الفئة ب", ...s.B },
   ].filter((g) => g.total > 0);
+  const top = Math.max(1, s.total);
+  const behind = s.owe.one + s.owe.twoThree + s.owe.fourPlus;
   return (
-    <Card title={`الرسوم الشهرية ${d.year}`}>
+    <section className="st-fees" aria-labelledby="st-fees-h">
+      <h2 id="st-fees-h">المستحقات الشهرية {d.year}</h2>
       <p className="st-hero">
         <P v={s.pct} />
       </p>
       <p className="st-lead">
-        دفعوا كل ما عليهم حتى {month(d.due)}: <N v={s.paid} /> من <N v={s.total} /> عضوًا.
+        دفعوا كل ما عليهم حتى {month(d.due)}
+        <span className="st-sub">
+          <N v={s.paid} /> من <N v={s.total} /> عضوًا
+          {s.previous !== null && (
+            <>
+              {" "}
+              · السنة الماضية <P v={s.previous} />
+            </>
+          )}
+        </span>
       </p>
-      <HBar ok={s.paid} all={s.total} />
+      <Bar ok={s.paid} all={s.total} />
       {groups.length > 1 && (
-        <div className="st-pair">
+        <div className="st-rows">
           {groups.map((g) => (
-            <div key={g.k}>
-              <span className="st-k">{g.l}</span>
-              <b className="st-v">
-                <P v={g.pct} />
-              </b>
-              <span className="st-k">
-                <N v={g.paid} /> من <N v={g.total} />
-              </span>
-              <HBar ok={g.paid} all={g.total} />
-            </div>
+            <Row key={g.k} label={g.l} ok={g.paid} all={g.total} />
           ))}
         </div>
       )}
+
       <h3>كم عضوًا دفع كل شهر</h3>
-      <div className="st-months" role="img" aria-label="كم عضوًا دفع كل شهر">
-        {Array.from({ length: 12 }, (_, i) => {
-          const m = s.months[i];
+      <div className="st-months" role="list" aria-label="كم عضوًا دفع كل شهر">
+        {s.months.map((m) => {
+          const started = m.month <= d.due;
           return (
-            <span key={i} className={m ? "" : "st-future"}>
-              <em>{m ? <N v={m.paid} /> : ""}</em>
-              <i>
-                <u style={{ height: `${m ? pct(m.paid, s.total) : 0}%` }} />
+            <span
+              key={m.month}
+              role="listitem"
+              className={started ? "" : "st-ahead"}
+              aria-label={`${month(m.month)}: دفع ${m.paid}`}
+            >
+              <em aria-hidden="true">{m.paid > 0 || started ? <N v={m.paid} /> : ""}</em>
+              <i aria-hidden="true">
+                <u style={{ height: `${(m.paid / top) * 100}%` }} />
               </i>
-              <small>
-                <Num>{i + 1}</Num>
+              <small aria-hidden="true">
+                <Num>{m.month}</Num>
               </small>
             </span>
           );
         })}
       </div>
-      <h3>من بقيت عليه رسوم</h3>
-      <div className="st-trio">
-        {[
-          { l: "شهر واحد", n: s.owe.one },
-          { l: "شهران أو 3", n: s.owe.twoThree },
-          { l: "4 أشهر أو أكثر", n: s.owe.fourPlus },
-        ].map((b) => (
-          <div key={b.l}>
-            <b className="st-v">
-              <N v={b.n} />
-            </b>
-            <span className="st-k">{b.l}</span>
-          </div>
-        ))}
-      </div>
-      {s.previous !== null && (
-        <p className="st-foot">
-          السنة الماضية في مثل هذا الوقت: <P v={s.previous} />
-        </p>
+
+      {behind > 0 && (
+        <>
+          <h3>من بقيت عليه متأخرات</h3>
+          <ul className="st-owe">
+            {[
+              { l: "شهر واحد", n: s.owe.one },
+              { l: "شهران أو 3", n: s.owe.twoThree },
+              { l: "4 أشهر أو أكثر", n: s.owe.fourPlus },
+            ].map((b) => (
+              <li key={b.l}>
+                <span className="st-row-l">{b.l}</span>
+                <span className="st-owe-bar" aria-hidden="true">
+                  <span style={{ width: `${b.n ? Math.max((b.n / behind) * 100, 3) : 0}%` }} />
+                </span>
+                <b className="st-row-v">
+                  <N v={b.n} />
+                </b>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
-    </Card>
+    </section>
   );
 }
 
-/** One لوحة: paid / not yet / exempt, collected vs expected, by group, days open. */
+/** One لوحة: the share who paid, then paid / not yet / exempt and the money. */
 export function LevyCard({ l, title }: { l: PLevy; title?: string }) {
   const { d } = useP();
   const s = d.stats.levies[l.id];
   if (!s) return null;
   const owing = s.paid + s.notYet;
   const groups = [
-    { k: "A", l: "المجموعة أ", ...s.A },
-    { k: "B", l: "المجموعة ب", ...s.B },
+    { k: "A", l: "الفئة أ", ...s.A },
+    { k: "B", l: "الفئة ب", ...s.B },
   ].filter((g) => g.total > 0);
   return (
-    <Card title={title ?? `لوحة ${l.title}`}>
-      <p className="st-hero">
-        <P v={s.pct} />
+    <section className="st-block" aria-label={title ?? `لوحة ${l.title}`}>
+      <h3>{title ?? `لوحة ${l.title}`}</h3>
+      <p className="st-mid">
+        <P v={s.pct} /> <span>دفعوا نصيبهم</span>
       </p>
-      <p className="st-lead">
-        دفعوا نصيبهم.
+      <Bar ok={s.paid} all={owing} />
+      <p className="st-counts">
+        <span>
+          <b className="st-ok">
+            <N v={s.paid} />
+          </b>{" "}
+          دفعوا
+        </span>
+        <span>
+          <b>
+            <N v={s.notYet} />
+          </b>{" "}
+          لم يدفعوا بعد
+        </span>
+        {s.exempt > 0 && (
+          <span>
+            <b>
+              <N v={s.exempt} />
+            </b>{" "}
+            معفون
+          </span>
+        )}
+      </p>
+      <p className="st-note">
+        جُمع <N v={s.collected} /> من <N v={s.expected} /> أوقية
         {s.days !== null && (
           <>
             {" "}
-            فُتحت قبل <N v={s.days} /> يومًا.
+            · فُتحت قبل <N v={s.days} /> يومًا
           </>
         )}
       </p>
-      <HBar ok={s.paid} all={owing} />
-      <div className="st-trio">
-        <div>
-          <b className="st-v st-ok">
-            <N v={s.paid} />
-          </b>
-          <span className="st-k">{X.check(16)} دفعوا</span>
-        </div>
-        <div>
-          <b className="st-v">
-            <N v={s.notYet} />
-          </b>
-          <span className="st-k">لم يدفعوا بعد</span>
-        </div>
-        <div>
-          <b className="st-v">
-            <N v={s.exempt} />
-          </b>
-          <span className="st-k">معفون</span>
-        </div>
-      </div>
-      <p className="st-lead">
-        جُمع <N v={s.collected} /> من <N v={s.expected} /> أوقية.
-      </p>
       {groups.length > 1 && (
-        <div className="st-pair">
+        <div className="st-rows">
           {groups.map((g) => (
-            <div key={g.k}>
-              <span className="st-k">{g.l}</span>
-              <b className="st-v">
-                <P v={g.pct} />
-              </b>
-              <HBar ok={g.paid} all={g.total} />
-            </div>
+            <Row key={g.k} label={g.l} ok={g.paid} all={g.total} />
           ))}
         </div>
       )}
-    </Card>
+    </section>
   );
 }
 
-/** One تبرع: collected vs target, how many gave, share of members. */
+/** One تبرع: collected against the target, then who gave. */
 export function GiftCard({ c, title }: { c: PCampaign; title?: string }) {
   const { d } = useP();
   const s = d.stats.campaigns[c.id];
   if (!s) return null;
   return (
-    <Card title={title ?? `تبرع: ${c.title}`}>
-      <p className="st-hero">
-        <N v={s.collected} /> <span className="st-unit">أوقية</span>
+    <section className="st-block" aria-label={title ?? `تبرع: ${c.title}`}>
+      <h3>{title ?? `تبرع: ${c.title}`}</h3>
+      <p className="st-mid">
+        <N v={s.collected} /> <span>أوقية</span>
       </p>
       {s.pctTarget !== null && (
         <>
-          <p className="st-lead">
-            من هدف <N v={s.target} /> أوقية (<P v={s.pctTarget} />
-            ).
+          <Bar ok={s.collected} all={s.target} />
+          <p className="st-note">
+            <P v={s.pctTarget} /> من الهدف (<N v={s.target} /> أوقية)
           </p>
-          <HBar ok={s.collected} all={s.target} />
         </>
       )}
-      <div className="st-trio">
-        <div>
-          <b className="st-v">
+      <p className="st-counts">
+        <span>
+          <b>
             <N v={s.givers} />
-          </b>
-          <span className="st-k">تبرّعوا</span>
-        </div>
-        <div>
-          <b className="st-v">
+          </b>{" "}
+          تبرّعوا
+        </span>
+        <span>
+          <b>
             <N v={s.members} />
-          </b>
-          <span className="st-k">من الأعضاء</span>
-        </div>
-        <div>
-          <b className="st-v">
+          </b>{" "}
+          من الأعضاء
+        </span>
+        <span>
+          <b>
             <N v={s.outside} />
-          </b>
-          <span className="st-k">من خارج الرابطة</span>
-        </div>
-      </div>
-      <p className="st-foot">
+          </b>{" "}
+          من خارج الرابطة
+        </span>
+      </p>
+      <p className="st-note">
         تبرّع <P v={s.pctMembers} /> من أعضاء الرابطة.
       </p>
-    </Card>
+    </section>
   );
 }
 
@@ -226,7 +238,22 @@ export function StatsScreen() {
       <header className="pa-title">
         <h1>الإحصاءات</h1>
       </header>
-      <p className="pa-hint">بلا أسماء. الأخضر: دفعوا. الرمادي: لم يدفعوا بعد.</p>
+      <p className="st-legend">
+        <span className="st-key st-key-ok" aria-hidden="true" /> دفعوا
+        <span className="st-key" aria-hidden="true" /> لم يدفعوا بعد · بلا أسماء
+      </p>
+      <FeesCard />
+      {(levies.length > 0 || gifts.length > 0) && (
+        <section className="st-more" aria-labelledby="st-more-h">
+          <h2 id="st-more-h">اللوحات والتبرعات المفتوحة</h2>
+          {levies.map((l) => (
+            <LevyCard key={l.id} l={l} />
+          ))}
+          {gifts.map((c) => (
+            <GiftCard key={c.id} c={c} />
+          ))}
+        </section>
+      )}
       <button
         type="button"
         className="pa-btn pa-btn-primary pa-btn-block"
@@ -234,13 +261,6 @@ export function StatsScreen() {
       >
         {X.share(20)} شارك الإحصاءات في المجموعة
       </button>
-      <FeesCard />
-      {levies.map((l) => (
-        <LevyCard key={l.id} l={l} />
-      ))}
-      {gifts.map((c) => (
-        <GiftCard key={c.id} c={c} />
-      ))}
       <ReportSheet
         open={share}
         onClose={() => setShare(false)}
