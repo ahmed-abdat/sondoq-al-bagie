@@ -1,12 +1,10 @@
 "use client";
 // The payment receipt («وصل استلام»), the association rubber stamp and the compact confirmed
-// mark. Styles: `rc-` in globals.css. Two audiences: public (masked ref, no proof/recorder/QR)
-// and committee (everything).
+// mark. Styles: `rc-` in globals.css. Committee only: everything shown, no QR and no link.
 import Image from "next/image";
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useAct } from "./act";
 import { METHOD_LABELS, methodLogo } from "@/lib/methods";
-import { qrMatrix } from "@/lib/qr";
 import { safeReceiptSrc } from "@/lib/receipt";
 import {
   amountInWords,
@@ -24,7 +22,7 @@ import { MemberNo } from "./bits";
 import { RIM_BOTTOM, RIM_TOP } from "./stamp-rim";
 import { copyText } from "./copy";
 import { I } from "./icons";
-import { verifyPath, type ReceiptView } from "./receipt-model";
+import type { ReceiptView } from "./receipt-model";
 
 function Num({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
@@ -393,28 +391,6 @@ export function Proof({
   );
 }
 
-const noop = () => () => {};
-function Qr({ code }: { code: string }) {
-  const origin = useSyncExternalStore(
-    noop,
-    () => window.location.origin,
-    () => "",
-  );
-  if (!origin) return <span className="rc-qr" aria-hidden="true" />;
-  const mx = qrMatrix(origin + verifyPath(code));
-  const n = mx.length;
-  let d = "";
-  mx.forEach((row, y) => row.forEach((on, x) => on && (d += `M${x} ${y}h1v1h-1z`)));
-  return (
-    <a href={verifyPath(code)} aria-label="افتح صفحة التحقق من الوصل">
-      <svg viewBox={`-2 -2 ${n + 4} ${n + 4}`} className="rc-qr" aria-hidden="true">
-        <rect x="-2" y="-2" width={n + 4} height={n + 4} fill="#fff" />
-        <path d={d} fill="currentColor" shapeRendering="crispEdges" />
-      </svg>
-    </a>
-  );
-}
-
 function StatusBlock({ r, press }: { r: ReceiptView; press: boolean }) {
   const st = r.status;
   const pending = (
@@ -519,18 +495,15 @@ function StatusBlock({ r, press }: { r: ReceiptView; press: boolean }) {
 export function Receipt({
   r,
   press = false,
-  audience = "committee",
   children,
 }: {
   r: ReceiptView;
   press?: boolean;
-  audience?: "public" | "committee";
   children?: ReactNode;
 }) {
-  const pub = audience === "public";
   const void_ = r.status.kind === "rejected" || r.status.kind === "cancelled";
   const multi = r.covers.length > 1;
-  const ref = pub ? r.txnLast4 : r.txn;
+  const ref = r.txn;
   return (
     <article className="rc" aria-label={`وصل استلام${r.no ? ` رقم ${r.no}` : ""}`}>
       <div className={`rc-shadow ${press ? "is-impact" : ""}`}>
@@ -613,16 +586,10 @@ export function Receipt({
               <div className="rc-row">
                 <dt>
                   رقم العملية
-                  {!pub && r.txn && <CopyBtn value={r.txn} />}
+                  {r.txn && <CopyBtn value={r.txn} />}
                 </dt>
                 <dd>
-                  {pub ? (
-                    <bdi dir="ltr" className="rc-txn-v" aria-label={`ينتهي بـ ${ref}`}>
-                      •••• {ref}
-                    </bdi>
-                  ) : (
-                    <TxnRef value={ref} />
-                  )}
+                  <TxnRef value={ref} />
                 </dd>
               </div>
             )}
@@ -630,7 +597,7 @@ export function Receipt({
               <dt>تاريخ الدفع</dt>
               <dd>{dayDate(r.paidOn)}</dd>
             </div>
-            {!pub && (
+            {
               <>
                 <div className="rc-row is-top">
                   <dt>الإثبات</dt>
@@ -653,30 +620,20 @@ export function Receipt({
                   </div>
                 )}
               </>
-            )}
+            }
           </dl>
 
           <StatusBlock r={r} press={press} />
 
           {r.code && (
-            <footer className={`rc-foot ${pub ? "is-pub" : ""}`}>
+            // committee-only app: the code as plain text, no QR and no link (2026-09-30)
+            <footer className="rc-foot is-pub">
               <div>
-                <span className="rc-k">رمز التحقق</span>
+                <span className="rc-k">رمز الوصل</span>
                 <p className="rc-code">
                   <Num>{r.code}</Num>
                 </p>
-                <p className="rc-foot-n">
-                  {pub
-                    ? "أعطِ هذا الرمز للجنة إن سُئلت عن دفعتك"
-                    : "وجّه كاميرا الهاتف إلى الرمز للتحقق"}
-                </p>
               </div>
-              {!pub && (
-                <figure className="rc-qr-w">
-                  <Qr code={r.code} />
-                  <figcaption>امسح للتحقق</figcaption>
-                </figure>
-              )}
             </footer>
           )}
         </div>

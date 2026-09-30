@@ -49,7 +49,6 @@ export function RecentPaymentsPage({
           <ReceiptSheetBody
             r={fromPending(open, { campaignTitles })}
             paymentId={open.id}
-            audience="committee"
             onCancelled={(reason) => setGone((g) => ({ ...g, [open.id]: reason }))}
           />
         </Sheet>

@@ -254,11 +254,7 @@ export function CommitteeView({
                       <span className="bq-row-m">
                         <span className="bq-row-t">{p.payerName}</span>
                         <span className="bq-row-s">
-                          {p.submittedByMember
-                            ? `أرسلها ${p.submittedByMember.fullName}`
-                            : p.createdByName
-                              ? `سجّلها ${p.createdByName}`
-                              : "سُجّلت"}
+                          {p.createdByName ? `سجّلها ${p.createdByName}` : "سُجّلت"}
                           {now ? ` · ${relativeAgo(p.createdAt, now)}` : ""}
                         </span>
                       </span>
@@ -415,7 +411,7 @@ export function CommitteeView({
       {sheet?.t === "receipt" && (
         <Sheet key="receipt" label="وصل استلام" onDone={() => setSheet(null)}>
           <div className="bq-rc-sheet">
-            <Receipt r={sheet.r} audience="committee" />
+            <Receipt r={sheet.r} />
             {sheet.r.status.kind === "confirmed" && <ShareBtns r={sheet.r} />}
           </div>
         </Sheet>
