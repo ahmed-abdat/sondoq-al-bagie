@@ -88,8 +88,11 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
           note: what.trim(),
           campaignId: from || undefined,
           // m41: the wallet (cash is a wallet too) and, when it has several, the account
-          walletTypeId: wallet?.walletTypeId,
-          fundAccountId: wallet?.fundAccountId,
+          ...(wallet && wallet.walletTypeId > 0
+            ? { walletTypeId: wallet.walletTypeId, fundAccountId: wallet.fundAccountId }
+            : wallet?.cash
+              ? { paidInCash: true }
+              : {}),
           receiptPath,
         });
       });

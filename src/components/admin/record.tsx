@@ -1145,7 +1145,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
           id,
           payerName: payer,
           method: t.cash ? "cash" : t.wallet!.method,
-          ...(t.cash || !t.wallet
+          ...(t.cash || !t.wallet || t.wallet.walletTypeId < 0
             ? {}
             : {
                 walletTypeId: t.wallet.walletTypeId,

@@ -3,7 +3,7 @@ import "server-only";
 // levies and log lines. Read only by source.ts (demo mode, never on production).
 import * as fx from "./fixtures";
 import { toMemberRows } from "@/lib/data/member-lists";
-import type { Method } from "@/lib/methods";
+import { METHOD_LABELS, methodLogo, type Method } from "@/lib/methods";
 import type { WalletType } from "@/lib/data/types";
 import { walletLogo } from "./wallet-logo";
 
@@ -12,25 +12,51 @@ export const toWallets = (
   types: WalletType[],
   accounts: {
     id: string;
+    method?: Method;
     accountNumber: string;
     holderName: string;
     active: boolean;
     walletTypeId?: number;
   }[],
 ): PWallet[] =>
-  [...types]
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
-    .map((w) => ({
-      id: w.id,
-      name: w.name,
-      logo: walletLogo(w),
-      kind: w.kind,
-      active: w.active,
-      method: (w.legacyMethod ?? "other") as Method,
-      accounts: accounts
-        .filter((a) => a.active && a.walletTypeId === w.id)
-        .map((a) => ({ id: a.id, number: a.accountNumber, holder: a.holderName })),
-    }));
+  // before m41 is on the database: one wallet per method of the accounts (id < 0 = not sent)
+  !types.length
+    ? [
+        ...new Map(
+          accounts.filter((a) => a.active).map((a) => [a.method ?? "other", a] as const),
+        ).keys(),
+      ]
+        .map((m, i): PWallet => ({
+          id: -(i + 1),
+          name: METHOD_LABELS[m],
+          logo: methodLogo(m),
+          kind: "wallet",
+          active: true,
+          method: m,
+          accounts: [],
+        }))
+        .concat({
+          id: -99,
+          name: "نقدًا",
+          logo: null,
+          kind: "cash",
+          active: true,
+          method: "cash",
+          accounts: [],
+        })
+    : [...types]
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+        .map((w) => ({
+          id: w.id,
+          name: w.name,
+          logo: walletLogo(w),
+          kind: w.kind,
+          active: w.active,
+          method: (w.legacyMethod ?? "other") as Method,
+          accounts: accounts
+            .filter((a) => a.active && a.walletTypeId === w.id)
+            .map((a) => ({ id: a.id, number: a.accountNumber, holder: a.holderName })),
+        }));
 
 /** Active first (the expense sheet's choices), each group in list order. */
 export const toActivities = (
