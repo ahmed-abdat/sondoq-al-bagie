@@ -1425,6 +1425,21 @@ select tests.throws($$select * from public.groups_overview(2026::int)$$, '42501'
 select tests.login('server');
 \ir local/accuracy_audit_checks.sql
 
+/* ───────────── M34: fee stats at a reference month ───────────── */
+
+select tests.login('committee');
+select tests.ok((public.report_fee_stats(extract(year from current_date)::int - 1, 3) ->> 'ref_month')::int = 3
+                and (public.report_fee_stats(extract(year from current_date)::int - 1) ->> 'ref_month')::int = 12
+                and public.report_fee_stats(extract(year from current_date)::int, extract(month from current_date)::int)
+                    = public.report_fee_stats(extract(year from current_date)::int),
+  'a reference month counts the year up to it; the default is unchanged');
+select tests.ok((select (o ->> 'paid_up')::int + (o ->> 'owe_1')::int + (o ->> 'owe_2_3')::int + (o ->> 'owe_4plus')::int
+                        = (o ->> 'active')::int
+                 from (select public.report_fee_stats(extract(year from current_date)::int, 1) -> 'overall' o) x),
+  'buckets add up at any reference month');
+select tests.throws($$select public.report_fee_stats(2026, 13)$$, 'invalid_input', 'reference month is 1–12');
+select tests.throws($$select public.report_fee_stats(2026, 0)$$, 'invalid_input', 'reference month is 1–12 (0)');
+
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
 select tests.login('server');

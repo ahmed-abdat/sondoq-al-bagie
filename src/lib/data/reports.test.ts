@@ -438,7 +438,7 @@ describe("«الإحصاءات»", () => {
       target: null,
       targetPct: null,
     });
-    expect(rpc).toHaveBeenCalledWith("report_fee_stats", { p_year: 2025 });
+    expect(rpc).toHaveBeenCalledWith("report_fee_stats", { p_year: 2025, p_ref_month: 9 });
     expect(JSON.stringify(s)).not.toMatch(/full_?name|member_?ref/i);
   });
 

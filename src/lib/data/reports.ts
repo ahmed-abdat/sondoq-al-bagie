@@ -767,19 +767,21 @@ export function toDonationStats(d: Json): DonationStats[] {
   });
 }
 
-async function feeStats(c: Client, year: number): Promise<FeeStats> {
-  return toFeeStats(
-    read.must("report_fee_stats", await c.rpc("report_fee_stats", { p_year: year })),
-  );
+async function feeStats(c: Client, year: number, refMonth?: number): Promise<FeeStats> {
+  const args = refMonth ? { p_year: year, p_ref_month: refMonth } : { p_year: year };
+  return toFeeStats(read.must("report_fee_stats", await c.rpc("report_fee_stats", args)));
 }
 
-/** «الإحصاءات» for a year: fees (+ last year for the trend), every levy and donation. */
+/**
+ * «الإحصاءات» for a year: fees, every levy and donation, and last year counted up to the same
+ * month as this year (fees.refMonth) so the trend compares like with like.
+ */
 export async function loadStats(c: Client, year: number, now = new Date()): Promise<StatsReport> {
-  const [fees, previous, levies, donations] = await Promise.all([
-    feeStats(c, year),
-    feeStats(c, year - 1),
-    c.rpc("report_levy_stats", {}),
-    c.rpc("report_donation_stats", {}),
+  const rest = Promise.all([c.rpc("report_levy_stats", {}), c.rpc("report_donation_stats", {})]);
+  const fees = await feeStats(c, year);
+  const [previous, [levies, donations]] = await Promise.all([
+    feeStats(c, year - 1, fees.refMonth || undefined),
+    rest,
   ]);
   return {
     period: { year },
