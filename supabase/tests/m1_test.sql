@@ -1504,6 +1504,13 @@ select tests.throws($$insert into public.job_runs (job, last_run_at, ok) values 
   'only known jobs');
 delete from public.job_runs where job = 'audit';
 
+/* ───────────── M37: clean-up archive (server only) ───────────── */
+
+select tests.login('committee');
+select tests.throws($$select * from app_private.cleanup_archive$$, '42501', 'the committee cannot read the clean-up archive');
+select tests.login('public');
+select tests.throws($$select * from app_private.cleanup_archive$$, '42501', 'strangers cannot either');
+
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
 select tests.login('server');
