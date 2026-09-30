@@ -59,7 +59,8 @@ type PeriodMoney = {
   adjustments: number;
   closing: number;
   campaignsHeld: number;
-  months: { year: number; month: number; income: number; spending: number }[];
+  incomeDue: { total: number; feesForOtherMonths: number; feesPaidOutside: number };
+  months: { year: number; month: number; income: number; dueIncome: number; spending: number }[];
 };
 
 export function toPeriodMoney(d: Json): PeriodMoney {
@@ -80,18 +81,28 @@ export function toPeriodMoney(d: Json): PeriodMoney {
         const category = str(o.category) as ExpenseCategory;
         return { category, label: CATEGORY_LABELS[category] ?? category, amount: num(o.amount) };
       }),
+      byActivity: arr(sp.by_activity).map((x) => {
+        const o = obj(x);
+        return { activityId: num(o.activity_id), name: str(o.name) ?? "", amount: num(o.amount) };
+      }),
       fromCampaigns: num(sp.from_campaigns),
       total: num(sp.total),
     },
     adjustments: num(r.adjustments),
     closing: num(r.closing),
     campaignsHeld: num(r.campaigns_held),
+    incomeDue: {
+      total: num(obj(r.income_due).total),
+      feesForOtherMonths: num(obj(r.income_due).fees_for_other_months),
+      feesPaidOutside: num(obj(r.income_due).fees_paid_outside),
+    },
     months: arr(r.months).map((x) => {
       const o = obj(x);
       return {
         year: num(o.year),
         month: num(o.month),
         income: num(o.income),
+        dueIncome: num(o.due_income),
         spending: num(o.spending),
       };
     }),
@@ -263,7 +274,9 @@ export async function loadExpenses(
     read.paged("expenses", (from, to) =>
       c
         .from("expenses")
-        .select("id, spent_on, category, note, amount, campaign_id, created_by")
+        .select(
+          "id, spent_on, category, activity_id, note, amount, campaign_id, created_by, activity:expense_activities(name)",
+        )
         .is("cancelled_at", null)
         .gte("spent_on", r.from)
         .lte("spent_on", r.to)
@@ -277,7 +290,9 @@ export async function loadExpenses(
   const items = rows.map((e) => ({
     spentOn: e.spent_on,
     category: e.category,
-    label: CATEGORY_LABELS[e.category],
+    label: e.activity?.name ?? CATEGORY_LABELS[e.category],
+    activityId: e.activity_id,
+    activity: e.activity?.name ?? CATEGORY_LABELS[e.category],
     note: e.note,
     amount: e.amount,
     campaignTitle: e.campaign_id ? (titles.get(e.campaign_id)?.title ?? null) : null,
@@ -285,6 +300,16 @@ export async function loadExpenses(
   }));
   const totals = new Map<ExpenseCategory, number>();
   for (const i of items) totals.set(i.category, (totals.get(i.category) ?? 0) + i.amount);
+  const byActivity = new Map<number, { activityId: number; name: string; amount: number }>();
+  for (const i of items) {
+    const a = byActivity.get(i.activityId) ?? {
+      activityId: i.activityId,
+      name: i.activity,
+      amount: 0,
+    };
+    a.amount += i.amount;
+    byActivity.set(i.activityId, a);
+  }
   return {
     period,
     generatedAt: now.toISOString(),
@@ -292,6 +317,7 @@ export async function loadExpenses(
     byCategory: [...totals]
       .map(([category, amount]) => ({ category, label: CATEGORY_LABELS[category], amount }))
       .sort((a, b) => b.amount - a.amount),
+    byActivity: [...byActivity.values()].sort((a, b) => b.amount - a.amount),
     total: items.reduce((s, i) => s + i.amount, 0),
   };
 }
@@ -634,7 +660,9 @@ export async function loadCommitteeWork(
       "expenses",
       await c
         .from("expenses")
-        .select("note, category, amount, cancelled_by, cancelled_at, cancel_reason")
+        .select(
+          "note, category, amount, cancelled_by, cancelled_at, cancel_reason, activity:expense_activities(name)",
+        )
         .not("cancelled_at", "is", null)
         .gte("cancelled_at", r.from)
         .lte("cancelled_at", end),
@@ -651,7 +679,7 @@ export async function loadCommitteeWork(
       reason: p.cancel_reason,
     })),
     ...expenses.map((e) => ({
-      what: e.note ?? CATEGORY_LABELS[e.category],
+      what: e.note ?? e.activity?.name ?? CATEGORY_LABELS[e.category],
       amount: e.amount,
       by: by(e.cancelled_by),
       at: e.cancelled_at ?? "",

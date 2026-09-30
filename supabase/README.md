@@ -51,6 +51,10 @@ and every change lands in `audit_log`.
 | `*_m34_fee_stats_as_of.sql` | `report_fee_stats(year, p_as_of date default null)`: the year as it stood on a day (paid = confirmed on/before it and not released on/before it; late then; ref month = as-of month), `as_of` + `before_records` (as-of day before the first recorded payment → the app shows no comparison); the app compares this year with last year at today − 1 year. 1-arg call unchanged. Undo: `rollback/m34_revert.sql` |
 | `*_m35_accuracy_audit.sql` | `accuracy_audit()` (committee, read-only): the 28 accuracy checks, one row each (`check_name, ok, detail`), counts only; the single source for `tests/accuracy_audit.sql`, run.sh and `tests/e2e/audit.sh` (CI, after the flows). Undo: `rollback/m35_revert.sql` |
 | `*_m36_audit_job.sql` | `job_runs.job` accepts `audit`: the daily accuracy check (`/api/audit`) records its last run (ok + `28/28`, or the failed check names). Undo: `rollback/m36_revert.sql` |
+| `*_m37_cleanup_archive.sql` | `app_private.cleanup_archive` (server only): rows removed by the owner-approved clean-up are copied here first. Used once on 2026-09-30 by `drafts/cleanup-2026-09-30.sql` (batch `cleanup-2026-09-30`: the 13 «تجربة» payments + allocations and months, 2 cancelled test expenses, the empty «تكريم» campaign, 7 reminder rows, the revoked member link, their 523 audit rows; 863 rows + 12 proof object records; balance and audit unchanged). Undo: `rollback/m37_revert.sql` |
+| `*_m38_expense_activities.sql` | expense activities («النشاط»): `expense_activities` (name, sort_order, active; seeded with the 4 old categories) managed by «مسؤول» (`add_expense_activity`, `rename_expense_activity`, `set_expense_activity_active`); `expenses.activity_id` required (`category` kept as a mirror by `b_activity`); `record_expense(p_activity_id | p_category, …)`, a retired activity takes no new expense; `report_period` spending `by_activity`. Undo: `rollback/m38_revert.sql` |
+| `*_m39_income_by_due_month.sql` | «المداخيل حسب الشهر المستحق»: `report_period` months carry `due_income` (month fees in the month they pay for, whenever paid; levies/donations/credit put aside by date) and `income_due` {total, fees_for_other_months, fees_paid_outside}; opening/closing/income stay by date; `accuracy_audit()` check 29 = the reconciliation. Undo: `rollback/m39_revert.sql` |
+| `*_m40_activity_scope.sql` | «سجل العمليات» scope: `activity_log(p_before, p_limit, p_scope)`, `money` by default (payments, expenses, campaigns/levies, members, the fund), `settings` (wallets, settings, accounts, push, fees, activities) or `all`; filtered before the page limit. Undo: `rollback/m40_revert.sql` |
 
 Access (committee-only app since m28/m29, [docs/COMMITTEE-ONLY-PLAN.md](../docs/COMMITTEE-ONLY-PLAN.md)):
 `anon` reads only the `keepalive` view. An active row in `committee` reads everything through RLS
@@ -67,10 +71,10 @@ the app to translate (`src/lib/data/errors.ts`). Rows from m1–m27 above descri
 ## Accuracy audit
 
 `accuracy_audit()` (m35, committee or server, read-only) recomputes every figure the app shows from
-the base tables: 28 checks, one row each (`check_name, ok, detail`), counts only. It is the single
+the base tables: 29 checks, one row each (`check_name, ok, detail`), counts only. It is the single
 source of the checks:
 
-- production by hand: `tests/accuracy_audit.sql` (MCP `execute_sql`), expect 28/28;
+- production by hand: `tests/accuracy_audit.sql` (MCP `execute_sql`), expect 29/29;
 - daily on production: `/api/audit` (Vercel cron) records `job_runs` (job `audit`, m36) and pushes
   an alert to the «مسؤول» accounts when a check fails;
 - `run.sh`: `tests/local/accuracy_audit_checks.sql` (the fee-completeness check is skipped: the

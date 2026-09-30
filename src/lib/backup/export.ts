@@ -17,6 +17,7 @@ export const BACKUP_TABLES = [
   "payment_allocations",
   "payment_months",
   "receipt_counters",
+  "expense_activities",
   "expenses",
   "transfers",
   "reminders",
