@@ -3,7 +3,7 @@
 // التبرعات, التقارير and المزيد, on one data model (AdminData) built on the server.
 import { Campaign, Campaigns, Home } from "./dir-b";
 import { Provider } from "./kit";
-import { Record2C } from "./record2";
+import { RecordScreen } from "./record";
 import { Reports3 } from "./reports3";
 import { ExpensesScreen, LateScreen, LevyScreen, MemberScreen, MembersScreen } from "./screens";
 import { ActivityScreen, MoreScreen } from "./more";
@@ -22,7 +22,7 @@ export function AdminApp({
   const body = !p0 ? (
     <Home />
   ) : p0 === "record" ? (
-    <Record2C key={JSON.stringify(q)} />
+    <RecordScreen key={JSON.stringify(q)} />
   ) : p0 === "members" ? (
     p1 ? (
       <MemberScreen refs={decodeURIComponent(p1)} />
