@@ -52,7 +52,10 @@ test("only «مسؤول» cancels, with a reason: the months are unpaid again an
   await expect.poll(async () => (await latestPayment(M.ref)).status).toBe("cancelled");
   expect(paidCount(await monthStates(M.ref))).toBe(0);
 
-  // «سجل العمليات»: who cancelled which payment, and why (read until its screen lands)
+  // «سجل العمليات»: who cancelled which payment, and why (on the screen, and the actor's name)
+  await openPage(boss.page, "/committee/activity");
+  const row = boss.page.getByRole("listitem").filter({ hasText: "دفعة مكررة" }).first();
+  await expect(row).toContainText(M.name);
   const log = await (await asCommittee("admin")).rpc("activity_log", { p_limit: 20 });
   expect(log.error).toBeNull();
   const entry = (
