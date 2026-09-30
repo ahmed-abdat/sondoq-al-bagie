@@ -4,27 +4,15 @@ import type { ReactNode } from "react";
 import { logout } from "@/app/login/actions";
 import { forgetCommitteePush } from "@/components/providers/committee-push";
 import { useAct, useIsDemo } from "./act";
-import { setCanceller, setCommitteeViewer } from "./viewer";
-import { DEMO_COMMITTEE_COOKIE } from "./demo";
-import { clearMoney } from "./money";
+import { setCanceller } from "./viewer";
 
-/** «خروج»: signs out; in demo mode there is no session, so it just goes home. */
+/** «خروج»: signs out and goes to /login; in demo mode there is no session to end. */
 export function LogoutButton({ className, children }: { className: string; children: ReactNode }) {
   const demo = useIsDemo();
   const acts = useAct();
   if (demo)
     return (
-      <Link
-        href="/"
-        className={className}
-        onClick={() => {
-          document.cookie = `${DEMO_COMMITTEE_COOKIE}=; path=/; max-age=0`;
-          delete document.documentElement.dataset.money;
-          setCommitteeViewer(false);
-          setCanceller(null);
-          clearMoney();
-        }}
-      >
+      <Link href="/login" className={className} onClick={() => setCanceller(null)}>
         {children}
       </Link>
     );
@@ -33,11 +21,7 @@ export function LogoutButton({ className, children }: { className: string; child
       action={async () => {
         // stop this phone's payment notifications before the session ends
         await forgetCommitteePush(acts).catch(() => {});
-        // committee-only controls on public pages (report share, cancel) go with the session
-        setCommitteeViewer(false);
         setCanceller(null);
-        clearMoney();
-        delete document.documentElement.dataset.money;
         await logout();
       }}
     >

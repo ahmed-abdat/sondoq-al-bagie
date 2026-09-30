@@ -17,7 +17,6 @@ import {
 import { I } from "./icons";
 import { Sheet } from "./sheet";
 import { copyText, ManualCopy } from "./copy";
-import { useCommitteeViewer } from "./viewer";
 
 type Result = "shared" | "whatsapp" | "cancelled" | "downloaded" | "retry" | "copied" | "manual";
 
@@ -30,20 +29,15 @@ const DONE: Record<Exclude<Result, "retry" | "manual">, string> = {
   copied: "نُسخ الرابط. الصقه في مجموعة الواتساب.",
 };
 
-/**
- * Committee only (owner rule): visitors and members read the report; a signed-in committee member
- * (any role) also gets «مشاركة التقرير» and the #share sheet. Hidden until known, so no flash.
- */
+/** «مشاركة التقرير» + «طباعة» (the app is committee-only: every viewer may share). */
 export function ReportShare({
   data,
   autoOpen = false,
 }: {
-  /** the full report (with money): null until it arrives, and always null for strangers */
   data: ReportData | null;
   autoOpen?: boolean;
 }) {
-  const committee = useCommitteeViewer();
-  if (!committee || !data)
+  if (!data)
     return (
       <div className="rp-tools">
         <PrintBtn />

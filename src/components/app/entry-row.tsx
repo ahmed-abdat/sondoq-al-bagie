@@ -4,7 +4,7 @@ import { MethodBadge } from "./bits";
 import { fmt } from "./derive";
 import { I } from "./icons";
 import { ConfirmedMark } from "./mark";
-import { Amount } from "./money";
+import { Amount } from "./num";
 import type { LedgerEntry } from "./types";
 
 export function EntryRow({

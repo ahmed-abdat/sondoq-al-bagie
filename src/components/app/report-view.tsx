@@ -1,10 +1,8 @@
 "use client";
-// /report: the static shell (grid, counts, fees) is the same for everyone; the money (summary,
-// monthly amounts, totals, owed, expenses, campaigns) arrives in the browser only for the
-// committee or a member with their link (money privacy). Strangers see «•••».
+// /committee/reports: the fund's report for the committee (committee-only app, 2026-09-30).
 import Image from "next/image";
 import Link from "next/link";
-import type { ReportData, ReportShell } from "@/lib/data/types";
+import type { ReportData } from "@/lib/data/types";
 import { monthPaid, paidTotal } from "@/lib/report-check";
 import { PaidCheck } from "./bits";
 import { Collapsible } from "./collapsible";
@@ -19,10 +17,8 @@ import {
   MONTHS,
   memberNoun,
 } from "./derive";
-import { Engaged } from "./engaged";
-import { Amount, Dots, MoneyHint, useReportMoney } from "./money";
+import { Amount } from "./num";
 import { ReportShare } from "./report-share";
-import { SITE_URL } from "./site";
 
 const Num = ({ children }: { children: React.ReactNode }) => (
   <bdi dir="ltr" className="bq-num">
@@ -31,9 +27,9 @@ const Num = ({ children }: { children: React.ReactNode }) => (
 );
 
 /** The fund's report, ready to print on A4 (or save as PDF); the committee shares it. */
-export function ReportView({ shell }: { shell: ReportShell }) {
-  const r: ReportData | null | undefined = useReportMoney();
-  const full = r ?? null;
+export function ReportView({ data }: { data: ReportData }) {
+  const full: ReportData | null = data;
+  const shell = data;
   const { year } = shell;
   const summary = full?.summary ?? null;
   const today = new Date(shell.generatedAt);
@@ -91,9 +87,8 @@ export function ReportView({ shell }: { shell: ReportShell }) {
 
   return (
     <main className="rp">
-      <Engaged />
-      <Link href="/accounts" className="bq-link bq-link-s bq-press bq-back rp-back">
-        رجوع إلى الحسابات
+      <Link href="/committee" className="bq-link bq-link-s bq-press bq-back rp-back">
+        رجوع إلى اللجنة
       </Link>
 
       <header className="rp-head">
@@ -118,7 +113,7 @@ export function ReportView({ shell }: { shell: ReportShell }) {
         <div className="rp-now">
           <span>في الصندوق الآن</span>
           <strong>
-            {summary ? <Num>{fmt(summary.balance)}</Num> : <Dots />} <small>أوقية</small>
+            {summary ? <Num>{fmt(summary.balance)}</Num> : "—"} <small>أوقية</small>
           </strong>
           <span>
             <Num>{paidNow}</Num> من <Num>{active.length}</Num> {memberNoun(active.length)} دفعوا
@@ -136,7 +131,6 @@ export function ReportView({ shell }: { shell: ReportShell }) {
           ))}
         </ul>
         <p className="rp-note">المبالغ بالأوقية القديمة. تبرعات الحملات في حسابها الخاص.</p>
-        <MoneyHint />
       </section>
 
       <Collapsible title="ما جُمع كل شهر" open>
@@ -262,9 +256,7 @@ export function ReportView({ shell }: { shell: ReportShell }) {
         </Collapsible>
       )}
 
-      <footer className="rp-foot">
-        صندوق الرابطة · {ASSOC} · رابط التحقق: <ReportLink />
-      </footer>
+      <footer className="rp-foot">صندوق الرابطة · {ASSOC}</footer>
     </main>
   );
 }
@@ -345,14 +337,5 @@ function MembersTable({ rows }: { rows: GridRow[] }) {
         ))}
       </table>
     </>
-  );
-}
-
-function ReportLink() {
-  const site = SITE_URL;
-  return (
-    <bdi dir="ltr" className="bq-num rp-url">
-      {site ? `${site.replace(/\/$/, "")}/report` : "/report"}
-    </bdi>
   );
 }

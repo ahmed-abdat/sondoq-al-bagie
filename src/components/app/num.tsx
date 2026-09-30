@@ -42,3 +42,18 @@ function nowSnapshot() {
   }
   return snap;
 }
+
+/** A money figure (committee pages always have it); «—» when missing. `sign` like «+» / «−». */
+export function Amount({
+  v,
+  sign = "",
+  className = "",
+}: {
+  v: number | null | undefined;
+  sign?: string;
+  className?: string;
+  dots?: string;
+}) {
+  if (v === null || v === undefined) return <span className={className}>—</span>;
+  return <Num className={className}>{`${sign}${fmt(v)}`}</Num>;
+}

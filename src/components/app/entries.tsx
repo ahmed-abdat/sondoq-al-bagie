@@ -5,7 +5,7 @@ import { saveReceiptPng, shareReceipt } from "@/lib/share-receipt";
 import { categoryLabel, dayWords } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
-import { Amount } from "./money";
+import { Amount } from "./num";
 import { ReceiptSheetBody } from "./cancel-payment";
 import { toShareable, type ReceiptView } from "./receipt-model";
 import type { LedgerEntry } from "./types";
