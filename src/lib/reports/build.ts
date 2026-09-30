@@ -75,9 +75,9 @@ const incomeRows = (i: AnnualReport["income"]): [string, number][] => [
   ...(i.donations ? ([["التبرعات", i.donations]] as [string, number][]) : []),
 ];
 const spendingBlocks = (s: AnnualReport["spending"]): Block[] => [
-  s.byCategory.length
+  s.byActivity.length
     ? rowsOf(
-        s.byCategory.map((c) => [c.label, c.amount]),
+        s.byActivity.map((c) => [c.name, c.amount]),
         ["مجموع المصاريف", s.total],
       )
     : { t: "note", text: "لا مصاريف." },
@@ -311,9 +311,9 @@ export function buildExpenses(d: ExpensesReport): ReportDoc {
   if (!d.items.length) blocks.push({ t: "note", text: "لا مصاريف في هذه الفترة." });
   else {
     blocks.push(
-      { t: "heading", text: "حسب النوع" },
+      { t: "heading", text: "حسب النشاط" },
       rowsOf(
-        d.byCategory.map((c) => [c.label, c.amount]),
+        d.byActivity.map((c) => [c.name, c.amount]),
         ["المجموع", d.total],
       ),
     );

@@ -164,7 +164,7 @@ describe("the 10 reports", () => {
       "اللوحات: 30 000",
       "التبرعات: 71 000",
       "*مجموع المداخيل: 313 500*",
-      "التدريس: 90 000",
+      "التدريس المحوري: 90 000",
       "*مجموع المصاريف: 133 500*",
       "*المجموع آخر السنة: 300 000*",
       // split so that «في الصندوق» is the fund alone, the same number as home
@@ -240,7 +240,7 @@ describe("the 10 reports", () => {
   it("expenses: by kind with the total, then by month newest first", () => {
     const doc = buildExpenses(fx.fxExpenses);
     const heads = doc.blocks.flatMap((b) => (b.t === "heading" ? [b.text] : []));
-    expect(heads).toEqual(["حسب النوع", "سبتمبر 2026", "أغسطس 2026", "أبريل 2026"]);
+    expect(heads).toEqual(["حسب النشاط", "سبتمبر 2026", "أغسطس 2026", "أبريل 2026"]);
     expect(txt(doc)).toContain("*المجموع: 133 500*");
     expect(buildExpenses({ ...fx.fxExpenses, items: [] }).blocks[0]).toEqual({
       t: "note",

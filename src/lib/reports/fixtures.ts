@@ -46,6 +46,11 @@ export const fxAnnual: AnnualReport = {
       { category: "sports", label: "الرياضة", amount: 18_500 },
       { category: "honoring", label: "التكريم", amount: 25_000 },
     ],
+    byActivity: [
+      { activityId: 1, name: "التدريس المحوري", amount: 90_000 },
+      { activityId: 2, name: "تكريم الناجحين", amount: 25_000 },
+      { activityId: 3, name: "الفريق الرياضي", amount: 18_500 },
+    ],
     fromCampaigns: 25_000,
     total: 133_500,
   },
@@ -147,7 +152,9 @@ export const fxExpenses: ExpensesReport = {
     {
       spentOn: "2026-09-17",
       category: "sports",
-      label: "الرياضة",
+      label: "الفريق الرياضي",
+      activityId: 3,
+      activity: "الفريق الرياضي",
       note: "كرات وأقمصة",
       amount: 18_500,
       campaignTitle: null,
@@ -156,7 +163,9 @@ export const fxExpenses: ExpensesReport = {
     {
       spentOn: "2026-08-20",
       category: "teaching",
-      label: "التدريس",
+      label: "التدريس المحوري",
+      activityId: 1,
+      activity: "التدريس المحوري",
       note: "راتب المعلم",
       amount: 45_000,
       campaignTitle: null,
@@ -165,7 +174,9 @@ export const fxExpenses: ExpensesReport = {
     {
       spentOn: "2026-08-02",
       category: "honoring",
-      label: "التكريم",
+      label: "تكريم الناجحين",
+      activityId: 2,
+      activity: "تكريم الناجحين",
       note: "إسمنت ورمل",
       amount: 25_000,
       campaignTitle: "ترميم المسجد",
@@ -174,7 +185,9 @@ export const fxExpenses: ExpensesReport = {
     {
       spentOn: "2026-04-10",
       category: "teaching",
-      label: "التدريس",
+      label: "التدريس المحوري",
+      activityId: 1,
+      activity: "التدريس المحوري",
       note: null,
       amount: 45_000,
       campaignTitle: null,
@@ -185,6 +198,11 @@ export const fxExpenses: ExpensesReport = {
     { category: "teaching", label: "التدريس", amount: 90_000 },
     { category: "honoring", label: "التكريم", amount: 25_000 },
     { category: "sports", label: "الرياضة", amount: 18_500 },
+  ],
+  byActivity: [
+    { activityId: 1, name: "التدريس المحوري", amount: 90_000 },
+    { activityId: 2, name: "تكريم الناجحين", amount: 25_000 },
+    { activityId: 3, name: "الفريق الرياضي", amount: 18_500 },
   ],
   total: 133_500,
 };
