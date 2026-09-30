@@ -366,7 +366,7 @@ Numbers to decide from, shareable with the group («رابطة الشباب»):
 
 ## 11. Fee groups («الفئات») management (owner, 2026-09-30)
 
-Simple screen «الفئات» (in المزيد → الإعدادات), «مسؤول» only for changes:
+Simple screen «الفئات» (in المزيد → الإعدادات), «مسؤول» only for every change (including fees):
 - List groups with their monthly fee per year and member count (e.g. أ 1 000، ب 500).
 - Create a group (name, monthly fee, from which year), e.g. «ج 700».
 - Change a group's fee for a year (next year by default).
