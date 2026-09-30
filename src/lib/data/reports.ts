@@ -74,6 +74,7 @@ export function toPeriodMoney(d: Json): PeriodMoney {
       levies: num(inc.levies),
       donations: num(inc.donations),
       total: num(inc.total),
+      paper: num(inc.paper),
     },
     spending: {
       byCategory: arr(sp.by_category).map((x) => {
@@ -608,7 +609,15 @@ export async function loadWallets(
   const opening = (amount: number | null, on: string | null) =>
     amount !== null && on ? { amount, on } : null;
   const wallets: WalletsReport["wallets"] = [];
-  let cash: WalletsReport["cash"] = { in: 0, count: 0, out: 0, opening: null };
+  let cash: WalletsReport["cash"] = {
+    in: 0,
+    count: 0,
+    out: 0,
+    transferIn: 0,
+    transferOut: 0,
+    opening: null,
+    balance: 0,
+  };
   let paperIn = 0;
   let unspecifiedOut = 0;
   for (const w of rows) {
@@ -625,8 +634,10 @@ export async function loadWallets(
         in: w.in_amount,
         count: w.in_count,
         out: w.out_amount,
+        transferIn: w.transfer_in,
+        transferOut: w.transfer_out,
         opening: open,
-        ...(w.balance !== null ? { balance: w.balance } : {}),
+        balance: w.balance ?? 0,
       };
       continue;
     }
@@ -641,8 +652,11 @@ export async function loadWallets(
       in: w.in_amount,
       count: w.in_count,
       out: w.out_amount,
+      transferIn: w.transfer_in,
+      transferOut: w.transfer_out,
       opening: open,
-      ...(w.balance !== null ? { balance: w.balance } : {}),
+      // m43: every wallet and account row has a balance (0 + in − out ± moves, or from its opening)
+      balance: w.balance ?? 0,
     });
   }
   return {

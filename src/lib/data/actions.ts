@@ -408,6 +408,79 @@ export async function setCashOpening(input: { amount: number; on: string }) {
   );
 }
 
+/* ───────────── wallet numbers and moves (m43) ───────────── */
+
+/** A wallet's new number («المسؤول»): stops its active account, adds this one; returns its id. */
+export async function replaceWalletAccount(input: {
+  walletTypeId: number;
+  accountNumber: string;
+  holderName: string;
+}) {
+  return run(
+    s.replaceWalletAccountSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("replace_wallet_account", {
+        p_wallet_type_id: p.walletTypeId,
+        p_account_number: p.accountNumber,
+        p_holder_name: p.holderName,
+      }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
+/** Fix a typo in a number («المسؤول»); refused (account_in_use) once anything used it. */
+export async function correctWalletAccount(input: {
+  id: string;
+  accountNumber: string;
+  holderName: string;
+}) {
+  return run(
+    s.correctWalletAccountSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("correct_wallet_account", {
+        p_id: p.id,
+        p_account_number: p.accountNumber,
+        p_holder_name: p.holderName,
+      }),
+    { touchesPublic: true },
+  );
+}
+
+/**
+ * Move money between wallets (an account, or cash = null), e.g. everything to cash before a
+ * handover. Any committee member; never more than the wallet holds (not_enough names the wallet
+ * and its balance); never income, spending or the fund balance. Replay-safe on `id`.
+ */
+export async function recordWalletTransfer(input: s.RecordWalletTransferInput) {
+  return run(
+    s.recordWalletTransferSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("record_wallet_transfer", {
+        p_id: p.id,
+        // null = cash (the generated Args type does not show the null the RPC takes)
+        p_from_account_id: p.fromAccountId as string,
+        p_to_account_id: p.toAccountId as string,
+        p_amount: p.amount,
+        p_moved_on: p.movedOn,
+        p_note: p.note,
+      }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
+/** Cancel a move with a reason («المسؤول»). */
+export async function cancelWalletTransfer(input: { id: string; reason: string }) {
+  return run(
+    s.idReasonSchema,
+    input,
+    (sb, p) => sb.rpc("cancel_wallet_transfer", { p_id: p.id, p_reason: p.reason }),
+    { touchesPublic: true },
+  );
+}
+
 /**
  * Upload a wallet logo (FormData: file) for «المسؤول». The server checks the real type from the
  * bytes (PNG, JPEG, WEBP; never SVG) and the size, and stores it by content in the public `logos`
