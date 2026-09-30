@@ -8,9 +8,7 @@ import { useMemo, useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { type MemberAdmin, type SettableStatus } from "@/lib/data/types";
 import { useAct, useDemoState } from "./act";
-import { MemberLinkSection } from "./member-link-admin";
 import { MemberMonths } from "./member";
-import type { MemberLinkInfo } from "@/lib/data/member-types";
 import { sendOnce, useOnceId } from "./once-id";
 import { Avatar, MemberNo, StatusTag } from "./bits";
 import {
@@ -197,7 +195,6 @@ export function MemberAdminBody({
   admin = false,
   credit,
   price = 0,
-  link = null,
   months,
   monthsCtx,
   onDone,
@@ -206,8 +203,6 @@ export function MemberAdminBody({
   /** this year's month code (same cells as the public member sheet) */
   months?: string;
   monthsCtx?: { year: number; dueMonth: number };
-  /** «رابط العضو»: the member's active personal link, or null */
-  link?: MemberLinkInfo | null;
   /** admin only: «تراجع عن آخر تغيير», «تصحيح شهر الانضمام» */
   admin?: boolean;
   /** the member's credit, when they have some */
@@ -342,7 +337,6 @@ export function MemberAdminBody({
           </button>
         </div>
       )}
-      {mode === "view" && <MemberLinkSection m={m} link={link} />}
       {mode === "view" && payable.length > 0 && (
         <button type="button" className="bq-btn bq-btn-tonal bq-press" onClick={() => go("credit")}>
           ادفع من الرصيد
@@ -778,7 +772,6 @@ export function MembersAdmin({
   thisMonth,
   admin = false,
   credit = {},
-  links = {},
   months = {},
   monthsCtx,
 }: {
@@ -790,12 +783,9 @@ export function MembersAdmin({
   /** month codes this year by member id, for the sheet's month cells */
   months?: Record<string, string>;
   monthsCtx?: { year: number; dueMonth: number };
-  /** active personal links by member id */
-  links?: Record<string, MemberLinkInfo>;
 }) {
   const say = useSnack();
   const demo = useDemoState();
-  const linkOf = (id: string) => (id in demo.links ? demo.links[id] : (links[id] ?? null));
   const members = useMemo(
     () =>
       [...server, ...demo.members]
@@ -964,7 +954,6 @@ export function MembersAdmin({
             admin={admin}
             credit={creditOf(open.memberId, open.groupCode)}
             price={prices[open.groupCode] ?? 0}
-            link={linkOf(open.memberId)}
             months={months[open.memberId]}
             monthsCtx={monthsCtx}
             onDone={done}

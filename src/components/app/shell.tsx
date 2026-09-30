@@ -1,41 +1,28 @@
 "use client";
-// The app frame: bottom bar (phones) / rail (desktop) with one sliding pill, the balance panel
-// in the desktop aside, the compact balance bar on the mobile home, section reveal and snacks.
+// The app frame: bottom bar (phones) / rail (desktop) with one sliding pill, and snacks.
+// Committee-only app (2026-09-30): committee tabs only, until the new layout lands.
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { Hero, type HeroData } from "./hero";
-import { Dots, useMoney } from "./money";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { I } from "./icons";
-import { Num, Roll } from "./num";
+import { Num } from "./num";
 import { usePendingCount } from "./pending-count";
 
 const TABS = [
-  { href: "/", l: "الرئيسية", i: I.home },
-  { href: "/members", l: "الأعضاء", i: I.people },
-  { href: "/accounts", l: "الحسابات", i: I.book },
-  { href: "/donations", l: "التبرعات", i: I.heart },
-  { href: "/committee", l: "اللجنة", i: I.lock },
+  { href: "/committee", l: "الرئيسية", i: I.home },
+  { href: "/committee/members", l: "الأعضاء", i: I.people },
+  { href: "/committee/campaigns", l: "التبرعات", i: I.heart },
+  { href: "/committee/reports", l: "التقارير", i: I.book },
+  { href: "/committee/settings", l: "الإعدادات", i: I.lock },
 ] as const;
 
-/** The tab a path belongs to, or -1 (e.g. «دفعاتي» /me): then no tab claims to be current. */
+/** The tab a path belongs to: its own section first, else «الرئيسية» for other /committee pages. */
 export function tabIndex(path: string) {
-  if (path === "/") return 0;
-  return TABS.findIndex(
-    (t) => t.href !== "/" && (path === t.href || path.startsWith(`${t.href}/`)),
-  );
+  const i = TABS.findIndex((t, k) => k > 0 && (path === t.href || path.startsWith(`${t.href}/`)));
+  if (i > 0) return i;
+  return path === "/committee" || path.startsWith("/committee/") ? 0 : -1;
 }
 
 /* ───────────── snackbar ───────────── */
@@ -63,36 +50,6 @@ function useSnackState() {
   return [snack, say] as const;
 }
 
-/* ───────────── reveal ───────────── */
-/**
- * Sections used to slide in on scroll; routine content now shows at once, still (QA pass 3:
- * nothing moves while someone reads money). Kept as the one hook so pages need no change.
- */
-function reveal(el: HTMLElement) {
-  el.querySelectorAll<HTMLElement>(".bq-rv").forEach((s) => s.classList.add("seen"));
-  return () => {};
-}
-
-/* ───────────── compact bar: the hero, collapsed, once its balance leaves (mobile home) ───────────── */
-function useCompact(active: boolean) {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    if (!active) return;
-    const el = document.querySelector("[data-hero-bal]");
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([en]) => setOn(!en.isIntersecting && en.boundingClientRect.top < 0),
-      { threshold: 0 },
-    );
-    io.observe(el);
-    return () => {
-      io.disconnect();
-      setOn(false);
-    };
-  }, [active]);
-  return active && on;
-}
-
 function NavItems({
   idx,
   badge,
@@ -113,7 +70,7 @@ function NavItems({
     >
       <span className="bq-nav-ic">
         {t.i(24)}
-        {i === 4 && badge ? (
+        {i === 0 && badge ? (
           <Num className="bq-badge">
             <span className="bq-sr">دفعات تحتاج مراجعة: </span>
             {badge}
@@ -126,12 +83,10 @@ function NavItems({
 }
 
 export function AppShell({
-  hero,
   badge,
   children,
 }: {
-  hero: HeroData;
-  /** committee: pending payments count on the «اللجنة» tab */
+  /** pending payments count on the «الرئيسية» tab */
   badge?: number;
   children: ReactNode;
 }) {
@@ -142,13 +97,6 @@ export function AppShell({
   const [tapped, setTapped] = useState<{ from: string; i: number } | null>(null);
   const idx = tapped && tapped.from === path ? tapped.i : real;
   const [snack, say] = useSnackState();
-  const main = useRef<HTMLElement>(null);
-  useLayoutEffect(() => {
-    if (!main.current) return;
-    const cleanup = reveal(main.current);
-    return cleanup;
-  }, [path]);
-  const compact = useCompact(path === "/");
 
   const onGo = useCallback((i: number) => setTapped({ from: path, i }), [path]);
   const ctx = useMemo(() => say, [say]);
@@ -156,14 +104,6 @@ export function AppShell({
   return (
     <SnackCtx value={ctx}>
       <div className="bq-app">
-        <div className={`bq-compact ${compact ? "is-on" : ""}`} aria-hidden={!compact}>
-          <span className="bq-logo bq-logo-s">
-            <Image src="/logo.jpg" alt="" width={64} height={64} />
-          </span>
-          <span className="bq-compact-l">في الصندوق الآن</span>
-          <CompactBalance />
-        </div>
-
         <nav
           className="bq-rail"
           aria-label="التنقل"
@@ -184,17 +124,7 @@ export function AppShell({
         </nav>
 
         <div className="bq-frame">
-          <main className="bq-main" ref={main}>
-            {children}
-          </main>
-          <aside className="bq-aside" aria-label="رصيد الصندوق">
-            <Hero data={hero} variant="panel" />
-            {real !== 2 && (
-              <Link href="/accounts#bq-sum" className="bq-link bq-press bq-aside-link">
-                كيف حُسب الرصيد؟ {I.go(18)}
-              </Link>
-            )}
-          </aside>
+          <main className="bq-main">{children}</main>
         </div>
 
         <nav
@@ -223,15 +153,5 @@ export function AppShell({
           )}
       </div>
     </SnackCtx>
-  );
-}
-
-/** The compact bar's figure: the balance for members and the committee, «•••» otherwise. */
-function CompactBalance() {
-  const m = useMoney();
-  return (
-    <span className="bq-compact-n">
-      {m ? <Roll value={m.summary.balance} /> : <Dots />} <small>أوقية</small>
-    </span>
   );
 }

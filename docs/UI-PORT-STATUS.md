@@ -574,6 +574,23 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
 - Share: «شارك الوصل», no delivery claim after the sheet, «اختر واتساب ثم اضغط إرسال.».
 - Picker and late list: a few names first, «عرض كل …» for the rest.
 
+## Committee-only, phase 2 removal (r35, docs/COMMITTEE-ONLY-PLAN.md)
+- Deleted routes: `/` (now redirects to /committee), `/members`, `/accounts`, `/donations`, `/me`,
+  `/report` (+ OG image), `/r/[code]`, `/committee/member-links`, `/m/demo`, `/m/demo2`,
+  `/m/switch`, `/m/invalid` (`/m/[token]` is Lane A's). New: `/committee/reports` (ReportView takes
+  the full ReportData; share + print; no app link in the footer).
+- Deleted UI: views home/members/accounts/donations/me/member-switch, hero, money (+model,
+  action), viewer-action, member card/act/slot/view-action/links/link-admin/model, donate-proof,
+  pay-to, walk-return, recent-members, cache-seed, engaged, month-rail, ledger, entry-row,
+  demo-member, demo-link; their CSS.
+- source.ts: real reads only through Lane A's committee getters (getCommitteeMemberRows,
+  GroupPrices, FundAccounts, FundInfo) and committee reads; `committeeReport()`; no public getter.
+- Shell: committee tabs (الرئيسية، الأعضاء، التبرعات، التقارير، الإعدادات), badge on الرئيسية, no
+  aside/compact bar. Logout → /login (login/actions.ts, Lane A file).
+- «المتأخرون» (/committee/late): in-app list + «شارك المتأخرات» (images/PDF, no amounts); no
+  WhatsApp walk or reminder log. Record sheet: committee mode only. Receipt: no QR/link.
+- Not yet (waits for the prototype round / Lane A m29): new layout, no «للمراجعة» queue.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.

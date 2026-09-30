@@ -25,14 +25,6 @@ import type {
   PendingPayment,
   VerifiedReceipt,
 } from "@/lib/data/types";
-import type { DemoToken } from "./demo-member";
-import type {
-  Beneficiary,
-  MemberHistoryItem,
-  MemberLinkInfo,
-  MemberProfile,
-  MemberSession,
-} from "@/lib/data/member-types";
 
 export const FX_TODAY = new Date("2026-09-28T10:25:00Z");
 const YEAR = 2026;
@@ -401,11 +393,6 @@ export const fxRecent = (): PendingPayment[] =>
     receiptNo: r.receiptNo,
   }));
 
-export function fxReceipt(code: string): VerifiedReceipt {
-  const r = RECEIPTS.find((x) => x.code.toUpperCase() === code.trim().toUpperCase());
-  return r ?? { status: "not_found" };
-}
-
 export function fxActivity(): ActivityItem[] {
   const pay = RECEIPTS.filter((r) => r.status === "valid").map((r): ActivityItem => ({
     kind: "payment_confirmed",
@@ -667,137 +654,3 @@ export const fxTerms = (): Term[] => [
   },
 ];
 export const fxHandovers = (): Handover[] => [];
-
-/* ───────────── member link (demo: /m/demo) ───────────── */
-// /m/demo is A-3 (paid the whole year; he also paid once for B-6); /m/demo2 is B-6 (late).
-const ME = RAW[2];
-const COUSIN = RAW[26]; // B-6
-const ym = (month: number) => `${YEAR}-${String(month).padStart(2, "0")}`;
-const DEMO_WHO: Record<DemoToken, Raw> = { demo: ME, demo2: COUSIN };
-const DEMO_LINK: Record<DemoToken, string> = { demo: uuid("c", 1), demo2: uuid("c", 2) };
-/** Demo link id → token (the switcher sends link ids). */
-export const fxDemoTokenOf = (linkId: string) =>
-  (Object.keys(DEMO_LINK) as DemoToken[]).find((t) => DEMO_LINK[t] === linkId) ?? null;
-export function fxMemberSession(t: DemoToken = "demo"): MemberSession {
-  const m = DEMO_WHO[t];
-  return {
-    linkId: DEMO_LINK[t],
-    memberId: m.id,
-    memberRef: `${m.group}-${m.no}`,
-    listCode: m.group,
-    number: m.no,
-    fullName: m.name,
-    groupCode: m.group,
-    status: m.status,
-    monthsBehind: owed(m).length,
-    amountOwed: owed(m).length * FX_PRICE[m.group],
-    lateMonths: owed(m).map(ym),
-    credit: 0,
-  };
-}
-export function fxMemberProfile(t: DemoToken, active: boolean): MemberProfile {
-  const s = fxMemberSession(t);
-  return {
-    linkId: s.linkId,
-    memberId: s.memberId,
-    memberRef: s.memberRef,
-    fullName: s.fullName,
-    active,
-  };
-}
-const monthsOf = (m: Raw, months: number[]) =>
-  months.map((month) => ({
-    kind: "months" as const,
-    memberId: m.id,
-    memberRef: `${m.group}-${m.no}`,
-    fullName: m.name,
-    year: YEAR,
-    month,
-    amount: FX_PRICE[m.group],
-    campaignTitle: null,
-  }));
-export function fxMemberHistory(t: DemoToken = "demo"): MemberHistoryItem[] {
-  // demo2 (B-6): the payment A-3 sent for him, seen from his side
-  if (t === "demo2")
-    return [
-      {
-        id: uuid("d", 1),
-        status: "confirmed",
-        amount: 1500,
-        method: "bankily",
-        paidOn: "2026-05-12",
-        createdAt: "2026-05-12T09:00:00Z",
-        decidedAt: "2026-05-12T21:15:00Z",
-        receiptCode: "BQ-DEMO-M001",
-        rejectReason: null,
-        payerName: ME.name,
-        sentByMe: false,
-        forMe: true,
-        allocations: monthsOf(COUSIN, [1, 2, 3]),
-      },
-    ];
-  return [
-    {
-      id: uuid("d", 3),
-      status: "rejected",
-      amount: 1500,
-      method: "bankily",
-      paidOn: "2026-09-20",
-      createdAt: "2026-09-20T18:10:00Z",
-      decidedAt: "2026-09-21T08:02:00Z",
-      receiptCode: null,
-      rejectReason: "الصورة غير واضحة",
-      payerName: ME.name,
-      sentByMe: true,
-      forMe: false,
-      allocations: monthsOf(COUSIN, [7, 8, 9]),
-    },
-    {
-      id: uuid("d", 2),
-      status: "confirmed",
-      amount: 6000,
-      method: "masrvi",
-      paidOn: "2026-06-30",
-      createdAt: "2026-06-30T12:00:00Z",
-      decidedAt: "2026-06-30T19:40:00Z",
-      receiptCode: "BQ-DEMO-M002",
-      rejectReason: null,
-      payerName: ME.name,
-      sentByMe: false,
-      forMe: true,
-      allocations: monthsOf(
-        ME,
-        ME.paid.filter((k) => k > 0),
-      ),
-    },
-    {
-      id: uuid("d", 1),
-      status: "confirmed",
-      amount: 1500,
-      method: "bankily",
-      paidOn: "2026-05-12",
-      createdAt: "2026-05-12T09:00:00Z",
-      decidedAt: "2026-05-12T21:15:00Z",
-      receiptCode: "BQ-DEMO-M001",
-      rejectReason: null,
-      payerName: ME.name,
-      sentByMe: true,
-      forMe: false,
-      allocations: monthsOf(COUSIN, [1, 2, 3]),
-    },
-  ];
-}
-export const fxMemberBeneficiaries = (t: DemoToken = "demo"): Beneficiary[] =>
-  t === "demo"
-    ? [{ memberId: COUSIN.id, memberRef: `${COUSIN.group}-${COUSIN.no}`, fullName: COUSIN.name }]
-    : [];
-/** Committee: members who already have a link (the demo member and two others). */
-export function fxMemberLinks(): Record<string, MemberLinkInfo> {
-  return Object.fromEntries(
-    [
-      { m: ME, createdAt: "2026-09-01T10:00:00Z", lastUsedAt: "2026-09-26T19:30:00Z" },
-      { m: RAW[0], createdAt: "2026-09-02T10:00:00Z", lastUsedAt: null },
-      { m: RAW[30], createdAt: "2026-09-10T10:00:00Z", lastUsedAt: "2026-09-12T08:00:00Z" },
-    ].map((x) => [x.m.id, { memberId: x.m.id, createdAt: x.createdAt, lastUsedAt: x.lastUsedAt }]),
-  );
-}

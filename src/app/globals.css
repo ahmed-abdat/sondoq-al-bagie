@@ -260,20 +260,6 @@
     transition-duration: var(--d-press);
     transition-timing-function: var(--ease-out);
   }
-
-  /* ───── hero: one continuous green field ───── */
-  .bq-hero {
-    background: var(--g7);
-    color: #fff;
-    margin-inline: -20px;
-    padding: calc(18px + var(--safe-t)) max(20px, env(safe-area-inset-right, 0px)) 32px
-      max(20px, env(safe-area-inset-left, 0px));
-    border-end-start-radius: var(--r-hero);
-    border-end-end-radius: var(--r-hero);
-  }
-  .bq-hero :focus-visible {
-    outline-color: #fff;
-  }
   .bq-brand {
     display: flex;
     align-items: center;
@@ -321,94 +307,6 @@
     font-size: 14px;
     color: var(--on-g);
   }
-  .bq-hero-bal {
-    margin-block-start: 28px;
-  }
-  .bq-hero-l {
-    font-size: 17px;
-    color: var(--on-g);
-  }
-  .bq-hero-n {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    column-gap: 10px;
-    line-height: 1.1;
-    margin-block-start: 4px;
-  }
-  .bq-hero-n .bq-num {
-    font-size: clamp(40px, 14vw, 56px);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-  .bq-hero-u {
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--on-g);
-  }
-  .bq-hero-stats {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px 16px;
-    margin-block-start: 18px;
-  }
-  .bq-hero-stats dt {
-    font-size: 14px;
-    color: var(--on-g);
-  }
-  .bq-hero-stats dd {
-    font-size: 17px;
-    font-weight: 600;
-    color: #fff;
-  }
-  .bq-hero-t {
-    margin-block-start: 12px;
-    font-size: 14px;
-    color: var(--on-g);
-  }
-
-  /* compact bar (mobile home): solid, no blur */
-  .bq-compact {
-    position: fixed;
-    inset-inline: 0;
-    top: 0;
-    z-index: 40;
-    height: calc(56px + var(--safe-t));
-    padding-block-start: var(--safe-t);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding-inline: 16px;
-    background: rgba(35, 122, 59, 0.97);
-    color: #fff;
-    transform: translateY(-100%);
-    visibility: hidden;
-    transition:
-      transform var(--d-ui) var(--ease-out),
-      visibility 0s var(--d-ui);
-    pointer-events: none;
-    box-shadow: 0 8px 20px -14px rgba(14, 58, 27, 0.6);
-  }
-  .bq-compact.is-on {
-    transform: none;
-    visibility: visible;
-    transition: transform var(--d-ui) var(--ease-out);
-    pointer-events: auto;
-  }
-  .bq-compact-l {
-    font-size: 14px;
-    color: var(--on-g);
-  }
-  .bq-compact-n {
-    margin-inline-start: auto;
-    font-size: 22px;
-    font-weight: 700;
-  }
-  .bq-compact-n small {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--on-g);
-  }
 
   /* ───── frame, sections ───── */
   .bq-frame {
@@ -452,16 +350,10 @@
   .bq-sec > h2 + .bq-lead {
     margin-block: -10px 16px;
   }
-  .bq-find {
-    margin-block-start: 32px;
-  }
   /* clear of the compact balance bar that takes over from the hero */
   .bq-mhead-fee {
     display: block;
     white-space: nowrap;
-  }
-  .bq-find > h2 {
-    scroll-margin-block-start: calc(var(--safe-t) + 68px);
   }
   .bq-desk-only {
     display: none;
@@ -519,12 +411,6 @@
   .bq-search-s {
     height: 52px;
   }
-  .bq-find .bq-hint {
-    margin-block-start: 10px;
-  }
-  .bq-find .bq-list {
-    margin-block-start: 8px;
-  }
 
   /* ───── open list rows ───── */
   .bq-list {
@@ -542,8 +428,7 @@
     height: 1px;
     background: rgba(20, 32, 26, 0.06);
   }
-  .bq-row,
-  .bq-camp-row {
+  .bq-row {
     position: relative;
     isolation: isolate;
     display: flex;
@@ -556,8 +441,7 @@
     color: inherit;
     text-decoration: none;
   }
-  .bq-row::after,
-  .bq-camp-row::after {
+  .bq-row::after {
     content: "";
     position: absolute;
     inset: 2px -10px;
@@ -767,11 +651,6 @@
   .bq-empty .bq-btn {
     margin-block-start: 10px;
   }
-  .bq-find .bq-empty {
-    align-items: flex-start;
-    text-align: start;
-    padding: 16px 0 0;
-  }
 
   /* text links */
   .bq-link {
@@ -792,19 +671,6 @@
   }
   .bq-link svg {
     transition: transform 200ms var(--ease-out);
-  }
-
-  /* paid count + tracks */
-  .bq-count {
-    font-size: 22px;
-    line-height: 1.35;
-  }
-  .bq-count .bq-num {
-    font-size: 28px;
-    font-weight: 700;
-  }
-  .bq-count .bq-count-n {
-    color: var(--g7);
   }
   .bq-track {
     position: relative;
@@ -851,19 +717,6 @@
     font-size: 17px;
     font-weight: 700;
     color: var(--g8);
-  }
-  .bq-camp-row .bq-track {
-    height: 6px;
-    margin-block: 8px 0;
-    background: var(--gold-track);
-  }
-  .bq-camp-row .bq-track > span {
-    background: var(--gold);
-  }
-  .bq-camp-pct {
-    font-size: 17px;
-    font-weight: 700;
-    flex: none;
   }
 
   /* segmented: one indicator moved by clip-path */
@@ -1108,76 +961,6 @@
     color: var(--muted);
     font-weight: 600;
   }
-  .bq-rail-m {
-    display: flex;
-    gap: 4px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    margin-inline: -20px;
-    padding: 16px 20px 4px;
-    scrollbar-width: none;
-    mask-image: linear-gradient(
-      to left,
-      transparent,
-      #000 20px,
-      #000 calc(100% - 20px),
-      transparent
-    );
-  }
-  .bq-rail-m::-webkit-scrollbar {
-    display: none;
-  }
-  .bq-mbar {
-    flex: none;
-    width: 58px;
-    scroll-snap-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding-block: 4px;
-    border-radius: 16px;
-  }
-  .bq-mbar-t {
-    position: relative;
-    width: 30px;
-    height: 140px;
-    border-radius: 999px;
-    background: var(--n1);
-    overflow: hidden;
-    transition: background-color 180ms var(--ease-out);
-  }
-  .bq-mbar-f {
-    position: absolute;
-    inset: 0;
-    border-radius: 999px;
-    background: var(--g7);
-    transform-origin: bottom;
-    transition: background-color 200ms var(--ease-out);
-  }
-  .bq-mbar.fut .bq-mbar-f {
-    background: var(--n3);
-  }
-  .bq-mbar.cur .bq-mbar-t {
-    background: var(--g1);
-  }
-  .bq-mbar.on .bq-mbar-f {
-    background: var(--g9);
-  }
-  .bq-mbar.on .bq-mbar-t {
-    box-shadow:
-      0 0 0 2px #fff,
-      0 0 0 4px var(--g8);
-  }
-  .bq-mbar-l {
-    font-size: 14px;
-    color: var(--muted);
-    white-space: nowrap;
-  }
-  .bq-mbar.on .bq-mbar-l {
-    color: var(--ink);
-    font-weight: 700;
-  }
   .bq-stack {
     display: flex;
     gap: 4px;
@@ -1236,17 +1019,6 @@
     font-weight: 600;
     font-size: 14px;
   }
-
-  /* ───── التبرعات ───── */
-  .bq-camp-h {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 10px;
-  }
-  .bq-sec > h2.bq-camp-h {
-    margin-block-end: 4px;
-  }
   .bq-big-of {
     flex-wrap: wrap;
     margin-block-start: 16px;
@@ -1260,27 +1032,6 @@
     font-weight: 600;
     color: var(--ink);
     letter-spacing: 0;
-  }
-  .bq-facts3 {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-block: 20px 12px;
-  }
-  .bq-facts3 li {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 14px;
-    color: var(--muted);
-  }
-  .bq-facts3 li svg {
-    color: var(--g7);
-  }
-  .bq-facts3 li span {
-    color: var(--ink);
-    font-weight: 600;
-    font-size: 14px;
   }
   .bq-facts {
     display: grid;
@@ -2237,9 +1988,7 @@
 
   /* ───── desktop: rail · centred column (720) · sticky balance ───── */
   @media (min-width: 1024px) {
-    .bq-bnav,
-    .bq-compact,
-    .bq-mob-only {
+    .bq-bnav {
       display: none;
     }
     .bq-desk-only {
@@ -2300,47 +2049,13 @@
     .bq-app:has(.bq-fab) .bq-frame {
       padding-block-end: 120px;
     }
-    .bq-aside {
-      position: sticky;
-      top: 32px;
-      margin-block-start: 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      view-transition-name: bq-aside;
-    }
-    .bq-hero.is-panel {
-      margin: 0;
-      border-radius: var(--r-sheet);
-      padding: 28px;
-    }
-    .bq-hero.is-panel .bq-hero-n .bq-num {
-      font-size: 52px;
-    }
-    .bq-aside-link {
-      align-self: flex-start;
-      margin-inline-start: 4px;
-    }
     .bq-page-h {
       padding-block-start: 40px;
-    }
-    .bq-find {
-      margin-block-start: 40px;
     }
     .bq-com-bar {
       margin-inline: 0;
       padding-inline: 0;
       padding-block: 24px 10px;
-    }
-    .bq-rail-m {
-      margin-inline: 0;
-      padding-inline: 0;
-      mask-image: none;
-      overflow: visible;
-      justify-content: space-between;
-    }
-    .bq-mbar {
-      width: 52px;
     }
     .bq-fab {
       bottom: 32px;
@@ -2378,15 +2093,9 @@
       visibility: hidden;
     }
   }
-  @media (max-width: 1023.98px) {
-    .bq-aside {
-      display: none;
-    }
-  }
 
   @media (hover: hover) and (pointer: fine) {
-    .bq-row:hover::after,
-    .bq-camp-row:hover::after {
+    .bq-row:hover::after {
       background: var(--n1);
     }
     .bq-btn-primary:hover:not(:disabled) {
@@ -2403,9 +2112,6 @@
     }
     .bq-nav-i:not(.on):hover .bq-nav-ic {
       color: var(--ink);
-    }
-    .bq-mbar:hover .bq-mbar-t {
-      background: var(--n2);
     }
   }
 }
@@ -2552,14 +2258,6 @@
   .bq-sheet.is-dialog[data-ending-style] {
     transform: none;
     opacity: 0;
-  }
-  .bq-compact {
-    transform: none;
-    opacity: 0;
-    transition: opacity 200ms var(--ease-out);
-  }
-  .bq-compact.is-on {
-    opacity: 1;
   }
   .bq-bnav .bq-pill,
   .bq-rail .bq-pill,
@@ -3366,31 +3064,6 @@
     width: 100%;
     margin: 0;
   }
-  /* the walk's «أُنشئ رابط … · التالي: …» line with «تراجع» (P9) */
-  .bq-ml-last {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4px 12px;
-  }
-  /* home band, short (owner pick «a»): balance + one line, the breakdown on /accounts */
-  .bq-hero.is-band {
-    padding-block-end: 22px;
-  }
-  .bq-hero.is-band .bq-hero-bal {
-    margin-block-start: 16px;
-  }
-  .bq-hero-how {
-    color: #fff;
-    font-weight: 600;
-    text-decoration: underline;
-    text-decoration-color: var(--gold);
-    text-underline-offset: 3px;
-  }
-  .bq-hero.is-band .bq-money-hint {
-    margin-block-start: 10px;
-  }
   /* the snack leaves the way it came, a touch faster */
   .bq-snack.is-out {
     transform: translateY(6px);
@@ -3678,59 +3351,9 @@
   }
 }
 @layer components {
-  /* donations: title, purpose, then the status pill on its own line (8/12 rhythm) */
-  .bq-camp-head {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .bq-camp-head h2 {
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1.35;
-  }
-  .bq-camp-head .bq-lead {
-    margin: 0;
-  }
-  .bq-camp-amt {
-    margin-block-start: 20px;
-  }
-  .bq-camp-amt + .bq-of {
-    margin-block-start: 2px;
-  }
-  .bq-camp-none {
-    margin-block-start: 20px;
-    padding: 14px 16px;
-    border-radius: var(--r-md);
-    background: var(--g0);
-    font-size: 17px;
-  }
   .bq-track-row .bq-track-p {
     min-width: 3.5ch;
     text-align: end;
-  }
-  /* three facts: icon, label, value — same widths and baselines */
-  .bq-facts3 {
-    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-    align-items: start;
-    margin-block: 24px 12px;
-  }
-  .bq-facts3 li {
-    display: grid;
-    grid-template-rows: 20px auto auto;
-    row-gap: 4px;
-    justify-items: start;
-  }
-  .bq-facts3 li .bq-f3-k {
-    font-size: 14px;
-    font-weight: 400;
-    color: var(--muted);
-  }
-  .bq-facts3 li .bq-f3-v {
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--ink);
   }
   .bq-steps .bq-step-n {
     margin-block-start: -2px;
@@ -4921,81 +4544,6 @@
 
 /* ───── Lane C: member link («أنت», دفعاتي, رابط العضو) ───── */
 @layer components {
-  /* «أنت»: one quiet Green Wash panel, the only contained surface of home besides the hero */
-  .bq-you {
-    background: var(--g0);
-    border-radius: var(--r-card);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .bq-you-head {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  .bq-you-head .bq-av {
-    background: var(--paper);
-  }
-  .bq-you-k {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--g8);
-  }
-  .bq-you-t {
-    font-size: 22px;
-    line-height: 1.35;
-    margin: 0;
-  }
-  .bq-you-st {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-  }
-  .bq-you-st.is-ok {
-    color: var(--g8);
-  }
-  .bq-you-st.is-late {
-    color: var(--ink);
-  }
-  .bq-you-st.is-late svg {
-    color: var(--muted);
-  }
-  /* months like the report grid (r24): a bordered white cell each, a ✓ when paid, 1–12 under */
-  .bq-you-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .bq-you-cells,
-  .bq-you-nums {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .bq-you-cells {
-    border: 1px solid var(--switch-off);
-    background: var(--paper);
-  }
-  .bq-you-cells li {
-    display: grid;
-    place-items: center;
-    min-height: 28px;
-  }
-  .bq-you-cells li + li {
-    border-inline-start: 1px solid var(--switch-off);
-  }
-  .bq-you-nums li {
-    text-align: center;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
   .bq-madm-more {
     margin-block-start: 20px;
   }
@@ -5004,68 +4552,6 @@
   }
   .bq-madm-more .bq-row-t {
     flex: 1;
-  }
-  .bq-you-hi {
-    margin-block-end: 12px;
-    padding: 12px 14px;
-    border-radius: var(--r-md);
-    background: var(--g1);
-    color: var(--g9);
-    font-size: 15px;
-    font-weight: 600;
-  }
-  .bq-you {
-    scroll-margin-block-start: calc(var(--safe-t) + 68px);
-  }
-  .bq-you-key {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    color: var(--muted);
-  }
-  .bq-you-wait {
-    align-self: flex-start;
-    min-height: 44px;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--muted);
-  }
-  .bq-you .bq-btn-col {
-    margin-top: 4px;
-  }
-  .bq-you > .bq-link {
-    align-self: flex-start;
-  }
-
-  /* «دفعاتي» rows: open, like list rows, but not tappable as a whole */
-  .bq-me-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    padding-block: 12px;
-  }
-  .bq-me-row .bq-row-m {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .bq-me-rej {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    margin-top: 4px;
-  }
-  .bq-me-acts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 20px;
   }
 
   /* «رابط العضو» in the committee member sheet */
@@ -5092,103 +4578,7 @@
     font-size: 14px;
   }
 }
-/* ───── end Lane C member link ───── */
 @layer components {
-  /* «أنت», owner pick «c» (r30): flat on the page, no box or shadow; a list-item header, the
-     rest indented under the name, one thin divider under it; pill buttons in one row */
-  .bq-you {
-    background: none;
-    border-radius: 0;
-    padding: 0;
-    gap: 8px;
-  }
-  .bq-you-head {
-    min-height: 56px;
-  }
-  .bq-you-head .bq-av {
-    background: var(--g1);
-    box-shadow: none;
-  }
-  .bq-you-t {
-    font-size: 18px;
-  }
-  .bq-you-sub {
-    font-size: 14px;
-    color: var(--muted);
-    line-height: 1.45;
-  }
-  .bq-you-me {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    min-height: 44px;
-    padding-inline: 8px;
-    margin-inline-end: -8px;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 15px;
-    color: var(--g8);
-    text-decoration: none;
-    white-space: nowrap;
-  }
-  .bq-you-body {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding-inline-start: 56px;
-    padding-block-end: 16px;
-    border-block-end: 1px solid var(--n2);
-  }
-  .bq-you-thanks {
-    font-weight: 400;
-    color: var(--muted);
-  }
-  .bq-you .bq-you-cells {
-    background: transparent;
-    border-color: var(--n3);
-  }
-  .bq-you .bq-you-cells li + li {
-    border-inline-start-color: var(--n3);
-  }
-  /* one row: the pills use the full width (not indented), so both fit at 360px */
-  .bq-you-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-inline-start: -56px;
-  }
-  .bq-you-pill {
-    min-height: 44px;
-    padding-inline: 20px;
-    white-space: nowrap;
-    border-radius: 999px;
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 15px;
-  }
-  .bq-you-pill.is-filled {
-    background: var(--g8);
-    color: #fff;
-  }
-  .bq-you-pill.is-tonal {
-    background: var(--g1);
-    color: var(--g9);
-  }
-  .bq-you-sw .bq-chip {
-    background: var(--g0);
-  }
-}
-@layer components {
-  /* «تبديل:» other people on this phone (up to 5 profiles) */
-  .bq-you-sw {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-  }
-  .bq-you-sw .bq-chip {
-    background: var(--paper);
-  }
   /* /m/switch: two people, one choice */
   .bq-switch-who {
     display: flex;
@@ -5202,211 +4592,10 @@
     width: 100%;
   }
 }
-/* ───── Lane C «روابط الأعضاء» (/committee/member-links) ───── */
-@layer components {
-  .bq-ml-count {
-    margin-block-end: 12px;
-  }
-  .bq-ml-walk {
-    position: sticky;
-    top: calc(8px + var(--safe-t));
-    z-index: 5;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 16px;
-    margin-block-end: 8px;
-  }
-  .bq-ml-walk-t {
-    font-family: var(--font-display);
-    font-size: 19px;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  }
-  .bq-ml-walk-btns {
-    display: flex;
-    gap: 8px;
-    margin-block-start: 6px;
-  }
-  .bq-ml-walk-btns .bq-btn {
-    padding-inline: 12px;
-  }
-  .bq-ml-walk-btns .bq-btn-primary {
-    flex: 1;
-  }
-  .bq-ml-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 56px;
-    padding: 6px 8px;
-    border-radius: var(--r-sm);
-    transition: background-color var(--d-fast) var(--ease-out);
-  }
-  .bq-ml-row[data-current] {
-    background: var(--g1);
-  }
-  .bq-ml-n {
-    min-width: 32px;
-    text-align: center;
-    font-weight: 700;
-    color: var(--muted);
-  }
-  .bq-ml-name {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.4;
-    overflow-wrap: anywhere;
-  }
-  .bq-ml-tick {
-    margin-inline-start: 8px;
-    white-space: nowrap;
-    vertical-align: 1px;
-  }
-  .bq-ml-wa {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 999px;
-    background: var(--g8);
-    color: #fff;
-  }
-  .bq-ml-new {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 44px;
-    padding-inline: 14px;
-    border-radius: 999px;
-    background: var(--n1);
-    color: var(--muted);
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  .bq-ml-wa:disabled,
-  .bq-ml-new:disabled {
-    opacity: 0.5;
-  }
-  .bq-ml-confirm {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin: 4px 8px 12px;
-    padding: 14px;
-    border-radius: var(--r-md);
-    background: var(--n1);
-  }
-}
 /* ───── end Lane C «روابط الأعضاء» ───── */
 
 /* ───── money privacy (docs/MONEY-PRIVACY.md): strangers see «••• •••» (owner, variant A / C) ───── */
 @layer components {
-  .bq-dots {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.34em;
-    height: 0.72em;
-    vertical-align: baseline;
-    direction: ltr;
-  }
-  .bq-dots > span {
-    display: inline-flex;
-    gap: 0.13em;
-  }
-  .bq-dots i {
-    width: 0.24em;
-    height: 0.24em;
-    border-radius: 999px;
-    background: currentColor;
-  }
-  .bq-dots-hero {
-    font-size: clamp(40px, 14vw, 56px);
-  }
-  .bq-dots-hero i {
-    width: 0.2em;
-    height: 0.2em;
-  }
-  .bq-hero-lock {
-    display: inline-grid;
-    margin-inline-start: 6px;
-    vertical-align: -2px;
-    opacity: 0.85;
-  }
-  .bq-money-hint {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-    margin-block: 12px;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--muted);
-  }
-  .bq-money-hint.is-green {
-    margin-block: 18px 0;
-    padding-block-start: 14px;
-    box-shadow: inset 0 1px 0 rgba(238, 245, 239, 0.22);
-    color: var(--on-g);
-  }
-  .bq-money-hint-i {
-    flex: none;
-    margin-block-start: 2px;
-  }
-  .bq-money-hint-a {
-    display: inline;
-    padding: 14px 0;
-    margin: -14px 0;
-    color: var(--g8);
-    font-weight: 600;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    text-decoration-thickness: 1.5px;
-  }
-  .bq-money-hint.is-green .bq-money-hint-a {
-    color: #fff;
-    text-decoration-color: var(--gold);
-  }
-  /* a maybe-allowed browser (member link, session): no hint, dots until the figures arrive */
-  html[data-money] .bq-money-hint,
-  html[data-money] .bq-money-stranger,
-  html:not([data-money]) .bq-money-wait {
-    display: none;
-  }
-  .bq-money-card {
-    display: flex;
-    gap: 14px;
-    padding: 18px;
-    border-radius: var(--r-lg);
-    background: var(--g0);
-    box-shadow: inset 0 0 0 1px var(--g1);
-    margin-block-end: 12px;
-  }
-  .bq-money-key {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 999px;
-    background: var(--gold-tint, #f6efd9);
-    color: var(--gold-ink, #6e5410);
-  }
-  .bq-money-card-t {
-    font-weight: 700;
-    font-size: 17px;
-  }
-  .bq-money-card .bq-hint {
-    margin-block-start: 2px;
-    line-height: 1.6;
-  }
-  .bq-money-card-acts {
-    display: flex;
-    flex-wrap: wrap;
-    column-gap: 18px;
-  }
   .bq-payers {
     display: flex;
     flex-direction: column;
@@ -5600,128 +4789,6 @@
     transform: none;
   }
 }
-
-/* ───── member links, owner pick «b» (r31): flat, the group first ───── */
-@layer components {
-  .bq-ml-count {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-block-end: 12px;
-  }
-  .bq-ml-count + .bq-seg,
-  .bq-ml-count + * {
-    margin-block-end: 12px;
-  }
-  .bq-slip.bq-ml-walk {
-    background: var(--g0);
-    box-shadow: none;
-    border-radius: var(--r-lg);
-  }
-  .bq-ml-filter {
-    margin-block: 12px 4px;
-  }
-  .bq-ml-filter .bq-chip[aria-pressed="true"] {
-    background: var(--g1);
-    color: var(--g9);
-  }
-  .bq-ml-list > li + li {
-    border-block-start: 1px solid var(--n2);
-  }
-}
-
-/* ───── donations, owner pick «a» (r31): wallet steps first, a small flat progress box ───── */
-@layer components {
-  .bq-give {
-    list-style: none;
-    padding: 0;
-    margin: 16px 0 0;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  .bq-give-step {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-  }
-  .bq-give-t {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 17px;
-    line-height: 1.6;
-    margin-block-end: 8px;
-  }
-  .bq-give-wallets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .bq-give-wallet {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    min-width: 84px;
-    min-height: 44px;
-    padding: 10px 12px;
-    border-radius: var(--r-md);
-    background: var(--n1);
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: inset 0 0 0 2px transparent;
-  }
-  .bq-give-wallet[aria-checked="true"] {
-    background: var(--g1);
-    box-shadow: inset 0 0 0 2px var(--g8);
-  }
-  .bq-give-num {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border-radius: var(--r-md);
-    background: var(--n1);
-  }
-  .bq-give-n {
-    display: block;
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-  }
-  .bq-give-trust {
-    display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    margin-block-start: 8px;
-  }
-  .bq-give-trust svg {
-    flex: none;
-    margin-block-start: 3px;
-  }
-  .bq-give-prog {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 16px;
-    border-radius: var(--r-lg);
-    background: var(--g0);
-  }
-  .bq-give-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .bq-give-sum {
-    font-family: var(--font-display);
-    font-size: 22px;
-  }
-  .bq-give-sum small {
-    font-size: 14px;
-    color: var(--muted);
-  }
-}
 @layer components {
   .bq-rev-rec {
     width: 100%;
@@ -5755,14 +4822,10 @@
 
 /* ───── QA pass 3: large text and larger common targets ───── */
 @layer components {
-  /* common secondary targets: 48px (no new controls) */
   .bq-link,
   .bq-chip,
   .bq-copy,
-  .bq-seg-b,
-  .bq-ml-new,
-  .bq-you-pill,
-  .bq-you-me {
+  .bq-seg-b {
     min-height: 48px;
   }
   /* bottom nav at 200% text: a label shortens instead of pushing the bar off screen */
@@ -5773,18 +4836,6 @@
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  /* compact balance bar: the label gives way, the figure stays whole */
-  .bq-compact-l {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .bq-compact-n {
-    flex: none;
     white-space: nowrap;
   }
   .rp-url {
@@ -5806,13 +4857,9 @@
   .bq-slip-amt {
     flex-wrap: wrap;
   }
-  .bq-txn,
-  .bq-give-n {
+  .bq-txn {
     white-space: normal;
     overflow-wrap: anywhere;
-  }
-  .bq-give-num {
-    flex-wrap: wrap;
   }
   .bq-btn {
     white-space: normal;
@@ -5832,41 +4879,12 @@
     width: 48px;
     height: 48px;
   }
-  .bq-ml-wa {
-    width: 48px;
-    height: 48px;
-  }
   .bq-icon-btn {
     min-width: 48px;
     min-height: 48px;
   }
 }
 @layer components {
-  /* donations step 4: the picked screenshot and what happens next */
-  .bq-give-proof,
-  .bq-give-send {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .bq-give-send {
-    margin-block-start: 6px;
-  }
-  .bq-give-shot {
-    width: 100%;
-    max-height: 180px;
-    object-fit: cover;
-    object-position: top;
-    border-radius: var(--r-md);
-    background: var(--n1);
-  }
-}
-@layer components {
-  /* QA pass 5: the last small targets, and long logins on /committee/account at 200% text */
-  .bq-hero-how {
-    padding-block: 10px;
-    margin-block: -10px;
-  }
   .bq-link-s {
     min-width: 48px;
     justify-content: center;

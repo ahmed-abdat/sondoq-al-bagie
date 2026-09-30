@@ -14,11 +14,6 @@ export function Num({ children, className = "" }: { children: ReactNode; classNa
   );
 }
 
-/** A money figure, stable from its first frame (QA pass 3: no digit roll-up). */
-export function Roll({ value, className }: { value: number; className?: string }) {
-  return <Num className={className}>{fmt(value)}</Num>;
-}
-
 const noSub = () => () => {};
 /**
  * "Now" for relative times («منذ 12 دقيقة»): null during the server render and hydration (so the
@@ -41,4 +36,19 @@ function nowSnapshot() {
     snapAt = t;
   }
   return snap;
+}
+
+/** A money figure (committee pages always have it); «—» when missing. `sign` like «+» / «−». */
+export function Amount({
+  v,
+  sign = "",
+  className = "",
+}: {
+  v: number | null | undefined;
+  sign?: string;
+  className?: string;
+  dots?: string;
+}) {
+  if (v === null || v === undefined) return <span className={className}>—</span>;
+  return <Num className={className}>{`${sign}${fmt(v)}`}</Num>;
 }

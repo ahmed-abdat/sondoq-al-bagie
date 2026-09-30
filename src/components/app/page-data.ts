@@ -1,28 +1,8 @@
 import "server-only";
 // Page-level bundles shared by several routes (Server Components only).
-import { currentDueMonth, dayWords, updatedLabel } from "./derive";
-import type { HeroData } from "./hero";
+import { currentDueMonth } from "./derive";
 import type { MemberCtx } from "./member";
 import * as src from "./source";
-
-export async function heroData(note?: HeroData["note"]): Promise<HeroData> {
-  // amount-free (money privacy): the figures arrive in the browser for members and the committee
-  const [s, info] = await Promise.all([src.fundStats(), src.fundInfo()]);
-  const term =
-    s.termNumber && s.termStartedOn
-      ? // public pages: no committee word «الدورة» (audit V7)
-        `منذ ${dayWords(s.termStartedOn)} ${s.termStartedOn.slice(0, 4)}`
-      : null;
-  return {
-    term,
-    whatsapp: info.whatsappContact,
-    note:
-      note ??
-      (s.lastActivityAt
-        ? `آخر تحديث: ${updatedLabel(s.lastActivityAt, src.today())}`
-        : "لم تُسجَّل عمليات بعد"),
-  };
-}
 
 export async function memberCtx(): Promise<MemberCtx> {
   const year = src.thisYear();

@@ -1,14 +1,9 @@
-// What a receipt («وصل استلام») prints, built from the data layer's VerifiedReceipt (public)
-// or PendingPayment (committee). Pure: no React.
-import type {
-  CommitteeRole,
-  PaymentMethod,
-  PendingPayment,
-  VerifiedReceipt,
-} from "@/lib/data/types";
+// What a receipt («وصل استلام») prints, built from the data layer's PendingPayment (committee).
+// Pure: no React.
+import type { PaymentMethod, PendingPayment } from "@/lib/data/types";
 import { METHOD_LABELS } from "@/lib/methods";
 import type { ShareableReceipt } from "@/lib/share-receipt";
-import { dayDate, ROLE_LABEL } from "./derive";
+import { dayDate } from "./derive";
 
 export type ReceiptActor = { by: string; role: string; at: string };
 export type ReceiptStatus =
@@ -45,9 +40,6 @@ export type ReceiptView = {
   status: ReceiptStatus;
 };
 
-export const roleLabel = (r: CommitteeRole | string | null | undefined) =>
-  r && r in ROLE_LABEL ? ROLE_LABEL[r as CommitteeRole] : (r ?? "");
-
 /** Group month allocations by member and year: one cover line per member per year. */
 type CoverMember = {
   fullName: string;
@@ -69,35 +61,6 @@ function coversOf(members: CoverMember[]) {
       });
   }
   return out;
-}
-
-/** Public verification data → receipt (no proof, no recorder, ref masked). */
-export function fromVerified(v: VerifiedReceipt): ReceiptView | null {
-  if (v.status === "not_found") return null;
-  const actor = {
-    by: v.confirmedByName ?? "",
-    role: roleLabel(v.confirmedByRole) || "أمين الصندوق",
-    at: v.confirmedAt,
-  };
-  return {
-    no: v.receiptNo,
-    code: v.code,
-    payer: v.payerName,
-    covers: coversOf(v.members),
-    campaigns: v.campaignTitles,
-    amount: v.amount,
-    method: v.method,
-    txn: null,
-    txnLast4: v.txnRefLast4,
-    paidOn: v.paidOn,
-    recordedBy: null,
-    recordedAt: null,
-    proofPath: null,
-    status:
-      v.status === "valid"
-        ? { kind: "confirmed", ...actor }
-        : { kind: "cancelled", reason: "", ...actor },
-  };
 }
 
 /** Committee payment → receipt. `confirmer` fills in who decided when the row lacks it. */
@@ -152,9 +115,6 @@ export function fromPending(
     status,
   };
 }
-
-/** Path of the public verification page. */
-export const verifyPath = (code: string) => `/r/${encodeURIComponent(code)}`;
 
 /** For the PNG/WhatsApp share (src/lib/share-receipt). Null until the receipt has a code. */
 export function toShareable(r: ReceiptView): ShareableReceipt | null {

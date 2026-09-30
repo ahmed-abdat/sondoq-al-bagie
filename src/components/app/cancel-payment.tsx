@@ -20,14 +20,12 @@ export const CANCEL_REASONS = ["تسجيل خاطئ", "مبلغ خاطئ", "دف
 export function ReceiptSheetBody({
   r: initial,
   paymentId,
-  audience = "public",
   style,
   onCancelled,
 }: {
   r: ReceiptView;
   /** the payment behind the receipt; without it there is nothing to cancel */
   paymentId?: string | null;
-  audience?: "public" | "committee";
   style?: CSSProperties;
   onCancelled?: (reason: string) => void;
 }) {
@@ -60,7 +58,7 @@ export function ReceiptSheetBody({
     );
   return (
     <div className="bq-rc-sheet" style={style}>
-      <Receipt r={r} audience={audience} />
+      <Receipt r={r} />
       {r.status.kind === "confirmed" && <ShareBtns r={r} />}
       {canCancel && (
         <button

@@ -8,11 +8,10 @@ export const metadata: Metadata = { title: "الأعضاء · اللجنة" };
 
 export default async function Members() {
   const session = await src.requireCommittee("/committee/members", { roles: src.MANAGERS });
-  const [members, prices, arrears, links, rows, ctx] = await Promise.all([
+  const [members, prices, arrears, rows, ctx] = await Promise.all([
     src.membersAdmin(),
     src.groupPrices(),
     src.arrears(),
-    src.memberLinks(),
     src.memberRows(),
     memberCtx(),
   ]);
@@ -34,7 +33,6 @@ export default async function Members() {
         thisMonth={thisMonth}
         admin={session.role === "admin"}
         credit={credit}
-        links={links}
         months={months}
         monthsCtx={{ year: ctx.year, dueMonth: ctx.dueMonth }}
       />

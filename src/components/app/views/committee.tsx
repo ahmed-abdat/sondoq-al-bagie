@@ -15,6 +15,7 @@ import type {
   MemberAdmin,
   MemberRow,
   PendingPayment,
+  ReportData,
 } from "@/lib/data/types";
 import { useDemoState } from "../act";
 import { MethodBadge } from "../bits";
@@ -36,7 +37,6 @@ import { Sheet } from "../sheet";
 import { useSnack } from "../shell";
 import { setPendingCount } from "../pending-count";
 import { PendingSlip } from "../slip";
-import type { MemberLinkInfo } from "@/lib/data/member-types";
 
 /** Live updates: another committee member recorded or confirmed a payment → refetch the page. */
 export function CommitteeLive() {
@@ -87,7 +87,7 @@ function MenuRow({
       <Link
         href={href}
         // the report page is heavy; load it only when asked
-        prefetch={href.startsWith("/report") ? false : undefined}
+        prefetch={href.includes("#share") ? false : undefined}
         className="bq-row bq-press"
         transitionTypes={["tab-fwd"]}
       >
@@ -254,11 +254,7 @@ export function CommitteeView({
                       <span className="bq-row-m">
                         <span className="bq-row-t">{p.payerName}</span>
                         <span className="bq-row-s">
-                          {p.submittedByMember
-                            ? `أرسلها ${p.submittedByMember.fullName}`
-                            : p.createdByName
-                              ? `سجّلها ${p.createdByName}`
-                              : "سُجّلت"}
+                          {p.createdByName ? `سجّلها ${p.createdByName}` : "سُجّلت"}
                           {now ? ` · ${relativeAgo(p.createdAt, now)}` : ""}
                         </span>
                       </span>
@@ -358,12 +354,6 @@ export function CommitteeView({
                   count={memberCount}
                 />
               )}
-              <MenuRow
-                href="/committee/member-links"
-                icon={I.copy(22)}
-                title="روابط الأعضاء"
-                sub="جهّز لكل عضو رابطه الخاص وأرسله في واتساب"
-              />
               {canManage && (
                 <MenuRow
                   href="/committee/campaigns"
@@ -377,7 +367,7 @@ export function CommitteeView({
                 />
               )}
               <MenuRow
-                href="/report#share"
+                href="/committee/reports#share"
                 icon={I.image(22)}
                 title="مشاركة التقرير"
                 sub="صور أو PDF لمجموعة الواتساب"
@@ -421,7 +411,7 @@ export function CommitteeView({
       {sheet?.t === "receipt" && (
         <Sheet key="receipt" label="وصل استلام" onDone={() => setSheet(null)}>
           <div className="bq-rc-sheet">
-            <Receipt r={sheet.r} audience="committee" />
+            <Receipt r={sheet.r} />
             {sheet.r.status.kind === "confirmed" && <ShareBtns r={sheet.r} />}
           </div>
         </Sheet>
@@ -431,20 +421,12 @@ export function CommitteeView({
 }
 
 /* ═══════════════════════════ sub-pages ═══════════════════════════ */
-export function LatePage({
-  arrears,
-  accounts,
-  whatsapp,
-}: {
-  arrears: Arrear[];
-  accounts: FundAccount[];
-  whatsapp: string | null;
-}) {
+export function LatePage({ arrears, report }: { arrears: Arrear[]; report: ReportData | null }) {
   return (
     <>
-      <SubHead title="تذكير المتأخرين" />
+      <SubHead title="المتأخرون" />
       <section className="bq-sec bq-sec-first">
-        <LateList arrears={arrears} ctx={{ accounts, whatsappContact: whatsapp }} />
+        <LateList arrears={arrears} report={report} />
       </section>
     </>
   );
@@ -501,13 +483,11 @@ export function MembersPage({
   thisMonth,
   admin = false,
   credit = {},
-  links = {},
   months,
   monthsCtx,
 }: {
   members: MemberAdmin[];
   prices: Record<string, number>;
-  links?: Record<string, MemberLinkInfo>;
   months?: Record<string, string>;
   monthsCtx?: { year: number; dueMonth: number };
   /** admin: may undo the last change and correct the join month */
@@ -518,13 +498,6 @@ export function MembersPage({
   return (
     <>
       <SubHead title="الأعضاء" />
-      <Link
-        href="/committee/member-links"
-        className="bq-link bq-link-s bq-press"
-        transitionTypes={["tab-fwd"]}
-      >
-        {I.wa(18)} روابط الأعضاء: جهّز لكل عضو رابطه
-      </Link>
       <section className="bq-sec bq-sec-first">
         <MembersAdmin
           members={members}
@@ -532,7 +505,6 @@ export function MembersPage({
           thisMonth={thisMonth}
           admin={admin}
           credit={credit}
-          links={links}
           months={months}
           monthsCtx={monthsCtx}
         />
