@@ -98,6 +98,22 @@ const spendingBlocks = (s: AnnualReport["spending"]): Block[] => [
     : []),
 ];
 
+/**
+ * The closing of a period. The total adds up (opening + in − out) and holds the money of the
+ * تبرعات and لوحات not spent yet; home's «في الصندوق» is the fund alone. So when campaigns hold
+ * money the total is split, and «منها في الصندوق» is the same number as home (accuracy, §12).
+ */
+function closingBlocks(closing: number, held: number, label: string, total: string): Block[] {
+  if (!held) return [{ t: "rows", rows: [], total: { label, amount: closing } }];
+  return [
+    { t: "rows", rows: [], total: { label: total, amount: closing } },
+    rowsOf([
+      ["منها في الصندوق", closing - held],
+      ["منها لدى التبرعات واللوحات، لم تُصرف بعد", held],
+    ]),
+  ];
+}
+
 /* ─────────────── 1 · the full annual (or monthly) report ─────────────── */
 
 export function buildAnnual(d: AnnualReport): ReportDoc {
@@ -121,12 +137,9 @@ export function buildAnnual(d: AnnualReport): ReportDoc {
         },
       ],
     });
-  blocks.push({ t: "rows", rows: [], total: { label: `رصيد آخر ${edge}`, amount: d.closing } });
-  if (d.campaignsHeld)
-    blocks.push({
-      t: "note",
-      text: `منها ${amt(d.campaignsHeld)} لدى التبرعات واللوحات، لم تُصرف بعد.`,
-    });
+  blocks.push(
+    ...closingBlocks(d.closing, d.campaignsHeld, `رصيد آخر ${edge}`, `المجموع آخر ${edge}`),
+  );
   if (yearly && d.months.length) {
     blocks.push(
       { t: "heading", text: "ما دخل كل شهر" },
@@ -182,8 +195,13 @@ export function buildSummary(d: SummaryReport): ReportDoc {
           { label: "دخل", amount: d.income, sign: "+" },
           { label: "صُرف", amount: d.spending, sign: "−" },
         ],
-        total: { label: `في الصندوق آخر ${edge}`, amount: d.closing },
+        ...(d.campaignsHeld
+          ? {}
+          : { total: { label: `في الصندوق آخر ${edge}`, amount: d.closing } }),
       },
+      ...(d.campaignsHeld
+        ? closingBlocks(d.closing, d.campaignsHeld, "", `المجموع آخر ${edge}`)
+        : []),
       { t: "note", text: paid },
     ],
     fileBase: `الملخص-${periodSlug(d.period)}`,
