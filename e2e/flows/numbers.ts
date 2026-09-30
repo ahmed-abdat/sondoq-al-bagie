@@ -66,12 +66,13 @@ export async function home(page: Page): Promise<Home> {
   };
 }
 
-/** «الإحصاءات» page: «دفعوا … حتى …: X من Y عضوًا.» and its big «…٪». */
+/** «الإحصاءات» page: «دفعوا … حتى … X من Y عضوًا» and its big «…٪». */
 export async function statsPage(page: Page) {
   await openPage(page, "/committee/stats");
   const card = page.getByRole("region", { name: /^المستحقات الشهرية/ });
-  const text = clean(await card.innerText());
-  const m = /دفعوا.*?:\s*([\d\s]+?)\s*من\s*([\d\s]+?)\s*عضو/.exec(text);
+  const text = clean(await card.innerText()).replace(/\s+/g, " ");
+  // «دفعوا كل ما عليهم حتى سبتمبر 48 من 96 عضوًا» (a colon or not)
+  const m = /دفعوا[^\d]*?([\d ]+?) من ([\d ]+?) عضو/.exec(text);
   const p = /(\d+٪)/.exec(text);
   expect(m, text).not.toBeNull();
   return { paidUp: toNumber(m![1]), active: toNumber(m![2]), pct: p![1] };
