@@ -104,6 +104,9 @@ export const MESSAGES = {
   account_in_use: "هذا الرقم مستعمل في دفعات أو مصاريف. غيّر الرقم بدل تعديله.",
   same_wallet: "اختر محفظتين مختلفتين.",
   not_enough: "المبلغ أكبر مما في المحفظة.",
+  opening_too_big: "رصيد البداية في الحسابات أكبر من رصيد بداية الصندوق.",
+  cash_opening_derived:
+    "النقد في البداية = رصيد بداية الصندوق ناقص ما في الحسابات، لا يُكتب باليد.",
 } as const satisfies Record<string, string>;
 
 export type ErrorCode = keyof typeof MESSAGES;

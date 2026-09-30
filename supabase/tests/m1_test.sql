@@ -1655,7 +1655,21 @@ select tests.ok((select fund_account_id = tests.id('wa') and not paid_in_cash fr
 select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 1000, current_date - 1)$$, tests.get('wa')), 'not_admin',
   'only «المسؤول» sets an opening');
 select tests.login('admin');
+-- m45: an opening is part of the one starting amount (the test fund starts at 0)
+select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 1000, current_date - 1)$$, tests.get('wa')), 'opening_too_big',
+  'an account cannot hold more at the start than the fund had');
+select tests.login('server');
+update public.settings set opening_balance = opening_balance + 1500 where id;
+select tests.login('admin');
 select public.set_fund_account_opening(tests.id('wa'), 1000, current_date - 1);
+select tests.ok((select opening_on = (select opening_balance_on from public.settings) from public.fund_accounts where id = tests.id('wa')),
+  'm45: an opening is as at the start of the records');
+select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 501, current_date)$$, tests.get('acc')), 'opening_too_big',
+  'openings together never pass the fund opening');
+select tests.login('server');
+select tests.throws($$update public.settings set opening_balance = 999 where id$$, 'opening_too_big',
+  'the fund opening cannot drop below the accounts'' openings');
+select tests.login('admin');
 select tests.throws(format($$select public.set_fund_account_opening(%L::uuid, 5, current_date)$$, tests.get('wa')), 'opening_already_set',
   'the opening is set once');
 select tests.login('committee');
@@ -1672,18 +1686,13 @@ select tests.ok((select sum(in_amount) from public.report_wallets(make_date(2000
                 = (select sum(amount) from public.payments where status = 'confirmed' and method::text <> 'credit'
                    and paid_on between make_date(2000, 1, 1) and current_date + 1),
   'wallet rows add up to all money in');
--- cash in hand: its opening once, then a cash balance
+-- cash in hand (m45): the fund opening − what the accounts held; nothing to set
 select tests.login('admin');
-select public.set_cash_opening(500, current_date - 1);
-select tests.throws($$select public.set_cash_opening(1, current_date)$$, 'opening_already_set', 'the cash opening is set once');
+select tests.throws($$select public.set_cash_opening(500, current_date - 1)$$, 'cash_opening_derived', 'the cash opening is not set by hand');
 select tests.login('committee');
-select tests.ok((select balance = 500
-                        + coalesce((select sum(amount) from public.payments where status = 'confirmed' and method = 'cash'
-                                    and paid_on between current_date - 1 and current_date), 0)
-                        - coalesce((select sum(amount) from public.expenses where cancelled_at is null and paid_in_cash
-                                    and spent_on between current_date - 1 and current_date), 0)
+select tests.ok((select opening_balance = (select opening_balance from public.settings) - 1000
                  from public.report_wallets(current_date - 1, current_date) where method = 'cash' and fund_account_id is null),
-  'cash in hand: opening + cash in − cash out');
+  'cash starts with the fund opening minus the accounts'' openings');
 select tests.ok((select public and file_size_limit = 204800 and not ('image/svg+xml' = any (allowed_mime_types))
                  from storage.buckets where id = 'logos'), 'logos: a public bucket, small images only (no SVG)');
 select tests.login('admin');
@@ -1778,7 +1787,7 @@ select tests.throws(format($$update public.fund_accounts set account_number = '1
   'the trigger keeps a used number, even for the server');
 -- the audit: with no manual opening, every balance together = all the money
 update public.fund_accounts set opening_balance = null, opening_on = null where opening_on is not null;
-update public.wallet_types set opening_balance = null, opening_on = null where opening_on is not null;
+update public.settings set opening_balance = opening_balance - 1500 where id;
 select tests.ok((select coalesce(sum(balance), 0) from public.report_wallets((select opening_balance_on from public.settings), current_date + 1))
                 = (select opening_balance from public.settings)
                   + (select coalesce(sum(amount), 0) from public.payments where status = 'confirmed' and method::text <> 'credit')
@@ -1786,6 +1795,15 @@ select tests.ok((select coalesce(sum(balance), 0) from public.report_wallets((se
                   + (select coalesce(sum(amount), 0) from public.balance_adjustments),
   'wallets + cash = all the association''s money');
 \ir local/accuracy_audit_checks.sql
+select tests.login('admin');
+select public.set_fund_account_opening(tests.id('accn'), 0, current_date);
+select tests.login('server');
+update public.settings set opening_balance = opening_balance + 700 where id;
+select tests.login('admin');
+select public.set_fund_account_opening(tests.id('wa'), 700, current_date);
+select tests.login('committee');
+select tests.ok((select ok from public.accuracy_audit() where check_name like 'wallet balances%'),
+  'm45: with an opening set the wallets still add up to all the money (strict)');
 
 /* ───────────── M44: income from the paper sheets ───────────── */
 
