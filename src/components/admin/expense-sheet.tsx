@@ -16,14 +16,6 @@ import { parseAmount, toWesternDigits } from "@/lib/money";
 import { Chips, fmt, Sheet, useP, X } from "./kit";
 import { WalletPicker } from "./wallet-picker";
 
-const KINDS = [
-  { k: "teaching", l: "التدريس" },
-  { k: "honoring", l: "التكريم" },
-  { k: "sports", l: "الرياضة" },
-  { k: "other", l: "أخرى" },
-] as const;
-type Kind = (typeof KINDS)[number]["k"];
-
 export function ExpenseSheet({
   open,
   onClose,
@@ -44,7 +36,9 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
   const once = useOnceId();
   const { recordExpense, uploadProof } = useAct();
   const [amt, setAmt] = useState("");
-  const [kind, setKind] = useState<Kind | "">("");
+  // «النشاط» (m38): the list «المسؤول» manages; only active ones are offered
+  const [kind, setKind] = useState<string>("");
+  const acts = d.activities.filter((a) => a.active);
   const [what, setWhat] = useState("");
   const [from, setFrom] = useState<string>(campaign ?? "");
   const [wallet, setWallet] = useState<string>("");
@@ -89,7 +83,7 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
         return recordExpense({
           id,
           spentOn: on || todayIso(),
-          category: kind as Kind,
+          activityId: Number(kind),
           amount,
           note: what.trim(),
           campaignId: from || undefined,
@@ -148,7 +142,12 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
         />
       </label>
       <p className="pa-label">النشاط</p>
-      <Chips label="النشاط" value={kind} onChange={setKind} options={[...KINDS]} />
+      <Chips
+        label="النشاط"
+        value={kind}
+        onChange={setKind}
+        options={acts.map((a) => ({ k: String(a.id), l: a.name }))}
+      />
       <label className="pa-field">
         <span>ماذا اشتُري؟</span>
         <input

@@ -39,10 +39,10 @@ test("«الفئات»: move a group's members from January next year, with a pr
   await expect(sheet.getByRole("button", { name: "ابتداءً من شهر" })).toContainText("يناير 2027");
   await sheet.getByRole("button", { name: "راجع النقل" }).click();
   await expect(sheet.getByRole("status")).toContainText(
-    /سينتقل \d+ عضوًا إلى الفئة .+ ابتداءً من يناير 2027/,
+    /سينتقل .+ إلى الفئة .+ ابتداءً من يناير 2027/,
   );
   await sheet.getByRole("button", { name: "انقل", exact: true }).click();
-  await expect(page.getByText(/انتقل \d+ عضوًا إلى الفئة/)).toBeVisible();
+  await expect(page.getByText(/انتقل .+ إلى الفئة/)).toBeVisible();
 });
 
 test("a new لوحة on chosen members uses the shared member picker", async ({ page }) => {
@@ -72,4 +72,40 @@ test("a new member's statement in التقارير: the shared member picker", a
   await sheet.getByRole("button", { name: /الشيخ ولد سيدي/ }).click();
   await expect(sheet).toBeHidden();
   await expect(page.getByRole("button", { name: /الشيخ ولد سيدي/ })).toBeVisible();
+});
+
+test("«النشاط»: «المسؤول» adds, renames and stops one; the expense sheet offers the active ones", async ({
+  page,
+}) => {
+  await page.goto("/committee/settings");
+  const acts = page.getByRole("region", { name: "النشاط" });
+  await acts.getByLabel("اسم النشاط الجديد").fill("رحلة الشباب");
+  await acts.getByRole("button", { name: "أضف" }).click();
+  await expect(acts.getByText("رحلة الشباب")).toBeVisible();
+  await acts.getByRole("button", { name: "غيّر اسم رحلة الشباب" }).click();
+  await acts.getByLabel("الاسم الجديد لـ رحلة الشباب").fill("رحلة الصيف");
+  await acts.getByRole("button", { name: "احفظ" }).click();
+  await expect(acts.getByText("رحلة الصيف")).toBeVisible();
+  await acts.getByRole("button", { name: "أوقف رحلة الصيف" }).click();
+  await acts.getByRole("button", { name: "نعم، أوقف رحلة الصيف" }).click();
+  await expect(acts.getByRole("heading", { name: "نشاط متوقف" })).toBeVisible();
+  await expect(acts.getByRole("button", { name: "أعِد رحلة الصيف" })).toBeVisible();
+
+  await page.goto("/committee/expenses");
+  await page.getByRole("button", { name: /سجّل مصروفًا/ }).click();
+  const sheet = page.getByRole("dialog", { name: "سجّل مصروفًا" });
+  await expect(sheet.getByRole("radiogroup", { name: "النشاط" }).getByRole("radio")).toHaveText([
+    "التدريس المحوري",
+    "تكريم الناجحين",
+    "الفريق الرياضي",
+    "أخرى",
+  ]);
+});
+
+test("«المصاريف»: each expense says its activity, wallet and who recorded it", async ({ page }) => {
+  await page.goto("/committee/expenses");
+  const first = page.locator(".pa-rows li").first();
+  await expect(first).toContainText(/التدريس المحوري|تكريم الناجحين|الفريق الرياضي|أخرى/);
+  await expect(first).toContainText(/بنكيلي|مصرفي|نقدًا/);
+  await expect(first).toContainText(/سجّله /);
 });

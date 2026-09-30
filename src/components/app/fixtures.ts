@@ -13,6 +13,7 @@ import type {
   MemberAdmin,
   MembershipStatus,
   Expense,
+  ExpenseActivity,
   ExpenseAdmin,
   ExpenseTotal,
   FundAccountAdmin,
@@ -654,3 +655,13 @@ export const fxTerms = (): Term[] => [
   },
 ];
 export const fxHandovers = (): Handover[] => [];
+
+/** «النشاط» (m38): the 4 defaults the existing expenses map to. */
+export const fxActivities = (): ExpenseActivity[] => [
+  { id: 1, name: "التدريس المحوري", sortOrder: 1, active: true },
+  { id: 2, name: "تكريم الناجحين", sortOrder: 2, active: true },
+  { id: 3, name: "الفريق الرياضي", sortOrder: 3, active: true },
+  { id: 4, name: "أخرى", sortOrder: 99, active: true },
+];
+/** The old category → its default activity (demo expenses have no activity id). */
+export const FX_ACTIVITY_OF = { teaching: 1, honoring: 2, sports: 3, other: 4 } as const;

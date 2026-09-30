@@ -111,12 +111,6 @@ export const day = (iso: string) => {
   const d = new Date(iso);
   return `${d.getUTCDate()} ${month(d.getUTCMonth() + 1)}`;
 };
-export const CATEGORY: Record<string, string> = {
-  teaching: "التدريس",
-  honoring: "التكريم",
-  sports: "الرياضة",
-  other: "أخرى",
-};
 /* ───────── icons not in the app set (same 24px / 1.5 stroke family) ───────── */
 function Svg({ children, s = 24 }: { children: ReactNode; s?: number }) {
   return (

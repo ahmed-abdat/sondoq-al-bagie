@@ -10,7 +10,7 @@ import { MONTHS_AR } from "@/lib/dates";
 import { toWesternDigits } from "@/lib/money";
 import { useAct } from "./act";
 import { MonthPicker } from "./date-field";
-import { fmt, memberLabel, searchMembers } from "./derive";
+import { fmt, memberCount, memberLabel, searchMembers } from "./derive";
 import { I } from "./icons";
 import { Num } from "./num";
 import { Sheet } from "./sheet";
@@ -82,7 +82,7 @@ export function GroupsSection({
                   </>
                 )}
                 {" · "}
-                <Num>{g.members}</Num> عضوًا
+                <Num>{memberCount(g.members)}</Num>
               </span>
             </span>
             {admin && (
@@ -424,7 +424,7 @@ function MoveMembers({
       <h2>انقل أعضاء إلى فئة</h2>
       {from ? (
         <p className="bq-lead">
-          كل أعضاء الفئة {from.name}: <Num>{picked.length}</Num> عضوًا.
+          كل أعضاء الفئة {from.name}: <Num>{memberCount(picked.length)}</Num>.
         </p>
       ) : (
         <>
@@ -568,7 +568,7 @@ function MoveMembers({
       {preview && (
         <div className="bq-move-preview" role="status">
           <p className="bq-lead">
-            سينتقل <Num>{preview.moved}</Num> عضوًا إلى الفئة {nameOf(to)} ابتداءً من{" "}
+            سينتقل <Num>{memberCount(preview.moved)}</Num> إلى الفئة {nameOf(to)} ابتداءً من{" "}
             {ymWords(month)}.
             {preview.fromFee !== null && preview.toFee !== null && (
               <>
@@ -621,7 +621,7 @@ function MoveMembers({
               setBusy(false);
               if (!r.ok) return setErr(r.message);
               router.refresh();
-              say(`انتقل ${r.data.moved} عضوًا إلى الفئة ${nameOf(to)}`);
+              say(`انتقل ${memberCount(r.data.moved)} إلى الفئة ${nameOf(to)}`);
               onDone();
             }}
           >

@@ -4,6 +4,15 @@ import "server-only";
 import * as fx from "./fixtures";
 import { toMemberRows } from "@/lib/data/member-lists";
 import type { Method } from "@/lib/methods";
+
+/** Active first (the expense sheet's choices), each group in list order. */
+export const toActivities = (
+  a: { id: number; name: string; sortOrder: number; active: boolean }[],
+) =>
+  [...a]
+    .sort((x, y) => Number(y.active) - Number(x.active) || x.sortOrder - y.sortOrder || x.id - y.id)
+    .map(({ id, name, active }) => ({ id, name, active }));
+
 import type { MemberStatement } from "@/lib/data/report-types";
 import { allStats, demoStatsReport, statsFromReport } from "@/components/admin/stats";
 import type {
@@ -207,30 +216,41 @@ export function demoAdminData(): PData {
   for (const c of campaigns)
     for (const g of c.gifts) if (g.ref) g.name = byRef.get(g.ref)?.name ?? g.name;
 
+  const acts = fx.fxActivities();
+  const nameOf = (id: number) => acts.find((a) => a.id === id)?.name ?? "";
   const expenses: PExpense[] = [
-    ...fx.fxExpensesAdmin().map((e) => ({
+    ...fx.fxExpensesAdmin().map((e, i) => ({
       id: e.id,
       at: e.spentOn,
       category: e.category,
+      activity: nameOf(fx.FX_ACTIVITY_OF[e.category]),
       note: e.note ?? "",
       amount: e.amount,
       campaign: null,
+      wallet: i % 3 === 2 ? "نقدًا" : i % 3 === 1 ? "مصرفي" : "بنكيلي",
+      by: i % 2 ? "يحيى" : "سيدي محمد",
     })),
     {
       id: "e-c2",
       at: "2026-09-18",
       category: "other",
+      activity: "أخرى",
       note: "إسمنت ورمل للمصلى",
       amount: 22000,
       campaign: "c2",
+      wallet: "نقدًا",
+      by: "سيدي محمد",
     },
     {
       id: "e-c3",
       at: "2026-09-05",
       category: "other",
+      activity: "التدريس المحوري",
       note: "60 حقيبة وأدوات",
       amount: 41000,
       campaign: "c3",
+      wallet: "بنكيلي",
+      by: "يحيى",
     },
   ].sort((a, b) => b.at.localeCompare(a.at)) as PExpense[];
 
@@ -399,6 +419,7 @@ export function demoAdminData(): PData {
     })),
     prices: fx.FX_PRICE,
     levies,
+    activities: toActivities(acts),
     log,
   };
   // the same path as production: the «الإحصاءات» report, then the screens' shape

@@ -65,10 +65,19 @@ export type PExpense = {
   id: string;
   at: string;
   category: "teaching" | "honoring" | "sports" | "other";
+  /** «النشاط» (m38): its name today */
+  activity: string;
   note: string;
   amount: number;
   campaign: string | null;
+  /** «من أي محفظة»: the wallet's name, «نقدًا», or "" when not said */
+  wallet: string;
+  /** who recorded it ("" when unknown) */
+  by: string;
 };
+
+/** «النشاط» (m38): the list «المسؤول» manages; retired ones keep their past expenses. */
+export type PActivity = { id: number; name: string; active: boolean };
 
 export type POp =
   | { t: "pay"; id: string; at: string; title: string; sub: string; amount: number }
@@ -123,6 +132,8 @@ export type PData = {
   users: { name: string; role: string; login: string; last: string | null }[];
   prices: Record<string, number>;
   levies: PLevy[];
+  /** «النشاط» for the expense sheet (active first, in list order) */
+  activities: PActivity[];
   log: PLog[];
   /** terms (دورات), newest first: the handover report picks one */
   terms: { number: number; title: string; startedOn: string; endedOn: string | null }[];

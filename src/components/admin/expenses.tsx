@@ -1,9 +1,9 @@
 "use client";
-// «المصاريف» (المزيد): record one (amount, what, kind, from the fund or a campaign, which wallet),
+// «المصاريف» (المزيد): record one (amount, activity, what, from the fund or a campaign, which wallet),
 // and every expense of the year. Any committee member records; «مسؤول» cancels with a reason.
 import { useState } from "react";
 import { useAct } from "@/components/app/act";
-import { Back, CATEGORY, Chips, day, Money, useP, X } from "./kit";
+import { Back, Chips, day, Money, useP, X } from "./kit";
 import { ExpenseSheet } from "./expense-sheet";
 import { CancelSheet } from "./cancel-sheet";
 import type { PExpense } from "./types";
@@ -13,6 +13,14 @@ export function ExpensesScreen() {
   const [f, setF] = useState<"all" | "fund" | "camp">("all");
   const [add, setAdd] = useState(false);
   const [cancel, setCancel] = useState<PExpense | null>(null);
+  // paid from a تبرع or a لوحة (not the fund)
+  const from = (e: PExpense) => {
+    if (!e.campaign) return "";
+    const c = d.campaigns.find((x) => x.id === e.campaign);
+    if (c) return `تبرع: ${c.title}`;
+    const l = d.levies.find((x) => x.id === e.campaign);
+    return l ? `لوحة: ${l.title}` : "";
+  };
   const list = d.expenses.filter((e) =>
     f === "fund" ? !e.campaign : f === "camp" ? !!e.campaign : true,
   );
@@ -32,7 +40,7 @@ export function ExpensesScreen() {
       >
         {X.plus(20)} سجّل مصروفًا
       </button>
-      {d.campaigns.length > 0 && (
+      {d.expenses.some((e) => e.campaign) && (
         <Chips
           label="تصفية"
           value={f}
@@ -40,7 +48,7 @@ export function ExpensesScreen() {
           options={[
             { k: "all", l: "الكل" },
             { k: "fund", l: "من الصندوق" },
-            { k: "camp", l: "من التبرعات" },
+            { k: "camp", l: "من التبرعات واللوحات" },
           ]}
         />
       )}
@@ -51,20 +59,18 @@ export function ExpensesScreen() {
               <div className="pa-row pa-row-plain">
                 <span className="pa-ic">{X.bag(22)}</span>
                 <span className="pa-row-t">
-                  <b>{e.note || CATEGORY[e.category]}</b>
+                  <b>{e.note || e.activity}</b>
                   <small>
-                    {day(e.at)} ·{" "}
-                    {e.campaign
-                      ? `تبرع: ${d.campaigns.find((c) => c.id === e.campaign)?.title ?? ""}`
-                      : CATEGORY[e.category]}
+                    {[day(e.at), e.activity, from(e), e.wallet].filter(Boolean).join(" · ")}
                   </small>
+                  {e.by && <small>سجّله {e.by}</small>}
                 </span>
                 <Money v={e.amount} unit={false} sign="−" />
                 {d.me.admin && (
                   <button
                     type="button"
                     className="r2-x"
-                    aria-label={`ألغِ مصروف ${e.note || CATEGORY[e.category]}`}
+                    aria-label={`ألغِ مصروف ${e.note || e.activity}`}
                     onClick={() => setCancel(e)}
                   >
                     {X.x(20)}
@@ -97,8 +103,7 @@ function CancelExpense({ e, onClose }: { e: PExpense; onClose: () => void }) {
         )
       }
     >
-      {e.note || CATEGORY[e.category]} · <Money v={e.amount} />. يبقى في السجل مع السبب، ولا يُحسب
-      بعد الآن.
+      {e.note || e.activity} · <Money v={e.amount} />. يبقى في السجل مع السبب، ولا يُحسب بعد الآن.
     </CancelSheet>
   );
 }
