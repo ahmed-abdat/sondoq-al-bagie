@@ -51,3 +51,20 @@ describe("nothingToPay (the payment picker's default list leaves these out)", ()
       expect(nothingToPay(mem({ status, paid: [] }), { levies: [] })).toBe(true);
   });
 });
+
+import { monthCell } from "./kit";
+describe("the member's month grid (QA pass 9 P0-4)", () => {
+  // joined in April: January–March not owed; April–September paid; October–December empty
+  const m = { paid: [4, 5, 6, 7, 8, 9], notOwed: [1, 2, 3] };
+  it("paid «✓», not owed «—» «غير مستحق عليه», else empty", () => {
+    expect(monthCell(m, 1)).toEqual({ mark: "—", label: "غير مستحق عليه" });
+    expect(monthCell(m, 4)).toEqual({ mark: "✓", label: "مدفوع" });
+    expect(monthCell(m, 10)).toEqual({ mark: "", label: "لم يُدفع" });
+  });
+  it("exempt or away months come as not owed from the server and show «—»", () => {
+    const away = { paid: [1, 2], notOwed: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12] };
+    expect(monthCell(away, 7).mark).toBe("—");
+    const exempt = { paid: [], notOwed: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] };
+    expect(monthCell(exempt, 12).label).toBe("غير مستحق عليه");
+  });
+});

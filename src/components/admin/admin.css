@@ -584,6 +584,11 @@ button.pa-row-plain {
   font-weight: 700;
   color: var(--g8);
 }
+/* not owed (before joining, exempt, away): a plain dash, never like an unpaid month */
+.pa-mtick.is-off {
+  color: var(--muted);
+  font-weight: 500;
+}
 .pa-strip-row {
   display: flex;
   justify-content: flex-end;
