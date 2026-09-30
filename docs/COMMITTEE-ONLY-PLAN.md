@@ -339,3 +339,9 @@ reports **B**, record payment **C** («ابدأ من العضو») improved in r
 Reports period (owner): default = **a year** (year chooser), with «شهر» as the option (month + year);
 no from–to. Months table and «المتأخرات» = always a full year (12 months). Expenses: year, month
 optional. Member statement: a year. Campaign/لوحة report: the whole campaign.
+
+Reports catalog (owner, round 3): for the group: full annual report (opening → income by source →
+spending by kind → closing, month-by-month, a simple chart), summary, months table, «المتأخرات»
+(no amounts), expenses, campaign/لوحة report, member statement. For the committee: handover report,
+amounts per wallet (reconcile each wallet), committee work (per member activity). Period control =
+one button «سنة 2026 ▾» opening years + a 3×4 month grid + «السنة كلها».
