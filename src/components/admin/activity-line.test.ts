@@ -116,10 +116,9 @@ describe("moves between wallets (m43)", () => {
     subject: "بنكيلي → نقدًا",
     amount: 36000,
   });
-  it("reads «حوّل مالًا من بنكيلي إلى النقد» and can be cancelled until it is", () => {
+  it("reads «حوّل مالًا من بنكيلي إلى النقد» (old moves still read well)", () => {
     const [l] = activityLines([move]);
     expect(l.what).toMatch(/^حوّل مالًا من بنكيلي إلى النقد \(36\s000 أوقية\)$/);
-    expect(l.transfer).toEqual({ id: "t-1", cancelled: false });
     const cancelled = activityLines([
       e("cancel_wallet_transfer", {
         ...move,
@@ -130,7 +129,6 @@ describe("moves between wallets (m43)", () => {
       move,
     ]);
     expect(cancelled[0].what).toMatch(/^ألغى تحويلًا من بنكيلي إلى النقد .*السبب: خطأ$/);
-    expect(cancelled[1].transfer).toEqual({ id: "t-1", cancelled: true });
   });
 });
 

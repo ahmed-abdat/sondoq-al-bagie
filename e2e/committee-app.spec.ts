@@ -110,24 +110,17 @@ test("«المصاريف»: each expense says its activity, wallet and who recor
   await expect(first).toContainText(/سجّله /);
 });
 
-test("«المحافظ»: one row per wallet; one sheet adds a wallet with its number, sets an opening once, stops it", async ({
+test("«المحافظ» (one pot): one row per wallet, no balance; one sheet adds a wallet with its number, stops it", async ({
   page,
 }) => {
   await page.goto("/committee/settings");
   const ws = page.getByRole("region", { name: "المحافظ" });
   // a row: name, number and holder; no account buttons in the list
   await expect(ws.getByText("22200000011")).toBeVisible();
-  await expect(ws.getByRole("button", { name: /أوقف الحساب|حدّد رصيد|أضف حسابًا/ })).toHaveCount(0);
-
-  // the opening, in the wallet's sheet, collapsed, once (the confirmation box is required)
-  await ws.getByRole("button", { name: "عدّل مصرفي" }).click();
-  let sheet = page.getByRole("dialog", { name: "عدّل المحفظة" });
-  await sheet.getByText("رصيد أول غير صفر (اختياري)").click();
-  await sheet.getByLabel("رصيد أول بالأوقية").fill("12000");
-  await expect(sheet.getByRole("button", { name: "احفظ الرصيد" })).toBeDisabled();
-  await sheet.getByRole("checkbox").check();
-  await sheet.getByRole("button", { name: "احفظ الرصيد" }).click();
-  await expect(page.getByText("حُفظ رصيد أول المحفظة.")).toBeVisible();
+  await expect(
+    ws.getByRole("button", { name: /أوقف الحساب|حدّد رصيد|أضف حسابًا|حوّل/ }),
+  ).toHaveCount(0);
+  await expect(ws.getByText(/الرصيد الآن/)).toHaveCount(0);
 
   // a new wallet with its number in one sheet
   await ws.getByRole("button", { name: "محفظة جديدة" }).click();
@@ -173,21 +166,11 @@ test("a new committee account is linked to a member with the shared member searc
   await expect(add.getByText("الشيخ ولد سيدي")).toBeVisible();
 });
 
-test("«حوّل»: money from a wallet to cash (not income or spending); «غيّر الرقم» in the wallet's sheet", async ({
+test("«غيّر الرقم» in the wallet's sheet: a new number, the old one keeps its payments", async ({
   page,
 }) => {
   await page.goto("/committee/settings");
   const ws = page.getByRole("region", { name: "المحافظ" });
-  await ws.getByRole("button", { name: "حوّل من بنكيلي" }).click();
-  const mv = page.getByRole("dialog", { name: "حوّل مالًا" });
-  // to cash by default
-  await expect(
-    mv.getByRole("radiogroup", { name: "إلى" }).getByRole("radio", { name: "النقد" }),
-  ).toHaveAttribute("aria-checked", "true");
-  await mv.getByLabel("المبلغ").fill("5000");
-  await mv.getByRole("button", { name: /حوّل 5\s000 أوقية إلى النقد/ }).click();
-  await expect(page.getByText(/حُوّل 5\s000 أوقية من بنكيلي إلى النقد\./)).toBeVisible();
-
   // a new number: the old one stops, its payments stay
   await ws.getByRole("button", { name: "عدّل بنكيلي" }).click();
   const ed = page.getByRole("dialog", { name: "عدّل المحفظة" });

@@ -1,49 +1,28 @@
 "use client";
-// «المحافظ» (m41) inside الإعدادات, owner layout: each wallet is ONE row (logo, name, its number
-// and holder, «الرصيد الآن» when the server has one). Tapping «عدّل» opens ONE sheet: the name and
-// logo, the number and holder (added here when the wallet has none), an optional non-zero opening
-// (collapsed, once), and «أوقف المحفظة». Stopped wallets sit in a collapsed list. «المسؤول» only.
+// «المحافظ» (m41) inside الإعدادات. Owner decision «one pot»: a wallet only says through which
+// channel money came in or went out; the fund has one balance. Each wallet is ONE row (logo,
+// name, number · holder). «عدّل» opens ONE sheet: name, logo, the number («غيّر الرقم»: a new
+// number or a typo fix) and «أوقف المحفظة». No per-wallet balance, no moves, no openings.
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import type { FundAccountAdmin, WalletType } from "@/lib/data/types";
 import { useAct } from "./act";
 import { MESSAGES } from "@/lib/data/errors";
-import { todayIso } from "@/lib/dates";
-import { AmountInput, amountValue } from "./amount-input";
-import { DateField } from "./date-field";
-import { fmt } from "./derive";
 import { I } from "./icons";
-import { Num } from "./num";
 import { Sheet } from "./sheet";
 import { useSnack } from "./shell";
 import { walletLogo } from "./wallet-logo";
-import {
-  moveSources,
-  moveTargets,
-  oldWithMoney,
-  walletBalance,
-  type MoveEnd,
-} from "./wallet-money";
-
 type Res = { ok: true; data?: unknown } | { ok: false; message: string };
-/** Server balances from the wallets report: by account id, and cash. */
-export type WalletBalances = { accounts: Record<string, number>; cash: number | null };
-
 export function WalletsSection({
   types,
   accounts,
-  balances,
   admin,
-  fundOpening,
 }: {
   types: WalletType[];
   accounts: FundAccountAdmin[];
-  balances: WalletBalances;
   admin: boolean;
-  /** «رصيد بداية السنة» (settings): an account's opening comes out of it, and out of cash (m45) */
-  fundOpening: number;
 }) {
   const router = useRouter();
   const say = useSnack();
@@ -52,8 +31,6 @@ export function WalletsSection({
   const [ws, setWs] = useState(() => [...types].sort((a, b) => a.sortOrder - b.sortOrder));
   const [accs, setAccs] = useState(accounts);
   const [sheet, setSheet] = useState<{ w?: WalletType } | null>(null);
-  // «حوّل»: money from one wallet (or cash) to another; any committee member
-  const [move, setMove] = useState<WalletType | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -79,15 +56,12 @@ export function WalletsSection({
   const live = ws.filter((w) => w.kind === "wallet" && w.active);
   const accsOfId = (id: number) => accs.filter((a) => a.walletTypeId === id && a.active);
   // the list shows the wallets with a number or money on an old number; the others collapse
-  const shown = (w: WalletType) =>
-    accsOfId(w.id).length > 0 || oldWithMoney(accs, w, balances).length > 0;
+  const shown = (w: WalletType) => accsOfId(w.id).length > 0;
   const withNumber = live.filter(shown);
   const noNumber = live.filter((w) => !shown(w));
   const stopped = ws.filter((w) => w.kind === "wallet" && !w.active);
   const cash = ws.find((w) => w.kind === "cash");
   const accsOf = (w: WalletType) => accs.filter((a) => a.walletTypeId === w.id && a.active);
-  /** the wallet's money: all its numbers, a replaced one included (QA pass 9 P0-1) */
-  const balanceOf = (w: WalletType) => walletBalance(accs, w, balances);
 
   const setWalletActive = (w: WalletType, on: boolean) =>
     run(
@@ -109,7 +83,6 @@ export function WalletsSection({
       <ul className="bq-list bq-wallets">
         {withNumber.map((w) => {
           const a = accsOf(w);
-          const bal = balanceOf(w);
           return (
             <li key={w.id} className="bq-group-row bq-wallet">
               <Logo w={w} />
@@ -127,41 +100,17 @@ export function WalletsSection({
                 ) : (
                   <span className="bq-row-s">لا رقم بعد</span>
                 )}
-                {oldWithMoney(accs, w, balances).map((x) => (
-                  <span key={x.id} className="bq-row-s">
-                    الرقم القديم{" "}
-                    <bdi dir="ltr" className="bq-num">
-                      {x.accountNumber}
-                    </bdi>
-                    : <Num>{fmt(balances.accounts[x.id])}</Num> أوقية
-                  </span>
-                ))}
-                {bal !== undefined && (
-                  <span className="bq-row-s">
-                    الرصيد الآن: <Num>{fmt(bal)}</Num> أوقية
-                  </span>
-                )}
               </span>
-              <span className="bq-group-acts">
+              {admin && (
                 <button
                   type="button"
-                  className="bq-btn bq-btn-tonal bq-press"
-                  aria-label={`حوّل من ${w.name}`}
-                  onClick={() => setMove(w)}
+                  className="bq-btn bq-btn-soft bq-press"
+                  aria-label={`عدّل ${w.name}`}
+                  onClick={() => setSheet({ w })}
                 >
-                  حوّل
+                  عدّل
                 </button>
-                {admin && (
-                  <button
-                    type="button"
-                    className="bq-btn bq-btn-soft bq-press"
-                    aria-label={`عدّل ${w.name}`}
-                    onClick={() => setSheet({ w })}
-                  >
-                    عدّل
-                  </button>
-                )}
-              </span>
+              )}
             </li>
           );
         })}
@@ -172,21 +121,6 @@ export function WalletsSection({
             </span>
             <span className="bq-row-m">
               <span className="bq-row-t">نقدًا (في يد اللجنة)</span>
-              {balances.cash !== null && (
-                <span className="bq-row-s">
-                  الرصيد الآن: <Num>{fmt(balances.cash)}</Num> أوقية
-                </span>
-              )}
-            </span>
-            <span className="bq-group-acts">
-              <button
-                type="button"
-                className="bq-btn bq-btn-tonal bq-press"
-                aria-label="حوّل من النقد"
-                onClick={() => setMove(cash)}
-              >
-                حوّل
-              </button>
             </span>
           </li>
         )}
@@ -254,24 +188,6 @@ export function WalletsSection({
       )}
       {admin && <OfflineWriteHint />}
 
-      {move && (
-        <Sheet label="حوّل مالًا" onDone={() => setMove(null)}>
-          <MoveSheet
-            sources={moveSources(withNumber, cash, accs, balances)}
-            targets={moveTargets(withNumber, cash, accs)}
-            start={
-              move.kind === "cash"
-                ? "cash"
-                : (accsOf(move)[0]?.id ?? oldWithMoney(accs, move, balances)[0]?.id ?? "cash")
-            }
-            onDone={(text) => {
-              setMove(null);
-              say(text);
-              router.refresh();
-            }}
-          />
-        </Sheet>
-      )}
       {sheet && (
         <Sheet
           label={sheet.w ? "عدّل المحفظة" : "محفظة جديدة"}
@@ -282,17 +198,8 @@ export function WalletsSection({
         >
           {
             <WalletSheet
-              fundOpening={fundOpening}
               w={sheet.w}
               account={sheet.w ? accsOf(sheet.w)[0] : undefined}
-              old={
-                sheet.w
-                  ? oldWithMoney(accs, sheet.w, balances).map((a) => ({
-                      number: a.accountNumber,
-                      balance: balances.accounts[a.id],
-                    }))
-                  : []
-              }
               busy={busy}
               err={err}
               onSave={async ({ name, logoPath, number, holder, mode }) => {
@@ -397,18 +304,6 @@ export function WalletsSection({
                 setSheet(null);
                 say(w ? "حُفظت المحفظة." : `أُضيفت المحفظة ${name}.`);
               }}
-              onOpening={(a, amount, on) =>
-                run(
-                  () => act.setFundAccountOpening({ id: a.id, amount, on }),
-                  () => {
-                    setAccs((l) =>
-                      l.map((x) => (x.id === a.id ? { ...x, opening: { amount, on } } : x)),
-                    );
-                    setSheet(null);
-                    say("حُفظ رصيد أول المحفظة.");
-                  },
-                )
-              }
               onStop={
                 sheet.w
                   ? async () => {
@@ -472,71 +367,17 @@ function Foot({
   );
 }
 
-/** «رصيد أول غير صفر»: collapsed; a wallet starts at 0 unless it had money on a day. Once only. */
-function Opening({
-  busy,
-  onSave,
-  fundOpening,
-}: {
-  busy: boolean;
-  onSave: (amount: number, on: string) => void;
-  fundOpening: number;
-}): ReactNode {
-  const [amt, setAmt] = useState("");
-  const [on, setOn] = useState(`${new Date().getFullYear()}-01-01`);
-  const [sure, setSure] = useState(false);
-  return (
-    <details className="bq-more bq-small-top">
-      <summary>رصيد أول غير صفر (اختياري)</summary>
-      <p className="bq-hint">
-        تبدأ المحفظة من صفر. إن كان فيها مال في يوم ما، اكتبه هنا مرة واحدة.
-      </p>
-      <p className="bq-rec-k">المبلغ بالأوقية القديمة</p>
-      <AmountInput
-        className="bq-input"
-        value={amt}
-        onChange={setAmt}
-        aria-label="رصيد أول بالأوقية"
-        placeholder="0"
-      />
-      <p className="bq-rec-k">في يوم</p>
-      <DateField value={on} onChange={setOn} label="تاريخ الرصيد" noFuture />
-      <label className="bq-check bq-small-top">
-        <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} />
-        <span>
-          هذا المبلغ جزء من رصيد بداية السنة (<Num>{fmt(fundOpening)}</Num>) وسيُنقص من النقد. يُحفظ
-          مرة واحدة ولا يتغيّر بعد ذلك. تأكدت من المبلغ.
-        </span>
-      </label>
-      <button
-        type="button"
-        className="bq-btn bq-btn-tonal bq-press bq-small-top"
-        disabled={busy || !amt.trim() || !on || !sure}
-        onClick={() => onSave(amountValue(amt), on)}
-      >
-        احفظ الرصيد
-      </button>
-    </details>
-  );
-}
-
 /** One wallet, everything in one place (a new wallet: name, logo, number). */
 function WalletSheet({
   w,
   account,
-  old,
-  fundOpening,
   busy,
   err,
   onSave,
-  onOpening,
   onStop,
 }: {
   w?: WalletType;
   account?: FundAccountAdmin;
-  /** replaced numbers that still hold money: move it with «حوّل» */
-  old: { number: string; balance: number }[];
-  fundOpening: number;
   busy: boolean;
   err: string;
   onSave: (v: {
@@ -547,7 +388,6 @@ function WalletSheet({
     /** an existing number: a new one (the old stays in history), or a typo fix */
     mode: "replace" | "correct";
   }) => Promise<void>;
-  onOpening: (a: FundAccountAdmin, amount: number, on: string) => void;
   onStop?: () => void;
 }) {
   const { uploadWalletLogo } = useAct();
@@ -671,20 +511,6 @@ function WalletSheet({
           />
         </>
       )}
-      {old.length > 0 && (
-        <>
-          <p className="bq-rec-k">أرقام قديمة فيها مال</p>
-          {old.map((o) => (
-            <p key={o.number} className="bq-mline">
-              <bdi dir="ltr" className="bq-num">
-                {o.number}
-              </bdi>
-              : <Num>{fmt(o.balance)}</Num> أوقية
-            </p>
-          ))}
-          <p className="bq-hint">حوّل هذا المال بزر «حوّل» في قائمة المحافظ.</p>
-        </>
-      )}
       <p className="bq-rec-k">الشعار (اختياري)</p>
       <div className="bq-field">
         <span className="bq-wallet-logo bq-wallet-logo-lg">
@@ -721,13 +547,6 @@ function WalletSheet({
           </button>
         )}
       </div>
-      {account && !account.opening && (
-        <Opening
-          busy={busy}
-          fundOpening={fundOpening}
-          onSave={(amount, on) => onOpening(account, amount, on)}
-        />
-      )}
       {onStop && (
         <div className="bq-small-top">
           {stopping && (
@@ -763,134 +582,6 @@ function WalletSheet({
             logoPath = r.data.path;
           }
           await onSave({ name: name.trim(), logoPath, number: clean, holder: holder.trim(), mode });
-        }}
-      />
-    </div>
-  );
-}
-
-/**
- * «حوّل»: money moved between wallets or cash (e.g. everything to cash before a handover). Not
- * income, not spending, the fund balance stays. The server refuses more than the wallet holds.
- */
-function MoveSheet({
-  sources,
-  targets,
-  start,
-  onDone,
-}: {
-  sources: MoveEnd[];
-  targets: MoveEnd[];
-  /** the source picked by the row's «حوّل» */
-  start: string;
-  onDone: (text: string) => void;
-}) {
-  const { recordWalletTransfer } = useAct();
-  const [id] = useState(() => crypto.randomUUID());
-  const [from, setFrom] = useState(start);
-  const [to, setTo] = useState<string | undefined>(
-    () =>
-      (start === "cash" ? targets[0]?.key : "cash") ?? targets.find((t) => t.key !== start)?.key,
-  );
-  const [amt, setAmt] = useState("");
-  const [on, setOn] = useState(todayIso);
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const f = sources.find((x) => x.key === from) ?? sources[0];
-  const t = targets.find((x) => x.key === to && x.key !== f.key);
-  const amount = amountValue(amt);
-  const chips = (
-    list: MoveEnd[],
-    value: string | undefined,
-    set: (k: string) => void,
-    label: string,
-  ) => (
-    <div className="bq-chips" role="radiogroup" aria-label={label}>
-      {list.map((x) => (
-        <button
-          key={x.key}
-          type="button"
-          role="radio"
-          aria-checked={value === x.key}
-          className="bq-chip bq-press"
-          onClick={() => set(x.key)}
-        >
-          {x.label}
-        </button>
-      ))}
-    </div>
-  );
-  return (
-    <div className="bq-rec">
-      <h2>حوّل مالًا</h2>
-      <p className="bq-hint">لا يدخل في المداخيل ولا المصاريف، ورصيد الصندوق لا يتغيّر.</p>
-      <p className="bq-rec-k">من</p>
-      {chips(
-        sources,
-        f.key,
-        (k) => {
-          setFrom(k);
-          if (k === to) setTo(targets.find((x) => x.key !== k)?.key);
-        },
-        "من",
-      )}
-      {f.balance !== undefined && (
-        <p className="bq-hint">
-          فيها الآن <Num>{fmt(f.balance)}</Num> أوقية
-        </p>
-      )}
-      <p className="bq-rec-k">إلى</p>
-      {chips(
-        targets.filter((x) => x.key !== f.key),
-        t?.key,
-        setTo,
-        "إلى",
-      )}
-      <p className="bq-rec-k">المبلغ بالأوقية القديمة</p>
-      <AmountInput
-        className="bq-input"
-        value={amt}
-        onChange={setAmt}
-        aria-label="المبلغ"
-        placeholder="0"
-      />
-      <p className="bq-rec-k">متى؟</p>
-      <DateField value={on} onChange={setOn} label="تاريخ التحويل" noFuture />
-      <p className="bq-rec-k">ملاحظة (اختياري)</p>
-      <input
-        className="bq-input"
-        value={note}
-        maxLength={500}
-        onChange={(e) => setNote(e.target.value)}
-        aria-label="ملاحظة"
-        placeholder="مثل: سحب قبل التسليم"
-      />
-      <Foot
-        err={err}
-        busy={busy}
-        ok={!!t && amount > 0 && !!on}
-        save={t && amount ? `حوّل ${fmt(amount)} أوقية إلى ${t.label}` : "حوّل"}
-        onSave={async () => {
-          if (!t) return;
-          setBusy(true);
-          setErr("");
-          let r;
-          try {
-            r = await recordWalletTransfer({
-              id,
-              fromAccountId: f.accountId,
-              toAccountId: t.accountId,
-              amount,
-              movedOn: on,
-              note: note.trim() || undefined,
-            });
-          } catch {
-            r = { ok: false as const, message: "تعذّر الاتصال. تحقّق من الإنترنت وحاول مرة أخرى." };
-          }
-          setBusy(false);
-          if (!r.ok) return setErr(r.message);
-          onDone(`حُوّل ${fmt(amount)} أوقية من ${f.label} إلى ${t.label}.`);
         }}
       />
     </div>
