@@ -5,6 +5,7 @@ import "server-only";
 // it does nothing.
 import webpush from "web-push";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import type { PushKind } from "@/lib/data/schemas";
 import type { PushPayload } from "./payload";
 
 type Admin = NonNullable<ReturnType<typeof tryCreateAdminClient>>;
@@ -43,17 +44,23 @@ async function confirmerIds(admin: Admin, exclude: string | null): Promise<strin
 export async function sendPush(
   userIds: string[],
   payload: PushPayload,
-  deps: { admin?: Admin | null; send?: typeof webpush.sendNotification } = {},
+  deps: {
+    admin?: Admin | null;
+    send?: typeof webpush.sendNotification;
+    /** only devices that chose this kind (m29 push_subscriptions.kinds) */
+    kind?: PushKind;
+  } = {},
 ): Promise<Record<Outcome, number>> {
   const counts: Record<Outcome, number> = { ok: 0, gone: 0, failed: 0 };
   const keys = vapid();
   const admin = deps.admin === undefined ? tryCreateAdminClient() : deps.admin;
   if (!keys || !admin || !userIds.length) return counts;
   try {
-    const { data, error } = await admin
+    const base = admin
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth, failures")
       .in("user_id", userIds);
+    const { data, error } = await (deps.kind ? base.contains("kinds", [deps.kind]) : base);
     if (error) throw error;
     const send = deps.send ?? webpush.sendNotification;
     const body = JSON.stringify(payload);
@@ -114,6 +121,32 @@ export async function notifyConfirmers(recorderId: string | null, payload: PushP
       pendingCount(admin).catch(() => undefined),
     ]);
     await sendPush(ids, badgeCount === undefined ? payload : { ...payload, badgeCount }, { admin });
+  } catch (err) {
+    console.error("[push]", err);
+  }
+}
+
+/** Every active committee account except `exclude` (whoever did it). */
+async function committeeIds(admin: Admin, exclude: string | null): Promise<string[]> {
+  const { data, error } = await admin.from("committee").select("user_id").eq("active", true);
+  if (error) throw error;
+  return (data ?? []).map((r) => r.user_id).filter((id) => id !== exclude);
+}
+
+/**
+ * «سجّل X دفعة لـ Y» etc. to the other committee members whose device chose `kind` (owner
+ * 2026-09-30: one committee level, no confirmation step). Needs m29 (push_subscriptions.kinds);
+ * switch the callers from notifyConfirmers to this when m29 is applied. Never throws.
+ */
+export async function notifyCommittee(
+  kind: PushKind,
+  actorId: string | null,
+  payload: PushPayload,
+) {
+  const admin = tryCreateAdminClient();
+  if (!admin || !vapid()) return;
+  try {
+    await sendPush(await committeeIds(admin, actorId), payload, { admin, kind });
   } catch (err) {
     console.error("[push]", err);
   }

@@ -15,8 +15,6 @@ export { AppBadgeSync } from "./app-badge";
 export { OfflineWriteHint } from "./offline-banner";
 export { InstallEntry, markInstallEngaged } from "./install";
 export { reportActionError } from "./sw-update";
-export { MemberLinkPaste } from "./member-link-paste";
-// Member push pieces (server actions) live in "./member-push"; import them from there.
 
 export function makeClient() {
   return new QueryClient({

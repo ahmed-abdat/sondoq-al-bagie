@@ -148,20 +148,6 @@ const cases: Case[] = [
     true,
   ],
   [
-    "createMemberLink",
-    () => a.createMemberLink({ memberId: member }),
-    "create_member_link",
-    { p_member_id: member, p_token_hash: expect.stringMatching(/^[0-9a-f]{64}$/) },
-    false,
-  ],
-  [
-    "revokeMemberLink",
-    () => a.revokeMemberLink({ memberId: member }),
-    "revoke_member_link",
-    { p_member_id: member },
-    false,
-  ],
-  [
     "setCommitteeNotMember",
     () => a.setCommitteeNotMember({ userId: id, notMember: true }),
     "set_committee_not_member",

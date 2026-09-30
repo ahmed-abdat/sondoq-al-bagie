@@ -119,4 +119,19 @@ describe("notifyConfirmers", () => {
     await m.notifyConfirmers("rec", payload);
     expect(sent).toEqual([["https://push.test/t", { ...payload, badgeCount: 3 }]]);
   });
+
+  it("filters devices by the chosen kind when one is given (m29)", async () => {
+    const calls: unknown[][] = [];
+    const q = {
+      in: (...a: unknown[]) => (calls.push(["in", ...a]), q),
+      contains: (...a: unknown[]) => (calls.push(["contains", ...a]), q),
+      then: (ok: (v: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(ok),
+    };
+    const admin = { from: () => ({ select: () => q }) } as never;
+    await sendPush(["u1"], payload, { admin, kind: "expense", send: vi.fn() });
+    expect(calls).toContainEqual(["contains", "kinds", ["expense"]]);
+    calls.length = 0;
+    await sendPush(["u1"], payload, { admin, send: vi.fn() });
+    expect(calls.some((c) => c[0] === "contains")).toBe(false);
+  });
 });
