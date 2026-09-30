@@ -176,7 +176,18 @@ export type ExpenseAdmin = Expense & {
   createdAt: string;
   cancelledAt: string | null;
   cancelReason: string | null;
+  /** «النشاط» (m38); absent in older demo data */
+  activityId?: number;
+  activity?: string;
+  /** «من أي محفظة» (m31): the wallet, or cash; both empty = not said */
+  wallet?: { method: PaymentMethod; accountNumber: string } | null;
+  paidInCash?: boolean;
+  /** display name of the committee member who recorded it */
+  recordedBy?: string | null;
 };
+
+/** An expense activity («النشاط», m38), managed by «مسؤول». Retired ones keep their past expenses. */
+export type ExpenseActivity = { id: number; name: string; sortOrder: number; active: boolean };
 
 export type CampaignProgress = {
   campaignId: string;

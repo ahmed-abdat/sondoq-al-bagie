@@ -18,6 +18,8 @@ type Base = { period: Period; generatedAt: string };
 export type Income = { fees: number; levies: number; donations: number; total: number };
 export type Spending = {
   byCategory: { category: ExpenseCategory; label: string; amount: number }[];
+  /** «النشاط» (m38): what the report shows; byCategory is the old fixed list */
+  byActivity: { activityId: number; name: string; amount: number }[];
   /** part of total paid from a campaign or levy's own money */
   fromCampaigns: number;
   total: number;
@@ -92,13 +94,17 @@ export type ExpensesReport = Base & {
   items: {
     spentOn: string;
     category: ExpenseCategory;
+    /** the activity name (m38) */
     label: string;
+    activityId: number;
+    activity: string;
     note: string | null;
     amount: number;
     campaignTitle: string | null;
     recordedBy: string | null;
   }[];
   byCategory: { category: ExpenseCategory; label: string; amount: number }[];
+  byActivity: { activityId: number; name: string; amount: number }[];
   total: number;
 };
 

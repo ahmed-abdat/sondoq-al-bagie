@@ -81,6 +81,7 @@ describe("report periods", () => {
           income: { fees: 50, levies: 20, donations: 10, total: 80 },
           spending: {
             by_category: [{ category: "sports", amount: 30 }],
+            by_activity: [{ activity_id: 3, name: "الفريق الرياضي", amount: 30 }],
             from_campaigns: 5,
             total: 30,
           },
@@ -103,6 +104,39 @@ describe("report periods", () => {
     });
     expect(a.spending.byCategory[0]).toMatchObject({ category: "sports", amount: 30 });
     expect(a.spending.byCategory[0].label).toBeTruthy();
+    expect(a.spending.byActivity).toEqual([{ activityId: 3, name: "الفريق الرياضي", amount: 30 }]);
+  });
+
+  it("expenses: each item names its activity; totals per activity add up", async () => {
+    const e = (id: string, activity_id: number, name: string | null, amount: number) => ({
+      id,
+      spent_on: "2026-05-01",
+      category: "other",
+      activity_id,
+      activity: name === null ? null : { name },
+      note: null,
+      amount,
+      campaign_id: null,
+      created_by: "u1",
+    });
+    const { client } = fakeClient({
+      expenses: [e("x1", 5, "رحلة", 700), e("x2", 5, "رحلة", 300), e("x3", 4, null, 200)],
+      committee: [{ user_id: "u1", display_name: "أحمد" }],
+      campaigns: [],
+    });
+    const x = await r.loadExpenses(client, { year: 2026 }, now);
+    expect(x.items[0]).toMatchObject({
+      activityId: 5,
+      activity: "رحلة",
+      label: "رحلة",
+      recordedBy: "أحمد",
+    });
+    expect(x.items[2].activity).toBe("أخرى");
+    expect(x.byActivity).toEqual([
+      { activityId: 5, name: "رحلة", amount: 1000 },
+      { activityId: 4, name: "أخرى", amount: 200 },
+    ]);
+    expect(x.byActivity.reduce((s, a) => s + a.amount, 0)).toBe(x.total);
   });
 });
 
