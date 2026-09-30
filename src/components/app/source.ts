@@ -60,6 +60,29 @@ export const today = () => (usingFixtures ? fx.FX_TODAY : new Date());
 export const thisYear = () => today().getUTCFullYear();
 
 /** Monthly fee per group code for a year, MRO ({ A: 1000, B: 500 }). */
+/** «الفئات»: each fee group with this year's fee, next year's (when set) and its members. */
+export type GroupRow = {
+  code: string;
+  name: string;
+  fee: number | null;
+  nextYearFee: number | null;
+  members: number;
+  retiredFrom: number | null;
+};
+export async function groupsOverview(year = thisYear()): Promise<GroupRow[]> {
+  if (usingFixtures) {
+    const ms = fx.fxMembersAdmin().filter((m) => m.status === "active");
+    return Object.entries(fx.FX_PRICE).map(([code, fee]) => ({
+      code,
+      name: code === "A" ? "أ" : code === "B" ? "ب" : code,
+      fee,
+      nextYearFee: null,
+      members: ms.filter((m) => m.groupCode === code).length,
+      retiredFrom: null,
+    }));
+  }
+  return data.getGroupsOverview(year);
+}
 export async function groupPrices(year = thisYear()): Promise<Record<string, number>> {
   if (usingFixtures) return fx.FX_PRICE;
   const rows = await data.getCommitteeGroupPrices(year);

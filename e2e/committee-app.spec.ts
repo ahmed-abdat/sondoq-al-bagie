@@ -28,3 +28,19 @@ test("a member's payments say who recorded them; «مسؤول» can cancel with 
   await sheet.getByRole("button", { name: "ألغِ الدفعة" }).click();
   await expect(page.getByText("أُلغيت الدفعة")).toBeVisible();
 });
+
+test("«الفئات»: move a group's members from January next year, with a preview", async ({
+  page,
+}) => {
+  await page.goto("/committee/settings");
+  const groups = page.getByRole("region", { name: "الفئات والمستحقات الشهرية" });
+  await groups.getByRole("button", { name: "انقل أعضاءها" }).last().click();
+  const sheet = page.getByRole("dialog", { name: "انقل أعضاء إلى فئة" });
+  await expect(sheet.getByRole("button", { name: "ابتداءً من شهر" })).toContainText("يناير 2027");
+  await sheet.getByRole("button", { name: "راجع النقل" }).click();
+  await expect(sheet.getByRole("status")).toContainText(
+    /سينتقل \d+ عضوًا إلى الفئة .+ ابتداءً من يناير 2027/,
+  );
+  await sheet.getByRole("button", { name: "انقل", exact: true }).click();
+  await expect(page.getByText(/انتقل \d+ عضوًا إلى الفئة/)).toBeVisible();
+});

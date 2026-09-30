@@ -34,8 +34,13 @@ test("a mid-year joiner is never offered the months before joining (M9)", async 
 });
 
 test("settings: next year's fees and the last backup (M12/D2)", async ({ page }) => {
-  await page.goto("/committee/settings?prices=1");
-  await expect(page.getByRole("heading", { name: "المستحقات الشهرية لسنة 2027" })).toBeVisible();
+  await page.goto("/committee/settings");
+  const groups = page.getByRole("region", { name: "الفئات والمستحقات الشهرية" });
+  await expect(groups).toContainText(/الفئة أ.*1\s000 أوقية في الشهر/);
+  await groups.getByRole("button", { name: "المستحقات" }).first().click();
+  const sheet = page.getByRole("dialog", { name: /مستحقات الفئة/ });
+  await expect(sheet.getByRole("button", { name: "2027" })).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
   await expect(page.getByRole("heading", { name: "آخر نسخة احتياطية" })).toBeVisible();
 });
 
