@@ -2,11 +2,9 @@
 // Committee writes. Each action validates its input, calls one RPC as the signed-in user (the
 // database re-checks the role), maps errors to { ok: false, code, message } and expires the
 // public cache when public numbers change. Never throws for expected failures.
-import { randomBytes } from "node:crypto";
 import { updateTag } from "next/cache";
 import { after } from "next/server";
 import { pendingPaymentPayload } from "@/lib/push/payload";
-import { notifyMember } from "@/lib/push/member";
 import { notifyConfirmers } from "@/lib/push/send";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import type { z } from "zod";
@@ -17,8 +15,6 @@ import { isProofPath, PROOF_MAX_BYTES, proofPath, sha256Hex, sniffImage } from "
 import type { Client } from "./read";
 import * as s from "./schemas";
 import { getCommitteeSession } from "./committee";
-import { hashMemberToken } from "./member";
-import type { IssuedMemberLink } from "./member-types";
 import { PUBLIC_TAG } from "./tags";
 import type { ActionResult, IssuedCredentials } from "./types";
 
@@ -171,8 +167,6 @@ export async function confirmPayment(input: { id: string }) {
       },
     },
   );
-  // a member who sent it through their link hears about it (no-op otherwise)
-  if (res.ok && !res.data.already) after(() => notifyMember(input.id));
   return res;
 }
 
@@ -206,7 +200,6 @@ export async function rejectPayment(input: { id: string; reason: string }) {
     (sb, p) => sb.rpc("reject_payment", { p_payment_id: p.id, p_reason: p.reason }),
     { touchesPublic: false },
   );
-  if (res.ok) after(() => notifyMember(input.id));
   return res;
 }
 
@@ -241,6 +234,9 @@ export async function recordExpense(input: s.RecordExpenseInput) {
         p_note: p.note,
         p_campaign_id: p.campaignId,
         p_receipt_path: p.receiptPath,
+        // sent only when set, so this works before m31 adds them
+        ...(p.fundAccountId ? { p_fund_account_id: p.fundAccountId } : {}),
+        ...(p.paidInCash ? { p_paid_in_cash: true } : {}),
       }),
     { touchesPublic: true, result: (d) => d as string },
   );
@@ -252,6 +248,76 @@ export async function cancelExpense(input: { id: string; reason: string }) {
     input,
     (sb, p) => sb.rpc("cancel_expense", { p_expense_id: p.id, p_reason: p.reason }),
     { touchesPublic: true },
+  );
+}
+
+/* ───────────── «اللوحة» levies (m30; «مسؤول» only, the database checks) ───────────── */
+
+export async function createLevy(input: s.CreateLevyInput) {
+  return run(
+    s.createLevySchema,
+    input,
+    (sb, p) =>
+      sb.rpc("create_levy", {
+        p_id: p.id,
+        p_title: p.title,
+        p_amount: p.amount,
+        p_member_ids: p.memberIds,
+        p_purpose: p.purpose,
+        p_deadline: p.deadline,
+        p_amount_b: p.amountB,
+      }),
+    { touchesPublic: false, result: (d) => d as string },
+  );
+}
+
+export async function addLevyMembers(input: { id: string; memberIds: string[]; amount: number }) {
+  return run(
+    s.levyMembersSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("add_levy_members", { p_id: p.id, p_member_ids: p.memberIds, p_amount: p.amount }),
+    { touchesPublic: false, result: (d) => d as number },
+  );
+}
+
+/** One member's share (only while unpaid). */
+export async function setLevyShare(input: { id: string; memberId: string; amount: number }) {
+  return run(
+    s.levyShareSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("set_levy_share", { p_id: p.id, p_member_id: p.memberId, p_amount: p.amount }),
+    { touchesPublic: false },
+  );
+}
+
+export async function exemptLevyShare(input: { id: string; memberId: string; reason: string }) {
+  return run(
+    s.levyExemptSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("exempt_levy_share", { p_id: p.id, p_member_id: p.memberId, p_reason: p.reason }),
+    { touchesPublic: false },
+  );
+}
+
+export async function unexemptLevyShare(input: { id: string; memberId: string }) {
+  return run(
+    s.levyMemberSchema,
+    input,
+    (sb, p) => sb.rpc("unexempt_levy_share", { p_id: p.id, p_member_id: p.memberId }),
+    { touchesPublic: false },
+  );
+}
+
+/** Which kinds of events this device is notified about (own device only). */
+export async function setPushKinds(input: { endpoint: string; kinds: s.PushKind[] }) {
+  return run(
+    s.pushKindsSchema,
+    input,
+    (sb, p) => sb.rpc("set_push_kinds", { p_endpoint: p.endpoint, p_kinds: p.kinds }),
+    { touchesPublic: false },
   );
 }
 
@@ -808,43 +874,6 @@ export async function resetCommitteePassword(input: {
   }
   await auditAccount(admin, me, "reset_committee_password", parsed.data.userId);
   return { ok: true, data: { userId: parsed.data.userId, login: row.login ?? "", password } };
-}
-
-/**
- * «رابط العضو»: a new personal link (revokes the old one). Any active committee member. The token
- * is made and hashed here; the database stores only the hash. The URL is returned once.
- */
-export async function createMemberLink(input: {
-  memberId: string;
-}): Promise<ActionResult<IssuedMemberLink>> {
-  const token = randomBytes(32).toString("base64url");
-  const res = await run(
-    s.memberIdSchema,
-    input,
-    (sb, p) =>
-      sb.rpc("create_member_link", {
-        p_member_id: p.memberId,
-        p_token_hash: hashMemberToken(token),
-      }),
-    { touchesPublic: false },
-  );
-  if (!res.ok) return res;
-  // same address rule as components/app/site.ts (lib must not import components)
-  const origin = (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.NODE_ENV === "production" ? "https://baqie.vercel.app" : "http://localhost:3000")
-  ).replace(/\/+$/, "");
-  return { ok: true, data: { memberId: input.memberId, url: `${origin}/m/${token}` } };
-}
-
-/** Stop the member's link everywhere (next request). */
-export async function revokeMemberLink(input: { memberId: string }) {
-  return run(
-    s.memberIdSchema,
-    input,
-    (sb, p) => sb.rpc("revoke_member_link", { p_member_id: p.memberId }),
-    { touchesPublic: false },
-  );
 }
 
 /** Admin: this confirmer is not a member of the fund (no member link expected). */

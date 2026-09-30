@@ -1,13 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  DataError,
-  fundInfo,
-  fundSettings,
-  ledgerPublic,
-  memberMonths,
-  members,
-  verifyReceipt,
-} from "./read";
+import { DataError, fundInfo, fundSettings, ledgerPublic, memberMonths, members } from "./read";
 import type { Client } from "./read";
 
 /** Minimal PostgREST builder stand-in: every chain method returns itself; awaiting gives `res`. */
@@ -92,14 +84,6 @@ describe("read", () => {
     expect(calls).toContainEqual(["activity_public", "eq", ["kind", "payment_confirmed"]]);
     expect(calls).toContainEqual(["activity_public", "limit", [3]]);
     expect(calls).toContainEqual(["expenses_public", "limit", [3]]);
-  });
-
-  it("does not query for a malformed receipt code", async () => {
-    const f = fake({ data: { status: "valid" }, error: null });
-    expect(await verifyReceipt(f.client, "hello")).toEqual({ status: "not_found" });
-    expect(f.rpc).not.toHaveBeenCalled();
-    await verifyReceipt(f.client, " bq-abcd-1234 ");
-    expect(f.rpc).toHaveBeenCalledWith("verify_receipt", { p_code: "BQ-ABCD-1234" });
   });
 
   it("reads the settings row with the opening balance date", async () => {

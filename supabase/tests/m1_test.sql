@@ -1249,9 +1249,36 @@ select tests.ok((select (a -> 'income' ->> 'total')::bigint + (b -> 'income' ->>
                               public.report_period(date_trunc('year', current_date)::date, current_date + 400) c) x),
   'two periods chain: the second opens with the first''s closing');
 select tests.throws($$select public.report_period(current_date, current_date - 1)$$, 'invalid_input', 'a period ends after it starts');
-select tests.ok((select sum(amount) from public.report_wallets('2000-01-01', '2100-01-01'))
-                = (select sum(amount) from public.payments where status = 'confirmed' and method::text <> 'credit'),
-  'wallets add up to the confirmed money in');
+select tests.ok((select sum(in_amount) from public.report_wallets('2000-01-01', '2100-01-01'))
+                = (select sum(amount) from public.payments where status = 'confirmed' and method::text <> 'credit')
+                and (select sum(out_amount) from public.report_wallets('2000-01-01', '2100-01-01'))
+                = (select sum(amount) from public.expenses where cancelled_at is null),
+  'wallets add up to the confirmed money in and every expense out');
+-- an expense names its wallet (a fund account or cash) from m31; older ones are «غير محدد» (method null)
+select tests.set('w1', public.record_expense(gen_random_uuid(), current_date, 'other', 700, 'وقود', null, null, tests.id('acc'))::text);
+select tests.set('w2', public.record_expense(gen_random_uuid(), current_date, 'other', 300, 'ماء', null, null, null, true)::text);
+select tests.ok((select out_amount >= 700 from public.report_wallets(current_date, current_date) where method = 'bankily')
+                and (select out_amount >= 300 from public.report_wallets(current_date, current_date) where method = 'cash'),
+  'money out per wallet from the expense''s wallet');
+select tests.ok(exists (select 1 from public.report_wallets('2000-01-01', '2100-01-01') where method is null and out_amount > 0),
+  'older expenses without a wallet are counted as not specified');
+select tests.throws($$select public.record_expense(gen_random_uuid(), current_date, 'other', 1, 'x', null, null, tests.id('acc'), true)$$,
+  'invalid_input', 'an expense is paid from one wallet or cash, not both');
+-- a donation from someone who is not a member: a name on the row
+select tests.login('admin');
+select tests.set('cd', public.create_campaign(gen_random_uuid(), 'تبرع مفتوح')::text);
+select tests.login('committee');
+select tests.ok((public.record_payment(gen_random_uuid(), 'تحويل جماعي', 'bankily', 1500, current_date,
+                   jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('cd'), 'member_id', null,
+                                                        'amount', 1500, 'donor_name', ' متبرع من خارج الصندوق '))) ->> 'status') = 'confirmed',
+  'a non-member donation is recorded with the donor''s name');
+select tests.throws($$select public.record_payment(gen_random_uuid(), 'x', 'cash', 100, current_date,
+  jsonb_build_array(jsonb_build_object('kind', 'campaign', 'campaign_id', tests.id('cd'), 'member_id', tests.id('E'),
+                                       'amount', 100, 'donor_name', 'x')))$$, '23514', 'a donor name is only for a non-member');
+select tests.login('server');
+select tests.ok((select contributor_name from public.campaign_contributions where campaign_id = tests.id('cd')) = 'متبرع من خارج الصندوق',
+  'the campaign lists the donor by name');
+select tests.login('committee');
 select tests.ok((select payments_count > 0 and cancellations > 0 from public.report_committee_work('2000-01-01', '2100-01-01')
                  where display_name = 'المدير'), 'committee work counts records and cancellations per person');
 select tests.login('former');

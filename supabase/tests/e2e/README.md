@@ -39,7 +39,6 @@ app's bundle.
 | `resetAll()` | `up.sh` (full reset) + `bootstrap()`, ~20–40 s |
 | `COMMITTEE[who]` | `{ userId, login, password, name }` for `/login` |
 | `signedIn(who)` | supabase-js client signed in as that account |
-| `memberLink(ref, by?)` | new personal link like the app makes it → path `/m/<token>` |
 | `memberId(ref)` | member uuid for `"B-901"` |
 | `paymentsFor(ref)` / `latestPayment(ref, { status?, timeoutMs? })` | payments touching the member (status, amount, receiptCode, rejectReason, submittedViaLink) |
 | `monthStates(ref, year?)` | `{ 1: "paid", 2: "late", … }` from `member_months` |
