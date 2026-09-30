@@ -345,3 +345,9 @@ spending by kind → closing, month-by-month, a simple chart), summary, months t
 (no amounts), expenses, campaign/لوحة report, member statement. For the committee: handover report,
 amounts per wallet (reconcile each wallet), committee work (per member activity). Period control =
 one button «سنة 2026 ▾» opening years + a 3×4 month grid + «السنة كلها».
+
+Record payment details (owner): **no receipt at all** (no receipt screen, image or share; after save:
+«سُجّلت الدفعة ✓» + «تراجع» for 30 s; the payment shows in the member statement and reports).
+Relatives suggestion = people paid together with this member before (same past transfer), then same
+family name as a second hint; no family field. The record screen does not show the fund balance
+header (only home does). All 10 report types in round 3 approved.
