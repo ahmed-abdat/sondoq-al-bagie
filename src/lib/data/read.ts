@@ -424,3 +424,15 @@ export async function levyShares(
   if (filter.memberId) q = q.eq("member_id", filter.memberId);
   return many("levy_shares", await q.order("member_ref")).map(map.toLevyShare);
 }
+
+/** «الفئات»: every group with its fee this year and next, members now, retired year (m33). */
+export async function groupsOverview(c: Client, year: number) {
+  return many("groups_overview", await c.rpc("groups_overview", { p_year: year })).map((g) => ({
+    code: g.code,
+    name: g.name,
+    fee: g.fee ?? null,
+    nextYearFee: g.next_year_fee ?? null,
+    members: g.members,
+    retiredFrom: g.retired_from ?? null,
+  }));
+}

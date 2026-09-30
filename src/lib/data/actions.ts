@@ -604,6 +604,48 @@ export async function setJoinMonth(input: s.SetJoinMonthInput) {
   );
 }
 
+/** A new fee group («مسؤول»): the next free letter is returned. */
+export async function createGroup(input: s.CreateGroupInput) {
+  return run(
+    s.createGroupSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("create_group", {
+        p_name: p.name,
+        p_monthly_amount: p.monthlyAmount,
+        p_from_year: p.fromYear,
+      }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
+/** Move chosen members, or a whole group, to another group from a month; returns how many moved. */
+export async function moveMembersToGroup(input: s.MoveMembersInput) {
+  return run(
+    s.moveMembersSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("move_members_to_group", {
+        p_to_group: p.toGroup,
+        p_from_month: p.fromMonth,
+        p_member_ids: p.memberIds,
+        p_from_group: p.fromGroup,
+        p_reason: p.reason,
+      }),
+    { touchesPublic: true, result: (d) => d as number },
+  );
+}
+
+/** Retire an empty group from a year (history kept). */
+export async function retireGroup(input: { groupCode: string; fromYear: number }) {
+  return run(
+    s.retireGroupSchema,
+    input,
+    (sb, p) => sb.rpc("retire_group", { p_group: p.groupCode, p_from_year: p.fromYear }),
+    { touchesPublic: true },
+  );
+}
+
 export async function setGroupPrice(input: s.SetGroupPriceInput) {
   return run(
     s.setGroupPriceSchema,

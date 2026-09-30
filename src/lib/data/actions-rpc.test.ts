@@ -148,6 +148,27 @@ const cases: Case[] = [
     true,
   ],
   [
+    "createGroup",
+    () => a.createGroup({ name: "ج", monthlyAmount: 700, fromYear: 2027 }),
+    "create_group",
+    { p_name: "ج", p_monthly_amount: 700, p_from_year: 2027 },
+    true,
+  ],
+  [
+    "moveMembersToGroup",
+    () => a.moveMembersToGroup({ toGroup: "C", fromMonth: "2027-01-01", fromGroup: "B" }),
+    "move_members_to_group",
+    { p_to_group: "C", p_from_month: "2027-01-01", p_from_group: "B" },
+    true,
+  ],
+  [
+    "retireGroup",
+    () => a.retireGroup({ groupCode: "C", fromYear: 2028 }),
+    "retire_group",
+    { p_group: "C", p_from_year: 2028 },
+    true,
+  ],
+  [
     "setCommitteeNotMember",
     () => a.setCommitteeNotMember({ userId: id, notMember: true }),
     "set_committee_not_member",

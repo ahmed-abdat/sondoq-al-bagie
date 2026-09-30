@@ -471,6 +471,9 @@ const demo = {
   exemptLevyShare: async () => ok(undefined),
   unexemptLevyShare: async () => ok(undefined),
   setPushKinds: async () => ok(undefined),
+  createGroup: async () => ok("C"),
+  moveMembersToGroup: async (p) => ok(p.memberIds?.length ?? 0),
+  retireGroup: async () => ok(undefined),
 } satisfies Sim;
 
 /* ───────────── context ───────────── */

@@ -1,7 +1,8 @@
--- Undo every migration after M1 (m2 … m32, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
+-- Undo every migration after M1 (m2 … m33, newest first; the name is historical). Dev/branch only. Enum values added to payment_method stay (Postgres
 -- cannot drop them); nothing else uses them once M2 is gone.
 set client_min_messages = warning;
--- stats (m32), reports (m31), levies (m30), committee tools (m29), committee only (m28): their own undo files, also usable alone
+-- fee groups (m33), stats (m32), reports (m31), levies (m30), committee tools (m29), committee only (m28): their own undo files, also usable alone
+\ir m33_revert.sql
 \ir m32_revert.sql
 \ir m31_revert.sql
 \ir m30_revert.sql

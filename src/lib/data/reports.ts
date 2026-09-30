@@ -739,6 +739,8 @@ export function toLevyStats(d: Json): LevyStats[] {
           unpaid: num(q.unpaid),
           exempt: num(q.exempt),
           paidPct: pct(q.paid_pct),
+          expected: num(q.expected),
+          collected: num(q.collected),
         };
       }),
     };
