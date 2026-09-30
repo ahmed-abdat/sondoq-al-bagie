@@ -2,6 +2,7 @@ import "server-only";
 // Demo only: the committee app's data from the fictional fixtures plus a few invented campaigns,
 // levies and log lines. Read only by source.ts (demo mode, never on production).
 import * as fx from "./fixtures";
+import { toMemberRows } from "@/lib/data/member-lists";
 import type { Method } from "@/lib/methods";
 import type {
   PCampaign,
@@ -28,6 +29,12 @@ export function demoAdminData(): PData {
   const admin = fx.fxMembersAdmin();
   const months = fx.fxMemberMonths();
   const arrears = new Map(fx.fxArrears().map((a) => [a.memberId, a]));
+  const rows = new Map(
+    toMemberRows(fx.fxMembers(), months, year, {
+      pastLate: fx.fxPastLate(),
+      groupPrices: fx.FX_PRICE,
+    }).map((r) => [r.memberId, r]),
+  );
   const members: PMember[] = admin.map((m) => {
     const mine = months.filter((x) => x.memberId === m.memberId);
     return {
@@ -42,6 +49,8 @@ export function demoAdminData(): PData {
       paid: mine.filter((x) => x.state === "paid").map((x) => x.month),
       owed: mine.filter((x) => x.state === "late").map((x) => x.month),
       notOwed: mine.filter((x) => x.state === "not_owed").map((x) => x.month),
+      pastLate: rows.get(m.memberId)?.pastLate ?? [],
+      prices: rows.get(m.memberId)?.prices,
       lastReminded: arrears.get(m.memberId)?.lastRemindedAt ?? null,
     };
   });

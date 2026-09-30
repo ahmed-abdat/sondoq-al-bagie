@@ -14,6 +14,10 @@ export type PMember = {
   paid: number[]; // months of this year
   owed: number[]; // late months (due and unpaid)
   notOwed: number[]; // before joining, or not active
+  /** late months of earlier years, "YYYY-MM", oldest first */
+  pastLate: string[];
+  /** price of a payable month ("YYYY-MM") when it differs from `fee` (null = no price set) */
+  prices?: Record<string, number | null>;
   lastReminded: string | null;
 };
 
