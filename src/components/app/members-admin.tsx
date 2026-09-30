@@ -8,7 +8,6 @@ import { useState } from "react";
 import { OfflineWriteHint, useOnline } from "@/components/providers";
 import { type MemberAdmin, type SettableStatus } from "@/lib/data/types";
 import { useAct } from "./act";
-import { MemberMonths } from "./member";
 import { sendOnce, useOnceId } from "./once-id";
 import { Avatar, MemberNo } from "./bits";
 import {
@@ -189,14 +188,9 @@ export function MemberAdminBody({
   admin = false,
   credit,
   price = 0,
-  months,
-  monthsCtx,
   onDone,
 }: {
   m: MemberAdmin;
-  /** this year's month code (same cells as the public member sheet) */
-  months?: string;
-  monthsCtx?: { year: number; dueMonth: number };
   /** admin only: «تراجع عن آخر تغيير», «تصحيح شهر الانضمام» */
   admin?: boolean;
   /** the member's credit, when they have some */
@@ -272,32 +266,21 @@ export function MemberAdminBody({
           </p>
         </div>
       </div>
-      {months !== undefined && monthsCtx ? (
-        // the same count line and month cells as the public member sheet (audit C7)
-        <>
-          <MemberMonths m={{ ...m, months }} ctx={monthsCtx} />
-          {m.status === "active" && m.monthsBehind > 0 && (
-            <p className="bq-hint bq-small-top">
-              عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num> أوقية
-            </p>
-          )}
-        </>
-      ) : (
-        <p className="bq-mline">
-          {m.status === "active" ? (
-            <>
-              {statusLabel(m)}
-              {m.monthsBehind > 0 && (
-                <span className="bq-row-s">
-                  عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num> أوقية
-                </span>
-              )}
-            </>
-          ) : (
-            "لا تُحسب عليه مستحقات الآن."
-          )}
-        </p>
-      )}
+      {/* the months are on the member's page itself (plain ✓ grid); here only the state */}
+      <p className="bq-mline">
+        {m.status === "active" ? (
+          <>
+            {statusLabel(m)}
+            {m.monthsBehind > 0 && (
+              <span className="bq-row-s">
+                عليه حتى الآن <Num>{fmt(m.amountOwed)}</Num> أوقية
+              </span>
+            )}
+          </>
+        ) : (
+          "لا تُحسب عليه مستحقات الآن."
+        )}
+      </p>
       {!!m.formerDebtMonths?.length && (
         <p className="bq-mline">
           عليه مستحقات شهرية سابقة لم تُدفع: {monthCount(m.formerDebtMonths.length)} ·{" "}

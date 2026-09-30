@@ -101,8 +101,6 @@ export function EditMemberSheet({ memberId, onClose }: { memberId: string; onClo
           admin={v.admin}
           credit={credit}
           price={v.prices[m.groupCode] ?? 0}
-          months={v.months[m.memberId]}
-          monthsCtx={v.monthsCtx}
           onDone={done}
         />
       ) : (

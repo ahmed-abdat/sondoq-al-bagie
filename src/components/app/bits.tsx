@@ -2,46 +2,18 @@
 import Image from "next/image";
 import type { PaymentMethod } from "@/lib/data/types";
 import { METHOD_LABELS, methodLogo } from "@/lib/methods";
-import { memberLabel, memberState, splitRef, statusLabel, type StatusInput } from "./derive";
+import { memberLabel, memberState, statusLabel, type StatusInput } from "./derive";
 import { I } from "./icons";
 
 /**
- * The paper number is the avatar: big number, small group letter «أ»/«ب» under it. Inside one
- * group's section (`scoped`) the letter is left out.
+ * The ONE member avatar: the paper number «أ 12» on a round tile (the same as the admin screens'
+ * Avatar; the style lives in globals.css so pages outside the admin shell have it). `size` 56 =
+ * the member's own header tile.
  */
-export function Avatar({
-  m,
-  scoped = false,
-  size = 40,
-  vt = false,
-}: {
-  m: { memberRef: string };
-  scoped?: boolean;
-  size?: number;
-  /** morph source/target for the member sheet */
-  vt?: boolean;
-}) {
-  const { letter, n } = splitRef(m.memberRef);
-  const digits = String(n).length;
-  const k = scoped ? (digits <= 2 ? 0.44 : 0.36) : digits <= 2 ? 0.36 : 0.3;
+export function Avatar({ m, size }: { m: { memberRef: string }; size?: number }) {
   return (
-    <span
-      className="bq-av"
-      style={{
-        width: size,
-        height: size,
-        viewTransitionName: vt ? "bq-av" : undefined,
-      }}
-      aria-hidden="true"
-    >
-      <span className="bq-num bq-av-n" style={{ fontSize: Math.max(13, Math.round(size * k)) }}>
-        {n}
-      </span>
-      {!scoped && (
-        <span className="bq-av-l" style={{ fontSize: Math.max(12, Math.round(size * 0.28)) }}>
-          {letter}
-        </span>
-      )}
+    <span className={`pa-av ${size && size >= 56 ? "pa-av-g" : ""}`} aria-hidden="true">
+      {memberLabel(m)}
     </span>
   );
 }

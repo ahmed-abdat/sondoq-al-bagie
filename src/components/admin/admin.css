@@ -500,30 +500,6 @@ button.pa-row-plain {
   color: var(--muted);
   list-style: none;
 }
-.pa-av {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  background: var(--n1);
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.pa-av-g {
-  width: 56px;
-  height: 56px;
-  font-size: 1.0625rem;
-  background: var(--g1);
-  color: var(--g9);
-}
-.pa-av-gold {
-  background: var(--gold-tint);
-  color: var(--gold-ink);
-}
 .pa-ic {
   flex: none;
   display: grid;

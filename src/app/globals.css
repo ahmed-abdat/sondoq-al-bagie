@@ -467,55 +467,6 @@
   /* routine content never slides in and bars never grow (QA pass 3/4): shown still */
 
   /* ───── search ───── */
-  .bq-search {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: 60px;
-    padding-inline: 18px 8px;
-    border-radius: var(--r-lg);
-    background: var(--n1);
-    color: var(--muted);
-    transition:
-      box-shadow 180ms var(--ease-out),
-      background-color 180ms var(--ease-out);
-  }
-  .bq-search:focus-within {
-    background: #fff;
-    box-shadow: var(--sh-focus);
-  }
-  .bq-search input {
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    border: 0;
-    background: none;
-    font: inherit;
-    font-size: 17px;
-    color: var(--ink);
-    outline: none;
-  }
-  .bq-search input::placeholder {
-    color: var(--muted);
-    opacity: 0.85;
-  }
-  .bq-search input::-webkit-search-cancel-button {
-    display: none;
-  }
-  .bq-search input:focus-visible {
-    outline: none;
-  }
-  .bq-search button {
-    width: 44px;
-    height: 44px;
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    flex: none;
-  }
-  .bq-search-s {
-    height: 52px;
-  }
 
   /* ───── open list rows ───── */
   .bq-list {
@@ -825,53 +776,6 @@
   }
 
   /* segmented: one indicator moved by clip-path */
-  .bq-seg {
-    overflow-x: auto;
-    scrollbar-width: none;
-    border-radius: 999px;
-    background: var(--n1);
-    padding: 4px;
-  }
-  .bq-seg::-webkit-scrollbar {
-    display: none;
-  }
-  .bq-seg-in {
-    position: relative;
-    display: inline-flex;
-    min-width: 100%;
-  }
-  .bq-seg-ind {
-    position: absolute;
-    inset: 0;
-    background: var(--g8);
-    border-radius: 999px;
-    clip-path: inset(0 100% 0 0 round 999px);
-    transition: clip-path 220ms var(--ease-out);
-  }
-  .bq-seg-b {
-    position: relative;
-    z-index: 1;
-    flex: 1 0 auto;
-    min-height: 44px;
-    padding-inline: 16px;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    color: var(--ink);
-  }
-  .bq-seg-b[aria-pressed="true"] {
-    color: #fff;
-  }
-  .bq-seg-n {
-    font-size: 14px;
-    font-weight: 500;
-    opacity: 0.85;
-  }
   .bq-group {
     margin-block-start: 20px;
   }
@@ -2212,9 +2116,6 @@
     .bq-link:hover svg {
       transform: translateX(-3px);
     }
-    .bq-seg-b[aria-pressed="false"]:hover {
-      background: var(--n2);
-    }
     .bq-nav-i:not(.on):hover .bq-nav-ic {
       color: var(--ink);
     }
@@ -2366,7 +2267,6 @@
   }
   .bq-bnav .bq-pill,
   .bq-rail .bq-pill,
-  .bq-seg-ind,
   .bq-switch-k span {
     transition-property: none;
   }
@@ -2967,35 +2867,8 @@
 /* ───── round 4: committee polish ───── */
 @layer components {
   /* before the indicator is measured (first paint, slow phones) the pressed option paints itself */
-  .bq-seg-in:not([data-ready]) .bq-seg-b[aria-pressed="true"] {
-    background: var(--g8);
-  }
   /* a row that scrolls shows it: soft fade at both ends */
   /* fade only the end that hides more options (RTL: the end is on the left) */
-  .bq-seg[data-over="end"] {
-    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 22px);
-    mask-image: linear-gradient(to right, transparent 0, #000 22px);
-  }
-  .bq-seg[data-over="start"] {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
-    mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent 100%);
-  }
-  .bq-seg[data-over="both"] {
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      #000 22px,
-      #000 calc(100% - 22px),
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      #000 22px,
-      #000 calc(100% - 22px),
-      transparent 100%
-    );
-  }
   /* committee header: title, who is signed in, actions, and the section switcher stay in reach */
   .bq-com-head {
     position: sticky;
@@ -3355,12 +3228,10 @@
     transform: scaleX(-1);
   }
   /* numbers and refs are typed left-to-right but sit on the reading side, with Arabic hints */
-  .bq-input[dir="ltr"],
-  .bq-search input[dir="ltr"] {
+  .bq-input[dir="ltr"] {
     text-align: right;
   }
-  .bq-input[dir="ltr"]::placeholder,
-  .bq-search input[dir="ltr"]::placeholder {
+  .bq-input[dir="ltr"]::placeholder {
     direction: rtl;
   }
 }
@@ -3446,13 +3317,6 @@
   }
   .bq-link:disabled {
     color: var(--muted);
-  }
-}
-
-@layer components {
-  /* a filter row with four short options fits 390px without scrolling */
-  .bq-seg-fit .bq-seg-b {
-    padding-inline: 10px;
   }
 }
 @layer components {
@@ -4175,19 +4039,6 @@
 }
 @layer components {
   /* member search: mic + keypad buttons inside the field */
-  .bq-search .bq-mic,
-  .bq-search .bq-padbtn {
-    color: var(--muted);
-  }
-  .bq-search .bq-mic.is-on {
-    color: #fff;
-    background: var(--g7);
-    animation: bq-listen 1.4s var(--ease-out) infinite;
-  }
-  .bq-search.is-listening {
-    background: #fff;
-    box-shadow: var(--sh-focus);
-  }
   @keyframes bq-listen {
     0%,
     100% {
@@ -4197,90 +4048,10 @@
       box-shadow: 0 0 0 8px rgba(35, 122, 59, 0);
     }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .bq-search .bq-mic.is-on {
-      animation: none;
-    }
-  }
   .bq-pick-groups {
     margin-block: 10px 2px;
   }
-  .bq-search-note {
-    margin-block-start: 8px;
-  }
   /* «رقم» keypad sheet */
-  .bq-pad {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-block-end: 8px;
-  }
-  .bq-pad h2 {
-    font-family: var(--font-display);
-    font-size: 20px;
-    font-weight: 700;
-  }
-  .bq-pad-letters {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .bq-pad-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-  .bq-pad-key {
-    min-height: 56px;
-    border-radius: var(--r-lg);
-    background: var(--n1);
-    font-family: var(--font-display);
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--ink);
-    display: grid;
-    place-items: center;
-  }
-  .bq-pad-key[aria-checked="true"] {
-    background: var(--g7);
-    color: #fff;
-  }
-  .bq-pad-ok {
-    background: var(--g1);
-    color: var(--g7);
-  }
-  .bq-pad-ok:disabled {
-    opacity: 0.45;
-  }
-  .bq-pad-shown {
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: 34px;
-    font-weight: 800;
-    min-height: 44px;
-  }
-  .bq-pad-found {
-    min-height: 56px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .bq-pad-hit {
-    min-height: 52px;
-    padding-inline: 16px;
-    border-radius: var(--r-lg);
-    background: var(--g1);
-    color: var(--g7);
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    text-align: start;
-  }
-  .bq-pad-go {
-    margin-inline-start: auto;
-    display: grid;
-  }
 }
 @layer components {
   /* committee account role: four big choices, full width, nothing hidden at 390px */
@@ -4929,8 +4700,7 @@
 @layer components {
   .bq-link,
   .bq-chip,
-  .bq-copy,
-  .bq-seg-b {
+  .bq-copy {
     min-height: 48px;
   }
   /* bottom nav at 200% text: a label shortens instead of pushing the bar off screen */
@@ -4980,10 +4750,6 @@
 
 @layer components {
   /* QA pass 4: the remaining small controls reach 48px (hit area, layout unchanged where possible) */
-  .bq-search button {
-    width: 48px;
-    height: 48px;
-  }
   .bq-icon-btn {
     min-width: 48px;
     min-height: 48px;
@@ -5018,4 +4784,30 @@
     white-space: normal;
     overflow-wrap: anywhere;
   }
+}
+
+/* the ONE member avatar (admin screens and the pages outside the admin shell, e.g. /committee/setup) */
+.pa-av {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--n1);
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pa-av-g {
+  width: 56px;
+  height: 56px;
+  font-size: 1.0625rem;
+  background: var(--g1);
+  color: var(--g9);
+}
+.pa-av-gold {
+  background: var(--gold-tint);
+  color: var(--gold-ink);
 }

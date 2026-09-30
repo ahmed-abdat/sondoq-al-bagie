@@ -136,29 +136,14 @@ export function WalletsSection({
                 <span className="bq-row-t">{w.name}</span>
               </span>
               {admin && (
-                <span className="bq-group-acts">
-                  <button
-                    type="button"
-                    className="bq-btn bq-btn-soft bq-press"
-                    aria-label={`عدّل ${w.name}`}
-                    onClick={() => setSheet({ t: "editWallet", w })}
-                  >
-                    عدّل
-                  </button>
-                  <button
-                    type="button"
-                    className="bq-btn bq-btn-ghost bq-press"
-                    aria-label={confirm === `w${w.id}` ? `نعم، أوقف ${w.name}` : `أوقف ${w.name}`}
-                    disabled={busy || !online}
-                    onClick={() =>
-                      confirm === `w${w.id}`
-                        ? void setWalletActive(w, false)
-                        : setConfirm(`w${w.id}`)
-                    }
-                  >
-                    {confirm === `w${w.id}` ? "نعم، أوقفها" : "أوقفها"}
-                  </button>
-                </span>
+                <button
+                  type="button"
+                  className="bq-btn bq-btn-soft bq-press"
+                  aria-label={`عدّل ${w.name}`}
+                  onClick={() => setSheet({ t: "editWallet", w })}
+                >
+                  عدّل
+                </button>
               )}
             </div>
             <ul className="bq-accs">
@@ -307,6 +292,13 @@ export function WalletsSection({
               w={sheet.t === "editWallet" ? sheet.w : undefined}
               busy={busy}
               err={err}
+              onStop={
+                sheet.t === "editWallet"
+                  ? async () => {
+                      if (await setWalletActive(sheet.w, false)) setSheet(null);
+                    }
+                  : undefined
+              }
               onSave={(name, logoPath) =>
                 sheet.t === "editWallet"
                   ? run(
@@ -485,13 +477,17 @@ function WalletForm({
   busy,
   err,
   onSave,
+  onStop,
 }: {
   w?: WalletType;
   busy: boolean;
   err: string;
   onSave: (name: string, logoPath: string | undefined) => Promise<boolean>;
+  /** an existing wallet: stop it (with a confirmation) */
+  onStop?: () => void;
 }) {
   const { uploadWalletLogo } = useAct();
+  const [stopping, setStopping] = useState(false);
   const [name, setName] = useState(w?.name ?? "");
   // a new picture (data URL), "" = remove the logo, null = keep it
   const [pic, setPic] = useState<string | null>(null);
@@ -565,6 +561,23 @@ function WalletForm({
           </button>
         )}
       </div>
+      {onStop && (
+        <div className="bq-small-top">
+          {stopping && (
+            <p className="bq-hint" role="status">
+              لن تظهر عند تسجيل دفعة أو مصروف. دفعاتها السابقة تبقى كما هي.
+            </p>
+          )}
+          <button
+            type="button"
+            className="bq-btn bq-btn-ghost bq-press"
+            disabled={busy}
+            onClick={() => (stopping ? onStop() : setStopping(true))}
+          >
+            {stopping ? "نعم، أوقفها" : "أوقف المحفظة"}
+          </button>
+        </div>
+      )}
     </Form>
   );
 }

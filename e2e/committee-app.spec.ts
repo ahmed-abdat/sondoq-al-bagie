@@ -139,8 +139,10 @@ test("«المحافظ»: «المسؤول» adds a wallet and an account, sets 
   await expect(ws.getByText("22000099")).toBeVisible();
 
   // stop one, bring it back
-  await ws.getByRole("button", { name: "أوقف كليك" }).click();
-  await ws.getByRole("button", { name: "نعم، أوقف كليك" }).click();
+  await ws.getByRole("button", { name: "عدّل كليك" }).click();
+  const ed = page.getByRole("dialog", { name: "عدّل المحفظة" });
+  await ed.getByRole("button", { name: "أوقف المحفظة" }).click();
+  await ed.getByRole("button", { name: "نعم، أوقفها" }).click();
   await expect(ws.getByRole("button", { name: "أعِد كليك" })).toBeVisible();
 
   // the expense sheet offers the wallets that have an account, and cash
