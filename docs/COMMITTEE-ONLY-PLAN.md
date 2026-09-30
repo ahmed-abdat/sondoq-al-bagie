@@ -321,3 +321,17 @@ late member", "share the monthly summary", "record a campaign contribution".
      supervisor with committee + is_admin; `can_confirm` = any active committee member; record_payment
      confirms immediately.)
    - Notifications (§7.2) become "X recorded a payment for Y" etc., no "needs confirming".
+
+## 9. Access levels and design picks (owner, 2026-09-30)
+
+Two levels. **«مسؤول» only:** committee accounts + handover; member status and exemptions (add a
+member, leave/exempt/away, change group, join month, exempt a levy share, change one member's levy
+amount); cancellations and campaigns (cancel a payment or expense, create/edit/close a campaign or
+لوحة, add members to a لوحة). **Every committee member:** record payments (cash, paper, levy shares,
+contributions), record expenses, apply credit, edit a member's name/phone/note, group prices,
+settings, fund wallets, all reads and reports. (Supersedes "exempt = any committee".)
+
+Prototype picks (proto/admin d99be96): home **B** («الصندوق أولًا»), members **A**, campaigns **B**,
+reports **B**, record payment **C** («ابدأ من العضو») improved in round 2 with quick month choices
+(«الأشهر المتأخرة» / «باقي السنة» / «السنة كاملة» / «اختر») and several people in one transfer
+(«+ أضف شخصًا», levy share or donation rows, OCR amount vs total).
