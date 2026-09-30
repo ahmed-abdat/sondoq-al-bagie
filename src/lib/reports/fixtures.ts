@@ -39,7 +39,7 @@ export const fxAnnual: AnnualReport = {
   period: { year: 2026 },
   generatedAt: AT,
   opening: 120_000,
-  income: { fees: 212_500, levies: 30_000, donations: 71_000, total: 313_500 },
+  income: { fees: 212_500, levies: 30_000, donations: 71_000, total: 313_500, paper: 60_000 },
   spending: {
     byCategory: [
       { category: "teaching", label: "التدريس", amount: 90_000 },

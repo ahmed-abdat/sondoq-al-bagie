@@ -74,6 +74,13 @@ const incomeRows = (i: AnnualReport["income"]): [string, number][] => [
   ...(i.levies ? ([["اللوحات", i.levies]] as [string, number][]) : []),
   ...(i.donations ? ([["التبرعات", i.donations]] as [string, number][]) : []),
 ];
+/** The income rows, then (m44) the part typed in from the paper sheets, when there is one. */
+const incomeBlocks = (i: AnnualReport["income"]): Block[] => [
+  rowsOf(incomeRows(i), ["مجموع المداخيل", i.total]),
+  ...(i.paper
+    ? [{ t: "note", text: `منها ${amt(i.paper)} من الأوراق (أُدخلت من الدفاتر).` } as Block]
+    : []),
+];
 const spendingBlocks = (s: AnnualReport["spending"]): Block[] => [
   s.byActivity.length
     ? rowsOf(
@@ -110,7 +117,7 @@ export function buildAnnual(d: AnnualReport): ReportDoc {
   const blocks: Block[] = [
     rowsOf([[`رصيد أول ${edge}`, d.opening]]),
     { t: "heading", text: "المداخيل" },
-    rowsOf(incomeRows(d.income), ["مجموع المداخيل", d.income.total]),
+    ...incomeBlocks(d.income),
     { t: "heading", text: "المصاريف" },
     ...spendingBlocks(d.spending),
   ];
@@ -715,7 +722,7 @@ export function buildHandover(d: HandoverReport): ReportDoc {
       total: { label: "الرصيد الذي يُسلَّم", amount: balance },
     },
     { t: "heading", text: "المداخيل" },
-    rowsOf(incomeRows(d.income), ["مجموع المداخيل", d.income.total]),
+    ...incomeBlocks(d.income),
     { t: "heading", text: "المصاريف" },
     ...spendingBlocks(d.spending),
   ];
