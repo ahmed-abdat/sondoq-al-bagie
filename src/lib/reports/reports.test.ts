@@ -348,9 +348,9 @@ describe("the 10 reports", () => {
     const digits = (c: string) => Number(c.replace(/\D/g, "") || 0);
     expect(table.head).toEqual(["المحفظة", "الدفعات", "داخل", "تحويل", "الرصيد"]);
     expect(table.rows.map((r) => r[0])).toEqual([
-      "بنكيلي 22000001",
-      "مصرفي 22000002",
-      "السداد",
+      "بنكيلي 22200000011",
+      "مصرفي 22200000012",
+      "السداد 22200000013",
       "نقدًا",
     ]);
     expect(table.rows.map((r) => r[3].replace(/\u202f/g, " "))).toEqual([
@@ -359,22 +359,31 @@ describe("the 10 reports", () => {
       "",
       "+50 000",
     ]);
-    expect(table.rows.map((r) => digits(r[4]))).toEqual([95_000, 70_000, 23_500, 125_000]);
+    expect(table.rows.map((r) => digits(r[4]))).toEqual([125_000, 70_000, 23_500, 125_000]);
     expect(digits(table.foot![2])).toBe(313_500);
-    // Σ «الرصيد» = Σ داخل − Σ خارج (moves between wallets and the cash add to 0)
+    // Σ «الرصيد» = Σ opening + Σ داخل − Σ خارج (moves between wallets and the cash add to 0)
     const moves = [...fx.fxWallets.wallets, fx.fxWallets.cash].reduce(
       (s, w) => s + w.transferIn - w.transferOut,
       0,
     );
     expect(moves).toBe(0);
-    expect(digits(table.foot![4])).toBe(fx.fxWallets.totalIn + moves);
+    const openings = [...fx.fxWallets.wallets, fx.fxWallets.cash].reduce(
+      (s, w) => s + (w.opening?.amount ?? 0),
+      0,
+    );
+    expect(digits(table.foot![4])).toBe(openings + fx.fxWallets.totalIn + moves);
     expect(txt(doc)).toContain("«تحويل»: نقل بين محفظة والنقد، ليس من المداخيل ولا المصاريف.");
     expect(txt(doc)).toContain("مجموع الأرصدة: ما في الصندوق وما لدى التبرعات واللوحات.");
 
     // no move: no «تحويل» column; the cash row stays (a 0 balance is still shown)
     const quiet = buildWallets({
       ...fx.fxWallets,
-      wallets: fx.fxWallets.wallets.map((w) => ({ ...w, transferOut: 0, balance: w.in })),
+      wallets: fx.fxWallets.wallets.map((w) => ({
+        ...w,
+        transferOut: 0,
+        opening: null,
+        balance: w.in,
+      })),
       cash: { in: 0, count: 0, transferIn: 0, transferOut: 0, opening: null, balance: 0 },
       totalIn: 238_500,
     });

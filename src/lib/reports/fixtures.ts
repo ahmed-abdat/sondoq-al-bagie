@@ -419,49 +419,57 @@ export const fxHandover: HandoverReport = {
   carryOver: ["تبرع «ترميم المسجد» ما زال مفتوحًا.", "لوحة العيد: بقي عضوان لم يدفعا."],
 };
 
+// The demo fund's accounts (src/components/app/fixtures.ts ACCOUNTS): same ids, numbers and
+// opening, so the settings screen finds each account's balance here.
+const demoAccount = (n: number) => `f0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+
 export const fxWallets: WalletsReport = {
   period: { year: 2026 },
   generatedAt: AT,
   // one move: 50 000 taken out of بنكيلي into the cash (a handover); every balance adds up
   wallets: [
-    ...[
-      {
-        method: "bankily" as const,
-        label: "بنكيلي",
-        accountNumber: "22000001",
-        in: 145_000,
-        count: 98,
-        transferIn: 0,
-        transferOut: 50_000,
-        balance: 95_000,
-      },
-      {
-        method: "masrvi" as const,
-        label: "مصرفي",
-        accountNumber: "22000002",
-        in: 70_000,
-        count: 41,
-        transferIn: 0,
-        transferOut: 0,
-        balance: 70_000,
-      },
-      {
-        method: "sedad" as const,
-        label: "السداد",
-        accountNumber: null,
-        in: 23_500,
-        count: 12,
-        transferIn: 0,
-        transferOut: 0,
-        balance: 23_500,
-      },
-    ].map((w, i) => ({
-      ...w,
-      walletTypeId: i + 1,
-      fundAccountId: w.accountNumber ? `acc-${i + 1}` : null,
+    {
+      walletTypeId: 1,
+      fundAccountId: demoAccount(1),
+      method: "bankily",
+      label: "بنكيلي",
       logoPath: null,
+      accountNumber: "22200000011",
+      in: 145_000,
+      count: 98,
+      transferIn: 0,
+      transferOut: 50_000,
+      opening: { amount: 30_000, on: "2026-01-01" },
+      balance: 125_000,
+    },
+    {
+      walletTypeId: 2,
+      fundAccountId: demoAccount(2),
+      method: "masrvi",
+      label: "مصرفي",
+      logoPath: null,
+      accountNumber: "22200000012",
+      in: 70_000,
+      count: 41,
+      transferIn: 0,
+      transferOut: 0,
       opening: null,
-    })),
+      balance: 70_000,
+    },
+    {
+      walletTypeId: 3,
+      fundAccountId: demoAccount(3),
+      method: "sedad",
+      label: "السداد",
+      logoPath: null,
+      accountNumber: "22200000013",
+      in: 23_500,
+      count: 12,
+      transferIn: 0,
+      transferOut: 0,
+      opening: null,
+      balance: 23_500,
+    },
   ],
   cash: {
     in: 75_000,
