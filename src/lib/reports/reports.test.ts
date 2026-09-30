@@ -299,11 +299,13 @@ describe("the 10 reports", () => {
     });
   });
 
-  it("wallets: money in per wallet and cash; no «خرج» column until expenses name a wallet", () => {
+  it("wallets: the movement in the period (داخل / خارج), never a per-wallet balance", () => {
     const doc = buildWallets(fx.fxWallets);
     const table = doc.blocks.find((b) => b.t === "table");
-    expect(table?.t === "table" && table.head).toEqual(["المحفظة", "الدفعات", "المداخيل"]);
+    expect(table?.t === "table" && table.head).toEqual(["المحفظة", "الدفعات", "داخل"]);
     expect(table?.t === "table" && table.foot?.[2].replace(/\D/g, "")).toBe("313500");
+    expect(txt(doc)).toContain("*الحركة في الفترة*");
+    // even when the data carries a balance: no opening balance per wallet, so not shown
     const withOut = buildWallets({
       ...fx.fxWallets,
       wallets: fx.fxWallets.wallets.map((w) => ({ ...w, out: 1000, balance: 5000 })),
@@ -311,21 +313,13 @@ describe("the 10 reports", () => {
       unspecifiedOut: 3000,
     });
     const t2 = withOut.blocks.find((b) => b.t === "table");
-    expect(t2?.t === "table" && t2.head).toEqual([
-      "المحفظة",
-      "الدفعات",
-      "المداخيل",
-      "خرج",
-      "الرصيد",
-    ]);
+    expect(t2?.t === "table" && t2.head).toEqual(["المحفظة", "الدفعات", "داخل", "خارج"]);
+    expect(txt(withOut)).not.toContain("الرصيد");
     const rows = t2?.t === "table" ? t2.rows.map((r) => r.map((c) => c.replace(/\D/g, ""))) : [];
-    expect(rows.at(-2)).toEqual(["", "60", "75000", "2000", "73000"]); // cash
-    expect(t2?.t === "table" && t2.rows.at(-1)?.[0]).toBe("مصاريف قبل تسمية المحفظة");
-    // out: 3 wallets × 1 000 + cash 2 000 + before-wallets 3 000; balance: 3 × 5 000 + 73 000
-    expect(t2?.t === "table" && t2.foot?.slice(3).map((c) => c.replace(/\D/g, ""))).toEqual([
-      "8000",
-      "88000",
-    ]);
+    expect(rows.at(-2)).toEqual(["", "60", "75000", "2000"]); // cash
+    expect(t2?.t === "table" && t2.rows.at(-1)?.[0]).toBe("مصاريف بلا محفظة");
+    // خارج: 3 wallets × 1 000 + cash 2 000 + without a wallet 3 000
+    expect(t2?.t === "table" && t2.foot?.[3].replace(/\D/g, "")).toBe("8000");
   });
 
   it("committee work: who recorded what, the inactive without activity left out, what was cancelled", () => {

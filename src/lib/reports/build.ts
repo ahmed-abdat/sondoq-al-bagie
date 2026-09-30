@@ -761,23 +761,20 @@ export function buildHandover(d: HandoverReport): ReportDoc {
 
 /* ─────────────── 9 · per wallet ─────────────── */
 
+/**
+ * The money that moved through each wallet in the period («الحركة في الفترة»): داخل / خارج. No
+ * «الرصيد» per wallet: there is no opening balance per wallet, so it cannot be known (accuracy,
+ * Codex pass 8). Expenses that name no wallet sit on their own row, «مصاريف بلا محفظة».
+ */
 export function buildWallets(d: WalletsReport): ReportDoc {
   const all = [...d.wallets, d.cash];
   const withOut = all.some((w) => w.out !== undefined) || !!d.unspecifiedOut;
-  const withBal = all.some((w) => w.balance !== undefined);
-  const head = [
-    "المحفظة",
-    "الدفعات",
-    "المداخيل",
-    ...(withOut ? ["خرج"] : []),
-    ...(withBal ? ["الرصيد"] : []),
-  ];
-  const line = (label: string, count: string, inn: string, out?: number, bal?: number) => [
+  const head = ["المحفظة", "الدفعات", "داخل", ...(withOut ? ["خارج"] : [])];
+  const line = (label: string, count: string, inn: string, out?: number) => [
     label,
     count,
     inn,
     ...(withOut ? [out ? fmt(out) : ""] : []),
-    ...(withBal ? [bal !== undefined ? fmt(bal) : ""] : []),
   ];
   const cash = d.cash;
   const rows = [
@@ -787,47 +784,37 @@ export function buildWallets(d: WalletsReport): ReportDoc {
         fmt(w.count),
         fmt(w.in),
         w.out,
-        w.balance,
       ),
     ),
     ...(cash.count || cash.in || cash.out
-      ? [line("نقدًا", fmt(cash.count), fmt(cash.in), cash.out, cash.balance)]
+      ? [line("نقدًا", fmt(cash.count), fmt(cash.in), cash.out)]
       : []),
-    // expenses recorded before each one named its wallet (m31): spent, but from no known wallet
-    ...(d.unspecifiedOut ? [line("مصاريف قبل تسمية المحفظة", "", "", d.unspecifiedOut)] : []),
+    ...(d.unspecifiedOut ? [line("مصاريف بلا محفظة", "", "", d.unspecifiedOut)] : []),
   ];
   const count = all.reduce((s, w) => s + w.count, 0);
   const outTotal = all.reduce((s, w) => s + (w.out ?? 0), 0) + (d.unspecifiedOut ?? 0);
-  const balTotal = all.reduce((s, w) => s + (w.balance ?? 0), 0);
   return {
     kind: "wallets",
     title: "المبالغ حسب المحفظة",
     subtitle: periodLabel(d.period),
-    message: "للجنة: مداخيل كل محفظة وما خرج منها، لمطابقة رصيدها.",
+    message: "للجنة: الحركة في كل محفظة خلال الفترة، لمطابقتها.",
     blocks: rows.length
       ? [
+          { t: "heading", text: "الحركة في الفترة" },
           {
             t: "table",
             head,
             num: head.map((_, i) => i > 0),
-            widths: head.length > 3 ? [0.32, 0.14, 0.18, 0.18, 0.18] : undefined,
+            widths: withOut ? [0.4, 0.16, 0.22, 0.22] : undefined,
             rows,
-            foot: [
-              "المجموع",
-              fmt(count),
-              fmt(d.totalIn),
-              ...(withOut ? [fmt(outTotal)] : []),
-              ...(withBal ? [fmt(balTotal)] : []),
-            ],
+            foot: ["المجموع", fmt(count), fmt(d.totalIn), ...(withOut ? [fmt(outTotal)] : [])],
           },
           {
             t: "note",
-            text: withBal
-              ? "قارن «الرصيد» برصيد كل محفظة في هاتفك. النقد يعدّه من يحمله."
-              : "قارن المداخيل بسجل كل محفظة في هاتفك. النقد يعدّه من يحمله.",
+            text: "قارن «داخل» و«خارج» بسجل كل محفظة في هاتفك لنفس الفترة. النقد يعدّه من يحمله.",
           },
         ]
-      : [{ t: "note", text: "لا مداخيل في هذه الفترة." }],
+      : [{ t: "note", text: "لا حركة في هذه الفترة." }],
     fileBase: `المحافظ-${periodSlug(d.period)}`,
     hasAmounts: true,
   };
