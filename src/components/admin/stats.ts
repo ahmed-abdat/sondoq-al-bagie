@@ -225,6 +225,8 @@ export function demoStatsReport(d: Omit<PData, "stats">, previousPct: number | n
   const fees = {
     year: d.year,
     refMonth: d.due,
+    asOf: null,
+    beforeRecords: false,
     overall: block(active),
     groups: (["A", "B"] as const).map((g) => ({
       groupCode: g,
