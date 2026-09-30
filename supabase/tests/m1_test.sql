@@ -1491,6 +1491,19 @@ select tests.ok((public.report_fee_stats(2020, date '2020-06-15') ->> 'before_re
   'before the first recorded payment: flagged; ref month = month of the as-of day (12 in a later year)');
 select tests.throws($$select public.report_fee_stats(2026, date '2025-12-31')$$, 'invalid_input', 'as-of day before the year');
 
+/* ───────────── M36: the daily accuracy check in job_runs ───────────── */
+
+select tests.login('server');
+insert into public.job_runs (job, last_run_at, ok, detail) values ('audit', now(), true, '28/28');
+select tests.login('committee');
+select tests.ok((select ok from public.job_runs where job = 'audit'), 'the committee sees the last accuracy check');
+select tests.throws($$insert into public.job_runs (job, last_run_at, ok) values ('other', now(), true)$$, '42501',
+  'the committee cannot write job runs');
+select tests.login('server');
+select tests.throws($$insert into public.job_runs (job, last_run_at, ok) values ('other', now(), true)$$, '23514',
+  'only known jobs');
+delete from public.job_runs where job = 'audit';
+
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
 select tests.login('server');
