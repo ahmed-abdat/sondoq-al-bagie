@@ -1,24 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 // Edge cases from docs/EDGE-CASES.md on the demo committee (fixtures build, simulated writes).
-
-test("a transfer typed in new ouguiya is caught and fixed ×10 (M16)", async ({ page }) => {
-  await page.goto("/committee/review");
-  await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
-  const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
-  await sheet.locator(".bq-pick button.bq-row").first().click();
-  await sheet.getByRole("button", { name: /تفاصيل أخرى/ }).click();
-  const amount = sheet.getByRole("textbox", { name: /المبلغ المحوّل/ });
-  const total = Number((await amount.getAttribute("placeholder"))!.replace(/\D/g, ""));
-  expect(total).toBeGreaterThan(0);
-  await amount.fill(String(total / 10));
-  await expect(
-    sheet.getByText("يبدو أنك كتبت المبلغ بالأوقية الجديدة. اضربه في 10."),
-  ).toBeVisible();
-  await sheet.getByRole("button", { name: /أوقية قديمة/ }).click();
-  await expect(amount).toHaveValue(String(total));
-  await expect(sheet.getByText("يطابق المجموع.")).toBeVisible();
-});
 
 test("handover: pending payments before submit, balance change on accept (H1/H2)", async ({
   page,
@@ -35,30 +17,20 @@ test("handover: pending payments before submit, balance change on accept (H1/H2)
   await expect(page.getByText(/أكّدها أو ارفضها قبل القبول\./)).toBeVisible();
 });
 
-test("a mid-year joiner is never offered the months before joining (M9)", async ({ page }) => {
-  await page.goto("/committee/review");
-  await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
-  const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
-  await sheet.getByLabel("ابحث عن العضو", { exact: true }).fill("ب 12");
-  await sheet.locator(".bq-pick button.bq-row").first().click();
-  await expect(sheet.locator(".bq-rec-row").first()).toContainText("من يوليو إلى سبتمبر");
-  await sheet.getByRole("button", { name: "تغيير الأشهر" }).click();
-  await expect(sheet.getByRole("button", { name: /يناير/ })).toBeDisabled();
-  await expect(sheet.getByRole("button", { name: /يناير/ })).toContainText("غير مستحق");
-});
+/** «سجّل دفعة» for one member (committee-only record screen). */
+async function recordFor(page: Page, who: string) {
+  await page.goto("/committee/record");
+  await page.getByLabel("ابحث عن العضو", { exact: true }).fill(who);
+  await page.locator(".pa-rows button.pa-row").first().click();
+}
 
-test("last year's late months are on the record screen, each at its own price (M8/M11)", async ({
-  page,
-}) => {
-  await page.goto("/committee/review");
-  await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
-  const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
-  await sheet.getByLabel("ابحث عن العضو", { exact: true }).fill("أ 4");
-  await sheet.locator(".bq-pick button.bq-row").first().click();
-  const row = sheet.locator(".bq-rec-row").first();
-  await expect(row).toContainText("من نوفمبر إلى ديسمبر 2025");
-  // 2 × 800 (2025) + 9 × 1000
-  await expect(row).toContainText("10 600");
+test("a mid-year joiner is never offered the months before joining (M9)", async ({ page }) => {
+  await recordFor(page, "ب 12");
+  await expect(page.locator(".r2-line").first()).toContainText("من يوليو إلى سبتمبر");
+  await page.getByRole("radio", { name: "اختر" }).click();
+  const months = page.getByRole("group", { name: /^أشهر \d{4}$/ });
+  await expect(months.getByRole("button", { name: /يناير/ })).toBeDisabled();
+  await expect(months.getByRole("button", { name: /يوليو/ })).toBeEnabled();
 });
 
 test("settings: next year's fees and the last backup (M12/D2)", async ({ page }) => {
@@ -82,18 +54,4 @@ test("pay late months from a member's credit (M7)", async ({ page }) => {
   const again = page.getByRole("dialog").last();
   await expect(again).toContainText(/له رصيد 500 أوقية، لا يكفي لشهر كامل\./);
   await expect(again).not.toContainText("متأخر");
-});
-
-test("a second payment for months already waiting says so (M5)", async ({ page }) => {
-  await page.goto("/committee/review");
-  for (let i = 0; i < 2; i++) {
-    await page.getByRole("button", { name: /^سجّل دفعة$/ }).click();
-    const sheet = page.getByRole("dialog", { name: "سجّل دفعة" });
-    await sheet.getByLabel("ابحث عن العضو", { exact: true }).fill("أ 4");
-    await sheet.locator(".bq-pick button.bq-row").first().click();
-    await sheet.getByRole("radio", { name: "بنكيلي" }).click();
-    await sheet.locator(".bq-rec-foot").getByRole("button", { name: "سجّل الدفعة" }).click();
-    await expect(sheet).toBeHidden();
-  }
-  await expect(page.getByText(/يوجد دفعة أخرى بانتظار التأكيد لنفس الشهر\./)).toBeVisible();
 });

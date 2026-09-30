@@ -37,5 +37,8 @@ export {
   getHandoverReport,
   getWalletsReport,
   getCommitteeWorkReport,
+  getStatsReport,
+  getLevyStats,
+  getDonationStats,
 } from "./committee";
 export type * from "./report-types";

@@ -352,3 +352,99 @@ describe("money reports", () => {
     expect(w.cancelled?.[1]).toMatchObject({ what: "دافع", by: "المسؤول", reason: "خطأ" });
   });
 });
+
+describe("«الإحصاءات»", () => {
+  const fee = (year: number, active: number) => ({
+    year,
+    ref_month: 9,
+    overall: { active, paid_up: 1, paid_up_pct: 33.33, owe_1: 1, owe_2_3: 1, owe_4plus: 0 },
+    groups: [
+      {
+        group_code: "A",
+        active,
+        paid_up: 1,
+        paid_up_pct: 33.3,
+        owe_1: 1,
+        owe_2_3: 1,
+        owe_4plus: 0,
+      },
+    ],
+    months: [{ month: 1, active, paid: 2, unpaid: 1 }],
+  });
+
+  it("maps fee, levy and donation stats; last year only when it had members", async () => {
+    const rpc = vi.fn(async (name: string, args: { p_year?: number }) => ({
+      data:
+        name === "report_fee_stats"
+          ? fee(args.p_year!, args.p_year === 2026 ? 3 : 0)
+          : name === "report_levy_stats"
+            ? [
+                {
+                  id: "l1",
+                  title: "لوحة",
+                  status: "open",
+                  opened_on: "2026-09-01",
+                  days_open: 29,
+                  shares: 4,
+                  paid: 2,
+                  unpaid: 1,
+                  exempt: 1,
+                  paid_pct: 66.7,
+                  expected: 6000,
+                  collected: 4000,
+                  groups: [
+                    { group_code: "B", shares: 1, paid: 0, unpaid: 1, exempt: 0, paid_pct: 0 },
+                  ],
+                },
+              ]
+            : [
+                {
+                  id: "d1",
+                  title: "تبرع",
+                  status: "open",
+                  opened_on: "2026-01-01",
+                  member_givers: 2,
+                  outside_givers: 1,
+                  givers: 3,
+                  active_members: 40,
+                  member_pct: 5,
+                  collected: 3000,
+                  target: null,
+                  target_pct: null,
+                },
+              ],
+      error: null,
+    }));
+    const s = await r.loadStats({ rpc } as never, 2026, now);
+    expect(s.fees.overall).toEqual({
+      active: 3,
+      paidUp: 1,
+      paidUpPct: 33.3,
+      owe1: 1,
+      owe2to3: 1,
+      owe4plus: 0,
+    });
+    expect(s.fees.groups[0].groupCode).toBe("A");
+    expect(s.previous).toBeNull();
+    expect(s.levies[0]).toMatchObject({
+      paid: 2,
+      exempt: 1,
+      paidPct: 66.7,
+      groups: [{ groupCode: "B", unpaid: 1 }],
+    });
+    expect(s.donations[0]).toMatchObject({
+      givers: 3,
+      outsideGivers: 1,
+      target: null,
+      targetPct: null,
+    });
+    expect(rpc).toHaveBeenCalledWith("report_fee_stats", { p_year: 2025 });
+    expect(JSON.stringify(s)).not.toMatch(/full_?name|member_?ref/i);
+  });
+
+  it("one levy or donation by id", async () => {
+    const rpc = vi.fn(async () => ({ data: [], error: null }));
+    expect(await r.loadLevyStats({ rpc } as never, "x")).toBeNull();
+    expect(rpc).toHaveBeenCalledWith("report_levy_stats", { p_id: "x" });
+  });
+});

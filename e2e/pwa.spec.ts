@@ -25,10 +25,13 @@ test("manifest is valid and the app is installable", async ({ page, request }) =
     lang: "ar",
     dir: "rtl",
     display: "standalone",
-    start_url: "/",
+    id: "/",
+    start_url: "/committee",
     scope: "/",
   });
-  expect(m.shortcuts.map((s: { name: string }) => s.name)).toEqual(["الأعضاء", "اللجنة"]);
+  expect(m.shortcuts.map((s: { name: string; url: string }) => [s.name, s.url])).toEqual([
+    ["سجّل دفعة", "/committee/record"],
+  ]);
   for (const size of ["192x192", "512x512"]) {
     expect(
       m.icons.some(

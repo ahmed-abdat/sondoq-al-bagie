@@ -18,8 +18,49 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test("home: the fund first, «سجّل دفعة» opens the record screen, five tabs", async ({ page }) => {
+  await page.goto("/committee");
+  const hero = page.getByRole("region", { name: "الصندوق" });
+  await expect(hero).toContainText(/\d[\d\s  ]* أوقية/);
+  await expect(page.getByRole("heading", { name: "آخر العمليات" })).toBeVisible();
+  const nav = page.getByRole("navigation", { name: "التنقل" });
+  await expect(nav.getByRole("link")).toHaveText([
+    "الرئيسية",
+    "الأعضاء",
+    "التبرعات",
+    "التقارير",
+    "المزيد",
+  ]);
+  await expect(nav.getByRole("link", { name: "الرئيسية" })).toHaveAttribute("aria-current", "page");
+  await page
+    .getByRole("link", { name: /سجّل دفعة/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/committee\/record$/);
+  await expect(page.getByRole("heading", { name: "سجّل دفعة", level: 1 })).toBeVisible();
+  // a task of its own: no tab is marked current
+  await expect(
+    page.getByRole("navigation", { name: "التنقل" }).locator('[aria-current="page"]'),
+  ).toHaveCount(0);
+});
+
+test("«المزيد» → «سجل العمليات»: who recorded what", async ({ page }) => {
+  await page.goto("/committee");
+  await page
+    .getByRole("navigation", { name: "التنقل" })
+    .getByRole("link", { name: "المزيد" })
+    .click();
+  await page.getByRole("link", { name: /سجل العمليات/ }).click();
+  await expect(page.getByRole("heading", { name: "سجل العمليات", level: 1 })).toBeVisible();
+  await expect(page.getByRole("main")).toContainText(/سجّل دفعة .+: \d[\d\s  ]* أوقية/);
+});
+
+// Payments recorded before the committee-only update still wait on /committee/review (reached
+// from «المزيد» while any are left); the app icon counts them.
 test("the app icon shows the payments waiting, and follows a confirmation", async ({ page }) => {
-  await page.goto("/committee/review");
+  await page.goto("/committee/more");
+  await page.getByRole("link", { name: /تنتظر التأكيد/ }).click();
+  await page.waitForURL("**/committee/review");
   const heading = page.locator("#bq-wait-h");
   const waiting = Number((await heading.textContent())!.match(/\d+/)![0]);
   expect(waiting).toBeGreaterThan(0);
@@ -49,14 +90,16 @@ test("late members: the list in the app and «شارك المتأخرات» (no 
   ).toHaveCount(0);
 });
 
-test("hub, demo queue: empty (?demoQueue=0) says so and offers a cash record", async ({ page }) => {
+test("waiting payments, demo queue: empty (?demoQueue=0) says so and offers a cash record", async ({
+  page,
+}) => {
   await page.goto("/committee/review?demoQueue=0");
   await expect(page.getByText("لا دفعات تنتظر")).toBeVisible();
   await expect(page.getByRole("button", { name: /سجّل دفعة نقدًا أو تحويلًا/ })).toBeVisible();
   await expect(page.locator("article.bq-slip")).toHaveCount(0);
 });
 
-test("hub, demo queue: 12 pending (?demoQueue=12) shows one open slip and five rows", async ({
+test("waiting payments, demo queue: 12 pending (?demoQueue=12) shows one open slip and five rows", async ({
   page,
 }) => {
   await page.goto("/committee/review?demoQueue=12");

@@ -8,10 +8,11 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "صندوق الرابطة",
     short_name: "صندوق الرابطة",
-    description: "صندوق الرابطة، رابطة شباب قرية البقيع: الرسوم الشهرية والمصاريف بشفافية",
+    description: "صندوق رابطة شباب قرية البقيع، للجنة: الدفعات والمصاريف والتقارير",
     lang: "ar",
     dir: "rtl",
-    start_url: "/",
+    // the app is the committee's; `id` stays "/" so phones that installed it keep it
+    start_url: "/committee",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
@@ -23,12 +24,16 @@ export default function manifest(): MetadataRoute.Manifest {
     related_applications: [{ platform: "webapp", url: `${SITE}/manifest.webmanifest` }],
     // Android shows these in its richer install sheet, like an app store (pnpm screenshots)
     screenshots: [
-      ...(["home", "members", "report"] as const).map((n, i) => ({
+      ...(["home", "members", "reports"] as const).map((n, i) => ({
         src: `/screenshots/${n}-narrow.jpg`,
         sizes: "1080x1920",
         type: "image/jpeg",
         form_factor: "narrow" as const,
-        label: ["الرئيسية: ما في الصندوق ومن دفع", "الأعضاء: حالة كل عضو", "تقرير الصندوق"][i],
+        label: [
+          "الرئيسية: الصندوق وآخر العمليات",
+          "الأعضاء: من دفع ومن عليه رسوم",
+          "تقارير الصندوق",
+        ][i],
       })),
       {
         src: "/screenshots/home-wide.jpg",
@@ -46,18 +51,11 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
-        name: "الأعضاء",
-        short_name: "الأعضاء",
-        description: "حالة الرسوم الشهرية لكل عضو",
-        url: "/members",
-        icons: [{ src: "/icons/shortcut-members.png", sizes: "96x96", type: "image/png" }],
-      },
-      {
-        name: "اللجنة",
-        short_name: "اللجنة",
-        description: "تسجيل الدفعات وتأكيدها",
-        url: "/committee",
-        icons: [{ src: "/icons/shortcut-committee.png", sizes: "96x96", type: "image/png" }],
+        name: "سجّل دفعة",
+        short_name: "سجّل دفعة",
+        description: "سجّل دفعة من صورة التحويل أو نقدًا",
+        url: "/committee/record",
+        icons: [{ src: "/icons/shortcut-record.png", sizes: "96x96", type: "image/png" }],
       },
     ],
   };

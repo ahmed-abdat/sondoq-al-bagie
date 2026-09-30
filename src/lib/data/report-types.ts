@@ -227,3 +227,75 @@ export type CommitteeWorkReport = Base & {
     reason: string | null;
   }[];
 };
+
+/* ───────────── «الإحصاءات» (plan §10): counts and percentages, never names ───────────── */
+
+export type FeeStatsBlock = {
+  active: number;
+  paidUp: number;
+  /** 0–100, one decimal */
+  paidUpPct: number;
+  owe1: number;
+  owe2to3: number;
+  owe4plus: number;
+};
+
+export type FeeStats = {
+  year: number;
+  /** this month for the current year, 12 for a past year */
+  refMonth: number;
+  overall: FeeStatsBlock;
+  groups: ({ groupCode: string } & FeeStatsBlock)[];
+  /** 12 months; unpaid counts only months that have started */
+  months: { month: number; active: number; paid: number; unpaid: number }[];
+};
+
+export type LevyStats = {
+  id: string;
+  title: string;
+  status: CampaignStatus;
+  openedOn: string;
+  daysOpen: number;
+  shares: number;
+  paid: number;
+  unpaid: number;
+  exempt: number;
+  /** of the shares not exempted */
+  paidPct: number;
+  /** total of the shares not exempted */
+  expected: number;
+  collected: number;
+  groups: {
+    groupCode: string;
+    shares: number;
+    paid: number;
+    unpaid: number;
+    exempt: number;
+    paidPct: number;
+  }[];
+};
+
+export type DonationStats = {
+  id: string;
+  title: string;
+  status: CampaignStatus;
+  openedOn: string;
+  memberGivers: number;
+  outsideGivers: number;
+  givers: number;
+  activeMembers: number;
+  memberPct: number;
+  collected: number;
+  target: number | null;
+  targetPct: number | null;
+};
+
+/** «الإحصاءات» report for a year: fees with last year for the trend, every levy and donation. */
+export type StatsReport = {
+  period: { year: number };
+  generatedAt: string;
+  fees: FeeStats;
+  previous: FeeStats | null;
+  levies: LevyStats[];
+  donations: DonationStats[];
+};

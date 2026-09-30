@@ -1286,6 +1286,49 @@ select tests.throws($$select public.report_period(current_date, current_date)$$,
 select tests.login('public');
 select tests.throws($$select * from public.report_wallets(current_date, current_date)$$, '42501', 'strangers get no report');
 
+/* ───────────── M32: «الإحصاءات» analytics ───────────── */
+
+select tests.login('committee');
+select tests.set('fs', public.report_fee_stats(extract(year from current_date)::int)::text);
+select tests.ok((select (o ->> 'paid_up')::int + (o ->> 'owe_1')::int + (o ->> 'owe_2_3')::int + (o ->> 'owe_4plus')::int
+                        = (o ->> 'active')::int and (o ->> 'active')::int > 0
+                 from (select tests.get('fs')::jsonb -> 'overall' o) x), 'paid up + owing buckets = active members');
+select tests.ok((select sum((g ->> 'active')::int) from jsonb_array_elements(tests.get('fs')::jsonb -> 'groups') g)
+                = (tests.get('fs')::jsonb -> 'overall' ->> 'active')::int, 'groups add up to the whole');
+select tests.ok((select bool_and((m ->> 'paid')::int + (m ->> 'unpaid')::int <= (m ->> 'active')::int)
+                        and count(*) = 12
+                 from jsonb_array_elements(tests.get('fs')::jsonb -> 'months') m), '12 months, paid + unpaid within active');
+select tests.ok((tests.get('fs')::jsonb ->> 'ref_month')::int = extract(month from current_date)::int
+                and (public.report_fee_stats(extract(year from current_date)::int - 1) ->> 'ref_month')::int = 12,
+  'this year counts to this month, last year to December');
+select tests.ok(tests.get('fs') !~ 'full_name|member_ref|عضو', 'no names in the fee analytics');
+-- a new member paid up this year moves the numbers by one
+select tests.login('admin');
+select tests.set('sX', public.add_member(9301, 'إحصاء', 'B', date_trunc('month', current_date)::date));
+select tests.login('committee');
+select tests.pay('sXp', 500, jsonb_build_array(tests.month('sX', 0, 500)));
+select tests.ok((select (n ->> 'active')::int = (o ->> 'active')::int + 1 and (n ->> 'paid_up')::int = (o ->> 'paid_up')::int + 1
+                 from (select tests.get('fs')::jsonb -> 'overall' o,
+                              public.report_fee_stats(extract(year from current_date)::int) -> 'overall' n) x),
+  'a new active member who paid counts as paid up');
+
+select tests.ok((select (l ->> 'shares')::int = (l ->> 'paid')::int + (l ->> 'unpaid')::int + (l ->> 'exempt')::int
+                        and (l ->> 'paid')::int = 3 and (l ->> 'collected')::int = 5500
+                        and (l ->> 'expected')::int = (select sum(expected) from public.levy_shares where campaign_id = tests.id('L1') and not exempt)
+                        and jsonb_array_length(l -> 'groups') = 2
+                 from (select public.report_levy_stats(tests.id('L1')) -> 0 l) x),
+  'levy analytics: paid / not yet / exempt, collected vs expected, per group');
+select tests.ok((select (d ->> 'outside_givers')::int = 1 and (d ->> 'member_givers')::int = 0 and (d ->> 'collected')::int = 1500
+                        and (d ->> 'active_members')::int > 0
+                 from (select public.report_donation_stats(tests.id('cd')) -> 0 d) x),
+  'donation analytics: members and outside donors, collected');
+select tests.ok(jsonb_array_length(public.report_levy_stats()) >= 1 and jsonb_array_length(public.report_donation_stats()) >= 2,
+  'all levies and donations at once');
+select tests.login('former');
+select tests.throws($$select public.report_fee_stats(2026)$$, 'not_committee', 'analytics are committee only');
+select tests.login('public');
+select tests.throws($$select public.report_levy_stats()$$, '42501', 'strangers get no analytics');
+
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 
 select tests.login('server');

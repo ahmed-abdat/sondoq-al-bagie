@@ -60,17 +60,14 @@ async function notificationBadge(size: number, file: string) {
     .toFile(file);
 }
 
-const USERS =
-  '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>';
-const SHIELD =
-  '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>';
+// lucide «plus»: «سجّل دفعة»
+const PLUS = '<path d="M5 12h14"/><path d="M12 5v14"/>';
 
 await round(192, "public/icons/icon-192.png");
 await round(512, "public/icons/icon-512.png");
 await opaque(192, "public/icons/maskable-192.png", 0.8);
 await opaque(512, "public/icons/maskable-512.png", 0.8);
-await shortcut(96, "public/icons/shortcut-members.png", USERS);
-await shortcut(96, "public/icons/shortcut-committee.png", SHIELD);
+await shortcut(96, "public/icons/shortcut-record.png", PLUS);
 await opaque(180, "src/app/apple-icon.png");
 await opaque(64, "src/app/icon.png");
 await notificationBadge(96, "public/icons/badge-96.png");
