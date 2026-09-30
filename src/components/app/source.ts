@@ -35,6 +35,7 @@ import type {
 import * as rfx from "@/lib/reports/fixtures";
 import { METHOD_LABELS, type Method } from "@/lib/methods";
 import { currentDueMonth, groupLabel } from "./derive";
+import { monthIncome } from "./month-income";
 import { demoAdminData, demoStatement, demoStats, toActivities, toWallets } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
@@ -314,6 +315,7 @@ export async function adminData(): Promise<PData> {
     activities,
     groupRows,
     wtypes,
+    monthWallets,
   ] = await Promise.all([
     membersAdmin(),
     memberRows(year),
@@ -333,6 +335,8 @@ export async function adminData(): Promise<PData> {
     data.getExpenseActivities(),
     groupsOverview(year).catch(() => [] as GroupRow[]),
     data.getWalletTypes(),
+    // the same month's paper-sheet import, taken out of «المداخيل هذا الشهر»
+    data.getWalletsReport({ year, month: t.getUTCMonth() + 1 }).catch(() => null),
   ]);
   const groupName = new Map(groupRows.map((g) => [g.code, g.name]));
   const due = currentDueMonth(t, info.graceDays);
@@ -492,7 +496,7 @@ export async function adminData(): Promise<PData> {
     opening: sum.openingBalance,
     collectedYear: sum.collectedThisYear,
     spentYear: sum.spentThisYear,
-    monthIn: monthCash?.income ?? 0,
+    monthIn: monthIncome(monthCash, monthWallets),
     monthOut: monthCash?.spending ?? spentIn(month),
     monthly,
     members,
