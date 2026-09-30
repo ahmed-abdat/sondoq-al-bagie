@@ -64,18 +64,6 @@ const slug = (s: string) =>
     .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
-/** 'YYYY-MM'[] → words; several years: «2025: نوفمبر وديسمبر؛ 2026: يناير». */
-function ymText(yms: string[]): string {
-  const byYear = new Map<number, number[]>();
-  for (const ym of yms) {
-    const [y, m] = ym.split("-").map(Number);
-    if (!y || !m) continue;
-    byYear.set(y, [...(byYear.get(y) ?? []), m]);
-  }
-  const years = [...byYear.keys()].sort();
-  if (years.length === 1) return monthsText(byYear.get(years[0])!);
-  return years.map((y) => `${y}: ${monthsText(byYear.get(y)!)}`).join("؛ ");
-}
 const rowsOf = (list: [string, number][], total?: [string, number]): Block => ({
   t: "rows",
   rows: list.map(([label, amount]) => ({ label, amount })),
