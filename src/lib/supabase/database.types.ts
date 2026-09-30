@@ -397,25 +397,25 @@ export type Database = {
       }
       groups: {
         Row: {
-          retired_from: number | null
           code: string
           created_at: string
           id: number
           name: string
+          retired_from: number | null
         }
         Insert: {
-          retired_from?: number | null
           code: string
           created_at?: string
           id?: never
           name: string
+          retired_from?: number | null
         }
         Update: {
-          retired_from?: number | null
           code?: string
           created_at?: string
           id?: never
           name?: string
+          retired_from?: number | null
         }
         Relationships: []
       }
@@ -1644,6 +1644,10 @@ export type Database = {
         }
         Returns: string
       }
+      create_group: {
+        Args: { p_from_year: number; p_monthly_amount: number; p_name: string }
+        Returns: string
+      }
       create_levy: {
         Args: {
           p_amount: number
@@ -1668,6 +1672,17 @@ export type Database = {
         Args: { p_id: string; p_member_id: string; p_reason: string }
         Returns: undefined
       }
+      groups_overview: {
+        Args: { p_year: number }
+        Returns: {
+          code: string
+          fee: number
+          members: number
+          name: string
+          next_year_fee: number
+          retired_from: number
+        }[]
+      }
       log_reminder: {
         Args: {
           p_campaign_id?: string
@@ -1679,6 +1694,17 @@ export type Database = {
       }
       member_statement: {
         Args: { p_member_id: string; p_year?: number }
+        Returns: Json
+      }
+      move_members_to_group: {
+        Args: {
+          p_dry_run?: boolean
+          p_from_group?: string
+          p_from_month: string
+          p_member_ids?: string[]
+          p_reason?: string
+          p_to_group: string
+        }
         Returns: Json
       }
       next_member_number: { Args: { p_list_code: string }; Returns: number }
@@ -1715,36 +1741,6 @@ export type Database = {
         Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
       }
-      create_group: {
-        Args: { p_from_year: number; p_monthly_amount: number; p_name: string }
-        Returns: string
-      }
-      groups_overview: {
-        Args: { p_year: number }
-        Returns: {
-          code: string
-          fee: number
-          members: number
-          name: string
-          next_year_fee: number
-          retired_from: number
-        }[]
-      }
-      move_members_to_group: {
-        Args: {
-          p_from_group?: string
-          p_from_month: string
-          p_member_ids?: string[]
-          p_dry_run?: boolean
-          p_reason?: string
-          p_to_group: string
-        }
-        Returns: Json
-      }
-      retire_group: {
-        Args: { p_from_year: number; p_group: string }
-        Returns: undefined
-      }
       report_committee_work: {
         Args: { p_from: string; p_to: string }
         Returns: {
@@ -1774,6 +1770,10 @@ export type Database = {
           out_amount: number
           out_count: number
         }[]
+      }
+      retire_group: {
+        Args: { p_from_year: number; p_group: string }
+        Returns: undefined
       }
       save_push_subscription: {
         Args: {
