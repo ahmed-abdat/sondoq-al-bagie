@@ -147,6 +147,7 @@ export async function loadSummary(
     income: money.income.total,
     spending: money.spending.total,
     closing: money.closing,
+    campaignsHeld: money.campaignsHeld,
     membersActive: active.length,
     membersPaidPeriod: paidPeriod,
     membersLate: active.filter((m) => m.monthsBehind > 0).length,

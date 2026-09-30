@@ -32,6 +32,7 @@ import * as fx from "./fixtures";
 
 /** The report's text with plain spaces (numbers use a thin space). */
 const txt = (doc: ReportDoc) => docText(doc, META).replace(/[\u2009\u202f\u00a0]/g, " ");
+const fmtN = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 const META = { generatedAt: "2026-09-28T10:00:00.000Z", preparedBy: "سيدي محمد" };
 const ALL: [string, ReportDoc][] = [
   ["annual", buildAnnual(fx.fxAnnual)],
@@ -152,9 +153,15 @@ describe("the 10 reports", () => {
       "*مجموع ما دخل: 313 500*",
       "التدريس: 90 000",
       "*مجموع ما صُرف: 133 500*",
-      "*رصيد آخر السنة: 300 000*",
+      "*المجموع آخر السنة: 300 000*",
+      // split so that «في الصندوق» is the fund alone, the same number as home
+      "منها في الصندوق: 254 000",
+      "منها لدى التبرعات واللوحات، لم تُصرف بعد: 46 000",
     ])
       expect(text).toContain(t);
+    const noCampaigns = txt(buildAnnual({ ...fx.fxAnnual, campaignsHeld: 0 }));
+    expect(noCampaigns).toContain("*رصيد آخر السنة: 300 000*");
+    expect(noCampaigns).not.toContain("منها في الصندوق");
     expect(doc.blocks.some((b) => b.t === "bars" && b.values.length === 12)).toBe(true);
     const months = doc.blocks.find((b) => b.t === "table");
     expect(months?.t === "table" && months.rows).toHaveLength(12);
@@ -163,6 +170,13 @@ describe("the 10 reports", () => {
   it("summary of a month: the month's words and paid count", () => {
     const text = txt(buildSummary(fx.fxSummary));
     expect(text).toContain("في الصندوق أول الشهر");
+    // the total adds up; «في الصندوق» is the fund alone, the same number as home
+    const closing = fx.fxSummary.closing;
+    expect(text).toContain(`*المجموع آخر الشهر: ${fmtN(closing)}*`);
+    expect(text).toContain(`منها في الصندوق: ${fmtN(closing - 46_000)}`);
+    expect(text).toContain("منها لدى التبرعات واللوحات، لم تُصرف بعد: 46 000");
+    const none = txt(buildSummary({ ...fx.fxSummary, campaignsHeld: 0 }));
+    expect(none).toContain(`*في الصندوق آخر الشهر: ${fmtN(closing)}*`);
     expect(text).toContain("دفع رسوم سبتمبر 47 عضوًا من 89.");
     expect(text).not.toContain("متأخر");
   });
@@ -321,9 +335,11 @@ describe("«الإحصاءات»", () => {
     expect(text).toContain("المجموعة أ: 55٪ (22 من 40)");
     expect(text).toContain("المجموعة ب: 42٪ (20 من 48)");
     expect(text).toContain("يناير 80، فبراير 78");
-    // months not started yet are not counted
     expect(text).toContain("سبتمبر 42");
-    expect(text).not.toContain("أكتوبر 5");
+    // months not started yet: what is already paid in them (a whole year paid), never «مقدَّمًا»
+    expect(text).toContain("أكتوبر 5، نوفمبر 2، ديسمبر 2");
+    expect(text).not.toContain("مقدَّمًا");
+    expect(text).not.toContain("مقدما");
     expect(text).toContain("شهر واحد: 18");
     expect(text).toContain("شهران أو 3: 16");
     expect(text).toContain("4 أشهر أو أكثر: 12");
@@ -403,6 +419,8 @@ describe("«الإحصاءات»", () => {
   });
   it("drawn on the page: the figures, the month numbers, the counts", () => {
     const texts = drawn(doc, PHONE);
+    // the paid count above every month that has payments, future months included
+    for (const n of ["80", "42", "5"]) expect(texts).toContain(n);
     for (const t of ["48٪", "55٪", "42٪", "40٪", "43٪"])
       expect(texts.some((x) => x.includes(t))).toBe(true);
     for (let m = 1; m <= 12; m++) expect(texts).toContain(String(m));

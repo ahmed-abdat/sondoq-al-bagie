@@ -246,7 +246,8 @@ function drawTiles(p: Pen, b: Extract<Block, { t: "tiles" }>, y: number, o: Draw
 
 /**
  * How many paid each month: 12 columns on a soft grey track as tall as the members, the paid part
- * green, the count above; months not started yet are left empty. January on the right.
+ * green, the count above. A month not started yet: only its paid part (paid ahead), no track, or
+ * nothing when nobody paid it. January on the right.
  */
 function drawCounts(p: Pen, b: Extract<Block, { t: "counts" }>, y: number, o: DrawOptions) {
   const R = o.size.w - LAYOUT.pad;
@@ -258,11 +259,14 @@ function drawCounts(p: Pen, b: Extract<Block, { t: "counts" }>, y: number, o: Dr
   b.months.forEach((m, i) => {
     const cx = R - (i + 0.5) * slot;
     const bw = slot * 0.56;
-    if (m.started) {
-      x.fillStyle = T.stone;
-      x.beginPath();
-      x.roundRect(cx - bw / 2, top, bw, base - top, [8, 8, 0, 0]);
-      x.fill();
+    // a month not started yet shows only what is already paid in it (no grey: nobody is late)
+    if (m.started || m.paid > 0) {
+      if (m.started) {
+        x.fillStyle = T.stone;
+        x.beginPath();
+        x.roundRect(cx - bw / 2, top, bw, base - top, [8, 8, 0, 0]);
+        x.fill();
+      }
       const k = m.of > 0 ? Math.min(1, m.paid / m.of) : 0;
       const h = Math.round((base - top) * k);
       if (h > 0) {

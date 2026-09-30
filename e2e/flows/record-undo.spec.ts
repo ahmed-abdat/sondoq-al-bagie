@@ -7,6 +7,8 @@ import {
   memberId,
   monthStates,
 } from "../../supabase/tests/e2e/helpers";
+import { monthsText } from "../../src/lib/reports/doc";
+import { reportText } from "./numbers";
 import { asCommittee, committeePhone, openPage, recordTransfer, undoFromSaved } from "./steps";
 
 const M = E2E_MEMBERS.pay; // B-901: group B, 500 a month, nothing paid yet
@@ -18,7 +20,8 @@ test("a committee member records a transfer from a screenshot: confirmed at once
   browser,
   baseURL,
 }) => {
-  const { page } = await committeePhone(browser, baseURL!, "treasurer"); // a plain committee member
+  const { ctx, page } = await committeePhone(browser, baseURL!, "treasurer"); // a plain member
+  await ctx.grantPermissions(["clipboard-read", "clipboard-write"]);
   expect(paidCount(await monthStates(M.ref))).toBe(0);
 
   // recorded → confirmed at once (m29: no review queue)
@@ -49,12 +52,16 @@ test("a committee member records a transfer from a screenshot: confirmed at once
   expect(statement.months.filter((m) => m.paid)).toHaveLength(due);
 
   await openPage(page, "/committee/members");
-  const row = page.getByRole("button").filter({ hasText: M.name }).first();
+  const row = page.getByRole("link").filter({ hasText: M.name }).first();
   await expect(row).toContainText(due === 12 ? "دفع السنة كاملة" : /دفع حتى/);
 
-  await openPage(page, "/committee/reports");
-  const gridRow = page.locator("tr").filter({ hasText: M.name }).first();
-  await expect(gridRow.locator(".bq-check")).toHaveCount(due);
+  // «جدول الأشهر» (the paper grid) as text: his line ticks the same months
+  const grid = await reportText(page, /^جدول الأشهر/);
+  const line = grid
+    .split("\n")
+    .find((l) => l.startsWith(`${M.name}:`) || l.includes(` ${M.name}:`));
+  expect(line, grid).toBeDefined();
+  expect(line).toContain(`✓ ${monthsText(Array.from({ length: due }, (_, i) => i + 1))}`);
 
   // who recorded it is kept
   const { data: rec } = await admin()

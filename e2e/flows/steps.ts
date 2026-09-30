@@ -96,7 +96,7 @@ export async function recordTransfer(page: Page, member: string, wallet = "بن�
 /** «تراجع (n)» on the saved screen, right after recordTransfer. */
 export async function undoFromSaved(page: Page) {
   await page.getByRole("button", { name: /^تراجع \(\d+\)$/ }).click();
-  await expect(page.getByText("تراجعت عن الدفعة.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "أُلغيت الدفعة، لم تُحسب." })).toBeVisible();
 }
 
 /**

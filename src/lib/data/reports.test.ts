@@ -148,7 +148,8 @@ describe("member reports", () => {
       opening: 1,
       income: { total: 2 },
       spending: { total: 3, by_category: [] },
-      closing: 0,
+      closing: 5000,
+      campaigns_held: 1500,
       months: [],
     };
     const { client } = fakeClient(
@@ -167,6 +168,8 @@ describe("member reports", () => {
       membersLate: 1,
       openLevies: 1,
       openCampaigns: 1,
+      closing: 5000,
+      campaignsHeld: 1500,
     });
     const sept = await r.loadSummary(client, { year: 2026, month: 9 }, now);
     expect(sept.membersPaidPeriod).toBe(2);
