@@ -30,7 +30,7 @@ Read this, then [DECISIONS.md](DECISIONS.md). Extending the app: [RECIPES.md](RE
   the base tables (31 checks). It runs in `run.sh`, on the e2e stack after the flows (CI,
   `supabase/tests/e2e/audit.sh`) and daily on production (`/api/audit`: `job_runs` + a push to
   «مسؤول» on any failure). 31/31 on production 2026-09-30.
-- Database: migrations m1–m44 applied to project `vhcdgxgwdlflmxmqnxzf`.
+- Database: migrations m1–m45 applied to project `vhcdgxgwdlflmxmqnxzf`.
   Every write RPC body lives in `app_private` (SECURITY DEFINER) behind a `public` SECURITY INVOKER
   wrapper; every migration since m28 has its own undo (`supabase/rollback/mNN_revert.sql`, proven
   by a catalog diff). See [supabase/README.md](../supabase/README.md).
