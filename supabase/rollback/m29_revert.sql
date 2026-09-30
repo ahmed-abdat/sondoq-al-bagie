@@ -4,7 +4,8 @@ set client_min_messages = warning;
 
 drop function if exists public.activity_log(bigint, integer), app_private.activity_log(bigint, integer),
   public.member_statement(uuid, smallint), app_private.member_statement(uuid, smallint),
-  public.set_push_kinds(text, text[]), app_private.set_push_kinds(text, text[]);
+  public.set_push_kinds(text, text[]), app_private.set_push_kinds(text, text[]),
+  public.co_paid_members(uuid, integer), app_private.co_paid_members(uuid, integer);
 alter table public.push_subscriptions drop column if exists kinds;
 
 CREATE OR REPLACE FUNCTION app_private.can_confirm()

@@ -495,6 +495,33 @@ language sql stable security invoker set search_path = '' as $$
   select app_private.member_statement(p_member_id => p_member_id, p_year => p_year)
 $$;
 
+/* ───────────────────────── «دفعوا معه سابقًا» ───────────────────────── */
+
+-- Suggestions when recording for a member: the other members covered by the same past confirmed
+-- payments (relatives who usually pay together), most often first, then most recent.
+create function app_private.co_paid_members(p_member_id uuid, p_limit integer default 10)
+returns table (member_id uuid, member_ref text, full_name text, times integer, last_paid_on date)
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  perform app_private.require_committee();
+  return query
+  select m.id, m.list_code || '-' || m.number, m.full_name, count(distinct p.id)::integer, max(p.paid_on)
+  from public.payment_allocations a0
+  join public.payments p on p.id = a0.payment_id and p.status = 'confirmed'
+  join public.payment_allocations a on a.payment_id = p.id and a.member_id is not null and a.member_id <> p_member_id
+  join public.members m on m.id = a.member_id
+  where a0.member_id = p_member_id
+  group by m.id, m.list_code, m.number, m.full_name
+  order by count(distinct p.id) desc, max(p.paid_on) desc, m.list_code, m.number
+  limit least(greatest(coalesce(p_limit, 10), 1), 50);
+end $$;
+
+create function public.co_paid_members(p_member_id uuid, p_limit integer default 10)
+returns table (member_id uuid, member_ref text, full_name text, times integer, last_paid_on date)
+language sql stable security invoker set search_path = '' as $$
+  select * from app_private.co_paid_members(p_member_id => p_member_id, p_limit => p_limit)
+$$;
+
 /* ───────────────────────── push: kinds per device ───────────────────────── */
 
 alter table public.push_subscriptions
@@ -520,10 +547,12 @@ language sql security invoker set search_path = '' as $$
 $$;
 
 revoke all on function app_private.activity_log(bigint, integer), public.activity_log(bigint, integer),
+  app_private.co_paid_members(uuid, integer), public.co_paid_members(uuid, integer),
   app_private.member_statement(uuid, smallint), public.member_statement(uuid, smallint),
   app_private.set_push_kinds(text, text[]), public.set_push_kinds(text, text[])
 from public, anon, authenticated;
 grant execute on function app_private.activity_log(bigint, integer), public.activity_log(bigint, integer),
+  app_private.co_paid_members(uuid, integer), public.co_paid_members(uuid, integer),
   app_private.member_statement(uuid, smallint), public.member_statement(uuid, smallint),
   app_private.set_push_kinds(text, text[]), public.set_push_kinds(text, text[])
 to authenticated, service_role;

@@ -1067,6 +1067,18 @@ select tests.ok((select exists (select 1 from jsonb_array_elements(s -> 'payment
 select tests.ok((select (s -> 'owed' ? 'credit') and jsonb_typeof(s -> 'months') = 'array'
                  from (select public.member_statement(tests.id('E'))) x(s)), 'the statement has the month grid, what is owed and credit');
 
+select tests.login('admin');
+select tests.set('cX', public.add_member(9103, 'أخ أ', 'A', tests.m(-1)));
+select tests.set('cY', public.add_member(9104, 'أخ ب', 'A', tests.m(-1)));
+select tests.set('cZ', public.add_member(9105, 'ابن عم', 'A', tests.m(-1)));
+select tests.login('committee');
+select tests.pay('cp1', 2000, jsonb_build_array(tests.month('cX', -1, 1000), tests.month('cY', -1, 1000)));
+select tests.pay('cp2', 3000, jsonb_build_array(tests.month('cX', 0, 1000), tests.month('cY', 0, 1000), tests.month('cZ', 0, 1000)));
+select tests.ok((select array_agg(full_name || ':' || times order by times desc, member_ref) from public.co_paid_members(tests.id('cX')))
+                = array['أخ ب:2', 'ابن عم:1'],
+  'members paid together before are suggested, most often first');
+select tests.ok((select count(*) from public.co_paid_members(tests.id('cX'), 1)) = 1, 'the list is limited');
+select tests.ok(not exists (select 1 from public.co_paid_members(tests.id('cX')) where member_id = tests.id('cX')), 'never the member himself');
 select public.save_push_subscription('https://push.test/c29', 'p256dh-key-for-testing-000', 'auth-key-0000');
 select tests.ok((select kinds = array['payment', 'expense', 'contribution', 'levy', 'cancel', 'member']
                  from public.push_subscriptions where endpoint = 'https://push.test/c29'), 'a new device gets every kind');
@@ -1081,6 +1093,7 @@ select tests.throws($$select public.set_push_kinds('https://push.test/c29', arra
 select tests.login('former');
 select tests.throws('select * from public.activity_log()', 'not_committee', 'an inactive account cannot read the activity log');
 select tests.throws($$select public.member_statement(tests.id('E'))$$, 'not_committee', 'nor a statement');
+select tests.throws($$select * from public.co_paid_members(tests.id('E'))$$, 'not_committee', 'nor the paid-together suggestions');
 select tests.login('public');
 select tests.throws('select * from public.activity_log()', '42501', 'strangers cannot read the activity log');
 
