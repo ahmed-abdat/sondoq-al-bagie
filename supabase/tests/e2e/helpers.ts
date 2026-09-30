@@ -189,11 +189,6 @@ export async function memberId(ref: string): Promise<string> {
   return row.id;
 }
 
-/** @deprecated member links were retired by m28 (committee-only app); kept so old skipped specs compile. */
-export async function memberLink(ref: string, by: Who = "admin"): Promise<string> {
-  throw new Error(`e2e: member links are retired (m28); no link for ${ref} (${by})`);
-}
-
 /* ───────────── assertions (service role) ───────────── */
 
 export type PaymentRow = {
