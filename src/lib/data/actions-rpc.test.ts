@@ -6,7 +6,7 @@ const rpc = vi.fn();
 const updateTag = vi.fn();
 vi.mock("server-only", () => ({}));
 vi.mock("next/server", () => ({ after: () => {} }));
-vi.mock("@/lib/push/send", () => ({ notifyConfirmers: async () => {} }));
+vi.mock("@/lib/push/send", () => ({ notifyCommittee: async () => {} }));
 vi.mock("next/cache", () => ({ updateTag: (t: string) => updateTag(t) }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("./committee", () => ({ getCommitteeSession: async () => null }));
@@ -146,20 +146,6 @@ const cases: Case[] = [
     "apply_credit",
     { p_id: id, p_member_id: member, p_months: [{ year: 2026, month: 10 }] },
     true,
-  ],
-  [
-    "createMemberLink",
-    () => a.createMemberLink({ memberId: member }),
-    "create_member_link",
-    { p_member_id: member, p_token_hash: expect.stringMatching(/^[0-9a-f]{64}$/) },
-    false,
-  ],
-  [
-    "revokeMemberLink",
-    () => a.revokeMemberLink({ memberId: member }),
-    "revoke_member_link",
-    { p_member_id: member },
-    false,
   ],
   [
     "setCommitteeNotMember",

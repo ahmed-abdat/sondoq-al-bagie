@@ -4,13 +4,9 @@ import type { FundInfo, MemberStatus } from "./types";
 
 vi.mock("server-only", () => ({}));
 let committee = false;
-let member = false;
 const userClient = { name: "user" };
-const adminClient = { name: "admin" };
 vi.mock("./committee", () => ({ getCommitteeSession: async () => (committee ? {} : null) }));
-vi.mock("./member", () => ({ memberSession: async () => (member ? {} : null) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => userClient }));
-vi.mock("@/lib/supabase/admin", () => ({ tryCreateAdminClient: () => adminClient }));
 
 const status = (over: Partial<MemberStatus>): MemberStatus => ({
   memberId: "m1",
@@ -53,7 +49,6 @@ const { loadReportShell } = await import("./report");
 
 beforeEach(() => {
   committee = false;
-  member = false;
   info = { ...toFundInfo(null), showAmountOwed: false };
   for (const f of Object.values(read)) f.mockClear();
   read.fundSummary.mockImplementation(async () => ({ ...toFundSummary(null), balance: 543500 }));
@@ -74,9 +69,8 @@ describe("money viewer", () => {
     expect(read.campaignContributions).not.toHaveBeenCalled();
   });
 
-  it("the committee reads with its own session (RLS), before a member cookie", async () => {
+  it("the committee reads with its own session (RLS)", async () => {
     committee = true;
-    member = true;
     expect(await money.moneyViewer()).toEqual({ viewer: "committee", client: userClient });
     const m = await money.getMoney({ year: 2026 });
     expect(m).toMatchObject({ viewer: "committee", year: 2026, amountOwed: null });
@@ -85,17 +79,13 @@ describe("money viewer", () => {
     expect(read.monthlyCollection).toHaveBeenCalledWith(userClient, 2026);
   });
 
-  it("a member with a link reads with the server client", async () => {
-    member = true;
-    expect(await money.moneyViewer()).toEqual({ viewer: "member", client: adminClient });
-    expect((await money.getMoney())?.viewer).toBe("member");
-    expect(read.fundSummary).toHaveBeenCalledWith(adminClient);
-    expect(await money.getMoneyContributions("c1", 5)).toEqual([{ amount: 500 }]);
-    expect(read.campaignContributions).toHaveBeenCalledWith(adminClient, "c1", 5);
+  it("nobody but the committee sees money (member links retired in m28)", async () => {
+    expect(await money.moneyViewer()).toBeNull();
+    expect(await money.getMoney()).toBeNull();
   });
 
   it("amounts owed only when the admin turned them on, skipping null", async () => {
-    member = true;
+    committee = true;
     expect((await money.getMoney())?.amountOwed).toBeNull();
     info = { ...info, showAmountOwed: true };
     expect((await money.getMoney())?.amountOwed).toEqual({ m1: 2000 });

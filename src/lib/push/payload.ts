@@ -41,46 +41,70 @@ export function pendingPaymentPayload(p: {
   };
 }
 
-/**
- * To the devices of the link that sent the payment. A family phone holds several profiles, so the
- * title says whose: «تم تأكيد دفعة محمد» (→ the receipt).
- */
-export function memberConfirmedPayload(p: {
+/* ───────────── to the other committee members (m29: one level, no confirmation step) ───────────── */
+
+/** «سجّل أحمد دفعة»: payer · amount · months (+ «تبرع» / «لوحة» / «رصيد»). */
+export function recordedPaymentPayload(p: {
   id: string;
-  /** the link's member (first name is enough on a lock screen) */
-  memberName?: string | null;
+  actorName: string | null;
+  payerName: string;
   amount: number;
-  receiptCode: string | null;
   allocations: Alloc[];
 }): PushPayload {
-  const yms = [
-    ...new Set(
-      p.allocations.flatMap((a) =>
-        a.kind === "months" ? [`${a.year}-${String(a.month).padStart(2, "0")}`] : [],
-      ),
-    ),
-  ].sort();
-  const parts = [`${formatNumber(p.amount)} أوقية`];
-  if (yms.length) parts.push(monthsList(yms));
+  const base = pendingPaymentPayload(p);
+  const onlyCampaign =
+    p.allocations.length > 0 && p.allocations.every((a) => a.kind === "campaign");
+  const what = onlyCampaign ? "مساهمة" : "دفعة";
   return {
-    title: p.memberName ? `تم تأكيد دفعة ${firstName(p.memberName)}` : "تم تأكيد دفعتك",
-    body: parts.join(" · "),
-    url: p.receiptCode ? `/r/${p.receiptCode}` : "/me",
-    tag: `member-${p.id}`,
+    ...base,
+    title: p.actorName ? `سجّل ${firstName(p.actorName)} ${what}` : `${what} جديدة`,
+    url: "/committee/payments",
+    tag: `payment-${p.id}`,
   };
 }
 
-/** To the member: «رُفضت دفعة محمد» with the committee's reason. */
-export function memberRejectedPayload(p: {
+/** «سجّل أحمد مصروفًا»: note or category · amount. */
+export function expensePayload(p: {
   id: string;
-  memberName?: string | null;
-  reason: string | null;
+  actorName: string | null;
+  label: string;
+  amount: number;
 }): PushPayload {
   return {
-    title: p.memberName ? `رُفضت دفعة ${firstName(p.memberName)}` : "رُفضت الدفعة",
-    body: p.reason?.trim() || "راجع اللجنة لمعرفة السبب.",
-    url: "/me",
-    tag: `member-${p.id}`,
+    title: p.actorName ? `سجّل ${firstName(p.actorName)} مصروفًا` : "مصروف جديد",
+    body: `${p.label.trim()} · ${formatNumber(p.amount)} أوقية`,
+    url: "/committee/expenses",
+    tag: `expense-${p.id}`,
+  };
+}
+
+/** «ألغى أحمد دفعة» with the reason. */
+export function cancelPayload(p: {
+  id: string;
+  actorName: string | null;
+  what: "دفعة" | "مصروفًا";
+  reason: string;
+}): PushPayload {
+  return {
+    title: p.actorName ? `ألغى ${firstName(p.actorName)} ${p.what}` : `إلغاء ${p.what}`,
+    body: p.reason.trim(),
+    url: "/committee/activity",
+    tag: `cancel-${p.id}`,
+  };
+}
+
+/** «لوحة جديدة: …» with how many members it is set on. */
+export function levyPayload(p: {
+  id: string;
+  title: string;
+  amount: number;
+  members: number;
+}): PushPayload {
+  return {
+    title: `لوحة جديدة: ${p.title.trim()}`,
+    body: `${formatNumber(p.amount)} أوقية · ${formatNumber(p.members)} عضوًا`,
+    url: "/committee/donations",
+    tag: `levy-${p.id}`,
   };
 }
 

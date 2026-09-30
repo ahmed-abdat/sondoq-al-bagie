@@ -1,27 +1,20 @@
 import "server-only";
-// Money privacy (docs/MONEY-PRIVACY.md): money figures only for the committee (its own session,
-// guarded by RLS / can_see_money) and for a member with their link (our server checks the cookie,
-// then reads with the secret key). Strangers get null and the UI shows «•••». Nothing here is
-// cached across requests: pages calling these render per request.
-import { tryCreateAdminClient } from "@/lib/supabase/admin";
+// Money figures for the committee (its own session; the database guards them with can_see_money).
+// Anyone else gets null. The app is committee-only since m28 (member links retired). Nothing here
+// is cached across requests: pages calling these render per request.
 import { createClient } from "@/lib/supabase/server";
 import { getCommitteeSession } from "./committee";
-import { memberSession } from "./member";
 import * as read from "./read";
 import { loadReport, type ReportOptions } from "./report";
 import type { CampaignContribution, MoneyBundle, ReportData } from "./types";
 
 type Viewer = { viewer: MoneyBundle["viewer"]; client: read.Client };
 
-/** Who may see money on this request, with the client to read it: committee first, then member. */
+/** Who may see money on this request (the committee), with the client to read it. */
 export async function moneyViewer(): Promise<Viewer | null> {
   if (await getCommitteeSession()) {
     const client = await createClient();
     if (client) return { viewer: "committee", client };
-  }
-  if (await memberSession()) {
-    const client = tryCreateAdminClient();
-    if (client) return { viewer: "member", client };
   }
   return null;
 }
@@ -64,13 +57,13 @@ export async function getMoney(opts: { year?: number } = {}): Promise<MoneyBundl
   };
 }
 
-/** The full report (with money) for the committee or a member; null for strangers (use getReportShell). */
+/** The full report (with money) for the committee; null otherwise. */
 export async function getReportForViewer(opts: ReportOptions = {}): Promise<ReportData | null> {
   const v = await moneyViewer();
   return v ? loadReport(v.client, opts) : null;
 }
 
-/** A campaign's contributions with amounts; null for strangers (use getContributorsPublic). */
+/** A campaign's contributions with amounts; null outside the committee. */
 export async function getMoneyContributions(
   campaignId: string,
   limit = 20,

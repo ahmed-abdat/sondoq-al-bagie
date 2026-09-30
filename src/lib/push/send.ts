@@ -5,6 +5,7 @@ import "server-only";
 // it does nothing.
 import webpush from "web-push";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
+import type { PushKind } from "@/lib/data/schemas";
 import type { PushPayload } from "./payload";
 
 type Admin = NonNullable<ReturnType<typeof tryCreateAdminClient>>;
@@ -28,32 +29,27 @@ function vapid() {
   return publicKey && privateKey && subject ? { publicKey, privateKey, subject } : null;
 }
 
-/** Active admin/treasurer/deputy accounts, except `exclude` (who recorded the payment). */
-async function confirmerIds(admin: Admin, exclude: string | null): Promise<string[]> {
-  const { data, error } = await admin
-    .from("committee")
-    .select("user_id")
-    .eq("active", true)
-    .in("role", ["admin", "treasurer", "deputy"]);
-  if (error) throw error;
-  return (data ?? []).map((r) => r.user_id).filter((id) => id !== exclude);
-}
-
 /** Send one payload to every subscription of `userIds`; cleans up dead ones. Returns counts. */
 export async function sendPush(
   userIds: string[],
   payload: PushPayload,
-  deps: { admin?: Admin | null; send?: typeof webpush.sendNotification } = {},
+  deps: {
+    admin?: Admin | null;
+    send?: typeof webpush.sendNotification;
+    /** only devices that chose this kind (m29 push_subscriptions.kinds) */
+    kind?: PushKind;
+  } = {},
 ): Promise<Record<Outcome, number>> {
   const counts: Record<Outcome, number> = { ok: 0, gone: 0, failed: 0 };
   const keys = vapid();
   const admin = deps.admin === undefined ? tryCreateAdminClient() : deps.admin;
   if (!keys || !admin || !userIds.length) return counts;
   try {
-    const { data, error } = await admin
+    const base = admin
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth, failures")
       .in("user_id", userIds);
+    const { data, error } = await (deps.kind ? base.contains("kinds", [deps.kind]) : base);
     if (error) throw error;
     const send = deps.send ?? webpush.sendNotification;
     const body = JSON.stringify(payload);
@@ -92,28 +88,27 @@ export async function sendPush(
   return counts;
 }
 
-/** How many payments are waiting for confirmation, or undefined if it cannot be read. */
-async function pendingCount(admin: Admin): Promise<number | undefined> {
-  const { count, error } = await admin
-    .from("payments")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "pending");
-  return error || count === null ? undefined : count;
+/** Every active committee account except `exclude` (whoever did it). */
+async function committeeIds(admin: Admin, exclude: string | null): Promise<string[]> {
+  const { data, error } = await admin.from("committee").select("user_id").eq("active", true);
+  if (error) throw error;
+  return (data ?? []).map((r) => r.user_id).filter((id) => id !== exclude);
 }
 
 /**
- * «دفعة بانتظار التأكيد» to every confirmer except the recorder, with the current number of
- * pending payments as `badgeCount`. Never throws.
+ * «سجّل X دفعة لـ Y» etc. to the other committee members whose device chose `kind` (owner
+ * 2026-09-30: one committee level, no confirmation step). Needs m29 (push_subscriptions.kinds);
+ * switch the callers from notifyConfirmers to this when m29 is applied. Never throws.
  */
-export async function notifyConfirmers(recorderId: string | null, payload: PushPayload) {
+export async function notifyCommittee(
+  kind: PushKind,
+  actorId: string | null,
+  payload: PushPayload,
+) {
   const admin = tryCreateAdminClient();
   if (!admin || !vapid()) return;
   try {
-    const [ids, badgeCount] = await Promise.all([
-      confirmerIds(admin, recorderId),
-      pendingCount(admin).catch(() => undefined),
-    ]);
-    await sendPush(ids, badgeCount === undefined ? payload : { ...payload, badgeCount }, { admin });
+    await sendPush(await committeeIds(admin, actorId), payload, { admin, kind });
   } catch (err) {
     console.error("[push]", err);
   }

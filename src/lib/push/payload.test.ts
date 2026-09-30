@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { parsePushPayload } from "@/lib/offline/push-payload";
-import { pendingPaymentPayload } from "./payload";
+import {
+  cancelPayload,
+  expensePayload,
+  levyPayload,
+  pendingPaymentPayload,
+  recordedPaymentPayload,
+} from "./payload";
 
 describe("pendingPaymentPayload", () => {
   it("names the payer, the amount and the months once, in order", () => {
@@ -39,5 +45,46 @@ describe("pendingPaymentPayload", () => {
       badgeCount: 4,
     };
     expect(parsePushPayload(JSON.stringify(p))).toEqual(p);
+  });
+});
+
+describe("committee payloads (m29)", () => {
+  it("says who recorded what, and a contribution apart from a payment", () => {
+    const pay = recordedPaymentPayload({
+      id: "p1",
+      actorName: "محمد ولد أحمد",
+      payerName: "سيدي",
+      amount: 1000,
+      allocations: [{ kind: "months", year: 2026, month: 9 }],
+    });
+    expect(pay).toMatchObject({
+      title: "سجّل محمد دفعة",
+      url: "/committee/payments",
+      tag: "payment-p1",
+    });
+    expect(pay.body).toContain("سيدي");
+    const gift = recordedPaymentPayload({
+      id: "p2",
+      actorName: null,
+      payerName: "متبرع",
+      amount: 500,
+      allocations: [{ kind: "campaign" }],
+    });
+    expect(gift.title).toBe("مساهمة جديدة");
+  });
+
+  it("expense, cancellation and a new levy", () => {
+    expect(expensePayload({ id: "e1", actorName: "أحمد", label: "كرات", amount: 7500 }).title).toBe(
+      "سجّل أحمد مصروفًا",
+    );
+    expect(
+      cancelPayload({ id: "p1", actorName: "أحمد", what: "دفعة", reason: " خطأ " }),
+    ).toMatchObject({
+      title: "ألغى أحمد دفعة",
+      body: "خطأ",
+    });
+    expect(levyPayload({ id: "l1", title: "مساعدة", amount: 2000, members: 21 }).title).toBe(
+      "لوحة جديدة: مساعدة",
+    );
   });
 });

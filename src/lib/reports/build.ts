@@ -507,8 +507,9 @@ export function buildHandover(d: HandoverReport): ReportDoc {
 /* ─────────────── 9 · per wallet ─────────────── */
 
 export function buildWallets(d: WalletsReport): ReportDoc {
-  const withOut = d.wallets.some((w) => w.out !== undefined);
-  const withBal = d.wallets.some((w) => w.balance !== undefined);
+  const all = [...d.wallets, d.cash];
+  const withOut = all.some((w) => w.out !== undefined) || !!d.unspecifiedOut;
+  const withBal = all.some((w) => w.balance !== undefined);
   const head = [
     "المحفظة",
     "الدفعات",
@@ -516,26 +517,33 @@ export function buildWallets(d: WalletsReport): ReportDoc {
     ...(withOut ? ["خرج"] : []),
     ...(withBal ? ["الرصيد"] : []),
   ];
-  const line = (label: string, count: number, inn: number, out?: number, bal?: number) => [
+  const line = (label: string, count: string, inn: string, out?: number, bal?: number) => [
     label,
-    fmt(count),
-    fmt(inn),
+    count,
+    inn,
     ...(withOut ? [out ? fmt(out) : ""] : []),
     ...(withBal ? [bal !== undefined ? fmt(bal) : ""] : []),
   ];
+  const cash = d.cash;
   const rows = [
     ...d.wallets.map((w) =>
       line(
         w.accountNumber ? `${w.label} ${w.accountNumber}` : w.label,
-        w.count,
-        w.in,
+        fmt(w.count),
+        fmt(w.in),
         w.out,
         w.balance,
       ),
     ),
-    ...(d.cash.count || d.cash.in ? [line("نقدًا", d.cash.count, d.cash.in)] : []),
+    ...(cash.count || cash.in || cash.out
+      ? [line("نقدًا", fmt(cash.count), fmt(cash.in), cash.out, cash.balance)]
+      : []),
+    // expenses recorded before each one named its wallet (m31): spent, but from no known wallet
+    ...(d.unspecifiedOut ? [line("مصاريف قبل تسمية المحفظة", "", "", d.unspecifiedOut)] : []),
   ];
-  const count = d.wallets.reduce((s, w) => s + w.count, 0) + d.cash.count;
+  const count = all.reduce((s, w) => s + w.count, 0);
+  const outTotal = all.reduce((s, w) => s + (w.out ?? 0), 0) + (d.unspecifiedOut ?? 0);
+  const balTotal = all.reduce((s, w) => s + (w.balance ?? 0), 0);
   return {
     kind: "wallets",
     title: "المبالغ حسب المحفظة",
@@ -546,13 +554,14 @@ export function buildWallets(d: WalletsReport): ReportDoc {
             t: "table",
             head,
             num: head.map((_, i) => i > 0),
+            widths: head.length > 3 ? [0.32, 0.14, 0.18, 0.18, 0.18] : undefined,
             rows,
             foot: [
               "المجموع",
               fmt(count),
               fmt(d.totalIn),
-              ...(withOut ? [fmt(d.wallets.reduce((s, w) => s + (w.out ?? 0), 0))] : []),
-              ...(withBal ? [fmt(d.wallets.reduce((s, w) => s + (w.balance ?? 0), 0))] : []),
+              ...(withOut ? [fmt(outTotal)] : []),
+              ...(withBal ? [fmt(balTotal)] : []),
             ],
           },
           {

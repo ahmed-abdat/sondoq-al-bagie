@@ -2,7 +2,6 @@
 // Supabase started by up.sh: every entry point checks the env first and refuses production.
 // Accounts and passwords here are fictional and exist only in the local Docker database.
 import { execFileSync } from "node:child_process";
-import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -190,21 +189,9 @@ export async function memberId(ref: string): Promise<string> {
   return row.id;
 }
 
-/**
- * A fresh personal link for a member, made like the app does (the committee's RPC, only the hash
- * stored). Returns the path to open in the member's browser context: `/m/<token>`.
- */
+/** @deprecated member links were retired by m28 (committee-only app); kept so old skipped specs compile. */
 export async function memberLink(ref: string, by: Who = "admin"): Promise<string> {
-  const token = randomBytes(32).toString("base64url");
-  const c = await signedIn(by);
-  must(
-    "create_member_link",
-    await c.rpc("create_member_link", {
-      p_member_id: await memberId(ref),
-      p_token_hash: createHash("sha256").update(token).digest("hex"),
-    }),
-  );
-  return `/m/${token}`;
+  throw new Error(`e2e: member links are retired (m28); no link for ${ref} (${by})`);
 }
 
 /* ───────────── assertions (service role) ───────────── */
