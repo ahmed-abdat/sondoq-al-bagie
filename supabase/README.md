@@ -51,10 +51,33 @@ and every change lands in `audit_log`.
 | `*_m34_fee_stats_as_of.sql` | `report_fee_stats(year, p_as_of date default null)`: the year as it stood on a day (paid = confirmed on/before it and not released on/before it; late then; ref month = as-of month), `as_of` + `before_records` (as-of day before the first recorded payment → the app shows no comparison); the app compares this year with last year at today − 1 year. 1-arg call unchanged. Undo: `rollback/m34_revert.sql` |
 | `*_m35_accuracy_audit.sql` | `accuracy_audit()` (committee, read-only): the 28 accuracy checks, one row each (`check_name, ok, detail`), counts only; the single source for `tests/accuracy_audit.sql`, run.sh and `tests/e2e/audit.sh` (CI, after the flows). Undo: `rollback/m35_revert.sql` |
 
-Access: `anon` reads only the `keepalive` view (m28: the app is committee-only). An active row in
-`committee` reads everything through RLS. Nobody writes tables directly; all writes go through the
-RPCs, which return errors as SQLSTATE `P0001` with a stable `HINT` code (e.g. `month_already_paid`,
-`own_membership`, `not_confirmer`) for the app to translate.
+Access (committee-only app since m28/m29, [docs/COMMITTEE-ONLY-PLAN.md](../docs/COMMITTEE-ONLY-PLAN.md)):
+`anon` reads only the `keepalive` view. An active row in `committee` reads everything through RLS
+and the committee reads/RPCs. Two levels: every active committee member records (payments are
+confirmed at once), expenses, credit, member details, settings, fund accounts, and may undo his own
+record within 30 s; **«مسؤول»** (role `admin`; `treasurer` / `deputy` / `committee` behave the
+same) alone manages accounts, the handover, member status / group / join month, cancellations,
+campaigns and levies, and fee groups. The server (secret key, `is_server()`) may do everything.
+Nobody writes tables directly; all writes go through the RPCs, which return errors as SQLSTATE
+`P0001` with a stable `HINT` code (e.g. `month_already_paid`, `not_admin`, `reason_required`) for
+the app to translate (`src/lib/data/errors.ts`). Rows from m1–m27 above describe history
+(public views, receipts, member links); the later rows say what was removed.
+
+## Accuracy audit
+
+`accuracy_audit()` (m35, committee or server, read-only) recomputes every figure the app shows from
+the base tables: 28 checks, one row each (`check_name, ok, detail`), counts only. It is the single
+source of the checks:
+
+- production by hand: `tests/accuracy_audit.sql` (MCP `execute_sql`), expect 28/28;
+- daily on production: `/api/audit` (Vercel cron) records `job_runs` (job `audit`, m36) and pushes
+  an alert to the «مسؤول» accounts when a check fails;
+- `run.sh`: `tests/local/accuracy_audit_checks.sql` (the fee-completeness check is skipped: the
+  tests keep groups without a fee on purpose);
+- e2e stack after the flows (CI): `tests/e2e/audit.sh`.
+
+A new figure in the app gets a check here. A failing check means a wrong number somewhere: find the
+cause, never "fix" data from the audit.
 
 ## Test locally (no Docker)
 
