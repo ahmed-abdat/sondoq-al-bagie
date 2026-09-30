@@ -242,8 +242,12 @@ export type FeeStatsBlock = {
 
 export type FeeStats = {
   year: number;
-  /** this month for the current year, 12 for a past year */
+  /** this month for the current year, 12 for a past year; the as-of month for a snapshot */
   refMonth: number;
+  /** YYYY-MM-DD when this is a snapshot of how the year stood that day, else null */
+  asOf: string | null;
+  /** the snapshot day is before the first recorded payment: its numbers mean nothing */
+  beforeRecords: boolean;
   overall: FeeStatsBlock;
   groups: ({ groupCode: string } & FeeStatsBlock)[];
   /** 12 months; unpaid counts only months that have started */

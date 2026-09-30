@@ -1759,7 +1759,7 @@ export type Database = {
       }
       report_donation_stats: { Args: { p_id?: string }; Returns: Json }
       report_fee_stats: {
-        Args: { p_ref_month?: number; p_year: number }
+        Args: { p_as_of?: string; p_year: number }
         Returns: Json
       }
       report_levy_stats: { Args: { p_id?: string }; Returns: Json }

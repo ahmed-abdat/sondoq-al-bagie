@@ -438,8 +438,35 @@ describe("«الإحصاءات»", () => {
       target: null,
       targetPct: null,
     });
-    expect(rpc).toHaveBeenCalledWith("report_fee_stats", { p_year: 2025, p_ref_month: 9 });
+    expect(rpc).toHaveBeenCalledWith("report_fee_stats", { p_year: 2025, p_as_of: r.yearAgo(now) });
     expect(JSON.stringify(s)).not.toMatch(/full_?name|member_?ref/i);
+  });
+
+  it("last year: a snapshot a year ago for the current year, none before the records", async () => {
+    const rpc = vi.fn(async (name: string, args: { p_year?: number; p_as_of?: string }) => ({
+      data:
+        name === "report_fee_stats"
+          ? {
+              ...fee(args.p_year!, 3),
+              as_of: args.p_as_of ?? null,
+              before_records: args.p_year === 2025,
+            }
+          : [],
+      error: null,
+    }));
+    const s = await r.loadStats({ rpc } as never, 2026, now);
+    expect(rpc).toHaveBeenCalledWith("report_fee_stats", { p_year: 2025, p_as_of: "2025-09-30" });
+    expect(s.fees).toMatchObject({ asOf: null, beforeRecords: false });
+    expect(s.previous).toBeNull();
+    const past = await r.loadStats({ rpc } as never, 2025, now);
+    expect(rpc).toHaveBeenCalledWith("report_fee_stats", { p_year: 2024 });
+    expect(past.previous).toMatchObject({ year: 2024, asOf: null, beforeRecords: false });
+  });
+
+  it("the same day a year ago", () => {
+    expect(r.yearAgo(new Date("2026-09-30T23:59:00Z"))).toBe("2025-09-30");
+    expect(r.yearAgo(new Date("2028-02-29T08:00:00Z"))).toBe("2027-02-28");
+    expect(r.yearAgo(new Date("2027-01-01T00:00:00Z"))).toBe("2026-01-01");
   });
 
   it("one levy or donation by id", async () => {

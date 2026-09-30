@@ -1425,20 +1425,62 @@ select tests.throws($$select * from public.groups_overview(2026::int)$$, '42501'
 select tests.login('server');
 \ir local/accuracy_audit_checks.sql
 
-/* ───────────── M34: fee stats at a reference month ───────────── */
+/* ───────────── M34: fee stats as they stood on a day (p_as_of) ───────────── */
 
+-- sXp (above) paid this month for sX today. Timestamps are moved by hand (triggers off) to
+-- replay "paid later" and "cancelled later".
 select tests.login('committee');
-select tests.ok((public.report_fee_stats(extract(year from current_date)::int - 1, 3) ->> 'ref_month')::int = 3
-                and (public.report_fee_stats(extract(year from current_date)::int - 1) ->> 'ref_month')::int = 12
-                and public.report_fee_stats(extract(year from current_date)::int, extract(month from current_date)::int)
-                    = public.report_fee_stats(extract(year from current_date)::int),
-  'a reference month counts the year up to it; the default is unchanged');
+select tests.set('k', extract(month from current_date)::int::text);
+select tests.set('paidNow', (public.report_fee_stats(extract(year from current_date)::int) -> 'months'
+                             -> (tests.get('k')::int - 1) ->> 'paid'));
+select tests.ok(public.report_fee_stats(extract(year from current_date)::int, current_date) - 'as_of' - 'before_records'
+                = public.report_fee_stats(extract(year from current_date)::int) - 'as_of' - 'before_records'
+                and (public.report_fee_stats(extract(year from current_date)::int, current_date) ->> 'before_records')::boolean = false,
+  'a snapshot today = today''s numbers');
+reset role;
+set local session_replication_role = replica;
+update public.payment_months set created_at = make_date(extract(year from current_date)::int + 1, 1, 15)
+where payment_id = tests.id('sXp');
+set local session_replication_role = origin;
+select tests.login('committee');
+select tests.ok((public.report_fee_stats(extract(year from current_date)::int, current_date) -> 'months'
+                 -> (tests.get('k')::int - 1) ->> 'paid')::int = tests.get('paidNow')::int - 1
+                and (public.report_fee_stats(extract(year from current_date)::int) -> 'months'
+                     -> (tests.get('k')::int - 1) ->> 'paid')::int = tests.get('paidNow')::int,
+  'a month of year Y paid in Y+1 is not paid in the snapshot of year Y (but is paid today)');
+reset role;
+set local session_replication_role = replica;
+update public.payment_months set created_at = now() - interval '40 days', released_at = now() + interval '1 day'
+where payment_id = tests.id('sXp');
+set local session_replication_role = origin;
+select tests.login('committee');
+select tests.ok((public.report_fee_stats(extract(year from current_date)::int, current_date) -> 'months'
+                 -> (tests.get('k')::int - 1) ->> 'paid')::int = tests.get('paidNow')::int
+                and (public.report_fee_stats(extract(year from current_date)::int) -> 'months'
+                     -> (tests.get('k')::int - 1) ->> 'paid')::int = tests.get('paidNow')::int - 1,
+  'cancelled after the as-of day: still paid on that day (not paid today)');
+reset role;
+set local session_replication_role = replica;
+update public.payment_months set released_at = now() - interval '1 day' where payment_id = tests.id('sXp');
+set local session_replication_role = origin;
+select tests.login('committee');
+select tests.ok((public.report_fee_stats(extract(year from current_date)::int, current_date) -> 'months'
+                 -> (tests.get('k')::int - 1) ->> 'paid')::int = tests.get('paidNow')::int - 1,
+  'cancelled on/before the as-of day: not paid on that day');
+reset role;
+set local session_replication_role = replica;
+update public.payment_months set created_at = now(), released_at = null where payment_id = tests.id('sXp');
+set local session_replication_role = origin;
+select tests.login('committee');
 select tests.ok((select (o ->> 'paid_up')::int + (o ->> 'owe_1')::int + (o ->> 'owe_2_3')::int + (o ->> 'owe_4plus')::int
                         = (o ->> 'active')::int
-                 from (select public.report_fee_stats(extract(year from current_date)::int, 1) -> 'overall' o) x),
-  'buckets add up at any reference month');
-select tests.throws($$select public.report_fee_stats(2026, 13)$$, 'invalid_input', 'reference month is 1–12');
-select tests.throws($$select public.report_fee_stats(2026, 0)$$, 'invalid_input', 'reference month is 1–12 (0)');
+                 from (select public.report_fee_stats(extract(year from current_date)::int, current_date) -> 'overall' o) x),
+  'snapshot buckets add up to active members');
+select tests.ok((public.report_fee_stats(2020, date '2020-06-15') ->> 'before_records')::boolean
+                and (public.report_fee_stats(2020, date '2020-06-15') ->> 'ref_month')::int = 6
+                and (public.report_fee_stats(2020, date '2021-03-01') ->> 'ref_month')::int = 12,
+  'before the first recorded payment: flagged; ref month = month of the as-of day (12 in a later year)');
+select tests.throws($$select public.report_fee_stats(2026, date '2025-12-31')$$, 'invalid_input', 'as-of day before the year');
 
 /* ───────────── M16: backup snapshot and job runs ───────────── */
 

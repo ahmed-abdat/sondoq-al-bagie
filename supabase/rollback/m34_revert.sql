@@ -1,7 +1,7 @@
--- Undo m34 (fee stats reference month): back to the m33 state, report_fee_stats(year) only.
+-- Undo m34 (fee stats as-of snapshot): back to the m33 state, report_fee_stats(year) only.
 -- Bodies are pg_get_functiondef of the m33 state. Run as postgres; also run first by m2_down.sql.
 set client_min_messages = warning;
-drop function if exists public.report_fee_stats(integer, integer), app_private.report_fee_stats(integer, integer);
+drop function if exists public.report_fee_stats(integer, date), app_private.report_fee_stats(integer, date);
 CREATE OR REPLACE FUNCTION app_private.report_fee_stats(p_year integer)
  RETURNS jsonb
  LANGUAGE plpgsql
