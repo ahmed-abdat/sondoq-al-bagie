@@ -367,6 +367,17 @@ describe("«الإحصاءات»", () => {
     expect(txt(past)).toContain("ديسمبر 2");
     expect(txt(past)).not.toContain("السنة الماضية");
   });
+  it("last year: on the same day, the whole year for a past year, nothing before the records", () => {
+    const line = (previous: typeof fx.fxStats.previous) =>
+      txt(buildStats({ ...fx.fxStats, previous }))
+        .split("\n")
+        .find((l) => l.startsWith("السنة الماضية"));
+    const prev = fx.fxStats.previous!;
+    expect(line(prev)).toBe("السنة الماضية في مثل هذا الوقت: 55٪ دفعوا.");
+    expect(line({ ...prev, asOf: null })).toBe("السنة الماضية كاملة: 55٪ دفعوا.");
+    expect(line({ ...prev, beforeRecords: true })).toBeUndefined();
+    expect(line(null)).toBeUndefined();
+  });
   it("nobody owing says so instead of three zeros", () => {
     const o = { ...fx.fxFeeStats.overall, paidUp: 88, owe1: 0, owe2to3: 0, owe4plus: 0 };
     const t = txt(buildStats({ ...fx.fxStats, fees: { ...fx.fxFeeStats, overall: o } }));
