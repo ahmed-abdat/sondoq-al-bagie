@@ -68,10 +68,9 @@ const runtimeCaching: RuntimeCaching[] = [
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
-  // THIS release only (committee-only, owner 2026-09-30): take over by itself so installed phones
-  // drop the old public pages at their next open. Back to `false` in the next release: a new
-  // version then waits until the user taps «تحديث» (see the update toast).
-  skipWaiting: true,
+  // A new version waits until the user taps «تحديث» (see the update toast), then takes over.
+  // (The committee-only release 68e4df2 took over by itself, once, to drop the public pages.)
+  skipWaiting: false,
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching,
