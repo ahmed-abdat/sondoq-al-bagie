@@ -8,7 +8,7 @@ import { RecordScreen } from "./record";
 import { ReportsScreen } from "./reports";
 import { ExpensesScreen } from "./expenses";
 import { MemberScreen, MembersScreen } from "./members";
-import { ActivityScreen, MoreScreen } from "./more";
+import { ActivityScreen } from "./more";
 import { StatsScreen } from "./stats-screen";
 import type { PData } from "./types";
 
@@ -50,9 +50,7 @@ export function AdminApp({
     <StatsScreen />
   ) : p0 === "activity" ? (
     <ActivityScreen />
-  ) : (
-    <MoreScreen />
-  );
+  ) : null;
   return (
     <Provider d={data} q={q}>
       {body}

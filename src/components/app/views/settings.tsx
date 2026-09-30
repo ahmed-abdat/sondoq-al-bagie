@@ -31,10 +31,10 @@ function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const wallets = METHODS.filter((x) => methodLogo(x));
-  const ok = m && /^\d{8,11}$/.test(num) && holder.trim().length > 1;
+  const ok = m && /^\d{8,11}$/.test(num);
   return (
     <div className="bq-rec">
-      <h2>إضافة رقم</h2>
+      <h2>أضف محفظة</h2>
       <p className="bq-rec-k">المحفظة</p>
       <div className="bq-meth-grid" role="radiogroup" onKeyDown={radioKeys} aria-label="المحفظة">
         {wallets.map((x, i, all) => (
@@ -65,17 +65,13 @@ function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
         dir="ltr"
         aria-label="رقم المحفظة"
       />
-      <p className="bq-rec-k">الاسم كما يظهر في المحفظة</p>
+      <p className="bq-rec-k">اسم الحساب (اختياري)</p>
       <input
         className="bq-input"
         value={holder}
         onChange={(e) => setHolder(e.target.value)}
-        aria-label="اسم صاحب الحساب"
-        aria-describedby="bq-holder-hint"
+        aria-label="اسم الحساب"
       />
-      <p className="bq-hint" id="bq-holder-hint">
-        اكتب الاسم كما يظهر في تطبيق المحفظة (بالحروف اللاتينية لسداد ومصرفي)
-      </p>
       <div className="bq-rec-foot">
         {err && (
           <p className="bq-alert" role="alert">
@@ -92,15 +88,15 @@ function AddAccountBody({ onDone }: { onDone: (text: string) => void }) {
             const r = await addFundAccount({
               method: m,
               accountNumber: num,
-              holderName: holder.trim(),
+              holderName: holder.trim() || "صندوق الرابطة",
             });
             setBusy(false);
             if (!r.ok) return setErr(r.message);
             router.refresh();
-            onDone(`أُضيف رقم ${METHOD_LABELS[m]}`);
+            onDone(`أُضيفت محفظة ${METHOD_LABELS[m]}`);
           }}
         >
-          أضف الرقم
+          أضف المحفظة
         </button>
         <OfflineWriteHint />
       </div>
@@ -155,7 +151,6 @@ export function SaveNote({ s, id }: { s: SaveState; id?: string }) {
 export function SettingsView({
   role,
   displayName,
-  whatsapp,
   openingBalance,
   openingBalanceOn,
   accounts,
@@ -168,7 +163,6 @@ export function SettingsView({
   children?: ReactNode;
   role: CommitteeRole;
   displayName: string;
-  whatsapp: string | null;
   openingBalance: number;
   /** "YYYY-MM-DD"; null when unknown */
   openingBalanceOn: string | null;
@@ -187,19 +181,17 @@ export function SettingsView({
     ...a,
     active: over[a.id] ?? a.active,
   }));
-  const [wa, setWa] = useState(whatsapp ?? "");
-  const [savedWa, setSavedWa] = useState(whatsapp ?? "");
   const [opening, setOpening] = useState(String(openingBalance));
   const [savedOpening, setSavedOpening] = useState(openingBalance);
   const yearStart = openingBalanceOn ?? `${new Date().getFullYear()}-01-01`;
   const [openingOn, setOpeningOn] = useState(yearStart);
   const [savedOpeningOn, setSavedOpeningOn] = useState(yearStart);
   const openingNum = Number(opening.replace(/\s/g, "")) || 0;
-  const [waSave, setWaSave] = useState<SaveState>(IDLE);
   const [openSave, setOpenSave] = useState<SaveState>(IDLE);
   const [accSave, setAccSave] = useState<Record<string, SaveState>>({});
 
   const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
   const admin = role === "admin";
 
   return (
@@ -217,90 +209,55 @@ export function SettingsView({
       <section className="bq-sec bq-sec-first" aria-labelledby="bq-wallets-h">
         <h2 id="bq-wallets-h">أرقام الصندوق</h2>
         {!admin && <p className="bq-lead">يغيّرها المسؤول فقط.</p>}
+        <p className="bq-hint">المحافظ التي تختارها اللجنة عند تسجيل دفعة أو مصروف.</p>
         <ul className="bq-pay">
-          {list.map((a) => (
-            <li key={a.id} className={a.active ? "" : "is-off"}>
-              <MethodBadge method={a.method} size={32} label={false} />
-              <span className="bq-row-m">
-                <bdi dir="ltr" className="bq-num bq-pay-n">
-                  {a.accountNumber}
-                </bdi>
-                <span className="bq-row-s">
-                  باسم {a.holderName} · {a.active ? "مستعمل" : "متوقف"}
+          {list
+            .filter((a) => a.active)
+            .map((a) => (
+              <li key={a.id}>
+                <MethodBadge method={a.method} size={32} label={false} />
+                <span className="bq-row-m">
+                  <span className="bq-row-t">{METHOD_LABELS[a.method]}</span>
+                  <bdi dir="ltr" className="bq-num bq-row-s">
+                    {a.accountNumber}
+                  </bdi>
+                  <SaveNote s={accSave[a.id] ?? IDLE} />
                 </span>
-                <SaveNote s={accSave[a.id] ?? IDLE} />
-              </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={a.active}
-                aria-busy={accSave[a.id]?.status === "saving"}
-                aria-label={`${METHOD_LABELS[a.method]} ${a.accountNumber}: ${a.active ? "مستعمل" : "متوقف"}`}
-                className="bq-mini-switch bq-press"
-                disabled={!admin || !online || accSave[a.id]?.status === "saving"}
-                onClick={async () => {
-                  const next = !a.active;
-                  setOver((o) => ({ ...o, [a.id]: next }));
-                  const ok = await runSave(
-                    (st) => setAccSave((m) => ({ ...m, [a.id]: st })),
-                    () =>
-                      updateFundAccount({
-                        id: a.id,
-                        holderName: a.holderName,
-                        note: a.note,
-                        sortOrder: a.sortOrder,
-                        active: next,
-                      }),
-                  );
-                  if (!ok) setOver((o) => ({ ...o, [a.id]: !next }));
-                  else router.refresh();
-                }}
-              >
-                <span className="bq-switch-k" aria-hidden="true">
-                  <span />
-                </span>
-              </button>
-            </li>
-          ))}
+                {admin && (
+                  <button
+                    type="button"
+                    className="bq-btn bq-btn-ghost bq-press"
+                    disabled={!online || accSave[a.id]?.status === "saving"}
+                    onClick={async () => {
+                      if (removing !== a.id) return setRemoving(a.id);
+                      setRemoving(null);
+                      setOver((o) => ({ ...o, [a.id]: false }));
+                      const ok = await runSave(
+                        (st) => setAccSave((m) => ({ ...m, [a.id]: st })),
+                        () =>
+                          updateFundAccount({
+                            id: a.id,
+                            holderName: a.holderName,
+                            note: a.note,
+                            sortOrder: a.sortOrder,
+                            active: false,
+                          }),
+                      );
+                      if (!ok) setOver((o) => ({ ...o, [a.id]: true }));
+                      else router.refresh();
+                    }}
+                  >
+                    {removing === a.id ? "تأكيد الحذف" : "احذف"}
+                  </button>
+                )}
+              </li>
+            ))}
         </ul>
         {admin && (
           <button type="button" className="bq-link bq-press" onClick={() => setAdding(true)}>
-            {I.plus(18)} إضافة رقم
+            {I.plus(18)} أضف محفظة
           </button>
         )}
-
-        <h3 className="bq-h3">رقم واتساب اللجنة</h3>
-        <p className="bq-hint">يرسل إليه الأعضاء صورة التحويل.</p>
-        <div className="bq-field">
-          <label className="bq-search bq-search-s bq-grow-1">
-            {I.wa(22)}
-            <input
-              value={wa}
-              onChange={(e) => setWa(toWesternDigits(e.target.value).replace(/[^\d+]/g, ""))}
-              inputMode="tel"
-              dir="ltr"
-              aria-label="رقم واتساب اللجنة"
-              aria-describedby="bq-wa-note"
-              disabled={!admin}
-            />
-          </label>
-          {admin && wa !== savedWa && (
-            <button
-              type="button"
-              className="bq-btn bq-btn-primary bq-press"
-              disabled={!online || waSave.status === "saving"}
-              onClick={async () => {
-                if (await runSave(setWaSave, () => updateSettings({ whatsappContact: wa }))) {
-                  setSavedWa(wa);
-                  router.refresh();
-                }
-              }}
-            >
-              حفظ
-            </button>
-          )}
-        </div>
-        <SaveNote id="bq-wa-note" s={waSave} />
 
         <h3 className="bq-h3">الرصيد في بداية السنة</h3>
         <p className="bq-hint">
@@ -361,7 +318,7 @@ export function SettingsView({
       )}
 
       {adding && (
-        <Sheet key="account" label="إضافة رقم" onDone={() => setAdding(false)}>
+        <Sheet key="account" label="أضف محفظة" onDone={() => setAdding(false)}>
           <AddAccountBody
             onDone={(t) => {
               setAdding(false);

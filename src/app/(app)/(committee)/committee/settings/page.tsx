@@ -7,9 +7,8 @@ import { BackupCard, CurrentPrices, YearPrices } from "@/components/app/settings
 export const metadata: Metadata = { title: "الإعدادات · صندوق الرابطة" };
 
 export default async function SettingsPage({ searchParams }: PageProps<"/committee/settings">) {
-  const [session, info, accounts, summary, settings] = await Promise.all([
+  const [session, accounts, summary, settings] = await Promise.all([
     src.requireCommittee("/committee/settings"),
-    src.fundInfo(),
     src.fundAccountsAdmin(),
     src.committeeSummary(),
     src.fundSettings(),
@@ -41,7 +40,6 @@ export default async function SettingsPage({ searchParams }: PageProps<"/committ
       <SettingsView
         role={session.role}
         displayName={session.displayName}
-        whatsapp={info.whatsappContact}
         openingBalance={settings?.openingBalance ?? summary.openingBalance}
         openingBalanceOn={settings?.openingBalanceOn ?? null}
         committee={people}

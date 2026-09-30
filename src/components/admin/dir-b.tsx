@@ -56,9 +56,16 @@ export function Home() {
         <h2>الرسوم</h2>
         {/* the numbers of the «الإحصاءات» report (report_fee_stats), one tap to the full page */}
         <Link href={href("stats")} className="pb-month">
-          <span className="pb-month-t">
-            دفع <Num>{fees.paid}</Num> من <Num>{fees.total}</Num> حتى {month(d.due)} ·{" "}
-            <Num>{`${fees.pct}٪`}</Num>
+          <span className="pb-month-top">
+            <b className="pb-month-pct">
+              <Num>{`${fees.pct}٪`}</Num>
+            </b>
+            <span className="pb-month-t">
+              <span>
+                دفع <Num>{fees.paid}</Num> من <Num>{fees.total}</Num>
+              </span>
+              <small>كل ما عليهم حتى {month(d.due)}</small>
+            </span>
           </span>
           <Bar value={fees.paid} max={fees.total} />
           <span className="pb-month-s">الإحصاءات {X.go(18)}</span>

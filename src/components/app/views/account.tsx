@@ -9,8 +9,6 @@ import { CommitteePushToggle } from "@/components/providers/committee-push";
 import { createIdbPersister } from "@/lib/offline/persister";
 import { useAct, useIsDemo } from "../act";
 import { ROLE_LABEL } from "../derive";
-import { I } from "../icons";
-import { LogoutButton } from "../logout";
 import { PushKinds } from "../push-kinds";
 import { PasswordField } from "../member-pick";
 import { Sheet } from "../sheet";
@@ -141,9 +139,6 @@ export function AccountView({ me }: { me: MyProfile }) {
         >
           الخروج من كل الأجهزة
         </button>
-        <div className="bq-small-top">
-          <LogoutButton className="bq-btn bq-btn-ghost bq-press">{I.out2(20)} خروج</LogoutButton>
-        </div>
       </section>
 
       {sheet === "everywhere" && (

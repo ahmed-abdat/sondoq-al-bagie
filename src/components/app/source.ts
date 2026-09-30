@@ -250,6 +250,7 @@ const ROLE_WORD: Record<string, string> = {
   deputy: "عضو اللجنة",
   committee: "عضو اللجنة",
 };
+export const roleWord = (r: string) => ROLE_WORD[r] ?? "عضو اللجنة";
 const monthOf = (iso: string) => Number(iso.slice(5, 7));
 
 const termsOf = (
