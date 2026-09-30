@@ -26,9 +26,6 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.104.0
         version: 5.104.0(react@19.2.8)
-      '@tanstack/react-query-persist-client':
-        specifier: ^5.104.0
-        version: 5.104.0(@tanstack/react-query@5.104.0(react@19.2.8))(react@19.2.8)
       '@tesseract.js-data/ara':
         specifier: ^1.0.0
         version: 1.0.0
@@ -1943,12 +1940,6 @@ packages:
 
   '@tanstack/query-persist-client-core@5.104.0':
     resolution: {integrity: sha512-7XEoH8+gaARK06Uw6e97WqOfus7dtcrYxA6RUf1+OZArz1Ax7Stlcfas6XRz7V2YiOTAkGKUYsk2y43QUmpiTw==}
-
-  '@tanstack/react-query-persist-client@5.104.0':
-    resolution: {integrity: sha512-ZIw4PQfk/MLEJEyaxg0AQfuT0I+HGSogcWl18GjG+Yy2707TFtf3Or2yZilAJoSzBMdoZr9X2xx6T5cap0PlUg==}
-    peerDependencies:
-      '@tanstack/react-query': ^5.104.0
-      react: ^18 || ^19
 
   '@tanstack/react-query@5.104.0':
     resolution: {integrity: sha512-e1TZmDCQnWIfiDVryIHeA6Idj+Lfx1hORLOhXS/l5wcgvtVD4yYqbTDl378sGQKIi2cSgb0TEMC9cKK8GGoJEw==}
@@ -5722,12 +5713,6 @@ snapshots:
   '@tanstack/query-persist-client-core@5.104.0':
     dependencies:
       '@tanstack/query-core': 5.104.0
-
-  '@tanstack/react-query-persist-client@5.104.0(@tanstack/react-query@5.104.0(react@19.2.8))(react@19.2.8)':
-    dependencies:
-      '@tanstack/query-persist-client-core': 5.104.0
-      '@tanstack/react-query': 5.104.0(react@19.2.8)
-      react: 19.2.8
 
   '@tanstack/react-query@5.104.0(react@19.2.8)':
     dependencies:
