@@ -363,3 +363,19 @@ Numbers to decide from, shareable with the group («رابطة الشباب»):
 - **Each تبرع:** how many gave (members + outside donors), % of members who gave, collected vs target.
 - On screen: on home (one line + «الإحصاءات»), on each لوحة/تبرع page, and a report «الإحصاءات»
   (year) + per-campaign analytics in the campaign report, shared as images/PDF/text like the others.
+
+## 11. Fee groups («الفئات») management (owner, 2026-09-30)
+
+Simple screen «الفئات» (in المزيد → الإعدادات), «مسؤول» only for changes:
+- List groups with their monthly fee per year and member count (e.g. أ 1 000، ب 500).
+- Create a group (name, monthly fee, from which year), e.g. «ج 700».
+- Change a group's fee for a year (next year by default).
+- Move members to another group: all members of a group, or chosen members (search/multi-select),
+  **from a start month, default = January of next year**. Past months keep the fee they had.
+- Retire a group once it has no members from a given year (history kept).
+- **Warning** when the start month is not January: «السنة الحالية لها رسوم ثابتة. الأفضل أن يبدأ
+  التغيير من يناير 2027 حتى لا تتغيّر أشهر هذه السنة.» with «ابدأ من يناير 2027» (default) and
+  «أفهم، ابدأ من <شهر>» (explicit). Never change months already paid.
+- Paper list numbers (أ 12, ب 7) do not change when a member changes group.
+- Preview before saving: «سينتقل 70 عضوًا من ب إلى ج ابتداءً من يناير 2027. رسومهم الشهرية 700 بدل 500.»
+- Everything in «سجل العمليات».
