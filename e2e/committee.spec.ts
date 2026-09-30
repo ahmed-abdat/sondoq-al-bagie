@@ -132,6 +132,7 @@ test("«المزيد» is short; the rare items are sections of «الإعداد
     "حسابات اللجنة",
     "تسليم الصندوق",
     "آخر نسخة احتياطية",
+    "رصيد أول السنة",
   ]);
   await page.getByRole("link", { name: "افتح التسليم" }).click();
   await expect(page.getByRole("heading", { name: "تسليم الصندوق", level: 1 })).toBeVisible();

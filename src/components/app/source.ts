@@ -35,7 +35,7 @@ import type {
 import * as rfx from "@/lib/reports/fixtures";
 import { METHOD_LABELS, type Method } from "@/lib/methods";
 import { currentDueMonth, groupLabel } from "./derive";
-import { demoAdminData, demoStatement, demoStats, toActivities } from "./admin-demo";
+import { demoAdminData, demoStatement, demoStats, toActivities, toWallets } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
 import { allStats, statsFromReport } from "@/components/admin/stats";
@@ -169,6 +169,8 @@ export async function myProfile(): Promise<MyProfile | null> {
 /** Latest payments (any status), newest first: the committee finds one to fix here. */
 export const recentPayments = () => pick(fx.fxRecent, () => data.getRecentPayments());
 export const arrears = () => pick(fx.fxArrears, () => data.getArrears());
+/** «المحافظ» (m41): every wallet, stopped ones too, in list order. */
+export const walletTypes = () => pick(fx.fxWalletTypes, () => data.getWalletTypes());
 /** «النشاط» (m38): every expense activity, retired ones too, in list order. */
 export const expenseActivities = () => pick(fx.fxActivities, () => data.getExpenseActivities());
 export const fundAccountsAdmin = () => pick(fx.fxAccountsAdmin, () => data.getFundAccountsAdmin());
@@ -311,6 +313,7 @@ export async function adminData(): Promise<PData> {
     monthCash,
     activities,
     groupRows,
+    wtypes,
   ] = await Promise.all([
     membersAdmin(),
     memberRows(year),
@@ -329,6 +332,7 @@ export async function adminData(): Promise<PData> {
     data.getSummaryReport({ year, month: t.getUTCMonth() + 1 }).catch(() => null),
     data.getExpenseActivities(),
     groupsOverview(year).catch(() => [] as GroupRow[]),
+    data.getWalletTypes(),
   ]);
   const groupName = new Map(groupRows.map((g) => [g.code, g.name]));
   const due = currentDueMonth(t, info.graceDays);
@@ -513,6 +517,7 @@ export async function adminData(): Promise<PData> {
     prices,
     levies,
     activities: toActivities(activities),
+    wallets: toWallets(wtypes, accounts),
     log,
   };
   // the numbers the «الإحصاءات» report prints (m32); counted here only if that read fails

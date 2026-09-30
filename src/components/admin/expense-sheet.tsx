@@ -14,7 +14,7 @@ import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import { failure } from "@/lib/data/errors";
 import { todayIso } from "@/lib/dates";
 import { Chips, fmt, Sheet, useP, X } from "./kit";
-import { WalletPicker } from "./wallet-picker";
+import { WalletPicker, type WalletChoice } from "./wallet-picker";
 
 export function ExpenseSheet({
   open,
@@ -41,7 +41,7 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
   const acts = d.activities.filter((a) => a.active);
   const [what, setWhat] = useState("");
   const [from, setFrom] = useState<string>(campaign ?? "");
-  const [wallet, setWallet] = useState<string>("");
+  const [wallet, setWallet] = useState<WalletChoice | null>(null);
   const [on, setOn] = useState(todayIso());
   const [shot, setShot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -87,8 +87,12 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
           amount,
           note: what.trim(),
           campaignId: from || undefined,
-          fundAccountId: wallet && wallet !== "cash" ? wallet : undefined,
-          paidInCash: wallet === "cash" ? true : undefined,
+          // m41: the wallet (cash is a wallet too) and, when it has several, the account
+          ...(wallet && wallet.walletTypeId > 0
+            ? { walletTypeId: wallet.walletTypeId, fundAccountId: wallet.fundAccountId }
+            : wallet?.cash
+              ? { paidInCash: true }
+              : {}),
           receiptPath,
         });
       });
@@ -163,7 +167,7 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
         </>
       )}
       <p className="pa-label">من أي محفظة؟ (اختياري)</p>
-      <WalletPicker value={wallet} onChange={(id) => setWallet(id)} />
+      <WalletPicker value={wallet} onChange={setWallet} />
       <div className="pa-field">
         <span>التاريخ</span>
         <DateField value={on} onChange={setOn} label="تاريخ المصروف" noFuture />

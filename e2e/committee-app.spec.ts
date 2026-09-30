@@ -109,3 +109,47 @@ test("«المصاريف»: each expense says its activity, wallet and who recor
   await expect(first).toContainText(/بنكيلي|مصرفي|نقدًا/);
   await expect(first).toContainText(/سجّله /);
 });
+
+test("«المحافظ»: «المسؤول» adds a wallet and an account, sets an opening once; payments offer them", async ({
+  page,
+}) => {
+  await page.goto("/committee/settings");
+  const ws = page.getByRole("region", { name: "المحافظ" });
+  // an opening, set once (the confirmation box is required)
+  await ws.getByRole("button", { name: "حدّد رصيد أولها" }).first().click();
+  const open = page.getByRole("dialog", { name: "رصيد أول الحساب" });
+  await open.getByLabel("رصيد أول بالأوقية").fill("12000");
+  await expect(open.getByRole("button", { name: "احفظ الرصيد" })).toBeDisabled();
+  await open.getByRole("checkbox").check();
+  await open.getByRole("button", { name: "احفظ الرصيد" }).click();
+  await expect(page.getByText("حُفظ رصيد أول الحساب.")).toBeVisible();
+  await expect(ws.getByText(/رصيد أول: 12\s000 أوقية/)).toBeVisible();
+
+  // a new wallet, then its account
+  await ws.getByRole("button", { name: "محفظة جديدة" }).click();
+  const nw = page.getByRole("dialog", { name: "محفظة جديدة" });
+  await nw.getByLabel("اسم المحفظة").fill("محفظة التجربة");
+  await nw.getByRole("button", { name: "أضف المحفظة" }).click();
+  await expect(ws.getByText("محفظة التجربة", { exact: true })).toBeVisible();
+  await ws.getByRole("button", { name: "أضف حسابًا في محفظة التجربة" }).click();
+  const acc = page.getByRole("dialog", { name: "أضف حسابًا" });
+  await acc.getByLabel("رقم الحساب").fill("22000099");
+  await acc.getByLabel("اسم صاحب الحساب").fill("رابطة شباب البقيع");
+  await acc.getByRole("button", { name: "أضف الحساب" }).click();
+  await expect(ws.getByText("22000099")).toBeVisible();
+
+  // stop one, bring it back
+  await ws.getByRole("button", { name: "أوقف كليك" }).click();
+  await ws.getByRole("button", { name: "نعم، أوقف كليك" }).click();
+  await expect(ws.getByRole("button", { name: "أعِد كليك" })).toBeVisible();
+
+  // the expense sheet offers the wallets that have an account, and cash
+  await page.goto("/committee/expenses");
+  await page.getByRole("button", { name: /سجّل مصروفًا/ }).click();
+  const sheet = page.getByRole("dialog", { name: "سجّل مصروفًا" });
+  await expect(sheet.getByRole("radiogroup", { name: "المحفظة" }).getByRole("radio")).toHaveText([
+    "بنكيلي",
+    "مصرفي",
+    "نقدًا",
+  ]);
+});
