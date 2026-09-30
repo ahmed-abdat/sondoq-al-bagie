@@ -39,6 +39,25 @@ describe("read", () => {
     });
   });
 
+  it("activity log marks only actor-less rows as system, never a nameless member", async () => {
+    const base = { at: "2026-09-30T12:00:00Z", action: "update", table_name: "payments" };
+    const extra = { row_id: null, subject: null, amount: null, reason: null };
+    const { client } = fake({
+      data: [
+        { id: 1, ...base, ...extra, actor: null, actor_name: null },
+        { id: 2, ...base, ...extra, actor: "u1", actor_name: null },
+        { id: 3, ...base, ...extra, actor: "u2", actor_name: "أحمد" },
+      ],
+      error: null,
+    });
+    const rows = await activityLog(client);
+    expect(rows.map((r) => [r.id, r.system, r.actorName])).toEqual([
+      [1, true, null],
+      [2, false, null],
+      [3, false, "أحمد"],
+    ]);
+  });
+
   it("maps expense activities in list order", async () => {
     const { client } = fake({
       data: [{ id: 5, name: "رحلة", sort_order: 4, active: false }],
