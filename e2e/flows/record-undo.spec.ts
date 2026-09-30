@@ -7,7 +7,7 @@ import {
   memberId,
   monthStates,
 } from "../../supabase/tests/e2e/helpers";
-import { asCommittee, committeePhone, openPage, recordTransfer } from "./steps";
+import { asCommittee, committeePhone, openPage, recordTransfer, undoFromSaved } from "./steps";
 
 const M = E2E_MEMBERS.pay; // B-901: group B, 500 a month, nothing paid yet
 const due = new Date().getMonth() + 1; // months owed so far this year (Africa/Nouakchott = UTC)
@@ -21,15 +21,15 @@ test("a committee member records a transfer from a screenshot: confirmed at once
   const { page } = await committeePhone(browser, baseURL!, "treasurer"); // a plain committee member
   expect(paidCount(await monthStates(M.ref))).toBe(0);
 
-  // recorded → confirmed at once (m29: no review queue); the recorder takes it back within 30 s
+  // recorded → confirmed at once (m29: no review queue)
   await recordTransfer(page, M.name);
   const first = await latestPayment(M.ref, { status: "confirmed" });
   expect(first.method).toBe("bankily");
-  // (the app's «تراجع» after saving; through the recorder's session until the new screen lands)
+  // another committee member cannot take it back (no screen offers it; the database refuses)
   const other = await asCommittee("committee");
   expect((await other.rpc("undo_payment", { p_payment_id: first.id })).error).not.toBeNull();
-  const me = await asCommittee("treasurer");
-  expect((await me.rpc("undo_payment", { p_payment_id: first.id })).error).toBeNull();
+  // the recorder's «تراجع» within 30 s
+  await undoFromSaved(page);
   await expect.poll(async () => paidCount(await monthStates(M.ref))).toBe(0);
   expect((await latestPayment(M.ref)).status).not.toBe("confirmed");
 
@@ -39,6 +39,7 @@ test("a committee member records a transfer from a screenshot: confirmed at once
   expect(paid.id).not.toBe(first.id);
   expect(paidCount(await monthStates(M.ref))).toBe(due);
 
+  const me = await asCommittee("treasurer");
   const st = await me.rpc("member_statement", { p_member_id: await memberId(M.ref) });
   expect(st.error).toBeNull();
   const statement = st.data as {

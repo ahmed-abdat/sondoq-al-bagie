@@ -84,13 +84,15 @@ async function noShare(page: Page) {
   });
 }
 
-/** Share is committee only: from the hub (demo committee) to /report#share, the sheet opens. */
+/** Share is committee only: home → «التقارير» tab → «مشاركة التقرير», the sheet opens. */
 async function openSheet(page: Page) {
-  await page.goto("/committee/review");
-  // hub tabs (r31): «الأعمال» → «المزيد»
-  await page.getByRole("button", { name: "الأعمال" }).click();
-  await page.getByRole("main").getByText("المزيد").click();
-  await page.getByRole("link", { name: /مشاركة التقرير/ }).click();
+  await page.goto("/committee");
+  await page
+    .getByRole("navigation", { name: "التنقل" })
+    .getByRole("link", { name: "التقارير" })
+    .click();
+  await page.waitForURL("**/committee/reports");
+  await page.getByRole("button", { name: "مشاركة التقرير" }).click();
   await expect(page.getByRole("dialog", { name: "مشاركة التقرير" })).toBeVisible();
 }
 
@@ -277,7 +279,7 @@ test("members grid: one bordered table, a plain ✓ in each paid month, empty ce
   await page.setViewportSize({ width: 390, height: 844 });
 });
 
-test("committee (demo): the hub opens the share sheet on the report", async ({ page }) => {
+test("committee (demo): the «التقارير» tab opens the share sheet", async ({ page }) => {
   await openSheet(page);
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("radio")).toHaveCount(0);
