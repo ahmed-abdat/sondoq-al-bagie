@@ -120,8 +120,8 @@ export function ActivityScreen() {
       <Back to="more" label="المزيد" />
       <header className="pa-title">
         <h1>سجل العمليات</h1>
-        <p className="pa-lead">كل ما سجّلته اللجنة أو غيّرته، ومن فعله.</p>
       </header>
+      <p className="pa-lead">كل ما سجّلته اللجنة أو غيّرته، ومن فعله.</p>
       {people.length > 2 && (
         <Chips
           label="من"

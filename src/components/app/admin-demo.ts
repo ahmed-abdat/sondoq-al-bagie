@@ -5,7 +5,7 @@ import * as fx from "./fixtures";
 import { toMemberRows } from "@/lib/data/member-lists";
 import type { Method } from "@/lib/methods";
 import type { MemberStatement } from "@/lib/data/report-types";
-import { allStats } from "@/components/admin/stats";
+import { allStats, demoStatsReport, statsFromReport } from "@/components/admin/stats";
 import type {
   PCampaign,
   PData,
@@ -401,7 +401,9 @@ export function demoAdminData(): PData {
     levies,
     log,
   };
-  return { ...base, stats: allStats(base) };
+  // the same path as production: the «الإحصاءات» report, then the screens' shape
+  const counted = allStats(base);
+  return { ...base, stats: statsFromReport(demoStatsReport(base, 55), base.due, counted.owing) };
 }
 
 /** Demo «كشف حساب» of one member, built from the same fictional months as the committee app. */
@@ -477,3 +479,11 @@ export function demoStatement(memberId: string, year: number): MemberStatement |
     },
   };
 }
+
+/** Demo «الإحصاءات» report: the same numbers as the demo screens. */
+export const demoStats = () => {
+  const d = demoAdminData();
+  const { stats: _s, ...base } = d;
+  void _s;
+  return demoStatsReport(base, 55);
+};

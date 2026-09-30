@@ -1,5 +1,9 @@
 // «الإحصاءات» (plan §10): counts and percentages only, never names. Pure, tested.
-import type { StatsReport } from "@/lib/data/report-types";
+import type {
+  DonationStats,
+  LevyStats as LevyStatsRow,
+  StatsReport,
+} from "@/lib/data/report-types";
 import type { PCampaign, PData, PLevy, PMember } from "./types";
 
 export const pct = (n: number, of: number) => (of > 0 ? Math.round((n / of) * 100) : 0);
@@ -183,5 +187,100 @@ export function statsFromReport(r: StatsReport, due: number, owing: number): All
         },
       ]),
     ),
+  };
+}
+
+/**
+ * Demo only: the fictional data as the server's «الإحصاءات» report, so the demo screens and the
+ * demo report images show the same numbers (production reads report_fee_stats etc.).
+ */
+export function demoStatsReport(d: Omit<PData, "stats">, previousPct: number | null): StatsReport {
+  const f = feeStats(d);
+  const active = d.members.filter((m) => m.status === "active");
+  const block = (list: PMember[]) => {
+    const up = list.filter(upToDate).length;
+    const behind = (m: PMember) => m.owed.length + m.pastLate.length;
+    return {
+      active: list.length,
+      paidUp: up,
+      paidUpPct: list.length ? Math.round((up / list.length) * 1000) / 10 : 0,
+      owe1: list.filter((m) => behind(m) === 1).length,
+      owe2to3: list.filter((m) => behind(m) >= 2 && behind(m) <= 3).length,
+      owe4plus: list.filter((m) => behind(m) >= 4).length,
+    };
+  };
+  const fees = {
+    year: d.year,
+    refMonth: d.due,
+    overall: block(active),
+    groups: (["A", "B"] as const).map((g) => ({
+      groupCode: g,
+      ...block(active.filter((m) => m.group === g)),
+    })),
+    months: Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      active: f.total,
+      paid: active.filter((m) => m.paid.includes(i + 1)).length,
+      unpaid: i + 1 <= d.due ? active.filter((m) => m.owed.includes(i + 1)).length : 0,
+    })),
+  };
+  const levies: LevyStatsRow[] = d.levies.map((l) => {
+    const s = levyStats(l, d.members, d.today);
+    const g = (code: "A" | "B") => {
+      const refs = l.refs.filter((r) => d.members.find((m) => m.ref === r)?.group === code);
+      const ex = refs.filter((r) => l.exemptRefs?.includes(r)).length;
+      const x = s[code];
+      return {
+        groupCode: code,
+        shares: refs.length,
+        paid: x.paid,
+        unpaid: x.total - x.paid,
+        exempt: ex,
+        paidPct: x.pct,
+      };
+    };
+    return {
+      id: l.id,
+      title: l.title,
+      status: l.status,
+      openedOn: l.createdOn,
+      daysOpen: s.days ?? 0,
+      shares: s.total,
+      paid: s.paid,
+      unpaid: s.notYet,
+      exempt: s.exempt,
+      paidPct: s.pct,
+      expected: s.expected,
+      collected: s.collected,
+      groups: [g("A"), g("B")].filter((x) => x.shares > 0),
+    };
+  });
+  const donations: DonationStats[] = d.campaigns.map((c) => {
+    const s = campaignStats(c, d.members);
+    return {
+      id: c.id,
+      title: c.title,
+      status: c.status,
+      openedOn: c.startedOn,
+      memberGivers: s.members,
+      outsideGivers: s.outside,
+      givers: s.givers,
+      activeMembers: active.length,
+      memberPct: s.pctMembers,
+      collected: s.collected,
+      target: c.target || null,
+      targetPct: s.pctTarget,
+    };
+  });
+  return {
+    period: { year: d.year },
+    generatedAt: `${d.today}T12:00:00Z`,
+    fees,
+    previous:
+      previousPct === null
+        ? null
+        : { ...fees, year: d.year - 1, overall: { ...fees.overall, paidUpPct: previousPct } },
+    levies,
+    donations,
   };
 }

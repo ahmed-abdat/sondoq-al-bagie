@@ -163,7 +163,8 @@ export function CampaignsScreen() {
                         {l.status === "closed" ? " · مغلقة" : ""}
                       </small>
                       <small>
-                        دفع <Num>{s.paid}</Num>، وبقي <Num>{s.notYet}</Num> · <Num>{s.pct}٪</Num>
+                        دفع <Num>{s.paid}</Num>، ولم يدفع <Num>{s.notYet}</Num> ·{" "}
+                        <Num>{`${s.pct}٪`}</Num>
                       </small>
                     </span>
                     {X.go(20)}
@@ -310,9 +311,7 @@ export function CampaignScreen({ id }: { id: string }) {
         title={`تقرير ${c.title}`}
         req={{ kind: "campaign", id: c.id }}
       />
-      {close && (
-        <CloseSheet id={c.id} left={left} gift onClose={() => setClose(false)} />
-      )}
+      {close && <CloseSheet id={c.id} left={left} gift onClose={() => setClose(false)} />}
     </div>
   );
 }
@@ -557,13 +556,10 @@ function ShareSheet({
             className="pa-btn pa-btn-ghost pa-btn-block"
             disabled={w.busy || !w.online}
             onClick={() =>
-              w.run(
-                async () => {
-                  const r = await unexemptLevyShare({ id: l.id, memberId: m.id });
-                  return r.ok ? { ok: true } : r;
-                },
-                done("أُلغي الإعفاء. عاد نصيبه عليه."),
-              )
+              w.run(async () => {
+                const r = await unexemptLevyShare({ id: l.id, memberId: m.id });
+                return r.ok ? { ok: true } : r;
+              }, done("أُلغي الإعفاء. عاد نصيبه عليه."))
             }
           >
             ألغِ الإعفاء
@@ -610,13 +606,10 @@ function ShareSheet({
             className="pa-btn pa-btn-primary pa-btn-block"
             disabled={!why.trim() || w.busy || !w.online}
             onClick={() =>
-              w.run(
-                async () => {
-                  const r = await exemptLevyShare({ id: l.id, memberId: m.id, reason: why.trim() });
-                  return r.ok ? { ok: true } : r;
-                },
-                done("أُعفي من هذه اللوحة."),
-              )
+              w.run(async () => {
+                const r = await exemptLevyShare({ id: l.id, memberId: m.id, reason: why.trim() });
+                return r.ok ? { ok: true } : r;
+              }, done("أُعفي من هذه اللوحة."))
             }
           >
             أعفه

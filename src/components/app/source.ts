@@ -21,6 +21,9 @@ import type { ActivityEntry } from "@/lib/data/map";
 import type {
   AnnualReport,
   CampaignReport,
+  DonationStats,
+  LevyStats,
+  StatsReport,
   CommitteeWorkReport,
   ExpensesReport,
   GridReport,
@@ -33,7 +36,7 @@ import type {
 import * as rfx from "@/lib/reports/fixtures";
 import type { Method } from "@/lib/methods";
 import { currentDueMonth, fmt } from "./derive";
-import { demoAdminData, demoStatement } from "./admin-demo";
+import { demoAdminData, demoStatement, demoStats } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
 import { allStats, statsFromReport } from "@/components/admin/stats";
@@ -520,7 +523,7 @@ function activityLine(x: ActivityEntry): PLog {
 /* ───────────── reports (plan §9: 10 kinds; demo: Lane B's fictional report data) ───────────── */
 export type ReportReq =
   | { kind: "annual" | "summary" | "expenses" | "wallets" | "work"; year: number; month?: number }
-  | { kind: "grid" | "late"; year: number }
+  | { kind: "grid" | "late" | "stats"; year: number }
   | { kind: "campaign"; id: string }
   | { kind: "member"; memberId: string; year: number }
   | { kind: "handover"; term: number };
@@ -530,7 +533,8 @@ export type ReportRes =
   | { kind: "grid"; data: GridReport }
   | { kind: "late"; data: LateReport }
   | { kind: "expenses"; data: ExpensesReport }
-  | { kind: "campaign"; data: CampaignReport }
+  | { kind: "campaign"; data: CampaignReport; stats?: LevyStats | DonationStats }
+  | { kind: "stats"; data: StatsReport }
   | { kind: "member"; data: MemberStatement }
   | { kind: "handover"; data: HandoverReport }
   | { kind: "wallets"; data: WalletsReport }
@@ -550,13 +554,22 @@ export async function reportFor(q: ReportReq): Promise<ReportRes | null> {
       handover: { kind: "handover", data: rfx.fxHandover },
       wallets: { kind: "wallets", data: rfx.fxWallets },
       work: { kind: "work", data: rfx.fxWork },
+      stats: { kind: "stats", data: rfx.fxStats },
     };
+    if (q.kind === "stats") return { kind: "stats", data: demoStats() };
+    if (q.kind === "campaign") {
+      const lv = q.id.startsWith("l");
+      const st = demoStats();
+      return {
+        kind: "campaign",
+        data: lv ? rfx.fxLevy : rfx.fxCampaign,
+        stats: lv ? st.levies.find((x) => x.id === q.id) : st.donations.find((x) => x.id === q.id),
+      };
+    }
     if (q.kind === "member") {
       const st = demoStatement(q.memberId, q.year);
       return st && { kind: "member", data: st };
     }
-    if (q.kind === "campaign" && q.id.startsWith("l"))
-      return { kind: "campaign", data: rfx.fxLevy };
     return F[q.kind];
   }
   const p =
@@ -580,8 +593,16 @@ export async function reportFor(q: ReportReq): Promise<ReportRes | null> {
       return wrap("grid", await data.getGridReport(q.year));
     case "late":
       return wrap("late", await data.getLateReport(q.year));
-    case "campaign":
-      return wrap("campaign", await data.getCampaignReport(q.id));
+    case "campaign": {
+      const [rep, lv, dn] = await Promise.all([
+        data.getCampaignReport(q.id),
+        data.getLevyStats(q.id).catch(() => null),
+        data.getDonationStats(q.id).catch(() => null),
+      ]);
+      return rep ? { kind: "campaign", data: rep, stats: lv ?? dn ?? undefined } : null;
+    }
+    case "stats":
+      return wrap("stats", await data.getStatsReport(q.year));
     case "member":
       return wrap("member", await data.getMemberStatement(q.memberId, q.year));
     case "handover":

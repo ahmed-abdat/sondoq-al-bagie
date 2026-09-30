@@ -53,21 +53,25 @@ export function Home() {
       </div>
 
       <section className="pa-sec">
-        <div className="pa-sec-h">
-          <h2>الرسوم</h2>
-          <Link href={href("stats")} className="pa-link">
-            الإحصاءات {X.go(18)}
-          </Link>
-        </div>
-        <Link href={href("late")} className="pb-month">
+        <h2>الرسوم</h2>
+        {/* the numbers of the «الإحصاءات» report (report_fee_stats), one tap to the full page */}
+        <Link href={href("stats")} className="pb-month">
           <span className="pb-month-t">
             دفع <Num>{fees.paid}</Num> من <Num>{fees.total}</Num> حتى {month(d.due)} ·{" "}
             <Num>{`${fees.pct}٪`}</Num>
           </span>
           <Bar value={fees.paid} max={fees.total} />
-          <span className="pb-month-s">
-            عليهم رسوم أو نصيب لوحة: <Num>{d.stats.owing}</Num> عضوًا {X.go(18)}
+          <span className="pb-month-s">الإحصاءات {X.go(18)}</span>
+        </Link>
+        <Link href={href("late")} className="pa-row">
+          <span className="pa-ic">{X.clock(22)}</span>
+          <span className="pa-row-t">
+            <b>
+              <Num>{d.stats.owing}</Num> عضوًا عليهم متأخرات
+            </b>
+            <small>رسوم أو نصيب لوحة</small>
           </span>
+          {X.go(20)}
         </Link>
         <button
           type="button"
@@ -113,6 +117,7 @@ export function Home() {
                   </small>
                   <Bar value={c.collected} max={c.target} gold />
                 </span>
+                {X.go(20)}
               </Link>
             </li>
           ))}
@@ -123,7 +128,7 @@ export function Home() {
                 <span className="pa-row-t">
                   <b>لوحة {l.title}</b>
                   <small>
-                    دفع <Num>{d.stats.levies[l.id]?.paid ?? 0}</Num>، وبقي{" "}
+                    دفع <Num>{d.stats.levies[l.id]?.paid ?? 0}</Num>، ولم يدفع{" "}
                     <Num>{d.stats.levies[l.id]?.notYet ?? 0}</Num>
                   </small>
                 </span>

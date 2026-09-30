@@ -614,6 +614,25 @@ end of `globals.css` («Lane C2»). Server contracts unchanged (`recordPayment`,
   Search matches «ب 2»/«ب2»/«B-2»/«2»/Arabic-Indic digits (`searchMembers`). e2e:
   `e2e/committee-record.spec.ts` (new, Lane C).
 
+- Slices 3–5 + review fixes (docs/UI-REVIEW-2026-09-30.md P0/P1 and most P2):
+  - Tabs all new: `/committee/members` (+ `/members/[ref]` كشف حساب, «شارك الكشف», «مسؤول»
+    cancels with a reason), `/committee/campaigns` (+ `/campaigns/[id]` تبرع or لوحة page with
+    analytics, «مسؤول» creates/closes/exempts/changes a share), `/committee/reports` (catalog
+    «للمجموعة»/«للجنة» + «الإحصاءات», period sheet, real pages via Lane B renderers),
+    `/committee/stats` (design a). Old screens kept only for what they still do:
+    `/members/manage`, `/campaigns/manage`, `/reports/legacy` (Lane B's old share e2e), `/late`,
+    `/expenses`, `/payments`, `/handover`, `/settings`, `/account`, `/review` (legacy unconfirmed
+    payments, listed in المزيد only while any are left).
+  - Numbers: `d.stats` from the «الإحصاءات» read (m32 report_fee_stats / levy / donation stats)
+    in the data door; demo builds the same report from the demo data (`demoStatsReport`), so
+    screens and report images agree. Home: «دفع 42 من 88 حتى سبتمبر · 48٪» → الإحصاءات, and
+    «58 عضوًا عليهم متأخرات (رسوم أو نصيب لوحة)» → المتأخرون.
+  - Arabic not-found (root + committee), admin h1/h2 scoped to `.pa-page`, roles «مسؤول» /
+    «عضو اللجنة», settings without «ما يراه الأعضاء», حسابي without «اختر عضويتك», record without
+    bottom nav, wrapping footer at 200%, «أضف إلى هذه الدفعة» sheet, saved screen lists every name,
+    undo = «أُلغيت الدفعة، لم تُحسب.» + «صحّحها وسجّل من جديد» (form kept), offline reason, rem
+    type, nav after main in the DOM, chips 48 px and wrapping, `?m=أ-4` deep links.
+
 ## Standing brief for Lane C (UI)
 - Worktree `.claude/worktrees/ui`, branch `m2-ui`; merge `m2-app` when asked; small commits,
   plain messages, never push, no Co-Authored-By/AI attribution, never commit member data.

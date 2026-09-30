@@ -294,9 +294,7 @@ function Detail({
       {req ? (
         <LoadedReport key={JSON.stringify(req)} req={req} />
       ) : (
-        <p className="pa-hint">
-          {item.k === "member" ? "اختر العضو أولًا." : "لا شيء لعرضه بعد."}
-        </p>
+        <p className="pa-hint">{item.k === "member" ? "اختر العضو أولًا." : "لا شيء لعرضه بعد."}</p>
       )}
 
       <PeriodSheet

@@ -3,17 +3,7 @@
 // expenses, more). Directions own home, record, campaigns list/page and reports.
 import Link from "next/link";
 import { useState } from "react";
-import {
-  Back,
-  CATEGORY,
-  Chips,
-  day,
-  Money,
-  Num,
-  Sheet,
-  useP,
-  X,
-} from "./kit";
+import { Back, CATEGORY, Chips, day, Money, Num, Sheet, useP, X } from "./kit";
 
 /* ───────── expenses ───────── */
 export function ExpensesScreen() {

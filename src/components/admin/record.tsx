@@ -279,9 +279,7 @@ function RecordFlow({
   const firstMember = first ? d.members.find((m) => m.ref === first.ref) : undefined;
 
   if (saved)
-    return (
-      <Done id={saved.id} text={saved.text} onAgain={onAgain} onFix={() => setSaved(null)} />
-    );
+    return <Done id={saved.id} text={saved.text} onAgain={onAgain} onFix={() => setSaved(null)} />;
 
   return (
     <div className="pa-page r2">
@@ -330,7 +328,13 @@ function RecordFlow({
       <Sheet open={menu} onClose={() => setMenu(false)} title="أضف إلى هذه الدفعة">
         <ul className="pa-rows">
           {[
-            { k: "person" as const, l: "شخص آخر", s: "رسوم عضو آخر في نفس التحويل", icon: "user" as const, on: true },
+            {
+              k: "person" as const,
+              l: "شخص آخر",
+              s: "رسوم عضو آخر في نفس التحويل",
+              icon: "user" as const,
+              on: true,
+            },
             {
               k: "levy" as const,
               l: "نصيب لوحة",
@@ -1060,9 +1064,9 @@ function Done({
   if (undone)
     return (
       <div className="pa-page r2">
-        <h1 className="r2-done-h" role="status">
-          أُلغيت الدفعة، لم تُحسب.
-        </h1>
+        <div role="status">
+          <h1 className="r2-done-h">أُلغيت الدفعة، لم تُحسب.</h1>
+        </div>
         <p className="pa-lead">{text}</p>
         <button
           type="button"
@@ -1078,9 +1082,9 @@ function Done({
     );
   return (
     <div className="pa-page r2">
-      <h1 className="r2-done" role="status">
-        {X.check(22)} سُجّلت الدفعة
-      </h1>
+      <div role="status">
+        <h1 className="r2-done">{X.check(22)} سُجّلت الدفعة</h1>
+      </div>
       <p className="pa-lead">{text}</p>
       {left > 0 && (
         <button

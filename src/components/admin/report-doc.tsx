@@ -12,6 +12,7 @@ import {
   buildHandover,
   buildLate,
   buildStatement,
+  buildStats,
   buildSummary,
   buildWallets,
   buildWork,
@@ -40,7 +41,9 @@ export function buildDoc(r: ReportRes): ReportDoc {
     case "expenses":
       return buildExpenses(r.data);
     case "campaign":
-      return buildCampaign(r.data);
+      return buildCampaign(r.data, r.stats);
+    case "stats":
+      return buildStats(r.data);
     case "member":
       return buildStatement(r.data);
     case "handover":

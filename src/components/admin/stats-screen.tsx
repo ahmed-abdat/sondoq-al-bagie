@@ -2,7 +2,8 @@
 // «الإحصاءات» design a (owner pick, proto/admin b591016): numbers first, for villagers in a
 // WhatsApp group. Green = paid, soft grey = not yet, a label on every bar, no names, no red.
 // Every number comes from `d.stats` (computed once in the data door), never recounted here.
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { ReportSheet } from "./report-doc";
 import { month, Num, useP, X, Back } from "./kit";
 import { pct } from "./stats";
 import type { PCampaign, PLevy } from "./types";
@@ -218,6 +219,7 @@ export function StatsScreen() {
   const { d } = useP();
   const levies = d.levies.filter((l) => l.status === "open");
   const gifts = d.campaigns.filter((c) => c.status === "open");
+  const [share, setShare] = useState(false);
   return (
     <div className="pa-page st">
       <Back to="reports" label="التقارير" />
@@ -225,6 +227,13 @@ export function StatsScreen() {
         <h1>الإحصاءات</h1>
       </header>
       <p className="pa-hint">بلا أسماء. الأخضر: دفعوا. الرمادي: لم يدفعوا بعد.</p>
+      <button
+        type="button"
+        className="pa-btn pa-btn-primary pa-btn-block"
+        onClick={() => setShare(true)}
+      >
+        {X.share(20)} شارك الإحصاءات في المجموعة
+      </button>
       <FeesCard />
       {levies.map((l) => (
         <LevyCard key={l.id} l={l} />
@@ -232,6 +241,12 @@ export function StatsScreen() {
       {gifts.map((c) => (
         <GiftCard key={c.id} c={c} />
       ))}
+      <ReportSheet
+        open={share}
+        onClose={() => setShare(false)}
+        title="شارك الإحصاءات"
+        req={{ kind: "stats", year: d.year }}
+      />
     </div>
   );
 }
