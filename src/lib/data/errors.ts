@@ -101,6 +101,8 @@ export const MESSAGES = {
   not_committee_member: "أحد المختارين ليس من أعضاء اللجنة.",
   not_a_wallet: "اختر محفظة (لا نقداً ولا سجلاً ورقياً).",
   account_exists: "هذا الرقم مضاف من قبل لنفس المحفظة.",
+  account_in_use: "هذا الرقم مستعمل في دفعات أو مصاريف. غيّر الرقم بدل تعديله.",
+  same_wallet: "اختر محفظتين مختلفتين.",
 } as const satisfies Record<string, string>;
 
 export type ErrorCode = keyof typeof MESSAGES;
