@@ -128,6 +128,7 @@ export function toCampaignProgress(r: Row<"campaign_progress">): CampaignProgres
     deadline: r.deadline,
     status: r.status ?? "open",
     amountMode: r.amount_mode ?? "open",
+    kind: r.kind ?? "donation",
     collected: num(r.collected),
     spent: num(r.spent),
     transferred: num(r.transferred),

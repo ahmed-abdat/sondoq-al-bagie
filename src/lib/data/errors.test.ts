@@ -74,6 +74,13 @@ describe("errors", () => {
     }
   });
 
+  it("says how much of the fund opening is left for an account (m45)", () => {
+    expect(messageFor("opening_too_big", JSON.stringify({ available: 30000 }))).toMatch(
+      /^المتاح 30.000 أوقية فقط\.$/,
+    );
+    expect(messageFor("opening_too_big", null)).toBe(MESSAGES.opening_too_big);
+  });
+
   it("falls back to the plain message on a missing or odd detail", () => {
     for (const detail of [
       null,

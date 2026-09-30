@@ -4,4 +4,4 @@
 select tests.ok(x.ok, 'accuracy: ' || x.check_name || ' (' || x.detail || ')')
 from app_private.accuracy_audit() x
 where x.check_name <> 'every active month has a fee (its year, or an earlier one)';
-select tests.ok((select count(*) from app_private.accuracy_audit()) = 31, 'the audit runs 31 checks');
+select tests.ok((select count(*) from app_private.accuracy_audit()) = 30, 'the audit runs 30 checks');

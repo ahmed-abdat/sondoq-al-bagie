@@ -12,6 +12,6 @@ out="$(docker exec -i "$DB" psql -U postgres -d postgres -X -At -F ' | ' -v ON_E
   -c "select case when ok then 'ok  ' else 'FAIL' end, check_name, detail from app_private.accuracy_audit() order by ok, check_name")"
 printf '%s\n' "$out"
 n="$(printf '%s\n' "$out" | grep -c . || true)"
-[ "$n" -ge 31 ] || die "expected 31 checks, got $n"
+[ "$n" -ge 30 ] || die "expected 30 checks, got $n"
 if printf '%s\n' "$out" | grep -q '^FAIL'; then die "some numbers do not add up (see FAIL rows)"; fi
 echo "e2e-audit: all $n checks ok"

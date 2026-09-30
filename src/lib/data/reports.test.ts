@@ -324,11 +324,6 @@ describe("money reports", () => {
       in_amount: 0,
       out_count: 0,
       out_amount: 0,
-      opening_balance: null,
-      opening_on: null,
-      balance: null,
-      transfer_in: 0,
-      transfer_out: 0,
       ...o,
     });
     const { client } = fakeClient(
@@ -343,12 +338,8 @@ describe("money reports", () => {
             in_amount: 3000,
             out_count: 1,
             out_amount: 700,
-            opening_balance: 1000,
-            opening_on: "2026-01-01",
-            balance: 3150,
-            transfer_out: 150,
           }),
-          row({ wallet_type_id: 9, method: "other", in_count: 1, in_amount: 200, balance: 200 }),
+          row({ wallet_type_id: 9, method: "other", in_count: 1, in_amount: 200 }),
           row({
             wallet_type_id: 8,
             method: "cash",
@@ -356,10 +347,6 @@ describe("money reports", () => {
             in_amount: 500,
             out_count: 1,
             out_amount: 300,
-            opening_balance: 500,
-            opening_on: "2026-01-01",
-            balance: 700,
-            transfer_in: 150,
           }),
           row({ method: "paper", in_count: 5, in_amount: 9000 }),
           row({ out_count: 2, out_amount: 900 }),
@@ -378,29 +365,12 @@ describe("money reports", () => {
         in: 3000,
         count: 2,
         out: 700,
-        transferIn: 0,
-        transferOut: 150,
-        opening: { amount: 1000, on: "2026-01-01" },
-        balance: 3150,
       },
-      expect.objectContaining({
-        walletTypeId: 9,
-        label: "ويل",
-        fundAccountId: null,
-        in: 200,
-        opening: null,
-        balance: 200,
-      }),
+      expect.objectContaining({ walletTypeId: 9, label: "ويل", fundAccountId: null, in: 200 }),
     ]);
-    expect(w.cash).toEqual({
-      in: 500,
-      count: 1,
-      out: 300,
-      transferIn: 150,
-      transferOut: 0,
-      opening: { amount: 500, on: "2026-01-01" },
-      balance: 700,
-    });
+    // m46 «one pot»: no balance, opening or moves anywhere
+    expect(w.wallets[1]).not.toHaveProperty("balance");
+    expect(w.cash).toEqual({ in: 500, count: 1, out: 300 });
     expect(w.paperIn).toBe(9000);
     expect(w.unspecifiedOut).toBe(900);
     expect(w.totalIn).toBe(3000 + 200 + 500 + 9000);

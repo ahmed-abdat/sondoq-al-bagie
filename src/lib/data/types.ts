@@ -12,6 +12,7 @@ export type PaymentStatus = Enums["payment_status"];
 export type ExpenseCategory = Enums["expense_category"];
 export type CampaignStatus = Enums["campaign_status"];
 export type CampaignMode = Enums["campaign_mode"];
+export type CampaignKind = Enums["campaign_kind"];
 export type CommitteeRole = Enums["committee_role"];
 /** Same ids as `Method` in src/lib/methods.ts. */
 export type PaymentMethod = Enums["payment_method"];
@@ -197,6 +198,8 @@ export type CampaignProgress = {
   deadline: string | null;
   status: CampaignStatus;
   amountMode: CampaignMode;
+  /** donation («تبرع») or levy («لوحة»), m46; optional so older demo rows still type-check */
+  kind?: CampaignKind;
   collected: number;
   spent: number;
   transferred: number;
