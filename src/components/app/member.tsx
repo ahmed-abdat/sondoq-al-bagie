@@ -1,19 +1,10 @@
 "use client";
-// Member row (list) and the member sheet body (twelve months in words).
+// Member row (list) and a member's months this year (committee member sheet).
 import { decodeMonths } from "@/lib/data/month-code";
 import type { MemberRow, MemberStatus } from "@/lib/data/types";
 import { Avatar, PaidCheck, StatusTag } from "./bits";
-import {
-  fmt,
-  groupLabel,
-  memberLabel,
-  memberState,
-  monthCells,
-  MONTHS,
-  statusLabel,
-} from "./derive";
+import { groupLabel, memberLabel, memberState, monthCells, MONTHS, statusLabel } from "./derive";
 import { I } from "./icons";
-import { Num } from "./num";
 
 export function MemberRow<T extends MemberStatus>({
   m,
@@ -110,44 +101,6 @@ export function MemberMonths({
           </li>
         ))}
       </ol>
-    </>
-  );
-}
-
-export function MemberSheetBody({ m, ctx, vt }: { m: MemberRow; ctx: MemberCtx; vt: boolean }) {
-  const price = ctx.prices[m.groupCode] ?? null;
-  const showOwed = ctx.showOwed;
-  return (
-    <>
-      <div className="bq-mhead">
-        <Avatar m={m} size={56} vt={vt} />
-        <div>
-          <h2>{m.fullName}</h2>
-          {/* the avatar already shows the number (audit V6) */}
-          <p className="bq-hint">
-            المجموعة {groupLabel(m.groupCode)}
-            {price ? (
-              <span className="bq-mhead-fee">
-                الرسوم الشهرية <Num>{fmt(price)}</Num> أوقية
-              </span>
-            ) : null}
-          </p>
-        </div>
-      </div>
-      <MemberMonths m={m} ctx={ctx} />
-      {showOwed && m.amountOwed ? (
-        <p className="bq-owed">
-          المتأخر عليه حتى الآن: <Num className="bq-strong">{fmt(m.amountOwed)}</Num> أوقية
-          {price ? (
-            <>
-              {" "}
-              من رسوم السنة <Num>{fmt(price * 12)}</Num>
-            </>
-          ) : null}
-        </p>
-      ) : (
-        <p className="bq-hint bq-note">لا تُعرض المبالغ هنا. يرى الجميع الأشهر فقط.</p>
-      )}
     </>
   );
 }

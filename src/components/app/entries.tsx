@@ -1,16 +1,9 @@
 "use client";
-// Operations (payments, donations, expenses): list row, detail sheet, share buttons.
+// The receipt's share buttons.
 import { useState } from "react";
 import { saveReceiptPng, shareReceipt } from "@/lib/share-receipt";
-import { categoryLabel, dayWords } from "./derive";
 import { I } from "./icons";
-import { Num } from "./num";
-import { Amount } from "./money";
-import { ReceiptSheetBody } from "./cancel-payment";
 import { toShareable, type ReceiptView } from "./receipt-model";
-import type { LedgerEntry } from "./types";
-
-export { EntryRow } from "./entry-row";
 
 /** «شارك الوصل» + «حفظ صورة الوصل»; sharing opens a sheet or a draft, it does not send. */
 export function ShareBtns({ r, phone }: { r: ReceiptView; phone?: string | null }) {
@@ -42,51 +35,6 @@ export function ShareBtns({ r, phone }: { r: ReceiptView; phone?: string | null 
         {I.save(18)} حفظ صورة الوصل
       </button>
       <p className="bq-hint">اختر واتساب ثم اضغط إرسال.</p>
-    </div>
-  );
-}
-
-export function EntrySheetBody({ e, vt }: { e: LedgerEntry; vt: boolean }) {
-  if (e.receipt)
-    return (
-      <ReceiptSheetBody
-        r={e.receipt}
-        paymentId={e.paymentId}
-        style={{ viewTransitionName: vt ? "bq-rc" : undefined }}
-      />
-    );
-  if (e.kind === "expense")
-    return (
-      <div className="bq-exp-sheet">
-        <p className="bq-hint">{e.category ? categoryLabel(e.category) : "مصروف"}</p>
-        <h2>{e.title}</h2>
-        <p className="bq-big">
-          <Amount v={e.amount} /> <span>أوقية</span>
-        </p>
-        <dl className="bq-facts">
-          <div>
-            <dt>التاريخ</dt>
-            <dd>
-              {dayWords(e.at)} <Num>{e.at.slice(0, 4)}</Num>
-            </dd>
-          </div>
-          <div>
-            <dt>صرفته</dt>
-            <dd>اللجنة، بموافقة أمين الصندوق</dd>
-          </div>
-        </dl>
-      </div>
-    );
-  return (
-    <div className="bq-exp-sheet">
-      <p className="bq-hint">{e.kind === "donation" ? "مساهمة في حملة" : "دفعة رسوم"}</p>
-      <h2>{e.title}</h2>
-      <p className="bq-big">
-        <Amount v={e.amount} /> <span>أوقية</span>
-      </p>
-      <p className="bq-hint">
-        {e.sub} · {e.when}
-      </p>
     </div>
   );
 }

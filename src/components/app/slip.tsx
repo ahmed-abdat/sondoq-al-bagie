@@ -302,13 +302,7 @@ export function PendingSlip({
           }
         />
         <p className="bq-hint">
-          {p.submittedByMember ? (
-            <>أرسلها العضو {p.submittedByMember.fullName} عبر رابطه</>
-          ) : p.createdByName ? (
-            <>سجّلها {p.createdByName}</>
-          ) : (
-            "سُجّلت"
-          )}
+          {p.createdByName ? <>سجّلها {p.createdByName}</> : "سُجّلت"}
           {" · "}
           {now ? relativeAgo(p.createdAt, now) : dayWords(p.createdAt)}
         </p>
@@ -392,7 +386,6 @@ export function PendingSlip({
           <p className="bq-rej-l" id={`rj-${p.id}`}>
             لماذا ترفض هذه الدفعة؟
           </p>
-          {p.submittedByMember && <p className="bq-hint">يصل السبب إلى العضو.</p>}
           <div
             className="bq-chips"
             role="radiogroup"

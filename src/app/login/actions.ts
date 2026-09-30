@@ -60,5 +60,5 @@ function loginError(error: { message?: string; status?: number; code?: string })
 export async function logout() {
   const supabase = await createClient();
   await supabase?.auth.signOut();
-  redirect("/");
+  redirect("/login");
 }
