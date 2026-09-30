@@ -67,6 +67,7 @@ export const fxSummary: SummaryReport = {
   income: 60_000,
   spending: 25_000,
   closing: 300_000,
+  campaignsHeld: 46_000,
   membersActive: 89,
   membersPaidPeriod: 47,
   membersLate: 42,

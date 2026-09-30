@@ -56,7 +56,10 @@ export type Block =
   | { t: "big"; value: string; lead: string; bar?: Part }
   /** two or three figures side by side (groups, owing buckets), each with an optional bar */
   | { t: "tiles"; items: { label: string; value: string; sub?: string; bar?: Part }[] }
-  /** how many paid each month: 12 columns (January on the right), the count above each */
+  /**
+   * how many paid each month: 12 columns (January on the right), the count above each; a month
+   * not `started` shows only what is already paid in it
+   */
   | { t: "counts"; months: { paid: number; of: number; started: boolean }[] };
 
 /** A part of a whole, drawn as a bar: green = done (paid), soft grey = not yet. */
@@ -353,7 +356,7 @@ export function docText(doc: ReportDoc, meta: DocMeta): string {
       case "counts":
         out.push(
           b.months
-            .flatMap((m, i) => (m.started ? [`${monthName(i + 1)} ${m.paid}`] : []))
+            .flatMap((m, i) => (m.started || m.paid ? [`${monthName(i + 1)} ${m.paid}`] : []))
             .join("، "),
         );
         break;
