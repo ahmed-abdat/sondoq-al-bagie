@@ -33,7 +33,7 @@ import type {
 import * as rfx from "@/lib/reports/fixtures";
 import type { Method } from "@/lib/methods";
 import { currentDueMonth, fmt } from "./derive";
-import { demoAdminData } from "./admin-demo";
+import { demoAdminData, demoStatement } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
 import * as fx from "./fixtures";
@@ -330,6 +330,7 @@ export async function adminData(): Promise<PData> {
       amount: e.amount,
       campaign: e.campaignId,
     }));
+  const refByName = new Map(members.map((x) => [x.name, x.ref]));
   const campaignsRaw = (m?.campaigns ?? []).filter((c) => c.amountMode !== "fixed");
   const leviesRaw = (m?.campaigns ?? []).filter((c) => c.amountMode === "fixed");
   const gifts = await Promise.all(
@@ -347,7 +348,8 @@ export async function adminData(): Promise<PData> {
     spent: c.spent,
     gifts: (gifts[i] ?? []).map((g) => ({
       name: g.contributorName,
-      ref: null,
+      // a member's contribution carries his name (outside donors: the payer's name)
+      ref: refByName.get(g.contributorName) ?? null,
       amount: g.amount,
       at: g.at,
       method: "cash" as Method,
@@ -520,6 +522,10 @@ export async function reportFor(q: ReportReq): Promise<ReportRes | null> {
       wallets: { kind: "wallets", data: rfx.fxWallets },
       work: { kind: "work", data: rfx.fxWork },
     };
+    if (q.kind === "member") {
+      const st = demoStatement(q.memberId, q.year);
+      return st && { kind: "member", data: st };
+    }
     if (q.kind === "campaign" && q.id.startsWith("l"))
       return { kind: "campaign", data: rfx.fxLevy };
     return F[q.kind];

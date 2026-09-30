@@ -177,26 +177,35 @@ export function ReportSheet({
   );
 }
 
-export function LoadedReport({ req }: { req: ReportReq }) {
-  const { d } = useP();
+/** A report's data, loaded when shown: undefined while loading, null when it failed. */
+export function useReport(req: ReportReq): ReportRes | null | undefined {
   const key = JSON.stringify(req);
   const [res, setRes] = useState<{ key: string; r: ReportRes | null } | undefined>();
   useEffect(() => {
     let live = true;
-    loadReportData(req)
+    loadReportData(JSON.parse(key) as ReportReq)
       .then((r) => live && setRes({ key, r }))
       .catch(() => live && setRes({ key, r: null }));
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is `req`
   }, [key]);
-  const doc = useMemo(() => (res?.r ? buildDoc(res.r) : null), [res]);
-  const meta = useMemo<DocMeta>(
+  return res && res.key === key ? res.r : undefined;
+}
+
+export function useDocMeta(): DocMeta {
+  const { d } = useP();
+  return useMemo(
     () => ({ generatedAt: new Date().toISOString(), preparedBy: d.me.name }),
     [d.me.name],
   );
-  if (!res || res.key !== key)
+}
+
+export function LoadedReport({ req }: { req: ReportReq }) {
+  const r = useReport(req);
+  const doc = useMemo(() => (r ? buildDoc(r) : null), [r]);
+  const meta = useDocMeta();
+  if (r === undefined)
     return (
       <p className="pa-hint" role="status">
         جارٍ تحميل التقرير…

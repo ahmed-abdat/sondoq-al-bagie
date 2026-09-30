@@ -5,7 +5,8 @@ import { Campaign, Campaigns, Home } from "./dir-b";
 import { Provider } from "./kit";
 import { RecordScreen } from "./record";
 import { Reports3 } from "./reports3";
-import { ExpensesScreen, LateScreen, LevyScreen, MemberScreen, MembersScreen } from "./screens";
+import { ExpensesScreen, LateScreen, LevyScreen } from "./screens";
+import { MemberScreen, MembersScreen } from "./members";
 import { ActivityScreen, MoreScreen } from "./more";
 import type { PData } from "./types";
 

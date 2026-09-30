@@ -1,0 +1,362 @@
+"use client";
+// «الأعضاء» (owner pick A): the list with search and filters; a member's page is his «كشف حساب»
+// (member_statement): the year's months, what he owes, every payment with who recorded it.
+// «شارك الكشف» sends the same statement as images, PDF or text. Cancelling is «مسؤول» only.
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Fragment, useState } from "react";
+import { useOnline } from "@/components/providers";
+import { useAct } from "@/components/app/act";
+import { CANCEL_REASONS } from "@/components/app/cancel-payment";
+import type { MemberStatement } from "@/lib/data/report-types";
+import { pastWords } from "./fees";
+import {
+  Avatar,
+  Back,
+  Chips,
+  day,
+  feesOwed,
+  findMembers,
+  levyOwed,
+  levyShare,
+  Money,
+  MonthGrid,
+  monthsWords,
+  Num,
+  owedAmount,
+  owes,
+  payStatus,
+  Sheet,
+  useP,
+  Wallet,
+  X,
+} from "./kit";
+import { ReportSheet, useReport } from "./report-doc";
+import type { PMember } from "./types";
+
+/* ───────── the list ───────── */
+type MF = "all" | "owe" | "A" | "B";
+export function MembersScreen() {
+  const { d, href } = useP();
+  const [q, setQ] = useState("");
+  const [f, setF] = useState<MF>("all");
+  const shown = d.members
+    .filter((m) => m.status !== "left" && m.status !== "deceased")
+    .filter((m) => (f === "owe" ? owes(m, d) : f === "A" || f === "B" ? m.group === f : true));
+  const list = q.trim() ? findMembers(shown, q) : shown;
+  const oweCount = d.members.filter((m) => owes(m, d)).length;
+  return (
+    <div className="pa-page">
+      <header className="pa-title">
+        <h1>الأعضاء</h1>
+        <Link href={href("members/manage")} className="pa-btn pa-btn-soft pa-btn-sm">
+          {X.edit(20)} إدارة الأعضاء
+        </Link>
+      </header>
+      <label className="pa-search">
+        {X.search(22)}
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="اسم العضو أو رقمه، مثل ب 12"
+          aria-label="ابحث عن عضو"
+        />
+      </label>
+      <Chips
+        label="تصفية"
+        value={f}
+        onChange={setF}
+        options={[
+          { k: "all", l: "الكل" },
+          { k: "owe", l: `عليهم رسوم (${oweCount})` },
+          { k: "A", l: "المجموعة أ" },
+          { k: "B", l: "المجموعة ب" },
+        ]}
+      />
+      {f === "owe" && (
+        <Link href={href("late")} className="pa-btn pa-btn-soft pa-btn-block">
+          {X.share(20)} شارك المتأخرات في المجموعة
+        </Link>
+      )}
+      <ul className="pa-rows">
+        {list.map((m) => (
+          <li key={m.ref}>
+            <Link href={href(`members/${m.ref}`)} className="pa-row">
+              <Avatar refs={m.ref} />
+              <span className="pa-row-t">
+                <b>{m.name}</b>
+                <small>{payStatus(m)}</small>
+              </span>
+              {X.go(20)}
+            </Link>
+          </li>
+        ))}
+        {!list.length && <li className="pa-empty">لا أحد بهذا الاسم أو الرقم.</li>}
+      </ul>
+    </div>
+  );
+}
+
+/* ───────── one member = «كشف حساب» ───────── */
+export function MemberScreen({ refs }: { refs: string }) {
+  const { d, href } = useP();
+  const m = d.members.find((x) => x.ref === refs);
+  const [share, setShare] = useState(false);
+  if (!m)
+    return (
+      <div className="pa-page">
+        <Back to="members" label="الأعضاء" />
+        <p className="pa-empty">لا يوجد عضو بهذا الرقم.</p>
+      </div>
+    );
+  return (
+    <div className="pa-page">
+      <Back to="members" label="الأعضاء" />
+      <header className="pa-member-h">
+        <Avatar refs={m.ref} tone="g" />
+        <div>
+          <h1>{m.name}</h1>
+          <p className="pa-sub">
+            المجموعة {m.group === "A" ? "أ" : "ب"} · الرسوم الشهرية <Money v={m.fee} />
+          </p>
+          {m.phone && (
+            <p className="pa-sub">
+              <Num>{`+${m.phone.slice(0, 3)} ${m.phone.slice(3)}`}</Num>
+            </p>
+          )}
+        </div>
+      </header>
+      <div className="pa-actions">
+        {m.status === "active" && (
+          <Link href={href("record", { m: m.ref })} className="pa-btn pa-btn-primary">
+            {X.plus(20)} سجّل دفعة له
+          </Link>
+        )}
+        <button type="button" className="pa-btn pa-btn-tonal" onClick={() => setShare(true)}>
+          {X.share(20)} شارك الكشف
+        </button>
+      </div>
+      <section className="pa-sec">
+        <h2>
+          سنة <Num>{d.year}</Num>
+        </h2>
+        <p className="pa-status">{payStatus(m)}</p>
+        <MonthGrid m={m} />
+      </section>
+      <Owed m={m} />
+      <Payments m={m} />
+      <section className="pa-sec">
+        <h2>إدارة</h2>
+        <ul className="pa-rows">
+          <li>
+            <Link href={href("members/manage")} className="pa-row">
+              <span className="pa-ic">{X.edit(22)}</span>
+              <span className="pa-row-t">
+                <b>تعديل البيانات والحالة</b>
+                <small>الاسم، الهاتف، المجموعة، الحالة</small>
+              </span>
+              {X.go(20)}
+            </Link>
+          </li>
+        </ul>
+      </section>
+      <ReportSheet
+        open={share}
+        onClose={() => setShare(false)}
+        title="شارك كشف الحساب"
+        req={{ kind: "member", memberId: m.id, year: d.year }}
+      />
+    </div>
+  );
+}
+
+function Owed({ m }: { m: PMember }) {
+  const { d } = useP();
+  const lv = levyOwed(m, d);
+  if (!owes(m, d))
+    return (
+      <section className="pa-sec">
+        <h2>ما عليه الآن</h2>
+        <p className="pa-quiet">لا شيء عليه. {X.check(18)}</p>
+      </section>
+    );
+  const fees = feesOwed(m, d);
+  const what = [
+    m.pastLate.length ? pastWords(m.pastLate) : "",
+    m.owed.length ? `${monthsWords(m.owed)}${m.pastLate.length ? ` ${d.year}` : ""}` : "",
+  ]
+    .filter(Boolean)
+    .join("، و");
+  return (
+    <section className="pa-sec">
+      <h2>ما عليه الآن</h2>
+      <dl className="pa-dl pa-dl-owe">
+        {fees > 0 && (
+          <>
+            <dt>رسوم {what}</dt>
+            <dd>
+              <Money v={fees} />
+            </dd>
+          </>
+        )}
+        {lv.map((l) => (
+          <Fragment key={l.id}>
+            <dt>لوحة {l.title}</dt>
+            <dd>
+              <Money v={levyShare(l, m.ref)} />
+            </dd>
+          </Fragment>
+        ))}
+        <dt className="pa-sum-total">المجموع</dt>
+        <dd className="pa-sum-total">
+          <Money v={owedAmount(m, d)} />
+        </dd>
+      </dl>
+    </section>
+  );
+}
+
+const monthsOf = (keys: string[], year: number) => {
+  const now = keys.filter((k) => k.startsWith(`${year}-`)).map((k) => Number(k.slice(5)));
+  const past = keys.filter((k) => !k.startsWith(`${year}-`));
+  return [past.length ? pastWords(past) : "", now.length ? monthsWords(now) : ""]
+    .filter(Boolean)
+    .join("، و");
+};
+
+/** Every payment of the year from the statement, with who recorded it; «مسؤول» can cancel. */
+function Payments({ m }: { m: PMember }) {
+  const { d } = useP();
+  const r = useReport({ kind: "member", memberId: m.id, year: d.year });
+  const [cancel, setCancel] = useState<MemberStatement["payments"][number] | null>(null);
+  const st = r?.kind === "member" ? r.data : null;
+  return (
+    <section className="pa-sec">
+      <h2>الدفعات</h2>
+      {r === undefined ? (
+        <p className="pa-hint" role="status">
+          جارٍ التحميل…
+        </p>
+      ) : !st ? (
+        <p className="pa-alert" role="alert">
+          تعذّر تحميل الدفعات. تحقق من الإنترنت.
+        </p>
+      ) : !st.payments.length ? (
+        <p className="pa-empty">لا دفعات هذا العام.</p>
+      ) : (
+        <ul className="pa-hist">
+          {[...st.payments]
+            .sort((a, b) => b.paidOn.localeCompare(a.paidOn))
+            .map((p) => {
+              const off = p.status === "cancelled" || p.status === "rejected";
+              const what = [
+                p.months.length ? `رسوم ${monthsOf(p.months, d.year)}` : "",
+                ...p.campaigns,
+              ]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <li key={p.paymentId} className={off ? "pa-hist-cancelled" : "pa-hist-confirmed"}>
+                  <div className="pa-hist-top">
+                    <b>{what || "دفعة"}</b>
+                    <Money v={p.amount} />
+                  </div>
+                  <p className="pa-hist-meta">
+                    {day(p.paidOn)} · <Wallet method={p.method} size={18} />
+                  </p>
+                  {p.recordedBy && <p className="pa-hist-who">سجّلها {p.recordedBy}</p>}
+                  {off && (
+                    <p className="pa-hist-rej">
+                      <span className="pa-tag-rej">أُلغيت</span>
+                      {p.cancelledBy ? ` ألغاها ${p.cancelledBy}.` : ""}
+                      {p.reason ? ` السبب: ${p.reason}` : ""}
+                    </p>
+                  )}
+                  {!off && d.me.admin && (
+                    <button
+                      type="button"
+                      className="pa-btn pa-btn-ghost pa-btn-sm"
+                      onClick={() => setCancel(p)}
+                    >
+                      ألغِ الدفعة
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+        </ul>
+      )}
+      {cancel && <CancelSheet p={cancel} onClose={() => setCancel(null)} />}
+    </section>
+  );
+}
+
+/** «مسؤول» only: cancel with a reason; the months become unpaid again (the log names who, why). */
+function CancelSheet({
+  p,
+  onClose,
+}: {
+  p: MemberStatement["payments"][number];
+  onClose: () => void;
+}) {
+  const { snack } = useP();
+  const router = useRouter();
+  const online = useOnline();
+  const { cancelPayment } = useAct();
+  const [why, setWhy] = useState("");
+  const [other, setOther] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const reason = why === "أخرى" ? other.trim() : why;
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title="ألغِ الدفعة"
+      foot={
+        <>
+          {err && (
+            <p className="pa-alert" role="alert">
+              {err}
+            </p>
+          )}
+          <button
+            type="button"
+            className="pa-btn pa-btn-primary pa-btn-block"
+            disabled={!reason || busy || !online}
+            onClick={async () => {
+              setBusy(true);
+              setErr("");
+              const r = await cancelPayment({ id: p.paymentId, reason }).catch(() => null);
+              setBusy(false);
+              if (!r?.ok) return setErr(r?.message ?? "تعذّر الإلغاء. حاول مرة أخرى.");
+              router.refresh();
+              onClose();
+              snack("أُلغيت الدفعة. عادت أشهرها غير مدفوعة.");
+            }}
+          >
+            {busy ? "جارٍ الإلغاء…" : reason ? "ألغِ الدفعة" : "اختر السبب"}
+          </button>
+        </>
+      }
+    >
+      <p className="pa-quiet">
+        دفعة <Money v={p.amount} /> يوم {day(p.paidOn)}. لا تُحذف: تبقى في السجل مع السبب، وتعود
+        أشهرها غير مدفوعة.
+      </p>
+      <p className="pa-label">السبب</p>
+      <Chips
+        label="السبب"
+        value={why}
+        onChange={setWhy}
+        options={CANCEL_REASONS.map((x) => ({ k: x, l: x }))}
+      />
+      {why === "أخرى" && (
+        <label className="pa-field">
+          <span>اكتب السبب</span>
+          <input value={other} maxLength={200} onChange={(e) => setOther(e.target.value)} />
+        </label>
+      )}
+    </Sheet>
+  );
+}

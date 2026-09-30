@@ -68,7 +68,7 @@ test("settings: next year's fees and the last backup (M12/D2)", async ({ page })
 });
 
 test("pay late months from a member's credit (M7)", async ({ page }) => {
-  await page.goto("/committee/members");
+  await page.goto("/committee/members/manage");
   await page.getByLabel("ابحث عن عضو", { exact: false }).first().fill("ب 12");
   await page.locator("button.bq-row").first().click();
   const s = page.getByRole("dialog").last();

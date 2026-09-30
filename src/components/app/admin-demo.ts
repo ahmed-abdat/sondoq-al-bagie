@@ -4,6 +4,7 @@ import "server-only";
 import * as fx from "./fixtures";
 import { toMemberRows } from "@/lib/data/member-lists";
 import type { Method } from "@/lib/methods";
+import type { MemberStatement } from "@/lib/data/report-types";
 import type {
   PCampaign,
   PData,
@@ -387,5 +388,79 @@ export function demoAdminData(): PData {
     prices: fx.FX_PRICE,
     levies,
     log,
+  };
+}
+
+/** Demo «كشف حساب» of one member, built from the same fictional months as the committee app. */
+export function demoStatement(memberId: string, year: number): MemberStatement | null {
+  const d = demoAdminData();
+  const m = d.members.find((x) => x.id === memberId);
+  if (!m) return null;
+  const key = (k: number) => `${year}-${String(k).padStart(2, "0")}`;
+  const runs: number[][] = [];
+  for (const k of [...m.paid].sort((a, b) => a - b)) {
+    const last = runs.at(-1);
+    if (last && last.length < 3 && last.at(-1) === k - 1) last.push(k);
+    else runs.push([k]);
+  }
+  const payments: MemberStatement["payments"] = runs.map((ms, i) => {
+    const on = `${key(ms[0])}-05`;
+    return {
+      paymentId: `demo-${m.ref}-${i}`,
+      paidOn: on,
+      status: "confirmed",
+      method: i % 2 ? "cash" : "bankily",
+      amount: ms.length * m.fee,
+      total: ms.length * m.fee,
+      months: ms.map(key),
+      campaigns: [],
+      note: null,
+      reason: null,
+      recordedBy: i % 2 ? "يحيى" : "سيدي محمد",
+      recordedAt: `${on}T10:00:00Z`,
+      confirmedBy: i % 2 ? "يحيى" : "سيدي محمد",
+      confirmedAt: `${on}T10:00:00Z`,
+      cancelledBy: null,
+      cancelledAt: null,
+    };
+  });
+  const levies = d.levies
+    .filter((l) => l.refs.includes(m.ref))
+    .map((l) => {
+      const expected = l.amounts?.[m.ref] ?? l.perMember;
+      const exempt = !!l.exemptRefs?.includes(m.ref);
+      const paid = l.paidRefs.includes(m.ref) ? expected : 0;
+      return { title: l.title, expected, paid, left: exempt ? 0 : expected - paid, exempt };
+    });
+  return {
+    generatedAt: `${d.today}T12:00:00Z`,
+    year,
+    member: {
+      memberId: m.id,
+      memberRef: m.ref,
+      fullName: m.name,
+      groupCode: m.group,
+      status: m.status,
+      phone: m.phone,
+    },
+    months: Array.from({ length: 12 }, (_, i) => {
+      const k = i + 1;
+      const state = m.paid.includes(k)
+        ? "paid"
+        : m.owed.includes(k)
+          ? "late"
+          : m.notOwed.includes(k)
+            ? "not_owed"
+            : "upcoming";
+      return { month: k, state, price: m.fee, paid: state === "paid", due: k <= d.due };
+    }),
+    payments,
+    levies,
+    owed: {
+      monthsCount: m.owed.length + m.pastLate.length,
+      amountOwed: m.owed.length * m.fee + m.pastLate.length * m.fee,
+      levyLeft: levies.reduce((s, l) => s + l.left, 0),
+      credit: 0,
+    },
   };
 }

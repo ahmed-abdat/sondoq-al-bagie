@@ -1351,3 +1351,29 @@ body:has(.pa) .bq-demo {
 .pa-search input:focus-visible {
   outline: none;
 }
+
+/* a report's three ways out, on one row; its pages under them */
+.pa-docshare {
+  display: grid;
+  gap: 8px;
+}
+.pa-docshare-b {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 8px;
+}
+.pa-docshare-b .pa-btn {
+  min-width: 0;
+  padding-inline: 8px;
+}
+.pa-doc {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.pa-doc img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line, #e3e7e3);
+  border-radius: 12px;
+}
