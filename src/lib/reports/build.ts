@@ -39,6 +39,8 @@ const fmt = formatNumber;
  */
 const amt = (v: number) => `\u2066${fmt(v)}\u2069`;
 const day = (iso: string) => formatDay(iso.slice(0, 10), { year: true });
+/** «لوحة العيد» as it is, «ترميم المسجد» → «لوحة ترميم المسجد»: never «لوحة لوحة». */
+const levyName = (title: string) => (title.startsWith("لوحة") ? title : `لوحة ${title}`);
 /** «A-12» → «أ 12» (group letters as on paper). */
 export function refLabel(ref: string): string {
   const [g, n] = ref.split("-");
@@ -109,6 +111,19 @@ function closingBlocks(closing: number, held: number, label: string, total: stri
   ];
 }
 
+/**
+ * The end of a period in words: «آخر السنة» once it is over, «حتى 30 سبتمبر 2026» while it runs
+ * (the report is a snapshot of today, never money still to come).
+ */
+function endWord(p: AnnualReport["period"], generatedAt: string): string {
+  const edge = p.month ? "الشهر" : "السنة";
+  const last = p.month
+    ? `${p.year}-${String(p.month).padStart(2, "0")}-${String(new Date(Date.UTC(p.year, p.month, 0)).getUTCDate()).padStart(2, "0")}`
+    : `${p.year}-12-31`;
+  const today = generatedAt.slice(0, 10);
+  return today < last ? `حتى ${day(today)}` : `آخر ${edge}`;
+}
+
 /* ─────────────── 1 · the full annual (or monthly) report ─────────────── */
 
 export function buildAnnual(d: AnnualReport): ReportDoc {
@@ -133,7 +148,12 @@ export function buildAnnual(d: AnnualReport): ReportDoc {
       ],
     });
   blocks.push(
-    ...closingBlocks(d.closing, d.campaignsHeld, `رصيد آخر ${edge}`, `المجموع آخر ${edge}`),
+    ...closingBlocks(
+      d.closing,
+      d.campaignsHeld,
+      `الرصيد ${endWord(d.period, d.generatedAt)}`,
+      `المجموع ${endWord(d.period, d.generatedAt)}`,
+    ),
   );
   if (yearly && d.months.length) {
     // owner: a month's fees count in the month they pay for (مستحقات يناير in January, whatever
@@ -205,10 +225,17 @@ export function buildSummary(d: SummaryReport): ReportDoc {
         ],
         ...(d.campaignsHeld
           ? {}
-          : { total: { label: `في الصندوق آخر ${edge}`, amount: d.closing } }),
+          : {
+              total: { label: `في الصندوق ${endWord(d.period, d.generatedAt)}`, amount: d.closing },
+            }),
       },
       ...(d.campaignsHeld
-        ? closingBlocks(d.closing, d.campaignsHeld, "", `المجموع آخر ${edge}`)
+        ? closingBlocks(
+            d.closing,
+            d.campaignsHeld,
+            "",
+            `المجموع ${endWord(d.period, d.generatedAt)}`,
+          )
         : []),
       ...(d.incomePaper
         ? [
@@ -296,25 +323,26 @@ export function buildLate(d: LateReport): ReportDoc {
     const levyTitles = [...new Set(rows.flatMap((m) => m.levies.map((l) => l.title)))];
     blocks.push(
       { t: "heading", text: g ? groupLabel(g) : "بلا فئة", section: true },
-      { t: "note", text: "1 = يناير … 12 = ديسمبر" },
-      {
-        t: "grid",
-        namesOnly: true,
-        rows: cells,
-      },
+      // compact rows: a الفئة of ~28 names fits one phone page (owner: one page per الفئة)
+      { t: "grid", namesOnly: true, dense: true, rows: cells },
       {
         t: "note",
-        text: `✓ مدفوع · خانة فارغة: لم يُدفع${anyNone ? " · —: غير مستحق عليه" : ""}`,
+        text: `1 = يناير … 12 = ديسمبر · ✓ مدفوع · فارغ: لم يُدفع${anyNone ? " · —: غير مستحق عليه" : ""}`,
       },
       // months of an earlier year are not in this year's grid: name them so no row looks paid up
       ...earlierYears(rows, d.year),
-      ...levyTitles.map((title): Block => ({
-        t: "note",
-        text: `لم يُدفع بعد نصيب لوحة ${title}: ${rows
-          .filter((m) => m.levies.some((l) => l.title === title))
-          .map((m) => m.fullName)
-          .join("، ")}.`,
-      })),
+      // a لوحة share still owed: the names, or one short line when everyone listed owes it
+      ...levyTitles.map((title): Block => {
+        const who = rows.filter((m) => m.levies.some((l) => l.title === title));
+        return {
+          t: "note",
+          text: `لم يدفع نصيب ${title}: ${
+            who.length === rows.length && rows.length > 1
+              ? `كل من في هذه القائمة (${membersWord(who.length)})`
+              : who.map((m) => m.fullName).join("، ")
+          }.`,
+        };
+      }),
     );
   }
   if (!blocks.length) blocks.push({ t: "note", text: "لا أحد عليه متأخرات الآن." });
@@ -549,7 +577,10 @@ function levyStatBlocks(l: LevyStats, title?: string): Block[] {
       items: [
         { label: "دفعوا", value: fmt(l.paid) },
         { label: "لم يدفعوا بعد", value: fmt(l.unpaid) },
-        { label: "معفون", value: fmt(l.exempt) },
+        {
+          label: l.exempt === 1 ? "معفى" : l.exempt === 2 ? "معفيّان" : "معفون",
+          value: fmt(l.exempt),
+        },
       ],
     },
     // in the campaign report the amounts follow in their own lines
@@ -618,9 +649,7 @@ export function buildStats(d: StatsReport): ReportDoc {
     subtitle: f.refMonth >= 12 ? `سنة ${f.year}` : `سنة ${f.year} · حتى ${monthName(f.refMonth)}`,
     blocks: [
       ...feeStatBlocks(f, d.previous),
-      ...d.levies.flatMap((l) =>
-        levyStatBlocks(l, l.title.startsWith("لوحة") ? l.title : `لوحة ${l.title}`),
-      ),
+      ...d.levies.flatMap((l) => levyStatBlocks(l, levyName(l.title))),
       ...d.donations.flatMap((x) => donationStatBlocks(x, `تبرع: ${x.title}`)),
     ],
     fileBase: `الإحصاءات-${d.period.year}`,
@@ -648,8 +677,8 @@ export function buildStatement(d: MemberStatement): ReportDoc {
   const blocks: Block[] = [
     {
       t: "note",
+      // no paper number in what is shared (the name says who): only the الفئة and its fee
       text: [
-        `رقم ${refLabel(m.memberRef)}`,
         groupLabel(m.groupCode),
         ...(price ? [`المستحقات الشهرية: ${amt(price)} أوقية`] : []),
       ].join(" · "),
@@ -668,6 +697,8 @@ export function buildStatement(d: MemberStatement): ReportDoc {
               day(p.paidOn),
               p.recordedBy ? `سجّلها ${p.recordedBy}` : null,
               p.status === "pending" ? "بانتظار التأكيد" : null,
+              // e.g. «يختلف عن الصورة: الباقي نقدًا», the reason given when it was recorded
+              p.note?.trim() || null,
             ]
               .filter(Boolean)
               .join(" · "),
@@ -687,7 +718,7 @@ export function buildStatement(d: MemberStatement): ReportDoc {
       : []),
     ...d.levies
       .filter((l) => !l.exempt && l.left > 0)
-      .map((l) => ({ label: `لوحة ${l.title}`, amount: l.left })),
+      .map((l) => ({ label: levyName(l.title), amount: l.left })),
   ];
   if (owed.length) blocks.push({ t: "heading", text: "ما عليه" }, { t: "rows", rows: owed });
   if (d.owed.credit > 0)

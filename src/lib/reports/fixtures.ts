@@ -35,51 +35,59 @@ const NAMES = [
 const monthsPaid = (n: number): ReportMonthState[] =>
   Array.from({ length: 12 }, (_, k) => (k < n ? "paid" : k < 9 ? "late" : "upcoming"));
 
+// The same fund as the demo app (src/components/app/fixtures.ts, server-only so not imported):
+// opening 45 000, fees 376 500, the four expenses (127 500), the تبرع's 52 000 still held, so
+// «منها في الصندوق» = home's «في الصندوق» 294 000. Levies 30 000 held too: total 376 000.
 export const fxAnnual: AnnualReport = {
   period: { year: 2026 },
   generatedAt: AT,
-  opening: 120_000,
-  income: { fees: 212_500, levies: 30_000, donations: 71_000, total: 313_500, paper: 60_000 },
+  opening: 45_000,
+  income: { fees: 376_500, levies: 30_000, donations: 52_000, total: 458_500, paper: 60_000 },
   spending: {
     byCategory: [
-      { category: "teaching", label: "التدريس", amount: 90_000 },
-      { category: "sports", label: "الرياضة", amount: 18_500 },
-      { category: "honoring", label: "التكريم", amount: 25_000 },
+      { category: "teaching", label: "التدريس", amount: 60_000 },
+      { category: "honoring", label: "التكريم", amount: 35_000 },
+      { category: "sports", label: "الرياضة", amount: 28_000 },
+      { category: "other", label: "أخرى", amount: 4_500 },
     ],
     byActivity: [
-      { activityId: 1, name: "التدريس المحظري", amount: 90_000 },
-      { activityId: 2, name: "تكريم الناجحين", amount: 25_000 },
-      { activityId: 3, name: "الفريق الرياضي", amount: 18_500 },
+      { activityId: 1, name: "التدريس المحظري", amount: 60_000 },
+      { activityId: 2, name: "تكريم الناجحين", amount: 35_000 },
+      { activityId: 3, name: "الفريق الرياضي", amount: 28_000 },
+      { activityId: 4, name: "أخرى", amount: 4_500 },
     ],
-    fromCampaigns: 25_000,
-    total: 133_500,
+    fromCampaigns: 0,
+    total: 127_500,
   },
-  incomeDue: { total: 307_500, feesForOtherMonths: 6_000, feesPaidOutside: 0 },
+  incomeDue: { total: 452_500, feesForOtherMonths: 6_000, feesPaidOutside: 0 },
   adjustments: 0,
-  closing: 300_000,
-  campaignsHeld: 46_000,
+  closing: 376_000,
+  campaignsHeld: 82_000,
   months: Array.from({ length: 12 }, (_, k) => ({
     year: 2026,
     month: k + 1,
-    income: k < 9 ? [41_000, 30_500, 28_000, 26_000, 24_500, 22_000, 21_500, 60_000, 60_000][k] : 0,
-    // the same fees by the month they pay for (6 000 of them for 2027 are not in this year)
+    income:
+      k < 9 ? [48_000, 45_000, 44_000, 43_000, 42_500, 42_000, 40_000, 52_000, 102_000][k] : 0,
+    // the same money by the month it pays for (6 000 of the fees are for 2027: not this year)
     dueIncome: [
-      30_000, 29_500, 29_000, 28_500, 28_000, 27_500, 27_000, 26_500, 26_000, 20_000, 18_000,
-      17_500,
+      42_000, 41_500, 41_000, 40_500, 40_000, 39_500, 39_000, 38_500, 50_000, 27_000, 27_000,
+      26_500,
     ][k],
-    spending: k < 9 ? [0, 15_000, 0, 30_000, 0, 18_500, 0, 45_000, 25_000][k] : 0,
+    // the demo expenses by date: July 60 000, August 35 000 + 28 000, September 4 500
+    spending: k < 9 ? [0, 0, 0, 0, 0, 0, 60_000, 63_000, 4_500][k] : 0,
   })),
 };
 
 export const fxSummary: SummaryReport = {
   period: { year: 2026, month: 9 },
   generatedAt: AT,
-  opening: 265_000,
-  income: 60_000,
+  // September of fxAnnual: ends on the same 376 000 (294 000 in the fund + 82 000 held)
+  opening: 278_500,
+  income: 102_000,
   incomePaper: 40_000,
-  spending: 25_000,
-  closing: 300_000,
-  campaignsHeld: 46_000,
+  spending: 4_500,
+  closing: 376_000,
+  campaignsHeld: 82_000,
   membersActive: 89,
   membersPaidPeriod: 47,
   membersLate: 42,
@@ -209,31 +217,32 @@ export const fxLate: LateReport = {
   ],
 };
 
+// the demo app's four expenses (src/components/app/fixtures.ts EXPENSES): 127 500 = fxAnnual
 export const fxExpenses: ExpensesReport = {
   period: { year: 2026 },
   generatedAt: AT,
   items: [
     {
-      spentOn: "2026-09-17",
-      category: "sports",
-      label: "الفريق الرياضي",
-      activityId: 3,
-      activity: "الفريق الرياضي",
-      note: "كرات وأقمصة",
-      amount: 18_500,
+      spentOn: "2026-09-05",
+      category: "other",
+      label: "أخرى",
+      activityId: 4,
+      activity: "أخرى",
+      note: "طباعة وتصوير",
+      amount: 4_500,
       campaignTitle: null,
       recordedBy: "يحيى",
     },
     {
       spentOn: "2026-08-20",
-      category: "teaching",
-      label: "التدريس المحظري",
-      activityId: 1,
-      activity: "التدريس المحظري",
-      note: "راتب المعلم",
-      amount: 45_000,
+      category: "sports",
+      label: "الفريق الرياضي",
+      activityId: 3,
+      activity: "الفريق الرياضي",
+      note: "كرات وأقمصة للفريق",
+      amount: 28_000,
       campaignTitle: null,
-      recordedBy: "سيدي محمد",
+      recordedBy: "يحيى",
     },
     {
       spentOn: "2026-08-02",
@@ -241,34 +250,26 @@ export const fxExpenses: ExpensesReport = {
       label: "تكريم الناجحين",
       activityId: 2,
       activity: "تكريم الناجحين",
-      note: "إسمنت ورمل",
-      amount: 25_000,
-      campaignTitle: "ترميم المسجد",
+      note: "تكريم الناجحين في الباكالوريا",
+      amount: 35_000,
+      campaignTitle: null,
       recordedBy: "سيدي محمد",
     },
     {
-      spentOn: "2026-04-10",
+      spentOn: "2026-07-14",
       category: "teaching",
       label: "التدريس المحظري",
       activityId: 1,
       activity: "التدريس المحظري",
-      note: null,
-      amount: 45_000,
+      note: "دروس تقوية صيفية",
+      amount: 60_000,
       campaignTitle: null,
-      recordedBy: "يحيى",
+      recordedBy: "سيدي محمد",
     },
   ],
-  byCategory: [
-    { category: "teaching", label: "التدريس", amount: 90_000 },
-    { category: "honoring", label: "التكريم", amount: 25_000 },
-    { category: "sports", label: "الرياضة", amount: 18_500 },
-  ],
-  byActivity: [
-    { activityId: 1, name: "التدريس المحظري", amount: 90_000 },
-    { activityId: 2, name: "تكريم الناجحين", amount: 25_000 },
-    { activityId: 3, name: "الفريق الرياضي", amount: 18_500 },
-  ],
-  total: 133_500,
+  byCategory: fxAnnual.spending.byCategory,
+  byActivity: fxAnnual.spending.byActivity,
+  total: fxAnnual.spending.total,
 };
 
 export const fxCampaign: CampaignReport = {
@@ -401,17 +402,19 @@ export const fxStatement: MemberStatement = {
 export const fxHandover: HandoverReport = {
   generatedAt: AT,
   term: { number: 2, title: "الدورة 2", startedOn: "2026-01-01", endedOn: null },
-  opening: 120_000,
+  opening: fxAnnual.opening,
   income: fxAnnual.income,
   spending: fxAnnual.spending,
   adjustments: 0,
-  computedBalance: 300_000,
+  computedBalance: 376_000,
+  // what fxWallets holds
   counted: [
-    { label: "بنكيلي", method: "bankily", amount: 150_000 },
-    { label: "مصرفي", method: "masrvi", amount: 80_000 },
-    { label: "نقدًا لدى المسؤول", method: "cash", amount: 70_000 },
+    { label: "بنكيلي", method: "bankily", amount: 180_000 },
+    { label: "مصرفي", method: "masrvi", amount: 100_000 },
+    { label: "السداد", method: "sedad", amount: 33_500 },
+    { label: "نقدًا لدى المسؤول", method: "cash", amount: 62_500 },
   ],
-  countedTotal: 300_000,
+  countedTotal: 376_000,
   difference: 0,
   startedBy: { name: "سيدي محمد", at: "2026-09-28T10:00:00Z" },
   submittedBy: { name: "سيدي محمد", at: null },
@@ -419,59 +422,70 @@ export const fxHandover: HandoverReport = {
   carryOver: ["تبرع «ترميم المسجد» ما زال مفتوحًا.", "لوحة العيد: بقي عضوان لم يدفعا."],
 };
 
+// The demo fund's accounts (src/components/app/fixtures.ts ACCOUNTS): same ids, numbers and
+// opening, so the settings screen finds each account's balance here.
+const demoAccount = (n: number) => `f0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+
 export const fxWallets: WalletsReport = {
   period: { year: 2026 },
   generatedAt: AT,
-  // one move: 50 000 taken out of بنكيلي into the cash (a handover); every balance adds up
+  // fxAnnual's money: in 458 500, the expenses 127 500 paid in cash, openings 30 000 (بنكيلي, as
+  // the demo account) + 15 000 cash = the fund's 45 000, one move of 50 000 بنكيلي → cash; the
+  // balances add up to the report's 376 000
   wallets: [
-    ...[
-      {
-        method: "bankily" as const,
-        label: "بنكيلي",
-        accountNumber: "22000001",
-        in: 145_000,
-        count: 98,
-        transferIn: 0,
-        transferOut: 50_000,
-        balance: 95_000,
-      },
-      {
-        method: "masrvi" as const,
-        label: "مصرفي",
-        accountNumber: "22000002",
-        in: 70_000,
-        count: 41,
-        transferIn: 0,
-        transferOut: 0,
-        balance: 70_000,
-      },
-      {
-        method: "sedad" as const,
-        label: "السداد",
-        accountNumber: null,
-        in: 23_500,
-        count: 12,
-        transferIn: 0,
-        transferOut: 0,
-        balance: 23_500,
-      },
-    ].map((w, i) => ({
-      ...w,
-      walletTypeId: i + 1,
-      fundAccountId: w.accountNumber ? `acc-${i + 1}` : null,
+    {
+      walletTypeId: 1,
+      fundAccountId: demoAccount(1),
+      method: "bankily",
+      label: "بنكيلي",
       logoPath: null,
+      accountNumber: "22200000011",
+      in: 200_000,
+      count: 120,
+      transferIn: 0,
+      transferOut: 50_000,
+      opening: { amount: 30_000, on: "2026-01-01" },
+      balance: 180_000,
+    },
+    {
+      walletTypeId: 2,
+      fundAccountId: demoAccount(2),
+      method: "masrvi",
+      label: "مصرفي",
+      logoPath: null,
+      accountNumber: "22200000012",
+      in: 100_000,
+      count: 60,
+      transferIn: 0,
+      transferOut: 0,
       opening: null,
-    })),
+      balance: 100_000,
+    },
+    {
+      walletTypeId: 3,
+      fundAccountId: demoAccount(3),
+      method: "sedad",
+      label: "السداد",
+      logoPath: null,
+      accountNumber: "22200000013",
+      in: 33_500,
+      count: 20,
+      transferIn: 0,
+      transferOut: 0,
+      opening: null,
+      balance: 33_500,
+    },
   ],
   cash: {
-    in: 75_000,
-    count: 60,
+    in: 125_000,
+    count: 70,
+    out: 127_500,
     transferIn: 50_000,
     transferOut: 0,
-    opening: null,
-    balance: 125_000,
+    opening: { amount: 15_000, on: "2026-01-01" },
+    balance: 62_500,
   },
-  totalIn: 313_500,
+  totalIn: 458_500,
 };
 
 export const fxWork: CommitteeWorkReport = {

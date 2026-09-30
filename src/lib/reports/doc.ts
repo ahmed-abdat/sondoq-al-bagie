@@ -70,6 +70,8 @@ export type Block =
       t: "grid";
       rows: { name: string; paid: boolean[]; none?: boolean[] }[];
       namesOnly?: boolean;
+      /** compact rows («المتأخرات»: one page per الفئة) */
+      dense?: boolean;
     }
   /** one member's 12 months as two rows of six (statement) */
   | { t: "months"; paid: boolean[] }
@@ -149,8 +151,12 @@ export const LAYOUT = {
   after: 16,
 } as const;
 
-/** Grid rows: roomy like the report today (owner r31): 52 px in the PDF, 44 on images. */
-export const gridRow = (size: PageSize) => (size.h === A4.h ? 52 : 44);
+/**
+ * Grid rows: roomy like the report today (owner r31): 52 px in the PDF, 44 on images. Dense
+ * («المتأخرات», one page per الفئة): 36 / 32, about 28 names on a phone page, 34 on A4.
+ */
+export const gridRow = (size: PageSize, dense = false) =>
+  size.h === A4.h ? (dense ? 36 : 52) : dense ? 32 : 44;
 
 /** About how many characters of 26 px Arabic fit on one line of the page. */
 const NOTE_CHARS = 64;
@@ -169,7 +175,7 @@ export function blockHeight(b: Block, size: PageSize): number {
     case "table":
       return L.tableHead + (b.rows.length + (b.foot ? 1 : 0)) * L.tableRow;
     case "grid":
-      return L.tableHead + b.rows.length * gridRow(size);
+      return L.tableHead + b.rows.length * gridRow(size, b.dense);
     case "months":
       return L.months;
     case "bars":
@@ -215,7 +221,7 @@ function splitBlock(b: Block, room: number, size: PageSize): [Block, Block] | nu
     ];
   }
   if (b.t === "table" || b.t === "grid") {
-    const rowH = b.t === "table" ? L.tableRow : gridRow(size);
+    const rowH = b.t === "table" ? L.tableRow : gridRow(size, b.dense);
     const n = Math.floor((room - L.tableHead) / rowH);
     if (n < 1 || n >= b.rows.length) return null;
     if (b.t === "table")

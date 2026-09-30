@@ -12,15 +12,15 @@ describe("timeAgo", () => {
   it("says «قبل لحظات» for very fresh data and never goes negative", () => {
     expect(timeAgo(NOW - 10_000, NOW)).toBe("قبل لحظات");
     expect(timeAgo(NOW + 60_000, NOW)).toBe("قبل لحظات");
-    expect(offlineMessage(NOW - 10_000, NOW)).toBe("غير متصل. آخر تحديث قبل لحظات");
+    expect(offlineMessage(NOW - 10_000, NOW)).toBe("لا يوجد اتصال. آخر تحديث قبل لحظات");
   });
 });
 
 describe("offlineMessage", () => {
   it("mentions the age of the saved data", () => {
-    expect(offlineMessage(NOW - 5 * 60_000, NOW)).toBe("غير متصل. آخر تحديث قبل 5 دقائق");
+    expect(offlineMessage(NOW - 5 * 60_000, NOW)).toBe("لا يوجد اتصال. آخر تحديث قبل 5 دقائق");
   });
   it("has a message when nothing is saved yet", () => {
-    expect(offlineMessage(null, NOW)).toContain("غير متصل");
+    expect(offlineMessage(null, NOW)).toBe("لا يوجد اتصال. قد تكون البيانات قديمة.");
   });
 });

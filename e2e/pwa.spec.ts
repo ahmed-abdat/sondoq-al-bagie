@@ -102,11 +102,11 @@ test("the offline page: Arabic, with the app's button", async ({ page, context }
 test("offline banner shows while offline and hides when back", async ({ page, context }) => {
   await page.goto("/committee");
   await waitForServiceWorker(page);
-  await expect(page.getByText(/غير متصل/)).toHaveCount(0);
+  await expect(page.getByText(/^لا يوجد اتصال\. (قد تكون|آخر تحديث)/)).toHaveCount(0);
   await context.setOffline(true);
-  await expect(page.getByText(/غير متصل/)).toBeVisible();
+  await expect(page.getByText(/^لا يوجد اتصال\. (قد تكون|آخر تحديث)/)).toBeVisible();
   await context.setOffline(false);
-  await expect(page.getByText(/غير متصل/)).toHaveCount(0);
+  await expect(page.getByText(/^لا يوجد اتصال\. (قد تكون|آخر تحديث)/)).toHaveCount(0);
 });
 
 test("the former public app's saved pages and data are dropped when this worker takes over", async ({

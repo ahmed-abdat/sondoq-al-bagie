@@ -304,16 +304,23 @@ function drawCounts(p: Pen, b: Extract<Block, { t: "counts" }>, y: number, o: Dr
 
 /** Break a paragraph into lines that fit `width` at `size` px. */
 function wrap(p: Pen, text: string, width: number, size: number): string[] {
-  p.x.font = `400 ${size}px sans-serif`;
-  const words = text.split(/\s+/);
+  // measure with the font the line is drawn in (the body face), else long lines run off the page
+  p.x.font = p.font(size, 400, "body");
+  const fits = (t: string) => p.x.measureText(t).width <= width;
   const lines: string[] = [];
   let line = "";
-  for (const word of words) {
-    const next = line ? `${line} ${word}` : word;
-    if (line && p.x.measureText(next).width > width) {
+  const add = (piece: string) => {
+    const next = line ? `${line} ${piece}` : piece;
+    if (!line || fits(next)) line = next;
+    else {
       lines.push(line);
-      line = word;
-    } else line = next;
+      line = piece;
+    }
+  };
+  // a list of names breaks after «،», never inside a name; a part longer than a line by words
+  for (const part of text.split(/(?<=،) +/)) {
+    if (fits(line ? `${line} ${part}` : part) || fits(part)) add(part);
+    else for (const word of part.split(/\s+/)) add(word);
   }
   if (line) lines.push(line);
   return lines;
@@ -409,7 +416,7 @@ function drawGrid(p: Pen, b: Extract<Block, { t: "grid" }>, y: number, o: DrawOp
   const monthsR = P + 12 * cell;
   const nameR = R - 22;
   const cx = (k: number) => monthsR - (k - 0.5) * cell;
-  const row = gridRow(o.size);
+  const row = gridRow(o.size, b.dense);
   const rowsTop = y + LAYOUT.tableHead;
   const bottom = rowsTop + b.rows.length * row;
   frame(
@@ -426,9 +433,13 @@ function drawGrid(p: Pen, b: Extract<Block, { t: "grid" }>, y: number, o: DrawOp
     p.text(String(k), cx(k), y + 34, { ...head, face: "display", align: "center", dir: "ltr" });
   b.rows.forEach((m, i) => {
     const mid = rowsTop + i * row + row / 2;
-    p.text(m.name, nameR, mid + 10, { size: 28, weight: 600, max: nameR - monthsR - 16 });
+    p.text(m.name, nameR, mid + (b.dense ? 8 : 10), {
+      size: b.dense ? 24 : 28,
+      weight: 600,
+      max: nameR - monthsR - 16,
+    });
     for (let k = 1; k <= 12; k++) {
-      if (m.paid[k - 1]) okMark(p, cx(k), mid, 12);
+      if (m.paid[k - 1]) okMark(p, cx(k), mid, b.dense ? 10 : 12);
       else if (m.none?.[k - 1])
         p.text("—", cx(k), mid + 8, { size: 22, color: T.slate, align: "center", dir: "ltr" });
     }

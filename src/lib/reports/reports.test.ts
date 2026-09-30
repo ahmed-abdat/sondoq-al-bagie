@@ -114,7 +114,7 @@ describe("paginate", () => {
     for (const size of [PHONE, A4]) {
       const pages = paginate(buildAnnual(fx.fxAnnual).blocks, size);
       const at = pages.findIndex((pg) =>
-        pg.some((b) => b.t === "rows" && b.total?.label === "المجموع آخر السنة"),
+        pg.some((b) => b.t === "rows" && b.total?.label === "المجموع حتى 28 سبتمبر 2026"),
       );
       const txtOf = (pg: Block[]) => JSON.stringify(pg);
       expect(txtOf(pages[at])).toContain("منها في الصندوق");
@@ -178,28 +178,38 @@ describe("the 10 reports", () => {
     const doc = buildAnnual(fx.fxAnnual);
     const text = txt(doc);
     for (const t of [
-      "رصيد أول السنة: 120 000",
-      "المستحقات الشهرية: 212 500",
+      "رصيد أول السنة: 45 000",
+      "المستحقات الشهرية: 376 500",
       "اللوحات: 30 000",
-      "التبرعات: 71 000",
-      "*مجموع المداخيل: 313 500*",
-      "التدريس المحظري: 90 000",
-      "*مجموع المصاريف: 133 500*",
-      "*المجموع آخر السنة: 300 000*",
-      // split so that «في الصندوق» is the fund alone, the same number as home
-      "منها في الصندوق: 254 000",
-      "منها لدى التبرعات واللوحات: 46 000",
+      "التبرعات: 52 000",
+      "*مجموع المداخيل: 458 500*",
+      "التدريس المحظري: 60 000",
+      "*مجموع المصاريف: 127 500*",
+      // this year is not over: a snapshot of today, never «آخر السنة»
+      "*المجموع حتى 28 سبتمبر 2026: 376 000*",
+      // split so that «في الصندوق» is the fund alone: the demo home's 294 000
+      "منها في الصندوق: 294 000",
+      "منها لدى التبرعات واللوحات: 82 000",
     ])
       expect(text).toContain(t);
     const noCampaigns = txt(buildAnnual({ ...fx.fxAnnual, campaignsHeld: 0 }));
-    expect(noCampaigns).toContain("*رصيد آخر السنة: 300 000*");
+    expect(noCampaigns).toContain("*الرصيد حتى 28 سبتمبر 2026: 376 000*");
+    // a year that is over closes on «آخر السنة»
+    const past = txt(buildAnnual({ ...fx.fxAnnual, generatedAt: "2027-01-02T09:00:00.000Z" }));
+    expect(past).toContain("*المجموع آخر السنة: 376 000*");
+    expect(past).not.toContain("حتى");
+    const pastNone = { ...fx.fxAnnual, campaignsHeld: 0, generatedAt: "2026-12-31T20:00:00.000Z" };
+    expect(txt(buildAnnual(pastNone))).toContain("*الرصيد آخر السنة: 376 000*");
+    // it adds up: opening + income − spending = the total
+    const a = fx.fxAnnual;
+    expect(a.opening + a.income.total - a.spending.total).toBe(a.closing);
     expect(noCampaigns).not.toContain("منها في الصندوق");
     expect(doc.blocks.some((b) => b.t === "bars" && b.values.length === 12)).toBe(true);
     // owner: the chart and the table by the month the fees pay for, expenses by date
     expect(text).toContain("*المداخيل حسب الشهر المستحق*");
     const bars = doc.blocks.find((b) => b.t === "bars");
     expect(bars?.t === "bars" && bars.values).toEqual(fx.fxAnnual.months.map((m) => m.dueIncome));
-    expect(text).toContain("*المجموع · 307 500 · 133 500*");
+    expect(text).toContain("*المجموع · 452 500 · 127 500*");
     expect(text.replace(/[\u2066-\u2069]/g, "")).toContain(
       "لا يظهر هنا 6 000 دُفعت هذه السنة لمستحقات سنة أخرى.",
     );
@@ -216,11 +226,17 @@ describe("the 10 reports", () => {
     expect(text).toContain("في الصندوق أول الشهر");
     // the total adds up; «في الصندوق» is the fund alone, the same number as home
     const closing = fx.fxSummary.closing;
-    expect(text).toContain(`*المجموع آخر الشهر: ${fmtN(closing)}*`);
-    expect(text).toContain(`منها في الصندوق: ${fmtN(closing - 46_000)}`);
-    expect(text).toContain("منها لدى التبرعات واللوحات: 46 000");
+    expect(text).toContain(`*المجموع حتى 28 سبتمبر 2026: ${fmtN(closing)}*`);
+    expect(text).toContain(`منها في الصندوق: ${fmtN(closing - 82_000)}`);
+    // September ends where the year report is today (the same demo fund)
+    expect(closing).toBe(fx.fxAnnual.closing);
+    const s = fx.fxSummary;
+    expect(s.opening + s.income - s.spending).toBe(s.closing);
+    expect(text).toContain("منها لدى التبرعات واللوحات: 82 000");
     const none = txt(buildSummary({ ...fx.fxSummary, campaignsHeld: 0 }));
-    expect(none).toContain(`*في الصندوق آخر الشهر: ${fmtN(closing)}*`);
+    expect(none).toContain(`*في الصندوق حتى 28 سبتمبر 2026: ${fmtN(closing)}*`);
+    const august = txt(buildSummary({ ...fx.fxSummary, period: { year: 2026, month: 8 } }));
+    expect(august).toContain(`*المجموع آخر الشهر: ${fmtN(closing)}*`);
     expect(text).toContain("دفع مستحقات شهر سبتمبر 47 عضوًا من 89.");
     expect(text).not.toContain("متأخر");
   });
@@ -254,8 +270,17 @@ describe("the 10 reports", () => {
     expect(row("باب ولد عبد الله").none?.slice(0, 4)).toEqual([true, true, true, false]);
     expect(row("باب ولد عبد الله").paid.some(Boolean)).toBe(false);
     const text = txt(doc);
-    expect(text).toContain("✓ مدفوع · خانة فارغة: لم يُدفع · —: غير مستحق عليه");
-    expect(text).toContain("لم يُدفع بعد نصيب لوحة ترميم المسجد: الحسن ولد عبد الله.");
+    expect(text).toContain(
+      "1 = يناير … 12 = ديسمبر · ✓ مدفوع · فارغ: لم يُدفع · —: غير مستحق عليه",
+    );
+    expect(text).toContain("لم يدفع نصيب ترميم المسجد: الحسن ولد عبد الله.");
+    expect(text).not.toContain("لوحة لوحة");
+    // everyone listed owes the share: one short line, not the names again
+    const all = buildLate({
+      ...fx.fxLate,
+      members: fx.fxLate.members.map((m) => ({ ...m, levies: [{ title: "لوحة الجميع" }] })),
+    });
+    expect(txt(all)).toContain("لم يدفع نصيب لوحة الجميع: كل من في هذه القائمة");
     // the text: the names per الفئة, nothing else
     expect(text).toMatch(/\*الفئة أ\*[\s\S]*\nالحسن ولد عبد الله\nالمختار ولد محمد\n/);
     for (const t of [text, ...drawn(doc)]) {
@@ -295,8 +320,9 @@ describe("the 10 reports", () => {
   it("expenses: by kind with the total, then by month newest first", () => {
     const doc = buildExpenses(fx.fxExpenses);
     const heads = doc.blocks.flatMap((b) => (b.t === "heading" ? [b.text] : []));
-    expect(heads).toEqual(["حسب النشاط", "سبتمبر 2026", "أغسطس 2026", "أبريل 2026"]);
-    expect(txt(doc)).toContain("*المجموع: 133 500*");
+    expect(heads).toEqual(["حسب النشاط", "سبتمبر 2026", "أغسطس 2026", "يوليو 2026"]);
+    expect(txt(doc)).toContain("*المجموع: 127 500*");
+    expect(fx.fxExpenses.items.reduce((t, e) => t + e.amount, 0)).toBe(fx.fxExpenses.total);
     expect(buildExpenses({ ...fx.fxExpenses, items: [] }).blocks[0]).toEqual({
       t: "note",
       text: "لا مصاريف في هذه الفترة.",
@@ -318,6 +344,35 @@ describe("the 10 reports", () => {
     expect(txt(doc)).toContain("دفع 3 أعضاء، ولم يدفع بعد 1، ومعفى 1.");
   });
 
+  it("«المتأخرات» stays compact: a الفئة of 21 on one page with its لوحة lines, 80 on 3 pages", () => {
+    const base = fx.fxLate.members[0];
+    const many = (g: "A" | "B", n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        ...base,
+        memberRef: `${g}-${i + 1}`,
+        fullName: `عضو ${g} ${i + 1}`,
+        groupCode: g,
+        levies: [{ title: "لوحة الجميع" }, { title: "لوحة المسجد" }],
+      }));
+    const doc = buildLate({ ...fx.fxLate, members: [...many("A", 21), ...many("B", 80)] });
+    for (const size of [PHONE, A4]) {
+      const pages = paginate(doc.blocks, size);
+      const per = (g: string) =>
+        pages.filter((pg) => pg.some((b) => b.t === "heading" && b.section && b.text === g)).length;
+      expect([per("الفئة أ"), per("الفئة ب")]).toEqual([1, 3]);
+      for (const pg of pages)
+        expect(pg.reduce((h, b) => h + blockHeight(b, size), 0)).toBeLessThanOrEqual(
+          pageRoom(size),
+        );
+    }
+  });
+
+  it("levy stats: «معفى» for one, «معفيّان» for two, «معفون» for more", () => {
+    const one = txt(buildCampaign(fx.fxLevy, { ...fx.fxLevyStats, exempt: 1 }));
+    expect(one).toContain("معفى: 1");
+    expect(one).not.toContain("معفون");
+  });
+
   it("member statement: the 12 months, confirmed payments (not cancelled), what is left", () => {
     const doc = buildStatement(fx.fxStatement);
     const months = doc.blocks.find((b) => b.t === "months");
@@ -326,14 +381,28 @@ describe("the 10 reports", () => {
     expect(text).toContain("مستحقات يناير إلى مارس (2 مارس 2026 · سجّلها سيدي محمد): 3 000");
     expect(text).not.toContain("سُجّلت مرتين");
     expect(text).toContain("مستحقات يونيو إلى سبتمبر: 4 000");
-    expect(text).toContain("لوحة لوحة العيد: 2 000");
+    expect(text).toContain("لوحة العيد: 2 000");
+    expect(text).not.toContain("لوحة لوحة");
+    // shared with the member's family: the name, never the paper number
+    expect(doc.subtitle).toBe(`${fx.fxStatement.member.fullName} · سنة 2026`);
+    for (const t of [text, ...drawn(doc)]) expect(t).not.toMatch(/رقم|أ 5|A-5/);
+    // the reason given when the total differed from the picture is shown with the payment
+    const noted = buildStatement({
+      ...fx.fxStatement,
+      payments: fx.fxStatement.payments.map((p, i) =>
+        i === 0 ? { ...p, note: "يختلف عن الصورة: الباقي نقدًا" } : p,
+      ),
+    });
+    expect(txt(noted)).toContain(
+      "مستحقات يناير إلى مارس (2 مارس 2026 · سجّلها سيدي محمد · يختلف عن الصورة: الباقي نقدًا): 3 000",
+    );
   });
 
   it("handover: the balance handed over, where the money is, two signatures", () => {
     const doc = buildHandover(fx.fxHandover);
     const text = txt(doc);
-    expect(text).toContain("*الرصيد الذي يُسلَّم: 300 000*");
-    expect(text).toContain("*المجموع المعدود: 300 000*");
+    expect(text).toContain("*الرصيد الذي يُسلَّم: 376 000*");
+    expect(text).toContain("*المجموع المعدود: 376 000*");
     expect(doc.blocks.at(-1)).toEqual({
       t: "sign",
       right: "سلّم: سيدي محمد",
@@ -346,37 +415,52 @@ describe("the 10 reports", () => {
     const table = doc.blocks.find((b) => b.t === "table");
     if (table?.t !== "table") throw new Error("no table");
     const digits = (c: string) => Number(c.replace(/\D/g, "") || 0);
-    expect(table.head).toEqual(["المحفظة", "الدفعات", "داخل", "تحويل", "الرصيد"]);
+    expect(table.head).toEqual(["المحفظة", "الدفعات", "داخل", "خارج", "تحويل", "الرصيد"]);
     expect(table.rows.map((r) => r[0])).toEqual([
-      "بنكيلي 22000001",
-      "مصرفي 22000002",
-      "السداد",
+      "بنكيلي 22200000011",
+      "مصرفي 22200000012",
+      "السداد 22200000013",
       "نقدًا",
     ]);
-    expect(table.rows.map((r) => r[3].replace(/\u202f/g, " "))).toEqual([
+    expect(table.rows.map((r) => r[4].replace(/\u202f/g, " "))).toEqual([
       "−50 000",
       "",
       "",
       "+50 000",
     ]);
-    expect(table.rows.map((r) => digits(r[4]))).toEqual([95_000, 70_000, 23_500, 125_000]);
-    expect(digits(table.foot![2])).toBe(313_500);
-    // Σ «الرصيد» = Σ داخل − Σ خارج (moves between wallets and the cash add to 0)
+    expect(table.rows.map((r) => digits(r[5]))).toEqual([180_000, 100_000, 33_500, 62_500]);
+    expect(digits(table.foot![2])).toBe(fx.fxAnnual.income.total);
+    expect(digits(table.foot![3])).toBe(fx.fxAnnual.spending.total);
+    // the balances are all the money: the annual report's total today
+    expect(digits(table.foot![5])).toBe(fx.fxAnnual.closing);
+    // Σ «الرصيد» = Σ opening + Σ داخل − Σ خارج (moves between wallets and the cash add to 0)
     const moves = [...fx.fxWallets.wallets, fx.fxWallets.cash].reduce(
       (s, w) => s + w.transferIn - w.transferOut,
       0,
     );
     expect(moves).toBe(0);
-    expect(digits(table.foot![4])).toBe(fx.fxWallets.totalIn + moves);
+    const openings = [...fx.fxWallets.wallets, fx.fxWallets.cash].reduce(
+      (s, w) => s + (w.opening?.amount ?? 0),
+      0,
+    );
+    expect(openings).toBe(fx.fxAnnual.opening);
+    expect(digits(table.foot![5])).toBe(
+      openings + fx.fxWallets.totalIn - fx.fxAnnual.spending.total + moves,
+    );
     expect(txt(doc)).toContain("«تحويل»: نقل بين محفظة والنقد، ليس من المداخيل ولا المصاريف.");
     expect(txt(doc)).toContain("مجموع الأرصدة: ما في الصندوق وما لدى التبرعات واللوحات.");
 
     // no move: no «تحويل» column; the cash row stays (a 0 balance is still shown)
     const quiet = buildWallets({
       ...fx.fxWallets,
-      wallets: fx.fxWallets.wallets.map((w) => ({ ...w, transferOut: 0, balance: w.in })),
+      wallets: fx.fxWallets.wallets.map((w) => ({
+        ...w,
+        transferOut: 0,
+        opening: null,
+        balance: w.in,
+      })),
       cash: { in: 0, count: 0, transferIn: 0, transferOut: 0, opening: null, balance: 0 },
-      totalIn: 238_500,
+      totalIn: 333_500,
     });
     const t0 = quiet.blocks.find((b) => b.t === "table");
     expect(t0?.t === "table" && t0.head).toEqual(["المحفظة", "الدفعات", "داخل", "الرصيد"]);
@@ -387,7 +471,7 @@ describe("the 10 reports", () => {
     const busy = buildWallets({
       ...fx.fxWallets,
       wallets: fx.fxWallets.wallets.map((w) => ({ ...w, out: 1000 })),
-      cash: { ...fx.fxWallets.cash, out: 2000 },
+      cash: { ...fx.fxWallets.cash, out: 2000, opening: null },
       unspecifiedOut: 3000,
       paperIn: 4000,
     });
@@ -409,7 +493,9 @@ describe("the 10 reports", () => {
         i === 0 ? { ...w, opening: { amount: 10_000, on: "2026-01-01" }, balance: 105_000 } : w,
       ),
     });
-    expect(txt(opened)).toContain("رصيد افتتاحي: بنكيلي 10 000 من 1 يناير 2026.");
+    expect(txt(opened)).toContain(
+      "رصيد افتتاحي: بنكيلي 10 000 من 1 يناير 2026، نقدًا 15 000 من 1 يناير 2026.",
+    );
   });
 
   it("committee work: who recorded what, the inactive without activity left out, what was cancelled", () => {
