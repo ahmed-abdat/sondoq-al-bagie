@@ -16,9 +16,11 @@
 --   its type). record_payment(…, p_wallet_type_id, p_fund_account_id), record_expense(…,
 --   p_wallet_type_id): new last parameters, older calls unchanged. Same transfer number twice is
 --   refused per wallet type.
+-- - Cash in hand: the cash wallet row has its own opening (set once by «المسؤول»: set_cash_opening).
 -- - report_wallets: a row per account (balance = opening + in − out since opening_on, only when
---   an opening is set), a row per wallet type for money without an account (cash included), and
---   the rest (paper, unspecified expenses) by method.
+--   an opening is set), a row per wallet type for money without an account (cash: with its balance
+--   when its opening is set), and the rest (paper, unspecified expenses) by method.
+-- - Logos: a public 'logos' bucket (images only, ≤ 200 KB); the server uploads them for «المسؤول».
 -- Bodies = pg_get_functiondef at m40, changed where marked. Undo: supabase/rollback/m41_revert.sql.
 -- ════════════════════════════════════════════════════════════════════════════════════════
 
@@ -32,17 +34,22 @@ create table public.wallet_types (
   sort_order    smallint not null default 0,
   active        boolean not null default true,
   legacy_method public.payment_method unique,
+  -- cash in hand only (m41): its opening, set once by «المسؤول»
+  opening_balance integer check (opening_balance >= 0),
+  opening_on      date,
   created_at    timestamptz not null default now(),
   created_by    uuid references auth.users (id),
   updated_at    timestamptz,
-  updated_by    uuid references auth.users (id)
+  updated_by    uuid references auth.users (id),
+  constraint wallet_types_opening_both check ((opening_balance is null) = (opening_on is null)),
+  constraint wallet_types_opening_cash check (opening_on is null or kind = 'cash')
 );
 create unique index wallet_types_name_key on public.wallet_types (btrim(name));
 create unique index wallet_types_one_cash on public.wallet_types (kind) where kind = 'cash';
 create index wallet_types_created_by_idx on public.wallet_types (created_by);
 create index wallet_types_updated_by_idx on public.wallet_types (updated_by);
 create trigger a_guard before update or delete on public.wallet_types for each row execute function
-  app_private.tg_append_only('', 'name,logo_path,sort_order,active,updated_at,updated_by');
+  app_private.tg_append_only('', 'name,logo_path,sort_order,active,updated_at,updated_by,opening_balance,opening_on');
 create trigger zz_no_truncate before truncate on public.wallet_types for each statement
   execute function app_private.tg_no_truncate();
 create trigger zz_audit after insert or update on public.wallet_types for each row
@@ -183,6 +190,31 @@ begin
   update public.fund_accounts set opening_balance = p_amount, opening_on = p_on, updated_at = now(), updated_by = auth.uid()
   where id = p_id;
 end $$;
+
+-- Cash in hand: its opening balance, once.
+create function app_private.set_cash_opening(p_amount integer, p_on date) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  w public.wallet_types;
+begin
+  perform app_private.require_admin();
+  if p_amount is null or p_amount < 0 or p_on is null or p_on > current_date then perform app_private.fail('invalid_input'); end if;
+  select * into w from public.wallet_types where kind = 'cash' for update;
+  if w.id is null then perform app_private.fail('not_found'); end if;
+  if w.opening_on is not null then perform app_private.fail('opening_already_set'); end if;
+  perform app_private.set_action('set_cash_opening');
+  update public.wallet_types set opening_balance = p_amount, opening_on = p_on, updated_at = now(), updated_by = auth.uid()
+  where id = w.id;
+end $$;
+
+/* ───────────────────────── logos: public bucket, written by the server ───────────────────────── */
+
+-- Wallet logos are not sensitive: anyone may read them; only the server (secret key) writes, for
+-- «المسؤول», through a server action. No storage policies.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('logos', 'logos', true, 204800, array['image/png', 'image/jpeg', 'image/webp'])
+on conflict (id) do update
+  set public = true, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
 /* ───────────────────────── payments and expenses: the wallet ───────────────────────── */
 
@@ -457,8 +489,19 @@ begin
   from accounts a where a.active or a.ic > 0 or a.oc > 0
   union all
   select l.t, null, coalesce(l.m, (select w.legacy_method from public.wallet_types w where w.id = l.t)), l.ic, l.ia, l.oc, l.oa,
-         null, null, null
-  from loose l
+         w.opening_balance::bigint, w.opening_on,
+         case when w.opening_on is not null then
+           w.opening_balance + coalesce((select sum(dir * amount) from moves x
+                                         where x.t = w.id and x.w is null and x.d between w.opening_on and p_to), 0)
+         end::bigint
+  from loose l left join public.wallet_types w on w.id = l.t
+  union all
+  -- cash in hand with an opening but no movement in the period: still shows its balance
+  select w.id, null, w.legacy_method, 0, 0::bigint, 0, 0::bigint, w.opening_balance::bigint, w.opening_on,
+         (w.opening_balance + coalesce((select sum(dir * amount) from moves x
+                                        where x.t = w.id and x.w is null and x.d between w.opening_on and p_to), 0))::bigint
+  from public.wallet_types w
+  where w.kind = 'cash' and w.opening_on is not null and not exists (select 1 from loose l where l.t = w.id)
   order by 1 nulls last, 2 nulls last, 3 nulls last;
 end $$;
 
@@ -476,6 +519,8 @@ language sql security invoker set search_path = '' as $$
   select app_private.add_wallet_account(p_wallet_type_id => p_wallet_type_id, p_account_number => p_account_number,
                                         p_holder_name => p_holder_name, p_note => p_note, p_sort_order => p_sort_order)
 $$;
+create function public.set_cash_opening(p_amount integer, p_on date) returns void
+language sql security invoker set search_path = '' as $$ select app_private.set_cash_opening(p_amount => p_amount, p_on => p_on) $$;
 create function public.set_fund_account_opening(p_id uuid, p_amount integer, p_on date) returns void
 language sql security invoker set search_path = '' as $$ select app_private.set_fund_account_opening(p_id => p_id, p_amount => p_amount, p_on => p_on) $$;
 create function public.report_wallets(p_from date, p_to date)
@@ -489,6 +534,7 @@ revoke all on function
   app_private.set_wallet_type_active(integer, boolean), public.set_wallet_type_active(integer, boolean),
   app_private.add_wallet_account(integer, text, text, text, integer), public.add_wallet_account(integer, text, text, text, integer),
   app_private.set_fund_account_opening(uuid, integer, date), public.set_fund_account_opening(uuid, integer, date),
+  app_private.set_cash_opening(integer, date), public.set_cash_opening(integer, date),
   app_private.report_wallets(date, date), public.report_wallets(date, date),
   public.record_payment(uuid, text, public.payment_method, integer, date, jsonb, text, text, text, text, integer, uuid), public.record_expense(uuid, date, integer, integer, public.expense_category, text, uuid, text, uuid, boolean, integer), app_private.record_expense(uuid, date, integer, integer, public.expense_category, text, uuid, text, uuid, boolean, integer)
 from public, anon, authenticated;
@@ -499,6 +545,7 @@ grant execute on function
   app_private.set_wallet_type_active(integer, boolean), public.set_wallet_type_active(integer, boolean),
   app_private.add_wallet_account(integer, text, text, text, integer), public.add_wallet_account(integer, text, text, text, integer),
   app_private.set_fund_account_opening(uuid, integer, date), public.set_fund_account_opening(uuid, integer, date),
+  app_private.set_cash_opening(integer, date), public.set_cash_opening(integer, date),
   app_private.report_wallets(date, date), public.report_wallets(date, date),
   app_private.record_payment(uuid, text, public.payment_method, integer, date, jsonb, text, text, text, text, integer, uuid), public.record_payment(uuid, text, public.payment_method, integer, date, jsonb, text, text, text, text, integer, uuid),
   app_private.record_expense(uuid, date, integer, integer, public.expense_category, text, uuid, text, uuid, boolean, integer), public.record_expense(uuid, date, integer, integer, public.expense_category, text, uuid, text, uuid, boolean, integer)

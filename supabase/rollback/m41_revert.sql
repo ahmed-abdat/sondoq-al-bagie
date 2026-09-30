@@ -8,6 +8,7 @@ drop function if exists
   public.set_wallet_type_active(integer, boolean), app_private.set_wallet_type_active(integer, boolean),
   public.add_wallet_account(integer, text, text, text, integer), app_private.add_wallet_account(integer, text, text, text, integer),
   public.set_fund_account_opening(uuid, integer, date), app_private.set_fund_account_opening(uuid, integer, date),
+  public.set_cash_opening(integer, date), app_private.set_cash_opening(integer, date),
   public.report_wallets(date, date), app_private.report_wallets(date, date),
   public.record_payment(uuid, text, public.payment_method, integer, date, jsonb, text, text, text, text, integer, uuid), app_private.record_payment(uuid, text, public.payment_method, integer, date, jsonb, text, text, text, text, integer, uuid),
   public.record_expense(uuid, date, integer, integer, public.expense_category, text, uuid, text, uuid, boolean, integer), app_private.record_expense(uuid, date, integer, integer, public.expense_category, text, uuid, text, uuid, boolean, integer);
@@ -210,3 +211,4 @@ alter table public.fund_accounts drop constraint if exists fund_accounts_method_
 alter table public.fund_accounts add constraint fund_accounts_method_check
   check (method::text not in ('cash', 'paper', 'other'));
 drop table if exists public.wallet_types;
+delete from storage.buckets where id = 'logos';

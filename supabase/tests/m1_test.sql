@@ -1666,6 +1666,20 @@ select tests.ok((select sum(in_amount) from public.report_wallets(make_date(2000
                 = (select sum(amount) from public.payments where status = 'confirmed' and method::text <> 'credit'
                    and paid_on between make_date(2000, 1, 1) and current_date + 1),
   'wallet rows add up to all money in');
+-- cash in hand: its opening once, then a cash balance
+select tests.login('admin');
+select public.set_cash_opening(500, current_date - 1);
+select tests.throws($$select public.set_cash_opening(1, current_date)$$, 'opening_already_set', 'the cash opening is set once');
+select tests.login('committee');
+select tests.ok((select balance = 500
+                        + coalesce((select sum(amount) from public.payments where status = 'confirmed' and method = 'cash'
+                                    and paid_on between current_date - 1 and current_date), 0)
+                        - coalesce((select sum(amount) from public.expenses where cancelled_at is null and paid_in_cash
+                                    and spent_on between current_date - 1 and current_date), 0)
+                 from public.report_wallets(current_date - 1, current_date) where method = 'cash' and fund_account_id is null),
+  'cash in hand: opening + cash in − cash out');
+select tests.ok((select public and file_size_limit = 204800 and not ('image/svg+xml' = any (allowed_mime_types))
+                 from storage.buckets where id = 'logos'), 'logos: a public bucket, small images only (no SVG)');
 select tests.login('admin');
 select public.set_wallet_type_active(tests.get('wt')::int, false);
 select tests.login('committee');
