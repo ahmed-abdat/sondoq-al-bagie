@@ -365,12 +365,12 @@ function drawMembers(
   const P = L.pad;
   const all = r.members.filter((m) => isShown(m) && listOf(m) === page.list);
   const fee = (r.groupPrices as Record<string, number | undefined>)[page.list];
-  const feeLine = fee ? [`الرسوم الشهرية: ${formatNumber(fee)} أوقية`] : [];
+  const feeLine = fee ? [`المستحقات الشهرية: ${formatNumber(fee)} أوقية`] : [];
   // no current-month count here (owner decision r20): the group, its size and its fee.
   // «المتأخرات»: the title only, no amount at all, not even the fee (owner), never «متأخر N»
-  if (page.reminder) band(p, w, card, o.logo, `المتأخرات · المجموعة ${listLabel(page.list)}`);
+  if (page.reminder) band(p, w, card, o.logo, `المتأخرات · الفئة ${listLabel(page.list)}`);
   else
-    band(p, w, card, o.logo, `المجموعة ${listLabel(page.list)}`, [
+    band(p, w, card, o.logo, `الفئة ${listLabel(page.list)}`, [
       membersWord(all.length),
       ...feeLine,
     ]);
@@ -535,7 +535,7 @@ function drawMoney(
           { size: 26, weight: 600, face: "display" },
         );
         p.text(
-          `صُرف ${formatNumber(c.spent)} · الباقي ${formatNumber(c.balance)} أوقية`,
+          `المصاريف ${formatNumber(c.spent)} · الباقي ${formatNumber(c.balance)} أوقية`,
           R,
           y + 164,
           { size: 24, color: T.slate },

@@ -40,7 +40,7 @@ const D: ReportSummaryData = {
 };
 
 it("paidLine / url / file name", () => {
-  expect(paidLine(D)).toBe(`38 من 70 دفعوا رسوم ${monthName(9)}`);
+  expect(paidLine(D)).toBe(`38 من 70 دفعوا مستحقات شهر ${monthName(9)}`);
   expect(reportUrl("https://x.app/")).toBe("https://x.app/report");
   expect(reportFileName(2026, 9)).toBe("ملخص-صندوق-الرابطة-2026-09.png");
   expect(reportFileBase("2026-09-28T10:25:00Z")).toBe("تقرير-صندوق-الرابطة-2026-09-28");
@@ -64,7 +64,7 @@ describe("monthBars", () => {
 it("reportShareText has the numbers, the month line and the link", () => {
   const t = reportShareText(D, "https://x.app/report");
   expect(t).toContain(`في الصندوق الآن: 290${THIN}500 أوقية`);
-  expect(t).toContain(`صُرف هذا العام: 1${THIN}500 أوقية`);
+  expect(t).toContain(`المصاريف هذا العام: 1${THIN}500 أوقية`);
   expect(t).toContain(paidLine(D));
   expect(t).toContain("الدورة 2026");
   expect(t).toContain("التفاصيل: https://x.app/report");

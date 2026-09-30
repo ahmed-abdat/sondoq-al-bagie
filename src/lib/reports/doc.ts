@@ -18,12 +18,12 @@ export type ReportKind =
   | "work"
   | "stats";
 
-/** A line with an amount: «الرسوم الشهرية ····· 120 000». */
+/** A line with an amount: «المستحقات الشهرية ····· 120 000». */
 export type AmountRow = { label: string; sub?: string; amount: number; sign?: "+" | "−" };
 
 export type Block =
   /**
-   * a small heading inside the page («ما دخل»). `keep`: its section (up to the next heading)
+   * a small heading inside the page («المداخيل»). `keep`: its section (up to the next heading)
    * starts on a new page rather than split, when it fits on one page.
    */
   | { t: "heading"; text: string; keep?: boolean }
@@ -69,7 +69,7 @@ export type ReportDoc = {
   kind: ReportKind;
   /** «التقرير السنوي الكامل» */
   title: string;
-  /** «سنة 2026», «المجموعة أ · سنة 2026», «اختبار الدفع · سنة 2026» */
+  /** «سنة 2026», «الفئة أ · سنة 2026», «اختبار الدفع · سنة 2026» */
   subtitle: string;
   blocks: Block[];
   /** file names: «التقرير-السنوي-2026» → .pdf / -1.png */

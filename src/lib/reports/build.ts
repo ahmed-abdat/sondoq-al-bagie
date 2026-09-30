@@ -46,7 +46,7 @@ export function refLabel(ref: string): string {
   return n ? `${letter} ${n}` : ref;
 }
 const groupLabel = (code: string | null) =>
-  code === "A" ? "المجموعة أ" : code === "B" ? "المجموعة ب" : "بلا مجموعة";
+  code === "A" ? "الفئة أ" : code === "B" ? "الفئة ب" : "بلا فئة";
 /** «عضو واحد» «عضوان» «7 أعضاء» «20 عضوًا». */
 export function membersWord(n: number): string {
   if (n === 1) return "عضو واحد";
@@ -82,7 +82,7 @@ const rowsOf = (list: [string, number][], total?: [string, number]): Block => ({
   total: total && { label: total[0], amount: total[1] },
 });
 const incomeRows = (i: AnnualReport["income"]): [string, number][] => [
-  ["الرسوم الشهرية", i.fees],
+  ["المستحقات الشهرية", i.fees],
   ...(i.levies ? ([["اللوحات", i.levies]] as [string, number][]) : []),
   ...(i.donations ? ([["التبرعات", i.donations]] as [string, number][]) : []),
 ];
@@ -90,9 +90,9 @@ const spendingBlocks = (s: AnnualReport["spending"]): Block[] => [
   s.byCategory.length
     ? rowsOf(
         s.byCategory.map((c) => [c.label, c.amount]),
-        ["مجموع ما صُرف", s.total],
+        ["مجموع المصاريف", s.total],
       )
-    : { t: "note", text: "لم يُصرف شيء." },
+    : { t: "note", text: "لا مصاريف." },
   ...(s.fromCampaigns
     ? [{ t: "note", text: `منها ${amt(s.fromCampaigns)} من أموال التبرعات واللوحات.` } as Block]
     : []),
@@ -109,7 +109,7 @@ function closingBlocks(closing: number, held: number, label: string, total: stri
     { t: "rows", rows: [], total: { label: total, amount: closing } },
     rowsOf([
       ["منها في الصندوق", closing - held],
-      ["منها لدى التبرعات واللوحات، لم تُصرف بعد", held],
+      ["منها لدى التبرعات واللوحات", held],
     ]),
   ];
 }
@@ -121,9 +121,9 @@ export function buildAnnual(d: AnnualReport): ReportDoc {
   const edge = yearly ? "السنة" : "الشهر";
   const blocks: Block[] = [
     rowsOf([[`رصيد أول ${edge}`, d.opening]]),
-    { t: "heading", text: "ما دخل" },
-    rowsOf(incomeRows(d.income), ["مجموع ما دخل", d.income.total]),
-    { t: "heading", text: "ما صُرف" },
+    { t: "heading", text: "المداخيل" },
+    rowsOf(incomeRows(d.income), ["مجموع المداخيل", d.income.total]),
+    { t: "heading", text: "المصاريف" },
     ...spendingBlocks(d.spending),
   ];
   if (d.adjustments)
@@ -142,12 +142,12 @@ export function buildAnnual(d: AnnualReport): ReportDoc {
   );
   if (yearly && d.months.length) {
     blocks.push(
-      { t: "heading", text: "ما دخل كل شهر" },
+      { t: "heading", text: "المداخيل كل شهر" },
       { t: "bars", values: monthlyValues(d.months, "income") },
       { t: "heading", text: "شهرًا بشهر" },
       {
         t: "table",
-        head: ["الشهر", "دخل", "صُرف"],
+        head: ["الشهر", "المداخيل", "المصاريف"],
         num: [false, true, true],
         widths: [0.4, 0.3, 0.3],
         rows: d.months.map((m) => [
@@ -181,8 +181,8 @@ export function buildSummary(d: SummaryReport): ReportDoc {
   const yearly = !d.period.month;
   const edge = yearly ? "السنة" : "الشهر";
   const paid = yearly
-    ? `دفع رسوم السنة كاملة ${membersWord(d.membersPaidPeriod)} من ${d.membersActive}.`
-    : `دفع رسوم ${monthName(d.period.month!)} ${membersWord(d.membersPaidPeriod)} من ${d.membersActive}.`;
+    ? `دفع مستحقات السنة كاملة ${membersWord(d.membersPaidPeriod)} من ${d.membersActive}.`
+    : `دفع مستحقات شهر ${monthName(d.period.month!)} ${membersWord(d.membersPaidPeriod)} من ${d.membersActive}.`;
   return {
     kind: "summary",
     title: "الملخص",
@@ -192,8 +192,8 @@ export function buildSummary(d: SummaryReport): ReportDoc {
         t: "rows",
         rows: [
           { label: `في الصندوق أول ${edge}`, amount: d.opening },
-          { label: "دخل", amount: d.income, sign: "+" },
-          { label: "صُرف", amount: d.spending, sign: "−" },
+          { label: "المداخيل", amount: d.income, sign: "+" },
+          { label: "المصاريف", amount: d.spending, sign: "−" },
         ],
         ...(d.campaignsHeld
           ? {}
@@ -222,7 +222,7 @@ export function buildGrid(d: GridReport): ReportDoc {
     blocks.push(
       {
         t: "heading",
-        text: `${groupLabel(g)} · ${membersWord(list.length)}${fee ? ` · الرسوم الشهرية ${amt(fee)}` : ""}`,
+        text: `${groupLabel(g)} · ${membersWord(list.length)}${fee ? ` · المستحقات الشهرية: ${amt(fee)} أوقية` : ""}`,
       },
       {
         t: "grid",
@@ -281,7 +281,7 @@ export function buildLate(d: LateReport): ReportDoc {
 
 export function buildExpenses(d: ExpensesReport): ReportDoc {
   const blocks: Block[] = [];
-  if (!d.items.length) blocks.push({ t: "note", text: "لم يُصرف شيء في هذه الفترة." });
+  if (!d.items.length) blocks.push({ t: "note", text: "لا مصاريف في هذه الفترة." });
   else {
     blocks.push(
       { t: "heading", text: "حسب النوع" },
@@ -366,7 +366,7 @@ export function buildCampaign(d: CampaignReport, stats?: LevyStats | DonationSta
     const money: AmountRow[] = [
       ...(d.targetAmount ? [{ label: "الهدف", amount: d.targetAmount }] : []),
       { label: "جُمع", amount: d.collected },
-      ...(d.spent ? [{ label: "صُرف", amount: d.spent, sign: "−" as const }] : []),
+      ...(d.spent ? [{ label: "المصاريف", amount: d.spent, sign: "−" as const }] : []),
       ...(d.transferred
         ? [{ label: "نُقل إلى الصندوق", amount: d.transferred, sign: "−" as const }]
         : []),
@@ -387,7 +387,7 @@ export function buildCampaign(d: CampaignReport, stats?: LevyStats | DonationSta
     );
     if (d.expenses.length)
       blocks.push(
-        { t: "heading", text: "ما صُرف منه" },
+        { t: "heading", text: "المصاريف منه" },
         {
           t: "rows",
           rows: d.expenses.map((e) => ({
@@ -428,7 +428,7 @@ function feeStatBlocks(f: FeeStats, previous: FeeStats | null): Block[] {
   const upTo = f.refMonth >= 12 ? "السنة كاملة" : `حتى ${monthName(f.refMonth)}`;
   const owing = o.owe1 + o.owe2to3 + o.owe4plus;
   const blocks: Block[] = [
-    { t: "heading", text: `الرسوم الشهرية ${f.year}` },
+    { t: "heading", text: `المستحقات الشهرية ${f.year}` },
     {
       t: "big",
       value: percent(o.paidUp, o.active),
@@ -456,7 +456,7 @@ function feeStatBlocks(f: FeeStats, previous: FeeStats | null): Block[] {
         started: m.month <= f.refMonth,
       })),
     },
-    { t: "heading", text: "من بقيت عليه رسوم", keep: true },
+    { t: "heading", text: "من عليه متأخرات", keep: true },
     owing
       ? {
           t: "tiles",
@@ -466,7 +466,7 @@ function feeStatBlocks(f: FeeStats, previous: FeeStats | null): Block[] {
             { label: "4 أشهر أو أكثر", value: fmt(o.owe4plus) },
           ],
         }
-      : { t: "note", text: "لا أحد عليه رسوم." },
+      : { t: "note", text: "لا أحد عليه متأخرات." },
   );
   // last year as it stood on the same day (asOf), or the whole year before a past year; nothing
   // when that day is before the first recorded payment (Lane A m34, lead: no full-year fallback)
@@ -582,7 +582,7 @@ export function buildStatement(d: MemberStatement): ReportDoc {
   const what = (p: MemberStatement["payments"][number]) => {
     const ms = inYear(p.months);
     const parts = [
-      ...(ms.length ? [`رسوم ${monthsText(ms)}`] : p.months.length ? ["رسوم"] : []),
+      ...(ms.length ? [`مستحقات ${monthsText(ms)}`] : p.months.length ? ["مستحقات"] : []),
       ...p.campaigns,
     ];
     return parts.join(" · ") || "دفعة";
@@ -593,7 +593,7 @@ export function buildStatement(d: MemberStatement): ReportDoc {
       text: [
         `رقم ${refLabel(m.memberRef)}`,
         groupLabel(m.groupCode),
-        ...(price ? [`الرسوم الشهرية ${amt(price)}`] : []),
+        ...(price ? [`المستحقات الشهرية: ${amt(price)} أوقية`] : []),
       ].join(" · "),
     },
     {
@@ -620,7 +620,12 @@ export function buildStatement(d: MemberStatement): ReportDoc {
   ];
   const owed: AmountRow[] = [
     ...(d.owed.amountOwed > 0
-      ? [{ label: late.length ? `رسوم ${monthsText(late)}` : "رسوم", amount: d.owed.amountOwed }]
+      ? [
+          {
+            label: late.length ? `مستحقات ${monthsText(late)}` : "مستحقات",
+            amount: d.owed.amountOwed,
+          },
+        ]
       : []),
     ...d.levies
       .filter((l) => !l.exempt && l.left > 0)
@@ -651,8 +656,8 @@ export function buildHandover(d: HandoverReport): ReportDoc {
       t: "rows",
       rows: [
         { label: "رصيد أول الدورة", amount: d.opening },
-        { label: "دخل في الدورة", amount: d.income.total, sign: "+" },
-        { label: "صُرف في الدورة", amount: d.spending.total, sign: "−" },
+        { label: "المداخيل في الدورة", amount: d.income.total, sign: "+" },
+        { label: "المصاريف في الدورة", amount: d.spending.total, sign: "−" },
         ...(d.adjustments
           ? [
               {
@@ -665,9 +670,9 @@ export function buildHandover(d: HandoverReport): ReportDoc {
       ],
       total: { label: "الرصيد الذي يُسلَّم", amount: balance },
     },
-    { t: "heading", text: "ما دخل" },
-    rowsOf(incomeRows(d.income), ["مجموع ما دخل", d.income.total]),
-    { t: "heading", text: "ما صُرف" },
+    { t: "heading", text: "المداخيل" },
+    rowsOf(incomeRows(d.income), ["مجموع المداخيل", d.income.total]),
+    { t: "heading", text: "المصاريف" },
     ...spendingBlocks(d.spending),
   ];
   if (d.counted.length) {
@@ -713,7 +718,7 @@ export function buildWallets(d: WalletsReport): ReportDoc {
   const head = [
     "المحفظة",
     "الدفعات",
-    "دخل",
+    "المداخيل",
     ...(withOut ? ["خرج"] : []),
     ...(withBal ? ["الرصيد"] : []),
   ];
@@ -768,10 +773,10 @@ export function buildWallets(d: WalletsReport): ReportDoc {
             t: "note",
             text: withBal
               ? "قارن «الرصيد» برصيد كل محفظة في هاتفك. النقد يعدّه من يحمله."
-              : "قارن ما دخل بسجل كل محفظة في هاتفك. النقد يعدّه من يحمله.",
+              : "قارن المداخيل بسجل كل محفظة في هاتفك. النقد يعدّه من يحمله.",
           },
         ]
-      : [{ t: "note", text: "لم يدخل شيء في هذه الفترة." }],
+      : [{ t: "note", text: "لا مداخيل في هذه الفترة." }],
     fileBase: `المحافظ-${periodSlug(d.period)}`,
     hasAmounts: true,
   };

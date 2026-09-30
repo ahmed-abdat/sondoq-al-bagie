@@ -45,7 +45,7 @@ export interface ReportSummaryData {
   months: { month: number; expected: number; collected: number }[];
   /** «28 سبتمبر 2026». */
   asOfLabel: string;
-  /** Paid this month per member list («المجموعة أ: 11 من 20»); the summary card shows them. */
+  /** Paid this month per member list («الفئة أ: 11 من 20»); the summary card shows them. */
   groups?: { label: string; paid: number; active: number }[];
 }
 
@@ -90,7 +90,7 @@ export function reportSummary(r: ReportData): ReportSummaryData {
       const inList = active.filter((m) => m.memberRef.split("-")[0] === l);
       const label = l === "A" ? "أ" : l === "B" ? "ب" : l;
       return {
-        label: `المجموعة ${label}`,
+        label: `الفئة ${label}`,
         paid: inList.filter(isPaid).length,
         active: inList.length,
       };
@@ -112,7 +112,7 @@ export type ReportSource = ReportData | ReportSummaryData;
 const toCard = (d: ReportSource): ReportSummaryData => ("summary" in d ? reportSummary(d) : d);
 
 export function paidLine(d: Pick<ReportSummaryData, "paidCount" | "activeCount" | "month">) {
-  return `${d.paidCount} من ${d.activeCount} دفعوا رسوم ${monthName(d.month)}`;
+  return `${d.paidCount} من ${d.activeCount} دفعوا مستحقات شهر ${monthName(d.month)}`;
 }
 
 /** «سنة 2026 · الدورة 2» */
@@ -150,7 +150,7 @@ export function reportShareText(src: ReportSource, url: string): string {
     "",
     `في الصندوق الآن: ${formatNumber(d.balance)} أوقية`,
     `جُمع هذا العام: ${formatNumber(d.collectedThisYear)} أوقية`,
-    `صُرف هذا العام: ${formatNumber(d.spentThisYear)} أوقية`,
+    `المصاريف هذا العام: ${formatNumber(d.spentThisYear)} أوقية`,
     paidLine(d),
     `حتى ${d.asOfLabel}`,
     "",
@@ -372,7 +372,7 @@ export function drawReportSummary(
   const stats: [string, number][] = [
     ["رصيد مرحّل", d.carried],
     ["جُمع", d.moneyIn],
-    ["صُرف", d.moneyOut],
+    ["المصاريف", d.moneyOut],
   ];
   stats.forEach(([label, n], i) => {
     const cr = R - i * colW;

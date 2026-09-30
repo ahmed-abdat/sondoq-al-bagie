@@ -327,7 +327,7 @@ export const fxHandover: HandoverReport = {
   counted: [
     { label: "بنكيلي", method: "bankily", amount: 150_000 },
     { label: "مصرفي", method: "masrvi", amount: 80_000 },
-    { label: "نقدًا لدى أمين الصندوق", method: "cash", amount: 70_000 },
+    { label: "نقدًا لدى المسؤول", method: "cash", amount: 70_000 },
   ],
   countedTotal: 300_000,
   difference: 0,

@@ -303,14 +303,14 @@ describe("what the «المتأخرات» pages draw", () => {
     const r = report([owing("A-1"), member("A-2"), owing("A-3")]);
     const [page] = paginateReminder(r, A4_PAGE);
     const texts = drawn(page, r);
-    expect(texts).toEqual(expect.arrayContaining(["المتأخرات · المجموعة أ", "عضو A-1", "عضو A-3"]));
+    expect(texts).toEqual(expect.arrayContaining(["المتأخرات · الفئة أ", "عضو A-1", "عضو A-3"]));
     expect(texts).not.toContain("عضو A-2");
-    for (const t of texts) expect(t).not.toMatch(/أوقية|الرسوم|المجموع:|متأخر \d/);
+    for (const t of texts) expect(t).not.toMatch(/أوقية|المستحقات|الرسوم|المجموع:|متأخر \d/);
   });
 
   it("while the full report's group page does show the fee", () => {
     const r = report([owing("A-1")]);
     const page = paginateReport(r, A4_PAGE).find((p) => p.kind === "members")!;
-    expect(drawn(page, r).some((t) => /الرسوم الشهرية: 1.000 أوقية/.test(t))).toBe(true);
+    expect(drawn(page, r).some((t) => /المستحقات الشهرية: 1.000 أوقية/.test(t))).toBe(true);
   });
 });
