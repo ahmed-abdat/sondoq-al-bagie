@@ -37,7 +37,12 @@ export function Home() {
           <span> أوقية</span>
         </p>
         <p className="pb-hero-m">
-          المداخيل هذا الشهر: <Num>{fmt(d.monthIn)}</Num> · المصاريف: <Num>{fmt(d.monthOut)}</Num>
+          {d.monthIn !== null && (
+            <>
+              المداخيل هذا الشهر: <Num>{fmt(d.monthIn)}</Num> ·{" "}
+            </>
+          )}
+          المصاريف: <Num>{fmt(d.monthOut)}</Num>
         </p>
       </section>
       <div className="pb-big">
