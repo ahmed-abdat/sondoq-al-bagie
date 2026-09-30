@@ -1475,3 +1475,11 @@ body:has(.pa) .bq-demo {
 .pa-row.is-muted .pa-av {
   opacity: 0.6;
 }
+
+/* 200% text or a very small phone: a long button label wraps instead of being cut */
+@media (max-width: 359px) {
+  .pa-btn {
+    white-space: normal;
+    text-align: center;
+  }
+}
