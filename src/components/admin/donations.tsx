@@ -632,7 +632,8 @@ function ShareSheet({
 
 /* ───────── new تبرع / لوحة («مسؤول») ───────── */
 
-type Who = "all" | "A" | "B" | "pick";
+/** everyone, one «الفئة» (fee group code), or chosen members */
+type Who = string;
 function NewLevySheet({ onClose }: { onClose: () => void }) {
   const { d, snack } = useP();
   const { createLevy } = useAct();
@@ -650,7 +651,11 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
   const members =
     who === "pick"
       ? active.filter((m) => picked.includes(m.id))
-      : active.filter((m) => who === "all" || m.group === who);
+      : active.filter((m) => who === "all" || m.feeGroup.code === who);
+  // the fee groups (by code: the server gives the second amount to «الفئة ب» only)
+  const groups = [...new Map(active.map((m) => [m.feeGroup.code, m.feeGroup])).values()].sort(
+    (a, b) => a.code.localeCompare(b.code),
+  );
   const amount = amountOf(amt);
   const amountB = twoAmounts ? amountOf(amtB) : 0;
   const next = !title.trim()
@@ -715,7 +720,7 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
         />
       </label>
       <label className="pa-field">
-        <span>{twoAmounts ? "المبلغ على عضو الفئة أ" : "المبلغ على كل عضو"}</span>
+        <span>المبلغ على كل عضو</span>
         <AmountInput value={amt} onChange={setAmt} placeholder="بالأوقية القديمة" />
       </label>
       <label className="pa-check">
@@ -730,6 +735,7 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
         <label className="pa-field">
           <span>المبلغ على عضو الفئة ب</span>
           <AmountInput value={amtB} onChange={setAmtB} />
+          <small className="pa-hint">الفئة ب فقط. باقي الفئات بالمبلغ الأول.</small>
         </label>
       )}
       <p className="pa-label">على من؟</p>
@@ -739,8 +745,7 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
         onChange={setWho}
         options={[
           { k: "all", l: "كل الأعضاء" },
-          { k: "A", l: "الفئة أ" },
-          { k: "B", l: "الفئة ب" },
+          ...groups.map((g) => ({ k: g.code, l: `الفئة ${g.name}` })),
           { k: "pick", l: "أختارهم" },
         ]}
       />
