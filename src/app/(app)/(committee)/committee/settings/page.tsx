@@ -50,7 +50,13 @@ export default async function SettingsPage() {
         openingBalance={settings?.openingBalance ?? summary.openingBalance}
         openingBalanceOn={settings?.openingBalanceOn ?? null}
       >
-        <WalletsSection types={wallets} accounts={accounts} balances={balances} admin={admin} />
+        <WalletsSection
+          types={wallets}
+          accounts={accounts}
+          balances={balances}
+          admin={admin}
+          fundOpening={settings?.openingBalance ?? summary.openingBalance}
+        />
         <GroupsSection
           groups={groups}
           year={year}

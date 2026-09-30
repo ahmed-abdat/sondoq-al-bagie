@@ -36,11 +36,14 @@ export function WalletsSection({
   accounts,
   balances,
   admin,
+  fundOpening,
 }: {
   types: WalletType[];
   accounts: FundAccountAdmin[];
   balances: WalletBalances;
   admin: boolean;
+  /** «رصيد بداية السنة» (settings): an account's opening comes out of it, and out of cash (m45) */
+  fundOpening: number;
 }) {
   const router = useRouter();
   const say = useSnack();
@@ -184,16 +187,6 @@ export function WalletsSection({
               >
                 حوّل
               </button>
-              {admin && !cash.opening && (
-                <button
-                  type="button"
-                  className="bq-btn bq-btn-soft bq-press"
-                  aria-label="عدّل نقدًا"
-                  onClick={() => setSheet({ w: cash })}
-                >
-                  عدّل
-                </button>
-              )}
             </span>
           </li>
         )}
@@ -281,31 +274,15 @@ export function WalletsSection({
       )}
       {sheet && (
         <Sheet
-          label={sheet.w ? (sheet.w.kind === "cash" ? "النقد" : "عدّل المحفظة") : "محفظة جديدة"}
+          label={sheet.w ? "عدّل المحفظة" : "محفظة جديدة"}
           onDone={() => {
             setSheet(null);
             setErr("");
           }}
         >
-          {sheet.w?.kind === "cash" ? (
-            <CashSheet
-              busy={busy}
-              err={err}
-              onOpening={(amount, on) =>
-                run(
-                  () => act.setCashOpening({ amount, on }),
-                  () => {
-                    setWs((l) =>
-                      l.map((x) => (x.kind === "cash" ? { ...x, opening: { amount, on } } : x)),
-                    );
-                    setSheet(null);
-                    say("حُفظ رصيد أول النقد.");
-                  },
-                )
-              }
-            />
-          ) : (
+          {
             <WalletSheet
+              fundOpening={fundOpening}
               w={sheet.w}
               account={sheet.w ? accsOf(sheet.w)[0] : undefined}
               old={
@@ -440,7 +417,7 @@ export function WalletsSection({
                   : undefined
               }
             />
-          )}
+          }
         </Sheet>
       )}
     </section>
@@ -499,9 +476,11 @@ function Foot({
 function Opening({
   busy,
   onSave,
+  fundOpening,
 }: {
   busy: boolean;
   onSave: (amount: number, on: string) => void;
+  fundOpening: number;
 }): ReactNode {
   const [amt, setAmt] = useState("");
   const [on, setOn] = useState(`${new Date().getFullYear()}-01-01`);
@@ -524,7 +503,10 @@ function Opening({
       <DateField value={on} onChange={setOn} label="تاريخ الرصيد" noFuture />
       <label className="bq-check bq-small-top">
         <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} />
-        <span>يُحفظ مرة واحدة ولا يتغيّر بعد ذلك. تأكدت من المبلغ.</span>
+        <span>
+          هذا المبلغ جزء من رصيد بداية السنة (<Num>{fmt(fundOpening)}</Num>) وسيُنقص من النقد. يُحفظ
+          مرة واحدة ولا يتغيّر بعد ذلك. تأكدت من المبلغ.
+        </span>
       </label>
       <button
         type="button"
@@ -543,6 +525,7 @@ function WalletSheet({
   w,
   account,
   old,
+  fundOpening,
   busy,
   err,
   onSave,
@@ -553,6 +536,7 @@ function WalletSheet({
   account?: FundAccountAdmin;
   /** replaced numbers that still hold money: move it with «حوّل» */
   old: { number: string; balance: number }[];
+  fundOpening: number;
   busy: boolean;
   err: string;
   onSave: (v: {
@@ -738,7 +722,11 @@ function WalletSheet({
         )}
       </div>
       {account && !account.opening && (
-        <Opening busy={busy} onSave={(amount, on) => onOpening(account, amount, on)} />
+        <Opening
+          busy={busy}
+          fundOpening={fundOpening}
+          onSave={(amount, on) => onOpening(account, amount, on)}
+        />
       )}
       {onStop && (
         <div className="bq-small-top">
@@ -777,29 +765,6 @@ function WalletSheet({
           await onSave({ name: name.trim(), logoPath, number: clean, holder: holder.trim(), mode });
         }}
       />
-    </div>
-  );
-}
-
-/** Cash in hand: only its non-zero opening, once. */
-function CashSheet({
-  busy,
-  err,
-  onOpening,
-}: {
-  busy: boolean;
-  err: string;
-  onOpening: (amount: number, on: string) => void;
-}) {
-  return (
-    <div className="bq-rec">
-      <h2>النقد في يد اللجنة</h2>
-      <Opening busy={busy} onSave={onOpening} />
-      {err && (
-        <p className="bq-alert" role="alert">
-          {err}
-        </p>
-      )}
     </div>
   );
 }
