@@ -52,7 +52,10 @@ describe("analytics", () => {
     const s = levyStats(l, [mem("A-1"), mem("A-2"), mem("B-1"), mem("B-3")], "2026-09-30");
     expect([s.paid, s.notYet, s.exempt, s.pct]).toEqual([2, 1, 1, 67]);
     expect([s.collected, s.expected, s.days]).toEqual([800, 1300, 29]);
-    expect(s.B).toEqual({ total: 1, paid: 1, pct: 100 });
+    expect(s.B).toEqual({ total: 1, paid: 1, pct: 100, expected: 300, collected: 300 });
+    // the groups add up to the totals (same shares)
+    expect(s.A.expected + s.B.expected).toBe(s.expected);
+    expect(s.A.collected + s.B.collected).toBe(s.collected);
   });
   it("donation: members and outside donors, % of members", () => {
     const c = {
@@ -133,5 +136,48 @@ describe("the server's stats (m32) in the screens' shape", () => {
     expect(s.fees.owe).toEqual({ one: 20, twoThree: 15, fourPlus: 11 });
     expect(s.levies.l1).toMatchObject({ paid: 34, notYet: 50, exempt: 4, pct: 41, days: 20 });
     expect(s.campaigns.c1).toMatchObject({ givers: 7, pctMembers: 6, pctTarget: null, target: 0 });
+  });
+});
+
+describe("demo «الإحصاءات» report", () => {
+  it("levy groups add up to the levy totals", async () => {
+    const { demoStatsReport } = await import("./stats");
+    const members = ["A-1", "A-2", "B-1", "B-3"].map((r) => mem(r));
+    const r = demoStatsReport(
+      {
+        year: 2026,
+        due: 3,
+        today: "2026-09-30",
+        members,
+        campaigns: [],
+        levies: [
+          {
+            id: "l1",
+            title: "ل",
+            purpose: "",
+            perMember: 500,
+            scope: "",
+            createdOn: "2026-09-01",
+            createdBy: "",
+            status: "open",
+            refs: ["A-1", "A-2", "B-1", "B-3"],
+            paidRefs: ["A-1", "B-1"],
+            exemptRefs: ["B-3"],
+            amounts: { "B-1": 300 },
+          },
+        ],
+      } as never,
+      null,
+    );
+    const l = r.levies[0];
+    const sum = (k: "shares" | "paid" | "unpaid" | "exempt" | "expected" | "collected") =>
+      l.groups.reduce((n, g) => n + g[k], 0);
+    expect([sum("shares"), sum("paid"), sum("unpaid"), sum("exempt")]).toEqual([
+      l.shares,
+      l.paid,
+      l.unpaid,
+      l.exempt,
+    ]);
+    expect([sum("expected"), sum("collected")]).toEqual([l.expected, l.collected]);
   });
 });

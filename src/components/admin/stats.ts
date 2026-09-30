@@ -56,10 +56,17 @@ export function levyStats(l: PLevy, members: PMember[], today: string) {
   const owing = l.refs.filter((r) => !exempt.has(r));
   const paid = owing.filter((r) => paidSet.has(r));
   const groupOf = new Map(members.map((m) => [m.ref, m.group]));
+  // groups and totals from the same shares, so the groups add up to the totals
   const group = (g: "A" | "B") => {
     const list = owing.filter((r) => groupOf.get(r) === g);
-    const p = list.filter((r) => paidSet.has(r)).length;
-    return { total: list.length, paid: p, pct: pct(p, list.length) };
+    const done = list.filter((r) => paidSet.has(r));
+    return {
+      total: list.length,
+      paid: done.length,
+      pct: pct(done.length, list.length),
+      expected: list.reduce((s, r) => s + share(r), 0),
+      collected: done.reduce((s, r) => s + share(r), 0),
+    };
   };
   const expected = owing.reduce((s, r) => s + share(r), 0);
   const collected = paid.reduce((s, r) => s + share(r), 0);
@@ -154,7 +161,13 @@ export function statsFromReport(r: StatsReport, due: number, owing: number): All
         const lg = (code: string) => {
           const x = l.groups.find((y) => y.groupCode === code);
           const of = x ? x.paid + x.unpaid : 0;
-          return { total: of, paid: x?.paid ?? 0, pct: x ? Math.round(x.paidPct) : 0 };
+          return {
+            total: of,
+            paid: x?.paid ?? 0,
+            pct: x ? Math.round(x.paidPct) : 0,
+            expected: x?.expected ?? 0,
+            collected: x?.collected ?? 0,
+          };
         };
         return [
           l.id,
@@ -237,6 +250,8 @@ export function demoStatsReport(d: Omit<PData, "stats">, previousPct: number | n
         unpaid: x.total - x.paid,
         exempt: ex,
         paidPct: x.pct,
+        expected: x.expected,
+        collected: x.collected,
       };
     };
     return {
