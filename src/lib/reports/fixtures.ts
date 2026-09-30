@@ -421,6 +421,7 @@ export const fxHandover: HandoverReport = {
 export const fxWallets: WalletsReport = {
   period: { year: 2026 },
   generatedAt: AT,
+  // one move: 50 000 taken out of بنكيلي into the cash (a handover); every balance adds up
   wallets: [
     ...[
       {
@@ -429,6 +430,9 @@ export const fxWallets: WalletsReport = {
         accountNumber: "22000001",
         in: 145_000,
         count: 98,
+        transferIn: 0,
+        transferOut: 50_000,
+        balance: 95_000,
       },
       {
         method: "masrvi" as const,
@@ -436,8 +440,20 @@ export const fxWallets: WalletsReport = {
         accountNumber: "22000002",
         in: 70_000,
         count: 41,
+        transferIn: 0,
+        transferOut: 0,
+        balance: 70_000,
       },
-      { method: "sedad" as const, label: "السداد", accountNumber: null, in: 23_500, count: 12 },
+      {
+        method: "sedad" as const,
+        label: "السداد",
+        accountNumber: null,
+        in: 23_500,
+        count: 12,
+        transferIn: 0,
+        transferOut: 0,
+        balance: 23_500,
+      },
     ].map((w, i) => ({
       ...w,
       walletTypeId: i + 1,
@@ -446,7 +462,14 @@ export const fxWallets: WalletsReport = {
       opening: null,
     })),
   ],
-  cash: { in: 75_000, count: 60, opening: null },
+  cash: {
+    in: 75_000,
+    count: 60,
+    transferIn: 50_000,
+    transferOut: 0,
+    opening: null,
+    balance: 125_000,
+  },
   totalIn: 313_500,
 };
 
