@@ -17,7 +17,6 @@ import type {
   PPayment,
 } from "@/components/admin/types";
 import { monthStates } from "@/lib/data/month-code";
-import type { ActivityEntry } from "@/lib/data/map";
 import type {
   AnnualReport,
   CampaignReport,
@@ -35,11 +34,12 @@ import type {
 } from "@/lib/data/report-types";
 import * as rfx from "@/lib/reports/fixtures";
 import type { Method } from "@/lib/methods";
-import { currentDueMonth, fmt } from "./derive";
+import { currentDueMonth } from "./derive";
 import { demoAdminData, demoStatement, demoStats } from "./admin-demo";
 import { DEMO_USER, isDemo } from "./demo";
 import { toMemberRows } from "@/lib/data/member-lists";
 import { allStats, statsFromReport } from "@/components/admin/stats";
+import { activityLine } from "@/components/admin/activity-line";
 import * as fx from "./fixtures";
 import { assembleReport } from "@/lib/data/report";
 import { toFundSummary } from "@/lib/data/map";
@@ -430,7 +430,7 @@ export async function adminData(): Promise<PData> {
       amount: e.amount,
     })),
   ].sort((a, b) => b.at.localeCompare(a.at));
-  const log: PLog[] = acts.map((x) => activityLine(x));
+  const log: PLog[] = acts.flatMap((x) => activityLine(x) ?? []);
   const levies: PLevy[] = leviesRaw.map((c) => {
     const mine = shares.filter((x) => x.campaignId === c.campaignId);
     const expected = mine.map((x) => x.expected).filter((n) => n > 0);
@@ -506,45 +506,6 @@ export async function adminData(): Promise<PData> {
     ...base,
     stats: statsReport ? statsFromReport(statsReport, due, counted.owing) : counted,
   };
-}
-
-/** One «سجل العمليات» line in plain words: who, what, how much, why. */
-function activityLine(x: ActivityEntry): PLog {
-  const who = x.actorName ?? "اللجنة";
-  const amt = x.amount != null ? ` (${fmt(x.amount)} أوقية)` : "";
-  const sub = x.subject ? ` ${x.subject}` : "";
-  const why = x.reason ? `. السبب: ${x.reason}` : "";
-  const W: Record<string, [string, PLog["kind"]]> = {
-    record_payment: [`سجّل دفعة${sub}${amt}`, "pay"],
-    confirm_payment: [`ثبّت دفعة${sub}${amt}`, "ok"],
-    reject_payment: [`رفض دفعة${sub}${amt}${why}`, "no"],
-    cancel_payment: [`ألغى دفعة${sub}${amt}${why}`, "no"],
-    undo_payment: [`تراجع عن دفعة${sub}${amt}`, "no"],
-    apply_credit: [`دفع من رصيد${sub}${amt}`, "pay"],
-    record_expense: [`سجّل مصروف${sub}${amt}`, "exp"],
-    cancel_expense: [`ألغى مصروف${sub}${amt}${why}`, "no"],
-    create_campaign: [`فتح تبرعًا:${sub}`, "gift"],
-    update_campaign: [`عدّل التبرع${sub}`, "edit"],
-    close_campaign: [`أغلق${sub}`, "edit"],
-    create_levy: [`أنشأ لوحة${sub}${amt}`, "levy"],
-    add_levy_members: [`أضاف أعضاء إلى لوحة${sub}`, "levy"],
-    set_levy_share: [`غيّر نصيب${sub}${amt}`, "levy"],
-    exempt_levy_share: [`أعفى من لوحة${sub}${why}`, "levy"],
-    unexempt_levy_share: [`ألغى إعفاء من لوحة${sub}`, "levy"],
-    add_member: [`أضاف عضوًا:${sub}`, "edit"],
-    update_member: [`عدّل بيانات${sub}`, "edit"],
-    change_member_status: [`غيّر حالة${sub}${why}`, "edit"],
-    set_join_month: [`غيّر شهر انضمام${sub}`, "edit"],
-    set_group_price: [`غيّر المستحقات الشهرية${sub}${amt}`, "edit"],
-    update_settings: ["غيّر الإعدادات", "edit"],
-    add_fund_account: [`أضاف رقم محفظة${sub}`, "edit"],
-    start_handover: ["بدأ تسليم الصندوق", "edit"],
-    submit_handover: ["أرسل محضر التسليم", "edit"],
-    accept_handover: ["قبل تسليم الصندوق", "edit"],
-    cancel_handover: [`ألغى التسليم${why}`, "no"],
-  };
-  const [what, kind] = W[x.action] ?? [`${x.action.replaceAll("_", " ")}${sub}${amt}`, "edit"];
-  return { who, what, at: x.at, kind };
 }
 
 /* ───────────── reports (plan §9: 10 kinds; demo: Lane B's fictional report data) ───────────── */

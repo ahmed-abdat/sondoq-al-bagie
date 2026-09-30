@@ -363,3 +363,16 @@
   font-weight: 500;
   color: var(--muted);
 }
+
+/* the total and the picture disagree: ask before saving, with a short reason */
+.r2-diff {
+  flex-basis: 100%;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--gold-tint);
+}
+.r2-diff p {
+  margin: 0;
+}

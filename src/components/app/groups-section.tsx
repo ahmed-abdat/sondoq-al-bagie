@@ -503,8 +503,7 @@ function MoveMembers({
       {midYear && !midYearOk && (
         <div className="bq-rej" role="group" aria-label="تنبيه">
           <p className="bq-lead">
-            السنة لها مستحقات ثابتة. الأفضل أن يبدأ التغيير من يناير {jan} حتى لا تتغيّر أشهر
-            السنة.
+            السنة لها مستحقات ثابتة. الأفضل أن يبدأ التغيير من يناير {jan} حتى لا تتغيّر أشهر السنة.
           </p>
           <div className="bq-stack">
             <button

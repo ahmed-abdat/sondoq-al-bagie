@@ -44,7 +44,12 @@ export function Shell({
   const href = committeeHref;
   return (
     <div className={`pa ${bare ? "pa-bare" : ""} ${above ? "pa-has-above" : ""} ${className}`}>
-      <main className="pa-main">{children}</main>
+      <a href="#pa-main" className="pa-skip">
+        تخطَّ إلى المحتوى
+      </a>
+      <main id="pa-main" className="pa-main" tabIndex={-1}>
+        {children}
+      </main>
       {/* after the content in the DOM (keyboard reaches the page first); fixed on screen */}
       {!bare && (
         <nav className="pa-nav" aria-label="التنقل">

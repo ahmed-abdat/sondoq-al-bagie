@@ -3,7 +3,8 @@
 // record flow is ONE long page with a sticky summary footer; reports are 7 cards + a period row.
 import Link from "next/link";
 import { useState } from "react";
-import { Bar, fmt, Money, month, Num, useP, X } from "./kit";
+import { Bar, fmt, Money, month, Num, paidLine, useP, X } from "./kit";
+import { memberCount } from "@/components/app/derive";
 import { ExpenseSheet } from "./expense-sheet";
 import { ReportSheet } from "./report-doc";
 import { LogRow } from "./more";
@@ -74,7 +75,9 @@ export function Home() {
           <span className="pa-ic">{X.clock(22)}</span>
           <span className="pa-row-t">
             <b>
-              <Num>{d.stats.owing}</Num> عضوًا عليهم متأخرات
+              {d.stats.owing === 1
+                ? "عضو واحد عليه متأخرات"
+                : `${memberCount(d.stats.owing)} عليهم متأخرات`}
             </b>
             <small>مستحقات أو نصيب لوحة</small>
           </span>
@@ -97,11 +100,14 @@ export function Home() {
           </Link>
         </div>
         <ul className="pa-rows">
-          {d.log.slice(0, 5).map((l, i) => (
-            <li key={i}>
-              <LogRow l={l} who={false} />
-            </li>
-          ))}
+          {d.log
+            .filter((l) => !l.settings)
+            .slice(0, 5)
+            .map((l, i) => (
+              <li key={i}>
+                <LogRow l={l} who={false} />
+              </li>
+            ))}
         </ul>
       </section>
 
@@ -135,8 +141,7 @@ export function Home() {
                 <span className="pa-row-t">
                   <b>لوحة {l.title}</b>
                   <small>
-                    دفع <Num>{d.stats.levies[l.id]?.paid ?? 0}</Num>، ولم يدفع{" "}
-                    <Num>{d.stats.levies[l.id]?.notYet ?? 0}</Num>
+                    {paidLine(d.stats.levies[l.id]?.paid ?? 0, d.stats.levies[l.id]?.notYet ?? 0)}
                   </small>
                 </span>
                 {X.go(20)}

@@ -116,9 +116,15 @@ export function MoreMenu({ me }: { me: { name: string; role: string; admin: bool
 
 export function ActivityScreen() {
   const { d } = useP();
+  const SETTINGS = "__settings";
   const [f, setF] = useState<string>("all");
-  const people = ["all", ...new Set(d.log.map((l) => l.who))];
-  const shown = d.log.filter((l) => f === "all" || l.who === f);
+  const main = d.log.filter((l) => !l.settings);
+  const people = ["all", ...new Set(main.map((l) => l.who))];
+  const hasSettings = d.me.admin && d.log.some((l) => l.settings);
+  const shown =
+    f === SETTINGS
+      ? d.log.filter((l) => l.settings)
+      : main.filter((l) => f === "all" || l.who === f);
   return (
     <div className="pa-page">
       <Back to="more" label="المزيد" />
@@ -126,12 +132,15 @@ export function ActivityScreen() {
         <h1>سجل العمليات</h1>
       </header>
       <p className="pa-lead">كل ما سجّلته اللجنة أو غيّرته، ومن فعله.</p>
-      {people.length > 2 && (
+      {(people.length > 2 || hasSettings) && (
         <Chips
           label="من"
           value={f}
           onChange={setF}
-          options={people.map((p) => ({ k: p, l: p === "all" ? "الكل" : p }))}
+          options={[
+            ...people.map((p) => ({ k: p, l: p === "all" ? "الكل" : p })),
+            ...(hasSettings ? [{ k: SETTINGS, l: "تغييرات الإعدادات" }] : []),
+          ]}
         />
       )}
       {shown.length ? (

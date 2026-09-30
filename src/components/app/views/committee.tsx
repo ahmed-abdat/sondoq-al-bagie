@@ -1,35 +1,19 @@
 "use client";
-// Committee: one hub (payments to confirm + «سجّل دفعة») and a short menu of sub-pages, each one
-// level deep with a clear «رجوع». Rare actions live inside the sub-pages, not on the main path.
+// Old payments recorded before the committee-only update, still waiting for a confirmation
+// (/committee/review, gone once none are left), and the live-update listener.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
-import { InstallEntry } from "@/components/providers";
+import { useEffect, useState } from "react";
 import { CloseStalePushNotifications } from "@/components/providers/committee-push";
 import { toastFor, usePaymentsRealtime } from "@/lib/data/realtime";
-import type {
-  Arrear,
-  CampaignProgress,
-  FundAccount,
-  MemberAdmin,
-  MemberRow,
-  PendingPayment,
-  ReportData,
-} from "@/lib/data/types";
+import type { CampaignProgress, PendingPayment } from "@/lib/data/types";
 import { useDemoState } from "../act";
 import { MethodBadge } from "../bits";
-import { CampaignAdminList, CampaignFormBody } from "../campaign-form";
-import { fmt, pendingForCampaign, relativeAgo } from "../derive";
+import { fmt, relativeAgo } from "../derive";
 import { I } from "../icons";
-import type { MemberCtx } from "../member";
-import { MembersAdmin, type MemberCredit } from "../members-admin";
 import { Num, useNow } from "../num";
 import { PaymentDetails } from "../cancel-payment";
 import type { ReceiptView } from "../receipt-model";
-import { PushSuggest } from "../push-suggest";
-import { Segmented } from "../segmented";
-import { RecordBody } from "../record";
-import { LateList } from "../reminders";
 import { Sheet } from "../sheet";
 import { useSnack } from "../shell";
 import { setPendingCount } from "../pending-count";
@@ -66,62 +50,15 @@ export function SubHead({ title, lead }: { title: string; lead?: string }) {
   );
 }
 
-function MenuRow({
-  href,
-  icon,
-  title,
-  sub,
-  count,
-}: {
-  href: string;
-  icon: ReactNode;
-  title: string;
-  sub: string;
-  count?: number;
-}) {
-  return (
-    <li>
-      <Link
-        href={href}
-        // the report page is heavy; load it only when asked
-        prefetch={href.includes("#share") ? false : undefined}
-        className="bq-row bq-press"
-        transitionTypes={["tab-fwd"]}
-      >
-        <span className="bq-disc">{icon}</span>
-        <span className="bq-row-m">
-          <span className="bq-row-t">{title}</span>
-          <span className="bq-row-s">{sub}</span>
-        </span>
-        {count !== undefined && <Num className="bq-amt">{count}</Num>}
-        <span className="bq-chev">{I.go(18)}</span>
-      </Link>
-    </li>
-  );
-}
-
 /* ═══════════════════════════ hub ═══════════════════════════ */
 export function CommitteeView({
   pending: serverPending,
   me,
-  members,
-  ctx,
-  accounts,
   campaigns: serverCampaigns,
-  lateCount,
-  memberCount,
-  canManage,
 }: {
   pending: PendingPayment[];
   me: { by: string; role: string; canConfirm?: boolean; memberId?: string | null };
-  members: MemberRow[];
-  ctx: MemberCtx;
-  accounts: FundAccount[];
   campaigns: CampaignProgress[];
-  lateCount: number;
-  memberCount: number;
-  /** admin, treasurer, deputy: campaigns and member management */
-  canManage: boolean;
 }) {
   const demo = useDemoState();
   const pending = [...serverPending, ...demo.pending];
@@ -129,7 +66,6 @@ export function CommitteeView({
     ...c,
     ...demo.campaignPatch[c.campaignId],
   }));
-  const say = useSnack();
   // keep decided slips on screen (collapsed) after the server list drops them
   const [seen, setSeen] = useState(pending);
   const fresh = pending.filter((p) => !seen.some((s) => s.id === p.id));
@@ -156,11 +92,7 @@ export function CommitteeView({
   const [sheet, setSheet] = useState<{ t: "record" } | { t: "receipt"; r: ReceiptView } | null>(
     null,
   );
-  const openCamps = campaigns.filter((c) => c.status === "open").length;
   const campaignTitles = Object.fromEntries(campaigns.map((c) => [c.campaignId, c.title]));
-  // owner pick (r31): two tabs; «للمراجعة» is a chat-like list, one slip open in place (the first
-  // by default); after a decision's 5 s «تراجع» window the next one opens by itself
-  const [tab, setTab] = useState<"rev" | "work">("rev");
   const [openId, setOpenId] = useState<string | null | undefined>(undefined);
   const [all, setAll] = useState(false);
   const now = useNow();
@@ -178,233 +110,84 @@ export function CommitteeView({
   return (
     <>
       <header className="bq-page-h">
-        <h1>اللجنة</h1>
-        <Link
-          href="/committee/account"
-          className="bq-lead bq-me-link bq-press"
-          transitionTypes={["tab-fwd"]}
-          aria-label={`حسابي: ${me.by}`}
-        >
-          {me.by}
-          {me.role ? ` · ${me.role}` : ""} {I.go(16)}
+        <Link href="/committee/more" className="bq-link bq-link-s bq-back bq-press">
+          {I.back(18)} المزيد
         </Link>
+        <h1>دفعات قديمة لم تُثبَّت</h1>
+        <p className="bq-lead">سُجّلت قبل التحديث. ثبّت كل دفعة أو ارفضها.</p>
       </header>
 
       <CloseStalePushNotifications pendingIds={serverPending.map((p) => p.id)} />
-      {me.canConfirm && <PushSuggest />}
-      <section className="bq-sec bq-sec-first">
-        <Segmented
-          label="اللجنة"
-          value={tab}
-          onChange={setTab}
-          items={[
-            {
-              k: "rev",
-              l: waiting ? (
-                <>
-                  للمراجعة <Num>{waiting}</Num>
-                </>
-              ) : (
-                "للمراجعة"
-              ),
-            },
-            { k: "work", l: "الأعمال" },
-          ]}
-        />
-      </section>
-
-      {tab === "rev" ? (
-        <section className="bq-sec bq-rev-sec" aria-labelledby="bq-wait-h">
-          <h2 id="bq-wait-h" className="bq-sr">
-            دفعات تحتاج مراجعة <Num>{waiting}</Num>
-          </h2>
-          {seen.length > 0 && (
-            <ul className="bq-rev">
-              {ordered.map((p) =>
-                p.id === openNow || decided.has(p.id) ? (
-                  <li key={p.id} id={`bq-slip-${p.id}`} className="bq-rev-open">
-                    <PendingSlip
-                      p={p}
-                      me={me}
-                      onFull={(r) => setSheet({ t: "receipt", r })}
-                      onDecided={(d) =>
-                        setDecided((x) => {
-                          const n = new Set(x);
-                          if (d) n.add(p.id);
-                          else n.delete(p.id);
-                          return n;
-                        })
-                      }
-                      onSettled={() => setOpenId(undefined)}
-                      campaignTitles={campaignTitles}
-                    />
-                  </li>
-                ) : shownIds.has(p.id) ? (
-                  <li key={p.id} id={`bq-slip-${p.id}`}>
-                    <button
-                      type="button"
-                      className="bq-row bq-press bq-rev-row"
-                      aria-expanded={false}
-                      onClick={() => setOpenId(p.id)}
-                    >
-                      <MethodBadge method={p.method} size={40} label={false} />
-                      <span className="bq-row-m">
-                        <span className="bq-row-t">{p.payerName}</span>
-                        <span className="bq-row-s">
-                          {p.createdByName ? `سجّلها ${p.createdByName}` : "سُجّلت"}
-                          {now ? ` · ${relativeAgo(p.createdAt, now)}` : ""}
-                        </span>
+      <section className="bq-sec bq-rev-sec" aria-labelledby="bq-wait-h">
+        <h2 id="bq-wait-h" className="bq-sr">
+          دفعات تحتاج مراجعة <Num>{waiting}</Num>
+        </h2>
+        {seen.length > 0 && (
+          <ul className="bq-rev">
+            {ordered.map((p) =>
+              p.id === openNow || decided.has(p.id) ? (
+                <li key={p.id} id={`bq-slip-${p.id}`} className="bq-rev-open">
+                  <PendingSlip
+                    p={p}
+                    me={me}
+                    onFull={(r) => setSheet({ t: "receipt", r })}
+                    onDecided={(d) =>
+                      setDecided((x) => {
+                        const n = new Set(x);
+                        if (d) n.add(p.id);
+                        else n.delete(p.id);
+                        return n;
+                      })
+                    }
+                    onSettled={() => setOpenId(undefined)}
+                    campaignTitles={campaignTitles}
+                  />
+                </li>
+              ) : shownIds.has(p.id) ? (
+                <li key={p.id} id={`bq-slip-${p.id}`}>
+                  <button
+                    type="button"
+                    className="bq-row bq-press bq-rev-row"
+                    aria-expanded={false}
+                    onClick={() => setOpenId(p.id)}
+                  >
+                    <MethodBadge method={p.method} size={40} label={false} />
+                    <span className="bq-row-m">
+                      <span className="bq-row-t">{p.payerName}</span>
+                      <span className="bq-row-s">
+                        {p.createdByName ? `سجّلها ${p.createdByName}` : "سُجّلت"}
+                        {now ? ` · ${relativeAgo(p.createdAt, now)}` : ""}
                       </span>
-                      <Num className="bq-amt">{fmt(p.amount)}</Num>
-                    </button>
-                  </li>
-                ) : null,
-              )}
-            </ul>
-          )}
-          {undecided.length > 5 && (
-            <button type="button" className="bq-link bq-press" onClick={() => setAll(!all)}>
-              {all ? (
-                "عرض أقل"
-              ) : (
-                <>
-                  عرض الكل <Num>{undecided.length}</Num>
-                </>
-              )}{" "}
-              {I.chev(18)}
-            </button>
-          )}
-          {waiting > 0 && (
-            <button
-              type="button"
-              className="bq-btn bq-btn-soft bq-btn-lg bq-press bq-rev-rec"
-              onClick={() => setSheet({ t: "record" })}
-            >
-              {I.plus(22)} سجّل دفعة
-            </button>
-          )}
-          {waiting === 0 && (
-            <div className="bq-rev-empty">
-              <p className="bq-rev-empty-t">{I.check(24)} لا دفعات تنتظر</p>
-              <p className="bq-hint">عندما يرسل عضو صورة تحويل تظهر هنا، ويصلك إشعار.</p>
-              <div className="bq-btn-col">
-                <button
-                  type="button"
-                  className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-                  onClick={() => setSheet({ t: "record" })}
-                >
-                  {I.plus(22)} سجّل دفعة نقدًا أو تحويلًا
-                </button>
-                <button
-                  type="button"
-                  className="bq-btn bq-btn-soft bq-press"
-                  onClick={() => setTab("work")}
-                >
-                  الأعمال الأخرى
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-      ) : (
-        <section className="bq-sec" aria-label="الأعمال">
-          <div className="bq-tiles">
-            <button
-              type="button"
-              className="bq-tile is-main bq-press"
-              onClick={() => setSheet({ t: "record" })}
-            >
-              {I.plus(24)} سجّل دفعة
-            </button>
-            <Link href="/committee/late" className="bq-tile bq-press" transitionTypes={["tab-fwd"]}>
-              {I.clock(24)}
-              <span>
-                ذكّر المتأخرين <Num className="bq-group-n">{lateCount}</Num>
-              </span>
-            </Link>
-            <Link
-              href="/committee/expenses"
-              className="bq-tile bq-press"
-              transitionTypes={["tab-fwd"]}
-            >
-              {I.bag(24)} سجّل مصروفًا
-            </Link>
-            <Link
-              href="/committee/payments"
-              className="bq-tile bq-press"
-              transitionTypes={["tab-fwd"]}
-            >
-              {I.coins(24)} الدفعات الأخيرة
+                    </span>
+                    <Num className="bq-amt">{fmt(p.amount)}</Num>
+                  </button>
+                </li>
+              ) : null,
+            )}
+          </ul>
+        )}
+        {undecided.length > 5 && (
+          <button type="button" className="bq-link bq-press" onClick={() => setAll(!all)}>
+            {all ? (
+              "عرض أقل"
+            ) : (
+              <>
+                عرض الكل <Num>{undecided.length}</Num>
+              </>
+            )}{" "}
+            {I.chev(18)}
+          </button>
+        )}
+        {waiting === 0 && (
+          <div className="bq-rev-empty">
+            <p className="bq-rev-empty-t">{I.check(24)} لا دفعات قديمة تنتظر</p>
+            <Link href="/committee" className="bq-btn bq-btn-soft bq-press">
+              إلى الرئيسية
             </Link>
           </div>
-          <details className="bq-more">
-            <summary>
-              المزيد <span className="bq-group-i">{I.chev(20)}</span>
-            </summary>
-            <ul className="bq-list bq-menu">
-              {canManage && (
-                <MenuRow
-                  href="/committee/members"
-                  icon={I.people(22)}
-                  title="الأعضاء"
-                  sub="إضافة عضو، تعديل رقم الهاتف أو الحالة"
-                  count={memberCount}
-                />
-              )}
-              {canManage && (
-                <MenuRow
-                  href="/committee/campaigns"
-                  icon={I.heart(22)}
-                  title="التبرعات"
-                  sub={
-                    openCamps
-                      ? `${openCamps === 1 ? "تبرع مفتوح" : `${openCamps} تبرعات مفتوحة`}`
-                      : "لا يوجد تبرع مفتوح"
-                  }
-                />
-              )}
-              <MenuRow
-                href="/committee/reports#share"
-                icon={I.image(22)}
-                title="مشاركة التقرير"
-                sub="صور أو PDF لمجموعة الواتساب"
-              />
-              <li>
-                <InstallEntry />
-              </li>
-              <MenuRow
-                href="/committee/account"
-                icon={I.people(22)}
-                title="حسابي"
-                sub="اسمك، كلمة السر، عضويتك، الإشعارات"
-              />
-              <MenuRow
-                href="/committee/settings"
-                icon={I.lock(22)}
-                title="الإعدادات"
-                sub="أرقام الصندوق، كلمة السر، الخروج"
-              />
-            </ul>
-          </details>
-        </section>
-      )}
+        )}
+      </section>
 
-      {sheet?.t === "record" && (
-        <Sheet key="record" label="سجّل دفعة" onDone={() => setSheet(null)}>
-          <RecordBody
-            members={members}
-            ctx={ctx}
-            accounts={accounts}
-            campaigns={campaigns}
-            me={me}
-            onDone={(t) => {
-              setSheet(null);
-              setFirstBefore(newest);
-              say(t);
-            }}
-          />
-        </Sheet>
-      )}
       {sheet?.t === "receipt" && (
         <Sheet key="receipt" label="تفاصيل الدفعة" onDone={() => setSheet(null)}>
           <PaymentDetails r={sheet.r} />
@@ -415,100 +198,3 @@ export function CommitteeView({
 }
 
 /* ═══════════════════════════ sub-pages ═══════════════════════════ */
-export function LatePage({ arrears, report }: { arrears: Arrear[]; report: ReportData | null }) {
-  return (
-    <>
-      <SubHead title="المتأخرون" />
-      <section className="bq-sec bq-sec-first">
-        <LateList arrears={arrears} report={report} />
-      </section>
-    </>
-  );
-}
-
-export function MembersPage({
-  members,
-  prices,
-  thisMonth,
-  admin = false,
-  credit = {},
-  months,
-  monthsCtx,
-}: {
-  members: MemberAdmin[];
-  prices: Record<string, number>;
-  months?: Record<string, string>;
-  monthsCtx?: { year: number; dueMonth: number };
-  /** admin: may undo the last change and correct the join month */
-  admin?: boolean;
-  credit?: Record<string, MemberCredit>;
-  thisMonth: string;
-}) {
-  return (
-    <>
-      <SubHead title="الأعضاء" />
-      <section className="bq-sec bq-sec-first">
-        <MembersAdmin
-          members={members}
-          prices={prices}
-          thisMonth={thisMonth}
-          admin={admin}
-          credit={credit}
-          months={months}
-          monthsCtx={monthsCtx}
-        />
-      </section>
-    </>
-  );
-}
-
-export function CampaignsPage({
-  campaigns: server,
-  pending: serverPending,
-}: {
-  campaigns: CampaignProgress[];
-  /** pending payments: a campaign with pending contributions is not closed yet */
-  pending: PendingPayment[];
-}) {
-  const demo = useDemoState();
-  const pending = [...serverPending, ...demo.pending];
-  const campaigns = [...demo.campaigns, ...server].map((c) => ({
-    ...c,
-    ...demo.campaignPatch[c.campaignId],
-  }));
-  const say = useSnack();
-  const [sheet, setSheet] = useState<{ c?: CampaignProgress } | null>(null);
-  const done = (t: string) => {
-    setSheet(null);
-    say(t);
-  };
-  return (
-    <>
-      <SubHead title="التبرعات" lead="المساهمات تُحسب منفصلة عن المستحقات الشهرية." />
-      <section className="bq-sec bq-sec-first">
-        <button
-          type="button"
-          className="bq-btn bq-btn-primary bq-btn-lg bq-press"
-          onClick={() => setSheet({})}
-        >
-          {I.plus(20)} تبرع جديد
-        </button>
-        <h2 className="bq-h3">التبرعات</h2>
-        <CampaignAdminList campaigns={campaigns} onEdit={(c) => setSheet({ c })} />
-      </section>
-      {sheet && (
-        <Sheet
-          key={sheet.c?.campaignId ?? "new"}
-          label={sheet.c ? "التبرع" : "تبرع جديد"}
-          onDone={() => setSheet(null)}
-        >
-          <CampaignFormBody
-            campaign={sheet.c}
-            pendingCount={sheet.c ? pendingForCampaign(pending, sheet.c.campaignId) : 0}
-            onDone={done}
-          />
-        </Sheet>
-      )}
-    </>
-  );
-}

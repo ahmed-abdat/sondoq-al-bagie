@@ -4,7 +4,7 @@
 // (members, one member, late, expenses, more) live here.
 import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { searchMembers } from "@/components/app/derive";
+import { memberCount, searchMembers } from "@/components/app/derive";
 import { I } from "@/components/app/icons";
 import { radioKeys, radioTab } from "@/components/app/radio-keys";
 import { Sheet as AppSheet } from "@/components/app/sheet";
@@ -102,6 +102,9 @@ export const findMembers = (list: PMember[], q: string): PMember[] =>
     list.map((m) => ({ fullName: m.name, number: m.no, memberRef: m.ref, m })),
     q,
   ).map((x) => x.m);
+/** «دفع عضو واحد، ولم يدفع 3 أعضاء» (exempt members are never counted as not paid). */
+export const paidLine = (paid: number, notYet: number) =>
+  `دفع ${memberCount(paid)}، ولم يدفع ${memberCount(notYet)}`;
 export const isLate = (m: PMember) =>
   m.status === "active" && (m.owed.length > 0 || m.pastLate.length > 0);
 export const day = (iso: string) => {

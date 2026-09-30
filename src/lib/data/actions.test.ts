@@ -141,7 +141,7 @@ describe("actions", () => {
     expect(notifyCommittee).toHaveBeenCalledWith("payment", "u1", {
       title: "سجّل محمد دفعة",
       body: "دافع · 1\u202f000 أوقية · سبتمبر 2026",
-      url: "/committee/payments",
+      url: "/committee/members/0f8fad5b-d9cb-469f-a165-70867728950e",
       tag: `payment-${id}`,
     });
     rpc.mockResolvedValue({ data: { id, status: "confirmed", replay: true }, error: null });

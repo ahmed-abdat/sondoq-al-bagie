@@ -247,7 +247,7 @@ export function SettingsView({
                       else router.refresh();
                     }}
                   >
-                    {removing === a.id ? "تأكيد الإلغاء" : "ألغِ"}
+                    {removing === a.id ? "نعم، أوقفها" : "أوقف المحفظة"}
                   </button>
                 )}
               </li>
@@ -257,6 +257,53 @@ export function SettingsView({
           <button type="button" className="bq-link bq-press" onClick={() => setAdding(true)}>
             {I.plus(18)} أضف محفظة
           </button>
+        )}
+        {list.some((a) => !a.active) && (
+          <>
+            <h3 className="bq-h3">محافظ متوقفة</h3>
+            <p className="bq-hint">لا تظهر عند تسجيل دفعة أو مصروف.</p>
+            <ul className="bq-pay">
+              {list
+                .filter((a) => !a.active)
+                .map((a) => (
+                  <li key={a.id} className="is-off">
+                    <MethodBadge method={a.method} size={32} label={false} />
+                    <span className="bq-row-m">
+                      <span className="bq-row-t">{METHOD_LABELS[a.method]}</span>
+                      <bdi dir="ltr" className="bq-num bq-row-s">
+                        {a.accountNumber}
+                      </bdi>
+                      <SaveNote s={accSave[a.id] ?? IDLE} />
+                    </span>
+                    {admin && (
+                      <button
+                        type="button"
+                        className="bq-btn bq-btn-soft bq-press"
+                        disabled={!online || accSave[a.id]?.status === "saving"}
+                        onClick={async () => {
+                          setOver((o) => ({ ...o, [a.id]: true }));
+                          const ok = await runSave(
+                            (st) => setAccSave((m) => ({ ...m, [a.id]: st })),
+                            () =>
+                              updateFundAccount({
+                                id: a.id,
+                                holderName: a.holderName,
+                                note: a.note,
+                                sortOrder: a.sortOrder,
+                                active: true,
+                              }),
+                          );
+                          if (!ok) setOver((o) => ({ ...o, [a.id]: false }));
+                          else router.refresh();
+                        }}
+                      >
+                        أعِدها
+                      </button>
+                    )}
+                  </li>
+                ))}
+            </ul>
+          </>
         )}
 
         <h3 className="bq-h3">الرصيد في بداية السنة</h3>

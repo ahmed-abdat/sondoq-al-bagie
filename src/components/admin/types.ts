@@ -96,6 +96,8 @@ export type PLog = {
   what: string;
   at: string;
   kind: "pay" | "ok" | "no" | "exp" | "gift" | "edit" | "levy";
+  /** a settings change (wallets, fees, accounts): «المسؤول» sees it under «تغييرات الإعدادات» */
+  settings?: boolean;
 };
 
 export type PData = {

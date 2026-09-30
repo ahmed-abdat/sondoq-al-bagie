@@ -55,11 +55,12 @@ describe("committee payloads (m29)", () => {
       actorName: "محمد ولد أحمد",
       payerName: "سيدي",
       amount: 1000,
-      allocations: [{ kind: "months", year: 2026, month: 9 }],
+      allocations: [{ kind: "months", year: 2026, month: 9, memberId: "m9" }],
     });
+    // owner: a payment for one member opens his «كشف حساب»
     expect(pay).toMatchObject({
       title: "سجّل محمد دفعة",
-      url: "/committee/payments",
+      url: "/committee/members/m9",
       tag: "payment-p1",
     });
     expect(pay.body).toContain("سيدي");

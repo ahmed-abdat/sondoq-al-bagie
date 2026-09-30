@@ -1,13 +1,11 @@
 "use client";
 // «المصاريف» (المزيد): record one (amount, what, kind, from the fund or a campaign, which wallet),
 // and every expense of the year. Any committee member records; «مسؤول» cancels with a reason.
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useOnline } from "@/components/providers";
 import { useAct } from "@/components/app/act";
-import { CANCEL_REASONS } from "@/components/app/cancel-payment";
-import { Back, CATEGORY, Chips, day, Money, Sheet, useP, X } from "./kit";
+import { Back, CATEGORY, Chips, day, Money, useP, X } from "./kit";
 import { ExpenseSheet } from "./expense-sheet";
+import { CancelSheet } from "./cancel-sheet";
 import type { PExpense } from "./types";
 
 export function ExpensesScreen() {
@@ -87,64 +85,20 @@ export function ExpensesScreen() {
 
 /** «مسؤول» only: the expense stays in the log with its reason and no longer counts. */
 function CancelExpense({ e, onClose }: { e: PExpense; onClose: () => void }) {
-  const { snack } = useP();
-  const router = useRouter();
-  const online = useOnline();
   const { cancelExpense } = useAct();
-  const [why, setWhy] = useState("");
-  const [other, setOther] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const reason = why === "أخرى" ? other.trim() : why;
   return (
-    <Sheet
-      open
-      onClose={onClose}
+    <CancelSheet
       title="ألغِ المصروف"
-      foot={
-        <>
-          {err && (
-            <p className="pa-alert" role="alert">
-              {err}
-            </p>
-          )}
-          <button
-            type="button"
-            className="pa-btn pa-btn-primary pa-btn-block"
-            disabled={!reason || busy || !online}
-            onClick={async () => {
-              setBusy(true);
-              setErr("");
-              const r = await cancelExpense({ id: e.id, reason }).catch(() => null);
-              setBusy(false);
-              if (!r?.ok) return setErr(r?.message ?? "تعذّر الإلغاء. حاول مرة أخرى.");
-              router.refresh();
-              onClose();
-              snack("أُلغي المصروف.");
-            }}
-          >
-            {busy ? "جارٍ الإلغاء…" : reason ? "ألغِ المصروف" : "اختر السبب"}
-          </button>
-        </>
+      onClose={onClose}
+      done="أُلغي المصروف."
+      onCancel={(reason) =>
+        cancelExpense({ id: e.id, reason }).then((r) =>
+          r.ok ? { ok: true as const } : { ok: false as const, message: r.message },
+        )
       }
     >
-      <p className="pa-quiet">
-        {e.note || CATEGORY[e.category]} · <Money v={e.amount} />. يبقى في السجل مع السبب، ولا يُحسب
-        بعد الآن.
-      </p>
-      <p className="pa-label">السبب</p>
-      <Chips
-        label="السبب"
-        value={why}
-        onChange={setWhy}
-        options={CANCEL_REASONS.map((x) => ({ k: x, l: x }))}
-      />
-      {why === "أخرى" && (
-        <label className="pa-field">
-          <span>اكتب السبب</span>
-          <input value={other} maxLength={200} onChange={(ev) => setOther(ev.target.value)} />
-        </label>
-      )}
-    </Sheet>
+      {e.note || CATEGORY[e.category]} · <Money v={e.amount} />. يبقى في السجل مع السبب، ولا يُحسب
+      بعد الآن.
+    </CancelSheet>
   );
 }

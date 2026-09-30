@@ -1,17 +1,20 @@
 "use client";
-// «سجّل مصروفًا»: amount, what for, kind (or an open campaign), from which wallet or cash.
-// Any committee member (plan §9). Saved at once; the list and the balance refresh.
+// «سجّل مصروفًا»: the ONE expense sheet (home, المصاريف, a تبرع/لوحة page with it preset).
+// Order (owner): المبلغ → النشاط → ماذا اشتُري → من أي محفظة → التاريخ → صورة الفاتورة (اختياري).
+// Any committee member records; saved at once; the button says what is still missing.
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useOnline } from "@/components/providers";
 import { useAct } from "@/components/app/act";
 import { DateField } from "@/components/app/date-field";
+import { imageOpenError } from "@/components/app/derive";
 import { sendOnce, useOnceId } from "@/components/app/once-id";
+import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import { failure } from "@/lib/data/errors";
 import { todayIso } from "@/lib/dates";
-import { METHOD_LABELS } from "@/lib/methods";
 import { parseAmount, toWesternDigits } from "@/lib/money";
-import { Chips, fmt, Sheet, useP } from "./kit";
+import { Chips, fmt, Sheet, useP, X } from "./kit";
+import { WalletPicker } from "./wallet-picker";
 
 const KINDS = [
   { k: "teaching", l: "التدريس" },
@@ -28,7 +31,7 @@ export function ExpenseSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  /** from a campaign page: the expense is paid from that campaign */
+  /** from a تبرع or لوحة page: the expense is paid from it */
   campaign?: string;
 }) {
   return open ? <Body onClose={onClose} campaign={campaign} /> : null;
@@ -39,38 +42,62 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
   const router = useRouter();
   const online = useOnline();
   const once = useOnceId();
-  const { recordExpense } = useAct();
+  const { recordExpense, uploadProof } = useAct();
   const [amt, setAmt] = useState("");
+  const [kind, setKind] = useState<Kind | "">("");
   const [what, setWhat] = useState("");
-  const [kind, setKind] = useState<Kind>("other");
   const [from, setFrom] = useState<string>(campaign ?? "");
   const [wallet, setWallet] = useState<string>("");
   const [on, setOn] = useState(todayIso());
+  const [shot, setShot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const amount = Math.round(parseAmount(amt) ?? 0);
-  const open = d.campaigns.filter((c) => c.status === "open");
-  const wallets = d.accounts.filter((a) => a.active);
-  const label = !amount ? "اكتب المبلغ" : !what.trim() ? "اكتب ماذا اشتُري" : "سجّل المصروف";
+  const open = [
+    ...d.campaigns
+      .filter((c) => c.status === "open")
+      .map((c) => ({ id: c.id, l: `تبرع: ${c.title}` })),
+    ...d.levies
+      .filter((l) => l.status === "open")
+      .map((l) => ({ id: l.id, l: `لوحة: ${l.title}` })),
+  ];
+  const next = !amount
+    ? "اكتب المبلغ"
+    : !kind
+      ? "اختر النشاط"
+      : !what.trim()
+        ? "اكتب ماذا اشتُري"
+        : null;
 
   const save = async () => {
-    if (!amount || !what.trim() || busy) return;
+    if (next || busy) return;
     setBusy(true);
     setErr("");
     let r;
     try {
-      r = await sendOnce(once, (id) =>
-        recordExpense({
+      r = await sendOnce(once, async (id) => {
+        let receiptPath: string | undefined;
+        if (shot) {
+          const fd = new FormData();
+          fd.set("file", dataUrlToBlob(shot), "invoice.jpg");
+          fd.set("kind", "expenses");
+          fd.set("id", id);
+          const up = await uploadProof(fd);
+          if (!up.ok) return up;
+          receiptPath = up.data.path;
+        }
+        return recordExpense({
           id,
           spentOn: on || todayIso(),
-          category: kind,
+          category: kind as Kind,
           amount,
           note: what.trim(),
           campaignId: from || undefined,
           fundAccountId: wallet && wallet !== "cash" ? wallet : undefined,
           paidInCash: wallet === "cash" ? true : undefined,
-        }),
-      );
+          receiptPath,
+        });
+      });
     } catch {
       r = failure("network");
     } finally {
@@ -94,19 +121,24 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
               {err}
             </p>
           )}
+          {!online && (
+            <p className="pa-hint" role="status">
+              لا يوجد اتصال. سجّل عند عودة الإنترنت، ما كتبته باقٍ.
+            </p>
+          )}
           <button
             type="button"
             className="pa-btn pa-btn-primary pa-btn-block"
-            disabled={!amount || !what.trim() || busy || !online}
+            disabled={!!next || busy || !online}
             onClick={() => void save()}
           >
-            {busy ? "جارٍ الحفظ…" : label}
+            {busy ? "جارٍ الحفظ…" : (next ?? "سجّل المصروف")}
           </button>
         </>
       }
     >
       <label className="pa-field pa-field-big">
-        <span>المبلغ بالأوقية القديمة</span>
+        <span>المبلغ (أوقية)</span>
         <input
           inputMode="numeric"
           dir="ltr"
@@ -115,6 +147,8 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
           placeholder="0"
         />
       </label>
+      <p className="pa-label">النشاط</p>
+      <Chips label="النشاط" value={kind} onChange={setKind} options={[...KINDS]} />
       <label className="pa-field">
         <span>ماذا اشتُري؟</span>
         <input
@@ -124,36 +158,56 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
           placeholder="مثل: كرات وأقمصة للفريق"
         />
       </label>
-      <div className="pa-field">
-        <span>التاريخ</span>
-        <DateField value={on} onChange={setOn} label="تاريخ المصروف" noFuture />
-      </div>
-      <p className="pa-label">لأي نشاط؟</p>
-      <Chips label="النشاط" value={kind} onChange={setKind} options={[...KINDS]} />
-      {open.length > 0 && (
+      {open.length > 0 && !campaign && (
         <>
           <p className="pa-label">من أين المال؟</p>
           <Chips
             label="من أين المال"
             value={from}
             onChange={setFrom}
-            options={[
-              { k: "", l: "الصندوق" },
-              ...open.map((c) => ({ k: c.id, l: `تبرع: ${c.title}` })),
-            ]}
+            options={[{ k: "", l: "الصندوق" }, ...open.map((c) => ({ k: c.id, l: c.l }))]}
           />
         </>
       )}
       <p className="pa-label">من أي محفظة؟ (اختياري)</p>
-      <Chips
-        label="المحفظة"
-        value={wallet}
-        onChange={setWallet}
-        options={[
-          ...wallets.map((a) => ({ k: a.id, l: METHOD_LABELS[a.method] })),
-          { k: "cash", l: "نقدًا" },
-        ]}
-      />
+      <WalletPicker value={wallet} onChange={(id) => setWallet(id)} />
+      <div className="pa-field">
+        <span>التاريخ</span>
+        <DateField value={on} onChange={setOn} label="تاريخ المصروف" noFuture />
+      </div>
+      <p className="pa-label">صورة الفاتورة (اختياري)</p>
+      {shot ? (
+        <div className="r2-paid">
+          {/* eslint-disable-next-line @next/next/no-img-element -- local picture */}
+          <img src={shot} alt="صورة الفاتورة" className="r2-shot" />
+          <button
+            type="button"
+            className="pa-btn pa-btn-ghost pa-btn-sm"
+            onClick={() => setShot(null)}
+          >
+            {X.x(18)} أزل الصورة
+          </button>
+        </div>
+      ) : (
+        <label className="pa-btn pa-btn-soft pa-btn-block">
+          {X.image(20)} أضف صورة الفاتورة
+          <input
+            type="file"
+            accept="image/*"
+            className="bq-sr"
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (!f) return;
+              try {
+                setShot(await compressImage(f));
+              } catch {
+                setErr(imageOpenError(f));
+              }
+            }}
+          />
+        </label>
+      )}
     </Sheet>
   );
 }

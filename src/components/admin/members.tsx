@@ -3,11 +3,8 @@
 // (member_statement): the year's months, what he owes, every payment with who recorded it.
 // «شارك الكشف» sends the same statement as images, PDF or text. Cancelling is «مسؤول» only.
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Fragment, useState } from "react";
-import { useOnline } from "@/components/providers";
 import { useAct } from "@/components/app/act";
-import { CANCEL_REASONS } from "@/components/app/cancel-payment";
 import type { MemberStatement } from "@/lib/data/report-types";
 import { pastWords } from "./fees";
 import {
@@ -26,20 +23,23 @@ import {
   owedAmount,
   owes,
   payStatus,
-  Sheet,
   useP,
   Wallet,
   X,
 } from "./kit";
 import { ReportSheet, useReport } from "./report-doc";
+import { CancelSheet } from "./cancel-sheet";
+import { AddMemberSheet, EditMemberSheet } from "./manage-sheets";
 import type { PMember } from "./types";
 
 /* ───────── the list ───────── */
 type MF = "all" | "owe" | "A" | "B";
 export function MembersScreen() {
-  const { d, href } = useP();
+  const { d, href, q: query } = useP();
   const [q, setQ] = useState("");
-  const [f, setF] = useState<MF>("all");
+  const [f, setF] = useState<MF>(query.f === "owe" ? "owe" : "all");
+  const [add, setAdd] = useState(false);
+  const [share, setShare] = useState(false);
   const shown = d.members
     .filter((m) => m.status !== "left" && m.status !== "deceased")
     .filter((m) => (f === "owe" ? owes(m, d) : f === "A" || f === "B" ? m.group === f : true));
@@ -49,9 +49,15 @@ export function MembersScreen() {
     <div className="pa-page">
       <header className="pa-title">
         <h1>الأعضاء</h1>
-        <Link href={href("members/manage")} className="pa-btn pa-btn-soft pa-btn-sm">
-          {X.edit(20)} إدارة الأعضاء
-        </Link>
+        {d.me.admin && (
+          <button
+            type="button"
+            className="pa-btn pa-btn-soft pa-btn-sm"
+            onClick={() => setAdd(true)}
+          >
+            {X.plus(20)} عضو جديد
+          </button>
+        )}
       </header>
       <label className="pa-search">
         {X.search(22)}
@@ -74,9 +80,13 @@ export function MembersScreen() {
         ]}
       />
       {f === "owe" && (
-        <Link href={href("late")} className="pa-btn pa-btn-soft pa-btn-block">
+        <button
+          type="button"
+          className="pa-btn pa-btn-soft pa-btn-block"
+          onClick={() => setShare(true)}
+        >
           {X.share(20)} شارك المتأخرات في المجموعة
-        </Link>
+        </button>
       )}
       <ul className="pa-rows">
         {list.map((m) => (
@@ -93,6 +103,13 @@ export function MembersScreen() {
         ))}
         {!list.length && <li className="pa-empty">لا أحد بهذا الاسم أو الرقم.</li>}
       </ul>
+      {add && <AddMemberSheet onClose={() => setAdd(false)} />}
+      <ReportSheet
+        open={share}
+        onClose={() => setShare(false)}
+        title="شارك المتأخرات"
+        req={{ kind: "late", year: d.year }}
+      />
     </div>
   );
 }
@@ -100,8 +117,10 @@ export function MembersScreen() {
 /* ───────── one member = «كشف حساب» ───────── */
 export function MemberScreen({ refs }: { refs: string }) {
   const { d, href } = useP();
-  const m = d.members.find((x) => x.ref === refs);
+  // by paper ref («A-4») or by id (a notification opens /committee/members/<id>)
+  const m = d.members.find((x) => x.ref === refs || x.id === refs);
   const [share, setShare] = useState(false);
+  const [edit, setEdit] = useState(false);
   if (!m)
     return (
       <div className="pa-page">
@@ -145,21 +164,16 @@ export function MemberScreen({ refs }: { refs: string }) {
       </section>
       <Owed m={m} />
       <Payments m={m} />
-      <section className="pa-sec">
-        <h2>إدارة</h2>
-        <ul className="pa-rows">
-          <li>
-            <Link href={href("members/manage")} className="pa-row">
-              <span className="pa-ic">{X.edit(22)}</span>
-              <span className="pa-row-t">
-                <b>تعديل البيانات والحالة</b>
-                <small>الاسم، الهاتف، الفئة، الحالة</small>
-              </span>
-              {X.go(20)}
-            </Link>
-          </li>
-        </ul>
-      </section>
+      {d.me.admin && (
+        <button
+          type="button"
+          className="pa-btn pa-btn-ghost pa-btn-block"
+          onClick={() => setEdit(true)}
+        >
+          {X.edit(20)} تعديل البيانات والحالة
+        </button>
+      )}
+      {edit && <EditMemberSheet memberId={m.id} onClose={() => setEdit(false)} />}
       <ReportSheet
         open={share}
         onClose={() => setShare(false)}
@@ -286,77 +300,33 @@ function Payments({ m }: { m: PMember }) {
             })}
         </ul>
       )}
-      {cancel && <CancelSheet p={cancel} onClose={() => setCancel(null)} />}
+      {cancel && <CancelPayment p={cancel} onClose={() => setCancel(null)} />}
     </section>
   );
 }
 
 /** «مسؤول» only: cancel with a reason; the months become unpaid again (the log names who, why). */
-function CancelSheet({
+function CancelPayment({
   p,
   onClose,
 }: {
   p: MemberStatement["payments"][number];
   onClose: () => void;
 }) {
-  const { snack } = useP();
-  const router = useRouter();
-  const online = useOnline();
   const { cancelPayment } = useAct();
-  const [why, setWhy] = useState("");
-  const [other, setOther] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const reason = why === "أخرى" ? other.trim() : why;
   return (
-    <Sheet
-      open
-      onClose={onClose}
+    <CancelSheet
       title="ألغِ الدفعة"
-      foot={
-        <>
-          {err && (
-            <p className="pa-alert" role="alert">
-              {err}
-            </p>
-          )}
-          <button
-            type="button"
-            className="pa-btn pa-btn-primary pa-btn-block"
-            disabled={!reason || busy || !online}
-            onClick={async () => {
-              setBusy(true);
-              setErr("");
-              const r = await cancelPayment({ id: p.paymentId, reason }).catch(() => null);
-              setBusy(false);
-              if (!r?.ok) return setErr(r?.message ?? "تعذّر الإلغاء. حاول مرة أخرى.");
-              router.refresh();
-              onClose();
-              snack("أُلغيت الدفعة. عادت أشهرها غير مدفوعة.");
-            }}
-          >
-            {busy ? "جارٍ الإلغاء…" : reason ? "ألغِ الدفعة" : "اختر السبب"}
-          </button>
-        </>
+      onClose={onClose}
+      done="أُلغيت الدفعة. عادت أشهرها غير مدفوعة."
+      onCancel={(reason) =>
+        cancelPayment({ id: p.paymentId, reason }).then((r) =>
+          r.ok ? { ok: true as const } : { ok: false as const, message: r.message },
+        )
       }
     >
-      <p className="pa-quiet">
-        دفعة <Money v={p.amount} /> يوم {day(p.paidOn)}. لا تُحذف: تبقى في السجل مع السبب، وتعود
-        أشهرها غير مدفوعة.
-      </p>
-      <p className="pa-label">السبب</p>
-      <Chips
-        label="السبب"
-        value={why}
-        onChange={setWhy}
-        options={CANCEL_REASONS.map((x) => ({ k: x, l: x }))}
-      />
-      {why === "أخرى" && (
-        <label className="pa-field">
-          <span>اكتب السبب</span>
-          <input value={other} maxLength={200} onChange={(e) => setOther(e.target.value)} />
-        </label>
-      )}
-    </Sheet>
+      دفعة <Money v={p.amount} /> يوم {day(p.paidOn)}. لا تُحذف: تبقى في السجل مع السبب، وتعود
+      أشهرها غير مدفوعة.
+    </CancelSheet>
   );
 }

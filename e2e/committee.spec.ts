@@ -81,21 +81,23 @@ test("the notifications switch is replaced by a plain note in the demo", async (
 test("late members: the list in the app and «شارك المتأخرات» (no WhatsApp walk)", async ({
   page,
 }) => {
+  // merged (owner, fewest pages): the old page opens the members list filtered on arrears
   await page.goto("/committee/late");
-  await expect(page.getByRole("heading", { name: "المتأخرون", level: 1 })).toBeVisible();
+  await expect(page).toHaveURL(/\/committee\/members\?f=owe$/);
+  await expect(page.getByRole("radio", { name: /عليهم متأخرات/ })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
   await expect(page.getByRole("button", { name: /شارك المتأخرات/ })).toBeVisible();
-  await expect(page.locator(".bq-list li").first()).toContainText("لم يدفع منذ");
   await expect(
     page.getByRole("button", { name: /ذكّر الجميع|افتح الرسالة في واتساب/ }),
   ).toHaveCount(0);
 });
 
-test("waiting payments, demo queue: empty (?demoQueue=0) says so and offers a cash record", async ({
-  page,
-}) => {
+test("old payments, demo queue: empty (?demoQueue=0) says so and leads home", async ({ page }) => {
   await page.goto("/committee/review?demoQueue=0");
-  await expect(page.getByText("لا دفعات تنتظر")).toBeVisible();
-  await expect(page.getByRole("button", { name: /سجّل دفعة نقدًا أو تحويلًا/ })).toBeVisible();
+  await expect(page.getByText("لا دفعات قديمة تنتظر")).toBeVisible();
+  await expect(page.getByRole("link", { name: "إلى الرئيسية" })).toBeVisible();
   await expect(page.locator("article.bq-slip")).toHaveCount(0);
 });
 
@@ -103,7 +105,9 @@ test("waiting payments, demo queue: 12 pending (?demoQueue=12) shows one open sl
   page,
 }) => {
   await page.goto("/committee/review?demoQueue=12");
-  await expect(page.getByRole("button", { name: /للمراجعة\s*12/ })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "دفعات قديمة لم تُثبَّت", level: 1 }),
+  ).toBeVisible();
   await expect(page.locator("article.bq-slip")).toHaveCount(1);
   await expect(page.locator(".bq-rev-row")).toHaveCount(4);
   await page.getByRole("button", { name: /عرض الكل/ }).click();

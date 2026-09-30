@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useOnline } from "@/components/providers";
 import { useAct } from "@/components/app/act";
+import { memberCount } from "@/components/app/derive";
 import { DateField } from "@/components/app/date-field";
 import { sendOnce, useOnceId } from "@/components/app/once-id";
 import { failure } from "@/lib/data/errors";
@@ -21,6 +22,7 @@ import {
   fmt,
   levyShare,
   Money,
+  paidLine,
   Num,
   Seg,
   Sheet,
@@ -29,6 +31,7 @@ import {
   X,
 } from "./kit";
 import { ExpenseSheet } from "./expense-sheet";
+import { EditCampaignSheet, NewCampaignSheet } from "./manage-sheets";
 import { ReportSheet } from "./report-doc";
 import { GiftCard, LevyCard } from "./stats-screen";
 import type { PLevy, PMember } from "./types";
@@ -164,8 +167,7 @@ export function CampaignsScreen() {
                         {l.status === "closed" ? " · مغلقة" : ""}
                       </small>
                       <small>
-                        دفع <Num>{s.paid}</Num>، ولم يدفع <Num>{s.notYet}</Num> ·{" "}
-                        <Num>{`${s.pct}٪`}</Num>
+                        {paidLine(s.paid, s.notYet)} · <Num>{`${s.pct}٪`}</Num>
                       </small>
                     </span>
                     {X.go(20)}
@@ -176,7 +178,7 @@ export function CampaignsScreen() {
           </ul>
         </>
       )}
-      {add && kind === "gift" && <NewGiftSheet onClose={() => setAdd(false)} />}
+      {add && kind === "gift" && <NewCampaignSheet onClose={() => setAdd(false)} />}
       {add && kind === "levy" && <NewLevySheet onClose={() => setAdd(false)} />}
     </div>
   );
@@ -189,6 +191,7 @@ export function CampaignScreen({ id }: { id: string }) {
   const [exp, setExp] = useState(false);
   const [share, setShare] = useState(false);
   const [close, setClose] = useState(false);
+  const [edit, setEdit] = useState(false);
   if (!c)
     return (
       <div className="pa-page">
@@ -295,9 +298,9 @@ export function CampaignScreen({ id }: { id: string }) {
       </section>
       {d.me.admin && (
         <div className="pa-actions">
-          <Link href={href("campaigns/manage")} className="pa-btn pa-btn-ghost">
+          <button type="button" className="pa-btn pa-btn-ghost" onClick={() => setEdit(true)}>
             {X.edit(20)} تعديل
-          </Link>
+          </button>
           {c.status === "open" && (
             <button type="button" className="pa-btn pa-btn-ghost" onClick={() => setClose(true)}>
               أغلق التبرع
@@ -313,6 +316,7 @@ export function CampaignScreen({ id }: { id: string }) {
         req={{ kind: "campaign", id: c.id }}
       />
       {close && <CloseSheet id={c.id} left={left} gift onClose={() => setClose(false)} />}
+      {edit && <EditCampaignSheet id={c.id} onClose={() => setEdit(false)} />}
     </div>
   );
 }
@@ -399,6 +403,7 @@ export function LevyScreen({ id }: { id: string }) {
   const [share, setShare] = useState(false);
   const [close, setClose] = useState(false);
   const [who, setWho] = useState<PMember | null>(null);
+  const [exp, setExp] = useState(false);
   if (!l)
     return (
       <div className="pa-page">
@@ -430,10 +435,16 @@ export function LevyScreen({ id }: { id: string }) {
         </p>
       </header>
       <div className="pa-actions">
+        {l.status === "open" && (
+          <button type="button" className="pa-btn pa-btn-tonal" onClick={() => setExp(true)}>
+            {X.bag(20)} سجّل مصروفًا
+          </button>
+        )}
         <button type="button" className="pa-btn pa-btn-tonal" onClick={() => setShare(true)}>
           {X.share(20)} شارك التقرير
         </button>
       </div>
+      <ExpenseSheet open={exp} onClose={() => setExp(false)} campaign={l.id} />
       <LevyCard l={l} title="الإحصاءات" />
       <Seg
         label="من دفع"
@@ -625,84 +636,6 @@ function ShareSheet({
 }
 
 /* ───────── new تبرع / لوحة («مسؤول») ───────── */
-function NewGiftSheet({ onClose }: { onClose: () => void }) {
-  const { snack } = useP();
-  const { createCampaign } = useAct();
-  const once = useOnceId();
-  const w = useWrite();
-  const [title, setTitle] = useState("");
-  const [target, setTarget] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [deadline, setDeadline] = useState("");
-  return (
-    <Sheet
-      open
-      onClose={onClose}
-      title="تبرع جديد"
-      foot={
-        <>
-          <Err err={w.err} />
-          <button
-            type="button"
-            className="pa-btn pa-btn-primary pa-btn-block"
-            disabled={!title.trim() || w.busy || !w.online}
-            onClick={() =>
-              w.run(
-                async () => {
-                  const r = await sendOnce(once, (id) =>
-                    createCampaign({
-                      id,
-                      title: title.trim(),
-                      amountMode: "open",
-                      purpose: purpose.trim() || undefined,
-                      targetAmount: amountOf(target) || undefined,
-                      deadline: deadline || undefined,
-                    }),
-                  );
-                  return r.ok ? { ok: true } : r;
-                },
-                () => {
-                  onClose();
-                  snack("فُتح التبرع.");
-                },
-              )
-            }
-          >
-            {w.busy ? "جارٍ الحفظ…" : title.trim() ? "افتح التبرع" : "اكتب العنوان"}
-          </button>
-        </>
-      }
-    >
-      <p className="pa-hint">يساهم من يريد بما يريد، من الأعضاء أو من خارج الرابطة.</p>
-      <label className="pa-field">
-        <span>العنوان</span>
-        <input
-          value={title}
-          maxLength={120}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="مثل: ترميم المصلى"
-        />
-      </label>
-      <label className="pa-field">
-        <span>الهدف بالأوقية القديمة (اختياري)</span>
-        <input
-          inputMode="numeric"
-          dir="ltr"
-          value={target}
-          onChange={(e) => setTarget(toWesternDigits(e.target.value))}
-        />
-      </label>
-      <label className="pa-field">
-        <span>لماذا؟ (اختياري)</span>
-        <input value={purpose} maxLength={500} onChange={(e) => setPurpose(e.target.value)} />
-      </label>
-      <div className="pa-field">
-        <span>آخر يوم (اختياري)</span>
-        <DateField value={deadline} onChange={setDeadline} label="آخر يوم" noPast optional />
-      </div>
-    </Sheet>
-  );
-}
 
 type Who = "all" | "A" | "B" | "pick";
 function NewLevySheet({ onClose }: { onClose: () => void }) {
@@ -766,12 +699,14 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
                 },
                 () => {
                   onClose();
-                  snack(`أُنشئت اللوحة على ${members.length} عضوًا.`);
+                  snack(`أُنشئت اللوحة على ${memberCount(members.length, "obl")}.`);
                 },
               )
             }
           >
-            {w.busy ? "جارٍ الحفظ…" : (next ?? `أنشئ اللوحة على ${members.length} عضوًا`)}
+            {w.busy
+              ? "جارٍ الحفظ…"
+              : (next ?? `أنشئ اللوحة على ${memberCount(members.length, "obl")}`)}
           </button>
         </>
       }
