@@ -13,6 +13,10 @@ const januaryPaid = async (page: import("@playwright/test").Page) => {
   return Number(/دفع (\d+)/.exec(t ?? "")![1]);
 };
 
+// Committee-only (2026-09-30): member links and the public pages are gone. This flow will be
+// rewritten as a committee-recorded payment (docs/COMMITTEE-ONLY-PLAN.md §1 Lane B); skipped now.
+test.skip(true, "member-link flow retired; rewrite as committee-recorded (plan §1)");
+
 test("a member pays by link, the committee confirms: paid everywhere, with a receipt a stranger can check", async ({
   browser,
   baseURL,

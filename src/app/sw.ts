@@ -4,7 +4,6 @@ import {
   CacheableResponsePlugin,
   CacheFirst,
   ExpirationPlugin,
-  NetworkFirst,
   NetworkOnly,
   Serwist,
   StaleWhileRevalidate,
@@ -12,64 +11,31 @@ import {
 import {
   isOtherSupabase,
   isPrivatePath,
-  isPublicPage,
-  isPublicViewRead,
-  mayStore,
-  PAGES_CACHE,
+  PERSIST_KEY,
   RETIRED_CACHES,
-  VIEWS_CACHE,
 } from "@/lib/offline/cache-rules";
 import { nextBadgeCount, syncAppBadge } from "@/lib/offline/app-badge";
-import { WARM_META_CACHE } from "@/lib/offline/warm";
+import { del } from "idb-keyval";
 import { notificationOptions, parsePushPayload, safePath } from "@/lib/offline/push-payload";
-import {
-  lookupServed,
-  recordServed,
-  SERVED_QUERY,
-  type Served,
-} from "@/lib/offline/served-from-cache";
+import { lookupServed, SERVED_QUERY, type Served } from "@/lib/offline/served-from-cache";
 
 declare const self: ServiceWorkerGlobalScope &
   SerwistGlobalConfig & { __SW_MANIFEST: (PrecacheEntry | string)[] | undefined };
 
 const DAY = 24 * 60 * 60;
 const ok = new CacheableResponsePlugin({ statuses: [0, 200] });
-// personal or no-store responses (committee, member «أنت», money reads) are never kept
-const shareable = {
-  cacheWillUpdate: async ({ response }: { response: Response }) =>
-    mayStore(response.headers.get("cache-control")) ? response : null,
-};
 const expire = (maxEntries: number, maxAgeSeconds: number) =>
   new ExpirationPlugin({ maxEntries, maxAgeSeconds, purgeOnQuotaError: true });
 
-// Pages answered from the saved copy, so the page can tell the member how old it is.
+// Pages are no longer saved (committee-only): «was this page shown from the saved copy?» → no.
 const served = new Map<string, Served>();
-const markServed = {
-  cachedResponseWillBeUsed: async ({
-    request,
-    cachedResponse,
-  }: {
-    request: Request;
-    cachedResponse?: Response;
-  }) => {
-    if (cachedResponse) recordServed(served, request.url, cachedResponse.headers.get("date"));
-    return cachedResponse;
-  },
-};
 
 // Order matters: the first match wins. Nothing private or written is ever stored.
 const runtimeCaching: RuntimeCaching[] = [
   // Writes go straight to the network (committee actions, server actions, uploads).
   { matcher: ({ request }) => request.method !== "GET", handler: new NetworkOnly() },
-  // Public Supabase views: show the last copy at once, refresh in the background.
-  {
-    matcher: ({ url, request }) => isPublicViewRead(url, request.method),
-    handler: new StaleWhileRevalidate({
-      cacheName: VIEWS_CACHE,
-      plugins: [ok, shareable, expire(32, DAY)],
-    }),
-  },
-  // Auth, storage (proof images), realtime, RPC, tables: never cached.
+  // Supabase (views, auth, storage, realtime, RPC): never cached. The app is committee-only
+  // (2026-09-30): no public data is kept on the phone.
   { matcher: ({ url }) => isOtherSupabase(url), handler: new NetworkOnly() },
   // Logged-in pages and APIs: network only (offline → offline page).
   {
@@ -96,22 +62,16 @@ const runtimeCaching: RuntimeCaching[] = [
     matcher: ({ request, sameOrigin }) => sameOrigin && request.destination === "image",
     handler: new StaleWhileRevalidate({ cacheName: "images", plugins: [ok, expire(64, 30 * DAY)] }),
   },
-  // Public pages and their RSC payloads: fresh when online, last copy when offline or very slow.
-  {
-    matcher: ({ url, sameOrigin }) => isPublicPage(url, sameOrigin),
-    handler: new NetworkFirst({
-      cacheName: PAGES_CACHE,
-      networkTimeoutSeconds: 6,
-      plugins: [ok, shareable, expire(48, 14 * DAY), markServed],
-    }),
-  },
+  // Pages (all behind the committee login now) are never kept: offline → /offline.html.
   { matcher: /.*/, handler: new NetworkOnly() },
 ];
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
-  // A new version waits until the user taps «تحديث» (see the update toast), then takes over.
-  skipWaiting: false,
+  // THIS release only (committee-only, owner 2026-09-30): take over by itself so installed phones
+  // drop the old public pages at their next open. Back to `false` in the next release: a new
+  // version then waits until the user taps «تحديث» (see the update toast).
+  skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching,
@@ -122,12 +82,15 @@ const serwist = new Serwist({
   },
 });
 
-// Old runtime caches may hold amounts (before money privacy): drop them when this worker takes over.
+// Caches of earlier versions (public pages, public views, the warming marker): dropped when this
+// worker takes over.
 self.addEventListener("activate", (event) => {
-  // and forget when the pages were last saved: this build's pages must be saved again (they point
-  // at this build's script files), which the next open of the app does at once (WarmOfflinePages)
+  // and the saved query cache of the former public app (fund stats) with them
   event.waitUntil(
-    Promise.all([...RETIRED_CACHES, WARM_META_CACHE].map((name) => caches.delete(name))),
+    Promise.all([
+      ...RETIRED_CACHES.map((name) => caches.delete(name)),
+      del(PERSIST_KEY).catch(() => {}),
+    ]),
   );
 });
 

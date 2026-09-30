@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { E2E_MEMBERS, latestPayment, monthStates } from "../../supabase/tests/e2e/helpers";
-import { committeePhone, memberPhone, openSlip, strangerPhone, youCard } from "./steps";
+import { committeePhone, openSlip } from "./steps";
 
 const M = E2E_MEMBERS.cash;
 
-test("the committee records cash: the member's months are paid, with a receipt", async ({
+test("the committee records cash: the member's months are paid, with a receipt code", async ({
   browser,
   baseURL,
 }) => {
@@ -39,11 +39,5 @@ test("the committee records cash: the member's months are paid, with a receipt",
   const months = await monthStates(M.ref);
   expect(months[1]).toBe("paid");
 
-  // the member's own link: paid; the receipt opens for anyone who has its code
-  const member = await memberPhone(browser, baseURL!, M.ref);
-  await expect(youCard(member.page)).toContainText("دفعت حتى");
-  const s = await strangerPhone(browser, baseURL!);
-  await s.page.goto(`/r/${p.receiptCode}`);
-  await expect(s.page.getByText("وصل صحيح")).toBeVisible();
-  await expect(s.page.locator("main")).toContainText(M.name);
+  // (committee-only: no member link or public receipt check to look at any more)
 });

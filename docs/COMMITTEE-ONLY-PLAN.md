@@ -321,3 +321,33 @@ late member", "share the monthly summary", "record a campaign contribution".
      supervisor with committee + is_admin; `can_confirm` = any active committee member; record_payment
      confirms immediately.)
    - Notifications (§7.2) become "X recorded a payment for Y" etc., no "needs confirming".
+
+## 9. Access levels and design picks (owner, 2026-09-30)
+
+Two levels. **«مسؤول» only:** committee accounts + handover; member status and exemptions (add a
+member, leave/exempt/away, change group, join month, exempt a levy share, change one member's levy
+amount); cancellations and campaigns (cancel a payment or expense, create/edit/close a campaign or
+لوحة, add members to a لوحة). **Every committee member:** record payments (cash, paper, levy shares,
+contributions), record expenses, apply credit, edit a member's name/phone/note, group prices,
+settings, fund wallets, all reads and reports. (Supersedes "exempt = any committee".)
+
+Prototype picks (proto/admin d99be96): home **B** («الصندوق أولًا»), members **A**, campaigns **B**,
+reports **B**, record payment **C** («ابدأ من العضو») improved in round 2 with quick month choices
+(«الأشهر المتأخرة» / «باقي السنة» / «السنة كاملة» / «اختر») and several people in one transfer
+(«+ أضف شخصًا», levy share or donation rows, OCR amount vs total).
+
+Reports period (owner): default = **a year** (year chooser), with «شهر» as the option (month + year);
+no from–to. Months table and «المتأخرات» = always a full year (12 months). Expenses: year, month
+optional. Member statement: a year. Campaign/لوحة report: the whole campaign.
+
+Reports catalog (owner, round 3): for the group: full annual report (opening → income by source →
+spending by kind → closing, month-by-month, a simple chart), summary, months table, «المتأخرات»
+(no amounts), expenses, campaign/لوحة report, member statement. For the committee: handover report,
+amounts per wallet (reconcile each wallet), committee work (per member activity). Period control =
+one button «سنة 2026 ▾» opening years + a 3×4 month grid + «السنة كلها».
+
+Record payment details (owner): **no receipt at all** (no receipt screen, image or share; after save:
+«سُجّلت الدفعة ✓» + «تراجع» for 30 s; the payment shows in the member statement and reports).
+Relatives suggestion = people paid together with this member before (same past transfer), then same
+family name as a second hint; no family field. The record screen does not show the fund balance
+header (only home does). All 10 report types in round 3 approved.

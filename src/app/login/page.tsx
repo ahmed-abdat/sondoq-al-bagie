@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { ASSOC } from "@/components/app/derive";
 import { I } from "@/components/app/icons";
 import { LoginForm } from "./login-form";
@@ -23,14 +22,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <section className="bq-gate">
         <span className="bq-gate-i">{I.lock(32)}</span>
         <h1 className="bq-gate-t">ادخل بحسابك لتأكيد الدفعات</h1>
-        <p className="bq-hint">
-          أمين الصندوق ونائبه والمشرفون فقط. الأعضاء يرون كل شيء في الصفحة العامة.
-        </p>
+        <p className="bq-hint">أمين الصندوق ونائبه والمشرفون فقط.</p>
       </section>
       <LoginForm next={typeof next === "string" ? next : undefined} />
-      <Link className="bq-btn bq-btn-ghost bq-press" href="/">
-        {I.home(20)} الصفحة العامة
-      </Link>
     </main>
   );
 }
