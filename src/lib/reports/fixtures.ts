@@ -282,16 +282,17 @@ export const fxCampaign: CampaignReport = {
   targetAmount: 300_000,
   createdAt: "2026-06-01",
   closedAt: null,
-  collected: 71_000,
-  spent: 25_000,
+  // fxAnnual's donations: 52 000 given, nothing spent yet, all of it still held
+  collected: 52_000,
+  spent: 0,
   transferred: 0,
-  balance: 46_000,
+  balance: 52_000,
   contributions: [
     { paidOn: "2026-09-20", name: "محمد ولد الشيخ", memberRef: "A-1", amount: 20_000 },
-    { paidOn: "2026-08-11", name: "فاعل خير", memberRef: null, amount: 50_000 },
-    { paidOn: "2026-06-05", name: "يحيى ولد الشيخ", memberRef: "B-10", amount: 1_000 },
+    { paidOn: "2026-08-11", name: "فاعل خير", memberRef: null, amount: 30_000 },
+    { paidOn: "2026-06-05", name: "يحيى ولد الشيخ", memberRef: "B-10", amount: 2_000 },
   ],
-  expenses: [{ spentOn: "2026-08-02", note: "إسمنت ورمل", amount: 25_000 }],
+  expenses: [],
 };
 
 export const fxLevy: CampaignReport = {
@@ -304,18 +305,19 @@ export const fxLevy: CampaignReport = {
   targetAmount: null,
   createdAt: "2026-05-01",
   closedAt: null,
-  collected: 6_000,
+  // fxAnnual's levies: 3 shares of 10 000 paid, still held (82 000 held = 52 000 + 30 000)
+  collected: 30_000,
   spent: 0,
   transferred: 0,
-  balance: 6_000,
+  balance: 30_000,
   contributions: [],
   expenses: [],
   shares: NAMES.slice(0, 5).map((n, i) => ({
     memberRef: `A-${i + 1}`,
     fullName: n,
-    expected: 2_000,
-    paid: i < 3 ? 2_000 : 0,
-    left: i < 3 ? 0 : 2_000,
+    expected: 10_000,
+    paid: i < 3 ? 10_000 : 0,
+    left: i < 3 ? 0 : 10_000,
     exempt: i === 4,
     exemptReason: i === 4 ? "طالب" : null,
   })),
@@ -422,16 +424,13 @@ export const fxHandover: HandoverReport = {
   carryOver: ["تبرع «ترميم المسجد» ما زال مفتوحًا.", "لوحة العيد: بقي عضوان لم يدفعا."],
 };
 
-// The demo fund's accounts (src/components/app/fixtures.ts ACCOUNTS): same ids, numbers and
-// opening, so the settings screen finds each account's balance here.
+// The demo fund's accounts (src/components/app/fixtures.ts ACCOUNTS): same ids and numbers.
 const demoAccount = (n: number) => `f0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 export const fxWallets: WalletsReport = {
   period: { year: 2026 },
   generatedAt: AT,
-  // fxAnnual's money: in 458 500, the expenses 127 500 paid in cash, openings 30 000 (بنكيلي, as
-  // the demo account) + 15 000 cash = the fund's 45 000, one move of 50 000 بنكيلي → cash; the
-  // balances add up to the report's 376 000
+  // «one pot»: where fxAnnual's money came in (458 500) and went out (the expenses, 127 500)
   wallets: [
     {
       walletTypeId: 1,
@@ -442,10 +441,6 @@ export const fxWallets: WalletsReport = {
       accountNumber: "22200000011",
       in: 200_000,
       count: 120,
-      transferIn: 0,
-      transferOut: 50_000,
-      opening: { amount: 30_000, on: "2026-01-01" },
-      balance: 180_000,
     },
     {
       walletTypeId: 2,
@@ -456,10 +451,6 @@ export const fxWallets: WalletsReport = {
       accountNumber: "22200000012",
       in: 100_000,
       count: 60,
-      transferIn: 0,
-      transferOut: 0,
-      opening: null,
-      balance: 100_000,
     },
     {
       walletTypeId: 3,
@@ -470,20 +461,12 @@ export const fxWallets: WalletsReport = {
       accountNumber: "22200000013",
       in: 33_500,
       count: 20,
-      transferIn: 0,
-      transferOut: 0,
-      opening: null,
-      balance: 33_500,
     },
   ],
   cash: {
     in: 125_000,
     count: 70,
     out: 127_500,
-    transferIn: 50_000,
-    transferOut: 0,
-    opening: { amount: 15_000, on: "2026-01-01" },
-    balance: 62_500,
   },
   totalIn: 458_500,
 };

@@ -332,8 +332,14 @@ describe("the 10 reports", () => {
   it("campaign: target, collected, spent, what is left, who gave", () => {
     const text = txt(buildCampaign(fx.fxCampaign));
     expect(text).toContain("الهدف: 300 000");
-    expect(text).toContain("*بقي في التبرع: 46 000*");
+    expect(text).toContain("*بقي في التبرع: 52 000*");
     expect(text).toContain("فاعل خير");
+    // the demo fund: what the تبرع and the لوحة hold is the annual report's «لدى التبرعات واللوحات»
+    const c = fx.fxCampaign;
+    expect(c.contributions.reduce((t, x) => t + x.amount, 0)).toBe(c.collected);
+    expect(c.balance + fx.fxLevy.balance).toBe(fx.fxAnnual.campaignsHeld);
+    expect(c.collected).toBe(fx.fxAnnual.income.donations);
+    expect(fx.fxLevy.collected).toBe(fx.fxAnnual.income.levies);
   });
 
   it("لوحة: ✓ / «لم يدفع بعد» / «معفى» per member", () => {
