@@ -5,6 +5,10 @@ import { committeePhone, memberPhone, openSlip, shot, strangerPhone } from "./st
 
 const M = E2E_MEMBERS.campaign;
 
+// Committee-only (2026-09-30): member links and the public pages are gone. This flow will be
+// rewritten as a committee-recorded payment (docs/COMMITTEE-ONLY-PLAN.md §1 Lane B); skipped now.
+test.skip(true, "member-link flow retired; rewrite as committee-recorded (plan §1)");
+
 test("a member gives to the campaign, the committee confirms: progress moves; a stranger sees «•••»", async ({
   browser,
   baseURL,

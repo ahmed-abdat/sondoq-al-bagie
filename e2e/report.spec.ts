@@ -18,6 +18,20 @@ type Win = { __opened: string[]; __printed: number; __shared: SharedFile[]; __te
 const win = <K extends keyof Win>(page: Page, k: K): Promise<Win[K]> =>
   page.evaluate((key) => (window as unknown as Win)[key], k) as Promise<Win[K]>;
 
+const heading = (page: Page) => page.getByRole("heading", { level: 1, name: /تقرير صندوق/ });
+
+async function waitForServiceWorker(page: Page) {
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      await new Promise<void>((resolve) =>
+        navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), {
+          once: true,
+        }),
+      );
+    }
+  });
+}
 
 /** A phone that shares files: record what reaches the share sheet. */
 async function shareSheet(page: Page) {
@@ -79,6 +93,21 @@ async function openSheet(page: Page) {
   await page.getByRole("link", { name: /مشاركة التقرير/ }).click();
   await expect(page.getByRole("dialog", { name: "مشاركة التقرير" })).toBeVisible();
 }
+
+test("opens; offline it is the offline page (committee-only: nothing kept)", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/committee/reports");
+  await expect(heading(page)).toBeVisible();
+  await waitForServiceWorker(page);
+  await page.reload();
+  await expect(heading(page)).toBeVisible();
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toBeVisible();
+  await context.setOffline(false);
+});
 
 test("«طباعة» opens the print dialog", async ({ page }) => {
   await page.addInitScript(() => {

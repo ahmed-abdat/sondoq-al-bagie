@@ -16,7 +16,6 @@ async function waitForServiceWorker(page: Page) {
   });
 }
 
-
 test("manifest is valid and the app is installable", async ({ page, request }) => {
   const res = await request.get("/manifest.webmanifest");
   expect(res.ok()).toBe(true);
@@ -61,7 +60,29 @@ test("manifest is valid and the app is installable", async ({ page, request }) =
   expect(installabilityErrors).toEqual([]);
 });
 
-test("an unvisited page offline shows the Arabic offline page", async ({ page, context }) => {
+// Committee-only (2026-09-30): no page is kept on the phone. Offline, every page is the
+// Arabic offline page; the banner says the connection is gone.
+
+test("nothing is kept: even a visited page offline is the offline page", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  await waitForServiceWorker(page);
+  await page.reload(); // served through the worker: it keeps nothing
+  await context.setOffline(true);
+  for (const path of ["/", "/members", "/committee", "/login", "/r/BQ-TEST-0001"]) {
+    await page.goto(path);
+    await expect(page.getByText("لا يوجد اتصال بالإنترنت"), path).toBeVisible();
+  }
+  await context.setOffline(false);
+  await page.goto("/"); // the offline page reloads itself once back online
+  expect(await page.evaluate(() => caches.keys())).not.toEqual(
+    expect.arrayContaining([expect.stringMatching(/^(pages|sb-public-views)/)]),
+  );
+});
+
+test("the offline page: Arabic, with the app's button", async ({ page, context }) => {
   await page.goto("/");
   await waitForServiceWorker(page);
   await context.setOffline(true);
@@ -75,39 +96,50 @@ test("an unvisited page offline shows the Arabic offline page", async ({ page, c
   await context.setOffline(false);
 });
 
-test("committee pages are never served from the cache", async ({ page, context }) => {
-  await page.goto("/");
+test("offline banner shows while offline and hides when back", async ({ page, context }) => {
+  await page.goto("/committee");
   await waitForServiceWorker(page);
-  await page.goto("/login");
+  await expect(page.getByText(/غير متصل/)).toHaveCount(0);
   await context.setOffline(true);
-  await page.goto("/login");
-  await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toBeVisible();
+  await expect(page.getByText(/غير متصل/)).toBeVisible();
   await context.setOffline(false);
+  await expect(page.getByText(/غير متصل/)).toHaveCount(0);
 });
 
-test("receipt verification is never served from the cache", async ({ page, context }) => {
-  await page.goto("/");
-  await waitForServiceWorker(page);
-  await page.goto("/r/BQ-TEST-0001");
-  await context.setOffline(true);
-  await page.goto("/r/BQ-TEST-0001");
-  await expect(page.getByText("لا يوجد اتصال بالإنترنت")).toBeVisible();
-  await context.setOffline(false);
-});
-
-test("copies saved before money privacy are dropped when the new worker takes over", async ({
+test("the former public app's saved pages and data are dropped when this worker takes over", async ({
   page,
 }) => {
-  // a phone with the old caches (they could hold amounts)
+  // a phone that used the public app: its saved pages, views, warming marker and query cache
   await page.addInitScript(() => {
-    void caches.open("pages").then((c) => c.put("/old", new Response("٢٩٠ ٥٠٠")));
-    void caches.open("sb-public-views").then((c) => c.put("/old", new Response("{}")));
+    if (navigator.serviceWorker.controller) return;
+    for (const name of ["pages-v2", "sb-public-views-v2", "warm-meta", "pages"])
+      void caches.open(name).then((c) => c.put("/old", new Response("<p>أحمد ولد محمد ✓</p>")));
+    const open = indexedDB.open("keyval-store");
+    open.onupgradeneeded = () => open.result.createObjectStore("keyval");
+    open.onsuccess = () =>
+      open.result
+        .transaction("keyval", "readwrite")
+        .objectStore("keyval")
+        .put("{}", "sondoq-query-cache");
   });
   await page.goto("/");
-  await waitForServiceWorker(page);
+  await waitForServiceWorker(page); // no «تحديث» tap: this release takes over by itself
   await expect
     .poll(() => page.evaluate(() => caches.keys()))
-    .not.toEqual(expect.arrayContaining(["pages"]));
+    .not.toEqual(expect.arrayContaining(["pages-v2"]));
   const keys = await page.evaluate(() => caches.keys());
-  expect(keys).not.toContain("sb-public-views");
+  for (const old of ["sb-public-views-v2", "warm-meta", "pages"]) expect(keys).not.toContain(old);
+  const saved = await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const open = indexedDB.open("keyval-store");
+        open.onsuccess = () => {
+          const db = open.result;
+          if (!db.objectStoreNames.contains("keyval")) return resolve(null);
+          const get = db.transaction("keyval").objectStore("keyval").get("sondoq-query-cache");
+          get.onsuccess = () => resolve(get.result ?? null);
+        };
+      }),
+  );
+  expect(saved).toBeNull();
 });
