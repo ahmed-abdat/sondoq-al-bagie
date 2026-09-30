@@ -197,3 +197,10 @@ test("«حوّل»: money from a wallet to cash (not income or spending); «غي
   await ed.getByRole("button", { name: "احفظ" }).click();
   await expect(ws.getByText("22000077")).toBeVisible();
 });
+
+test("a payment's note (why it differs from the picture) shows in the member's history", async ({
+  page,
+}) => {
+  await page.goto("/committee/members/A-1");
+  await expect(page.locator(".pa-hist-note")).toContainText("يختلف عن الصورة: الباقي يُدفع نقدًا");
+});

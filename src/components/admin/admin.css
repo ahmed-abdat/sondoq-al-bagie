@@ -1475,3 +1475,13 @@ body:has(.pa) .bq-demo {
   flex: 1;
   min-width: 0;
 }
+
+/* a payment's note in the history: wraps, never cut */
+.pa-hist-note {
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--n1);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}

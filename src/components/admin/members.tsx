@@ -284,6 +284,8 @@ function Payments({ m }: { m: PMember }) {
                     {day(p.paidOn)} · <Wallet method={p.method} size={18} />
                   </p>
                   {p.recordedBy && <p className="pa-hist-who">سجّلها {p.recordedBy}</p>}
+                  {/* why the amount differs from the picture, or the paper sheet's own note */}
+                  {p.note?.trim() && <p className="pa-hist-note">{p.note.trim()}</p>}
                   {off && (
                     <p className="pa-hist-rej">
                       <span className="pa-tag-rej">أُلغيت</span>
