@@ -405,6 +405,8 @@ const feeMonths = (year: number, refMonth: number, paid: number[]) =>
 export const fxFeeStats: FeeStats = {
   year: 2026,
   refMonth: 9,
+  asOf: null,
+  beforeRecords: false,
   overall: { active: 88, paidUp: 42, paidUpPct: 47.7, owe1: 18, owe2to3: 16, owe4plus: 12 },
   groups: [
     { groupCode: "A", active: 40, paidUp: 22, paidUpPct: 55, owe1: 8, owe2to3: 6, owe4plus: 4 },

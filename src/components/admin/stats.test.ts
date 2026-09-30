@@ -79,6 +79,8 @@ describe("the server's stats (m32) in the screens' shape", () => {
     const fees = {
       year: 2026,
       refMonth: 9,
+      asOf: null,
+      beforeRecords: false,
       overall: block,
       groups: [{ groupCode: "A", ...block, active: 60, paidUp: 30, paidUpPct: 50 }],
       months: Array.from({ length: 12 }, (_, i) => ({
