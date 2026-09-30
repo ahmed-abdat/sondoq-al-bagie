@@ -5,7 +5,7 @@
 // confirmed at once (m29). No receipt: «سُجّلت الدفعة ✓» and «تراجع» for 30 seconds.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useOnline } from "@/components/providers";
 import { rememberMembers, useAct } from "@/components/app/act";
 import { sendOnce, useOnceId } from "@/components/app/once-id";
@@ -13,7 +13,7 @@ import { compressImage, dataUrlToBlob } from "@/lib/compress-image";
 import { failure } from "@/lib/data/errors";
 import type { AllocationInput } from "@/lib/data/schemas";
 import { MONTHS_AR, todayIso } from "@/lib/dates";
-import { METHOD_LABELS, type Method } from "@/lib/methods";
+import type { Method } from "@/lib/methods";
 import { parseAmount, toWesternDigits } from "@/lib/money";
 import { readReceipt } from "@/lib/ocr";
 import { safeStorage } from "@/lib/safe-storage";
@@ -23,7 +23,6 @@ import {
   Avatar,
   Back,
   Chips,
-  findMembers,
   fmt,
   levyOwed,
   levyShare,
@@ -40,6 +39,8 @@ import {
 } from "./kit";
 import { feeAllocations, feesTotal, pastWords, payablePast, priceOf, ym } from "./fees";
 import { coPaidMembers } from "./report-action";
+import { WalletPicker } from "./wallet-picker";
+import { MemberPicker } from "./member-picker";
 import type { PData, PMember } from "./types";
 import "./record2.css";
 
@@ -614,75 +615,31 @@ function Relatives({ m, t }: { m: PMember; t: T }) {
 
 function PersonPicker({ t, onDone, autoFocus }: { t: T; onDone: () => void; autoFocus?: boolean }) {
   const { d } = useP();
-  const [q, setQ] = useState("");
   const [recent] = useState(readRecent);
-  const taken = t.lines.flatMap((l) => (l.t === "gift" || !l.ref ? [] : [l.ref])).join(",");
-  const { list, already, hint } = useMemo(() => {
-    const inList = new Set(taken.split(","));
-    const act = d.members.filter((m) => m.status === "active");
-    if (!q.trim()) {
-      const mine = recent.flatMap((id) => act.filter((m) => m.id === id && !inList.has(m.ref)));
-      // a new phone has no recent payers: offer who owes instead of an empty screen
-      return mine.length
-        ? { list: mine, already: [], hint: "آخر من سجّلت لهم" }
-        : {
-            list: act.filter((m) => isLate(m) && !inList.has(m.ref)).slice(0, 5),
-            already: [],
-            hint: "عليهم متأخرات",
-          };
-    }
-    const found = findMembers(act, q);
-    return {
-      list: found.filter((m) => !inList.has(m.ref)).slice(0, 8),
-      already: found.filter((m) => inList.has(m.ref)),
-      hint: "",
-    };
-  }, [q, d.members, taken, recent]);
+  const taken = t.lines.flatMap((l) => (l.t === "gift" || !l.ref ? [] : [l.ref]));
+  const active = d.members.filter((m) => m.status === "active");
+  const mine = recent.flatMap((id) => active.filter((m) => m.id === id));
+  // a new phone has no recent payers: offer who owes instead of an empty screen
+  const start = mine.length ? mine : active.filter(isLate).slice(0, 5);
   return (
-    <div className="r2-picker">
-      <label className="pa-search">
-        {X.search(22)}
-        <input
-          autoFocus={autoFocus}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="اسم العضو أو رقمه، مثل ب 12"
-          aria-label="ابحث عن العضو"
-        />
-      </label>
-      {!q && list.length > 0 && <p className="pa-hint">{hint}</p>}
-      <ul className="pa-rows">
-        {list.map((m) => (
-          <li key={m.ref}>
-            <button
-              type="button"
-              className="pa-row"
-              onClick={() => {
-                t.addPerson(m.ref);
-                onDone();
-              }}
-            >
-              <Avatar refs={m.ref} />
-              <span className="pa-row-t">
-                <b>{m.name}</b>
-                <small>{payStatus(m)}</small>
-              </span>
-              {X.plus(20)}
-            </button>
-          </li>
-        ))}
-        {q && !list.length && (
-          <li className="pa-empty">
-            {already.length ? `${already[0].name} في هذه الدفعة.` : "لا أحد بهذا الاسم أو الرقم."}
-          </li>
-        )}
-      </ul>
+    <>
+      <MemberPicker
+        autoFocus={autoFocus}
+        exclude={taken}
+        start={start}
+        startHint={mine.length ? "آخر من سجّلت لهم" : "عليهم متأخرات"}
+        alreadyText={(m) => `${m.name} في هذه الدفعة.`}
+        onPick={(m) => {
+          t.addPerson(m.ref);
+          onDone();
+        }}
+      />
       {!!t.lines.length && (
         <button type="button" className="pa-btn pa-btn-ghost pa-btn-sm" onClick={onDone}>
           إلغاء
         </button>
       )}
-    </div>
+    </>
   );
 }
 
@@ -809,7 +766,6 @@ function HowSec({ t }: { t: T }) {
       }}
     />
   );
-  const wallets = d.accounts.filter((a) => a.active);
   return (
     <section className="pa-sec">
       <h2>كيف دفع؟</h2>
@@ -883,11 +839,10 @@ function HowSec({ t }: { t: T }) {
       {t.shot && !t.shot.reading && (
         <>
           <p className="pa-label">المحفظة</p>
-          <Chips
-            label="المحفظة"
-            value={t.method ?? ""}
-            onChange={(k) => t.setMethod((k || null) as Method | null)}
-            options={wallets.map((a) => ({ k: a.method, l: METHOD_LABELS[a.method] }))}
+          <WalletPicker
+            cash={false}
+            value={d.accounts.find((a) => a.active && a.method === t.method)?.id ?? ""}
+            onChange={(_, m) => t.setMethod(m && m !== "cash" ? m : null)}
           />
         </>
       )}
@@ -915,6 +870,9 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
   const { recordPayment, uploadProof } = useAct();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // the total differs from the amount read on the picture: ask, with a short reason (kept)
+  const [asking, setAsking] = useState(false);
+  const [why, setWhy] = useState("");
   const shotAmt = t.shot?.amount ?? null;
   const diff = shotAmt === null ? 0 : t.total - shotAmt;
   const next = !t.lines.length
@@ -933,6 +891,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
 
   const save = async () => {
     if (next || busy) return;
+    if (diff !== 0 && !why.trim()) return setAsking(true);
     setBusy(true);
     setErr("");
     const year = d.year;
@@ -993,6 +952,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
           txnRef: t.cash ? undefined : (t.shot?.txn ?? undefined),
           proofPath: proof?.path,
           proofHash: proof?.hash,
+          note: diff !== 0 && why.trim() ? `يختلف عن الصورة: ${why.trim()}` : undefined,
         });
       });
     } catch {
@@ -1050,13 +1010,42 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
           لا يوجد اتصال. سجّل عند عودة الإنترنت، ما كتبته باقٍ.
         </p>
       )}
+      {asking && shotAmt !== null && diff !== 0 && (
+        <div className="r2-diff" role="alert">
+          <p>
+            المبلغ في الصورة <Money v={shotAmt} unit={false} /> والمجموع{" "}
+            <Money v={t.total} unit={false} />. هل تريد التسجيل رغم الفرق؟
+          </p>
+          <label className="pa-field">
+            <span>السبب (يُحفظ مع الدفعة)</span>
+            <input
+              value={why}
+              maxLength={200}
+              onChange={(e) => setWhy(e.target.value)}
+              placeholder="مثل: الباقي يُدفع نقدًا"
+              autoFocus
+            />
+          </label>
+        </div>
+      )}
       <button
         type="button"
         className="pa-btn pa-btn-primary pa-btn-lg"
-        disabled={!!next || busy || !online}
+        disabled={!!next || busy || !online || (asking && diff !== 0 && !why.trim())}
         onClick={() => void save()}
       >
-        {busy ? "جارٍ الحفظ…" : (next ?? <>{X.check(20)} سجّل</>)}
+        {busy
+          ? "جارٍ الحفظ…"
+          : (next ??
+            (asking && diff !== 0 ? (
+              why.trim() ? (
+                <>{X.check(20)} سجّل رغم الفرق</>
+              ) : (
+                "اكتب السبب"
+              )
+            ) : (
+              <>{X.check(20)} سجّل</>
+            )))}
       </button>
     </div>
   );

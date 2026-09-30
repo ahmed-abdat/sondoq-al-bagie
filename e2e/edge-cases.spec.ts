@@ -34,15 +34,20 @@ test("a mid-year joiner is never offered the months before joining (M9)", async 
 });
 
 test("settings: next year's fees and the last backup (M12/D2)", async ({ page }) => {
-  await page.goto("/committee/settings?prices=1");
-  await expect(page.getByRole("heading", { name: "المستحقات الشهرية لسنة 2027" })).toBeVisible();
+  await page.goto("/committee/settings");
+  const groups = page.getByRole("region", { name: "الفئات والمستحقات الشهرية" });
+  await expect(groups).toContainText(/الفئة أ.*1\s000 أوقية في الشهر/);
+  await groups.getByRole("button", { name: "المستحقات" }).first().click();
+  const sheet = page.getByRole("dialog", { name: /مستحقات الفئة/ });
+  await expect(sheet.getByRole("button", { name: "2027" })).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
   await expect(page.getByRole("heading", { name: "آخر نسخة احتياطية" })).toBeVisible();
 });
 
 test("pay late months from a member's credit (M7)", async ({ page }) => {
-  await page.goto("/committee/members/manage");
-  await page.getByLabel("ابحث عن عضو", { exact: false }).first().fill("ب 12");
-  await page.locator("button.bq-row").first().click();
+  // «تعديل البيانات والحالة» on the member's page (no separate management page)
+  await page.goto("/committee/members/B-12");
+  await page.getByRole("button", { name: /تعديل البيانات والحالة/ }).click();
   const s = page.getByRole("dialog").last();
   await expect(s).toContainText(/له رصيد 2\s000 أوقية\./);
   await s.getByRole("button", { name: "ادفع من الرصيد" }).click();
@@ -50,7 +55,7 @@ test("pay late months from a member's credit (M7)", async ({ page }) => {
   await s.getByRole("button", { name: "ادفع 3 أشهر" }).click();
   await expect(page.getByText(/دُفعت مستحقات 3 أشهر من رصيد/)).toBeVisible();
   // the demo store takes the months off her arrears and the credit down to 500
-  await page.locator("button.bq-row").first().click();
+  await page.getByRole("button", { name: /تعديل البيانات والحالة/ }).click();
   const again = page.getByRole("dialog").last();
   await expect(again).toContainText(/له رصيد 500 أوقية، لا يكفي لشهر كامل\./);
   await expect(again).not.toContainText("متأخر");

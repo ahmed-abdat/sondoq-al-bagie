@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ROLE_LABEL } from "@/components/app/derive";
-import { memberCtx } from "@/components/app/page-data";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { CommitteeView } from "@/components/app/views/committee";
@@ -14,15 +13,13 @@ export default async function CommitteePage({ searchParams }: PageProps<"/commit
   if (src.demoMode && sp.setup === "1") redirect("/committee/setup");
   // demo only (QA): ?demoQueue=0|12 shows the empty or a long review list
   const demoQ = src.demoMode && typeof sp.demoQueue === "string" ? sp.demoQueue : undefined;
-  const [session, pending, members, ctx, accounts, arrears, campaigns] = await Promise.all([
+  const [session, pending, campaigns] = await Promise.all([
     src.requireCommittee("/committee/review"),
     src.pendingPayments(),
-    src.memberRows(),
-    memberCtx(),
-    src.fundAccounts(),
-    src.arrears(),
     src.moneyCampaigns(),
   ]);
+  // old payments waiting for a confirmation: the page goes once none are left
+  if (demoQ === undefined && !pending.some((p) => p.status === "pending")) redirect("/committee");
   return (
     <Tab>
       <CommitteeView
@@ -33,13 +30,7 @@ export default async function CommitteePage({ searchParams }: PageProps<"/commit
           canConfirm: session.canConfirm,
           memberId: session.memberId,
         }}
-        members={members.filter((m) => m.status === "active" || m.status === "exempt")}
-        ctx={ctx}
-        accounts={accounts}
         campaigns={campaigns}
-        lateCount={arrears.length}
-        memberCount={members.filter((m) => m.status === "active").length}
-        canManage={session.role !== "committee"}
       />
     </Tab>
   );

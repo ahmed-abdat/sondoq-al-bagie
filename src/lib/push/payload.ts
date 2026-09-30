@@ -13,7 +13,9 @@ export type PushPayload = {
 };
 
 type Alloc =
-  { kind: "months"; year: number; month: number } | { kind: "campaign" } | { kind: "credit" };
+  | { kind: "months"; year: number; month: number; memberId?: string }
+  | { kind: "campaign"; memberId?: string | null }
+  | { kind: "credit" };
 
 /** «أحمد · 3 000 أوقية · يوليو، أغسطس، سبتمبر 2026» (+ «تبرع» / «رصيد» when present). */
 export function pendingPaymentPayload(p: {
@@ -43,6 +45,14 @@ export function pendingPaymentPayload(p: {
 
 /* ───────────── to the other committee members (m29: one level, no confirmation step) ───────────── */
 
+/** The one member a payment is for, or null (several people, or an outside donor). */
+function paidFor(allocations: Alloc[]): string | null {
+  const ids = new Set(
+    allocations.flatMap((a) => ("memberId" in a && a.memberId ? [a.memberId] : [])),
+  );
+  return ids.size === 1 ? [...ids][0] : null;
+}
+
 /** «سجّل أحمد دفعة»: payer · amount · months (+ «تبرع» / «لوحة» / «رصيد»). */
 export function recordedPaymentPayload(p: {
   id: string;
@@ -58,7 +68,10 @@ export function recordedPaymentPayload(p: {
   return {
     ...base,
     title: p.actorName ? `سجّل ${firstName(p.actorName)} ${what}` : `${what} جديدة`,
-    url: "/committee/payments",
+    // owner: opens the member's «كشف حساب» (one member), else «سجل العمليات»
+    url: paidFor(p.allocations)
+      ? `/committee/members/${paidFor(p.allocations)}`
+      : "/committee/activity",
     tag: `payment-${p.id}`,
   };
 }

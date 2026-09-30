@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import * as src from "@/components/app/source";
 import { Tab } from "@/components/app/tab";
 import { SettingsView } from "@/components/app/views/settings";
-import { BackupCard, CurrentPrices, YearPrices } from "@/components/app/settings-cards";
+import { BackupCard } from "@/components/app/settings-cards";
+import { GroupsSection } from "@/components/app/groups-section";
 
 export const metadata: Metadata = { title: "الإعدادات · صندوق الرابطة" };
 
-export default async function SettingsPage({ searchParams }: PageProps<"/committee/settings">) {
+export default async function SettingsPage() {
   const [session, accounts, summary, settings] = await Promise.all([
     src.requireCommittee("/committee/settings"),
     src.fundAccountsAdmin(),
@@ -14,27 +15,13 @@ export default async function SettingsPage({ searchParams }: PageProps<"/committ
     src.fundSettings(),
   ]);
   const admin = session.role === "admin";
-  // «المستحقات الشهرية» of the coming year from 1 December (or this year's when none is set);
-  // demo: /committee/settings?prices=1 shows next year's card any day
-  const t = src.today();
-  const year = t.getUTCFullYear();
-  const current = await src.groupPrices(year);
-  const demoPrices = src.demoMode && (await searchParams).prices === "1";
-  const priceYear = !Object.keys(current).length
-    ? year
-    : t.getUTCMonth() === 11 || demoPrices
-      ? year + 1
-      : null;
-  const priceSet = priceYear
-    ? demoPrices && priceYear === year + 1
-      ? {}
-      : await src.groupPrices(priceYear)
-    : {};
-  const groups = Object.keys(current).length ? Object.keys(current).sort() : ["A", "B"];
-  const backup = admin ? await src.backupStatus() : null;
-  const [people, members] = admin
-    ? await Promise.all([src.committeeAccounts(), src.membersAdmin()])
-    : [[], []];
+  const year = src.thisYear();
+  const [groups, backup, people, members] = await Promise.all([
+    src.groupsOverview(year),
+    admin ? src.backupStatus() : Promise.resolve(null),
+    admin ? src.committeeAccounts() : Promise.resolve([]),
+    admin ? src.membersAdmin() : Promise.resolve([]),
+  ]);
   return (
     <Tab>
       <SettingsView
@@ -52,16 +39,19 @@ export default async function SettingsPage({ searchParams }: PageProps<"/committ
         selfId={session.userId}
         accounts={accounts}
       >
-        {priceYear !== year && <CurrentPrices year={year} prices={current} />}
-        {priceYear && (
-          <YearPrices
-            year={priceYear}
-            groups={groups}
-            current={current}
-            set={priceSet}
-            admin={admin}
-          />
-        )}
+        <GroupsSection
+          groups={groups}
+          year={year}
+          admin={admin}
+          members={members
+            .filter((m) => m.status === "active")
+            .map((m) => ({
+              memberId: m.memberId,
+              memberRef: m.memberRef,
+              fullName: m.fullName,
+              groupCode: m.groupCode,
+            }))}
+        />
         {admin && <BackupCard status={backup} />}
       </SettingsView>
     </Tab>

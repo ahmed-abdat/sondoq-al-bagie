@@ -1308,7 +1308,6 @@ body:has(.pa) .bq-demo {
 /* ───── fixes after the first 390px look ───── */
 .pa-main {
   overflow-x: clip;
-  padding-block-start: 36px; /* room for the prototype switcher */
 }
 .pa-paper {
   min-width: 0;
@@ -1453,4 +1452,20 @@ body:has(.pa) .bq-demo {
   gap: 8px;
   padding: 4px 0 0;
   box-shadow: none;
+}
+
+/* «تخطَّ إلى المحتوى»: hidden until a keyboard reaches it */
+.pa-skip {
+  position: absolute;
+  inset-inline-start: 8px;
+  top: -64px;
+  z-index: 60;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--g8);
+  color: #fff;
+  font-weight: 700;
+}
+.pa-skip:focus {
+  top: 8px;
 }
