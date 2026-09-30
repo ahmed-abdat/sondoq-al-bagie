@@ -335,3 +335,7 @@ Prototype picks (proto/admin d99be96): home **B** («الصندوق أولًا»
 reports **B**, record payment **C** («ابدأ من العضو») improved in round 2 with quick month choices
 («الأشهر المتأخرة» / «باقي السنة» / «السنة كاملة» / «اختر») and several people in one transfer
 («+ أضف شخصًا», levy share or donation rows, OCR amount vs total).
+
+Reports period (owner): default = **a year** (year chooser), with «شهر» as the option (month + year);
+no from–to. Months table and «المتأخرات» = always a full year (12 months). Expenses: year, month
+optional. Member statement: a year. Campaign/لوحة report: the whole campaign.
