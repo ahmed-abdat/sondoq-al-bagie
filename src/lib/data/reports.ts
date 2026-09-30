@@ -12,6 +12,11 @@ import type {
   AnnualReport,
   CampaignReport,
   CommitteeWorkReport,
+  DonationStats,
+  FeeStats,
+  FeeStatsBlock,
+  LevyStats,
+  StatsReport,
   ExpensesReport,
   GridReport,
   HandoverReport,
@@ -671,3 +676,127 @@ export async function loadCommitteeWork(
 
 /** Status word for a member status (report tables). */
 export const statusLabel = (s: MembershipStatus) => STATUS_LABELS[s];
+
+/* ───────────── «الإحصاءات» (m32) ───────────── */
+
+const pct = (v: Json | undefined) => Math.round(num(v) * 10) / 10;
+
+function toFeeBlock(o: Obj): FeeStatsBlock {
+  return {
+    active: num(o.active),
+    paidUp: num(o.paid_up),
+    paidUpPct: pct(o.paid_up_pct),
+    owe1: num(o.owe_1),
+    owe2to3: num(o.owe_2_3),
+    owe4plus: num(o.owe_4plus),
+  };
+}
+
+export function toFeeStats(d: Json): FeeStats {
+  const r = obj(d);
+  return {
+    year: num(r.year),
+    refMonth: num(r.ref_month),
+    overall: toFeeBlock(obj(r.overall)),
+    groups: arr(r.groups).map((g) => ({
+      groupCode: str(obj(g).group_code) ?? "",
+      ...toFeeBlock(obj(g)),
+    })),
+    months: arr(r.months).map((m) => {
+      const o = obj(m);
+      return {
+        month: num(o.month),
+        active: num(o.active),
+        paid: num(o.paid),
+        unpaid: num(o.unpaid),
+      };
+    }),
+  };
+}
+
+export function toLevyStats(d: Json): LevyStats[] {
+  return arr(d).map((x) => {
+    const o = obj(x);
+    return {
+      id: str(o.id) ?? "",
+      title: str(o.title) ?? "",
+      status: (str(o.status) ?? "open") as LevyStats["status"],
+      openedOn: str(o.opened_on) ?? "",
+      daysOpen: num(o.days_open),
+      shares: num(o.shares),
+      paid: num(o.paid),
+      unpaid: num(o.unpaid),
+      exempt: num(o.exempt),
+      paidPct: pct(o.paid_pct),
+      expected: num(o.expected),
+      collected: num(o.collected),
+      groups: arr(o.groups).map((g) => {
+        const q = obj(g);
+        return {
+          groupCode: str(q.group_code) ?? "",
+          shares: num(q.shares),
+          paid: num(q.paid),
+          unpaid: num(q.unpaid),
+          exempt: num(q.exempt),
+          paidPct: pct(q.paid_pct),
+        };
+      }),
+    };
+  });
+}
+
+export function toDonationStats(d: Json): DonationStats[] {
+  return arr(d).map((x) => {
+    const o = obj(x);
+    return {
+      id: str(o.id) ?? "",
+      title: str(o.title) ?? "",
+      status: (str(o.status) ?? "open") as DonationStats["status"],
+      openedOn: str(o.opened_on) ?? "",
+      memberGivers: num(o.member_givers),
+      outsideGivers: num(o.outside_givers),
+      givers: num(o.givers),
+      activeMembers: num(o.active_members),
+      memberPct: pct(o.member_pct),
+      collected: num(o.collected),
+      target: o.target == null ? null : num(o.target),
+      targetPct: o.target_pct == null ? null : pct(o.target_pct),
+    };
+  });
+}
+
+async function feeStats(c: Client, year: number): Promise<FeeStats> {
+  return toFeeStats(
+    read.must("report_fee_stats", await c.rpc("report_fee_stats", { p_year: year })),
+  );
+}
+
+/** «الإحصاءات» for a year: fees (+ last year for the trend), every levy and donation. */
+export async function loadStats(c: Client, year: number, now = new Date()): Promise<StatsReport> {
+  const [fees, previous, levies, donations] = await Promise.all([
+    feeStats(c, year),
+    feeStats(c, year - 1),
+    c.rpc("report_levy_stats", {}),
+    c.rpc("report_donation_stats", {}),
+  ]);
+  return {
+    period: { year },
+    generatedAt: now.toISOString(),
+    fees,
+    previous: previous.overall.active > 0 ? previous : null,
+    levies: toLevyStats(read.must("report_levy_stats", levies)),
+    donations: toDonationStats(read.must("report_donation_stats", donations)),
+  };
+}
+
+/** One levy's analytics (its page and report), or null. */
+export async function loadLevyStats(c: Client, id: string): Promise<LevyStats | null> {
+  const res = await c.rpc("report_levy_stats", { p_id: id });
+  return toLevyStats(read.must("report_levy_stats", res))[0] ?? null;
+}
+
+/** One donation's analytics (its page and report), or null. */
+export async function loadDonationStats(c: Client, id: string): Promise<DonationStats | null> {
+  const res = await c.rpc("report_donation_stats", { p_id: id });
+  return toDonationStats(read.must("report_donation_stats", res))[0] ?? null;
+}
