@@ -9,7 +9,7 @@ import type { PLog } from "./types";
  * action with no Arabic sentence is hidden, never shown as a code.
  */
 export function activityLine(x: ActivityEntry): PLog | null {
-  const who = x.actorName ?? "اللجنة";
+  const who = x.actorName ?? "عضو في اللجنة";
   const amt = x.amount != null ? ` (${fmt(x.amount)} أوقية)` : "";
   const sub = x.subject ? ` ${x.subject}` : "";
   const why = x.reason ? `. السبب: ${x.reason}` : "";
@@ -65,7 +65,8 @@ export function activityLine(x: ActivityEntry): PLog | null {
  * The whole log, as the committee reads it. record_payment confirms at once, so the database
  * also writes confirm_payment (on the payment and on its months) in the same transaction: those
  * are the same payment and are hidden, leaving one «سجّل دفعة» line. Rows written by the system
- * (no actor, e.g. a migration's backfill) are never shown. Confirmations of the months are never
+ * (`system`: no actor, e.g. a migration's backfill) are never shown; an actor without a name
+ * reads «عضو في اللجنة». Confirmations of the months are never
  * a line of their own.
  */
 export function activityLines(xs: ActivityEntry[]): PLog[] {
@@ -74,7 +75,7 @@ export function activityLines(xs: ActivityEntry[]): PLog[] {
   );
   const recordedAt = new Set(xs.filter((x) => x.action === "record_payment").map((x) => x.at));
   return xs.flatMap((x) => {
-    if (!x.actorName) return [];
+    if (x.system === true) return [];
     if (x.action === "confirm_payment") {
       if (x.table !== "payments") return [];
       if (recorded.has(`${x.at}|${x.rowId}`) || recordedAt.has(x.at)) return [];

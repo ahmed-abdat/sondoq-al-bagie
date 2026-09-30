@@ -75,6 +75,7 @@ describe("the log as the committee reads it (owner bug: one payment, two lines)"
       id: 14,
       at: "2026-09-30T12:10:27Z",
       actorName: null,
+      system: true,
       table: "fund_accounts",
     }),
   ];
@@ -82,6 +83,13 @@ describe("the log as the committee reads it (owner bug: one payment, two lines)"
     const out = activityLines(rows);
     expect(out).toHaveLength(1);
     expect(out[0].what).toMatch(/^سجّل دفعة محمد يحي ولد سيدي \(24\s000 أوقية\)$/);
+  });
+  it("an actor without a name stays, as «عضو في اللجنة»", () => {
+    const out = activityLines([
+      e("record_expense", { actorName: null, system: false, subject: "كرات" }),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].who).toBe("عضو في اللجنة");
   });
   it("an old payment counted later keeps its line, without «ثبّت»", () => {
     const later = e("confirm_payment", {
