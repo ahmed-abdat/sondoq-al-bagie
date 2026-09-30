@@ -2,6 +2,8 @@
 // Pure; unit tested. The bucket also enforces type (jpeg/webp/png) and size (400 KB).
 
 export const PROOF_MAX_BYTES = 409_600;
+/** Largest wallet logo accepted (m41; the `logos` bucket refuses more too). */
+export const LOGO_MAX_BYTES = 204_800;
 export type ProofKind = "payments" | "expenses";
 export type ProofMime = "image/jpeg" | "image/png" | "image/webp";
 

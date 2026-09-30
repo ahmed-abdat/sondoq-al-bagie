@@ -12,6 +12,7 @@ export const BACKUP_TABLES = [
   "committee",
   "campaigns",
   "campaign_participants",
+  "wallet_types",
   "fund_accounts",
   "payments",
   "payment_allocations",

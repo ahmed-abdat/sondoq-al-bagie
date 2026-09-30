@@ -210,16 +210,32 @@ export type HandoverReport = {
 
 /** 9 · money per wallet (IN per payment method; OUT and balance only once expenses name a wallet). */
 export type WalletsReport = Base & {
+  /** one row per account, then money of a wallet with no account (m41) */
   wallets: {
+    walletTypeId: number | null;
+    fundAccountId: string | null;
     method: PaymentMethod;
+    /** the wallet's name («بنكيلي») */
     label: string;
+    logoPath: string | null;
     accountNumber: string | null;
     in: number;
     count: number;
     out?: number;
+    /** set once by «المسؤول»; without it there is no balance, only the period's in and out */
+    opening: { amount: number; on: string } | null;
+    /** opening + in − out from the opening to the period end; only with an opening */
     balance?: number;
   }[];
-  cash: { in: number; count: number; out?: number; balance?: number };
+  cash: {
+    in: number;
+    count: number;
+    out?: number;
+    opening: { amount: number; on: string } | null;
+    balance?: number;
+  };
+  /** money in without a wallet (the paper sheets) */
+  paperIn?: number;
   /** expenses recorded before wallets were named (m31) */
   unspecifiedOut?: number;
   totalIn: number;

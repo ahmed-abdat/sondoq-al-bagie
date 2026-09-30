@@ -41,6 +41,7 @@ export {
   getGroupsOverview,
   getAccuracyAudit,
   getExpenseActivities,
+  getWalletTypes,
   getLevyStats,
   getDonationStats,
 } from "./committee";

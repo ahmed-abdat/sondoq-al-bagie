@@ -102,6 +102,7 @@ export const getStatsReport = committee(reports.loadStats, null);
 export const getGroupsOverview = committee(read.groupsOverview, []);
 export const getAccuracyAudit = committee(read.accuracyAudit, []);
 export const getExpenseActivities = committee(read.expenseActivities, []);
+export const getWalletTypes = committee(read.walletTypes, []);
 export const getLevyStats = committee(reports.loadLevyStats, null);
 export const getDonationStats = committee(reports.loadDonationStats, null);
 

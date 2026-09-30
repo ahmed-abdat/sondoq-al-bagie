@@ -18,7 +18,14 @@ import { createClient } from "@/lib/supabase/server";
 import { codeOf, failure, MESSAGES } from "./errors";
 import { CATEGORY_LABELS } from "./labels";
 import { generatePassword, parseLogin } from "./logins";
-import { isProofPath, PROOF_MAX_BYTES, proofPath, sha256Hex, sniffImage } from "./proof";
+import {
+  isProofPath,
+  LOGO_MAX_BYTES,
+  PROOF_MAX_BYTES,
+  proofPath,
+  sha256Hex,
+  sniffImage,
+} from "./proof";
 import type { Client } from "./read";
 import * as s from "./schemas";
 import { getCommitteeSession } from "./committee";
@@ -128,6 +135,9 @@ async function record(input: s.RecordPaymentInput) {
         p_proof_path: p.proofPath,
         p_proof_hash: p.proofHash?.toLowerCase(),
         p_note: p.note,
+        // m41: the wallet and its account; the server fills them from the method when omitted
+        ...(p.walletTypeId !== undefined ? { p_wallet_type_id: p.walletTypeId } : {}),
+        ...(p.fundAccountId ? { p_fund_account_id: p.fundAccountId } : {}),
       }),
     {
       touchesPublic: true,
@@ -261,6 +271,7 @@ export async function recordExpense(input: s.RecordExpenseInput) {
         // sent only when set, so this works before m31 adds them
         ...(p.fundAccountId ? { p_fund_account_id: p.fundAccountId } : {}),
         ...(p.paidInCash ? { p_paid_in_cash: true } : {}),
+        ...(p.walletTypeId !== undefined ? { p_wallet_type_id: p.walletTypeId } : {}),
       }),
     { touchesPublic: true, result: (d) => d as string },
   );
@@ -325,6 +336,107 @@ export async function setExpenseActivityActive(input: { id: number; active: bool
     (sb, p) => sb.rpc("set_expense_activity_active", { p_id: p.id, p_active: p.active }),
     { touchesPublic: true },
   );
+}
+
+/* ───────────── «المحافظ» wallets (m41, «المسؤول») ───────────── */
+
+/** A new wallet (name, optional logo from uploadWalletLogo), last before cash; returns its id. */
+export async function addWalletType(input: { name: string; logoPath?: string }) {
+  return run(
+    s.addWalletTypeSchema,
+    input,
+    (sb, p) => sb.rpc("add_wallet_type", { p_name: p.name, p_logo_path: p.logoPath }),
+    { touchesPublic: true, result: (d) => d as number },
+  );
+}
+
+/** Rename a wallet or change its logo (no logoPath = no logo). */
+export async function updateWalletType(input: { id: number; name: string; logoPath?: string }) {
+  return run(
+    s.updateWalletTypeSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("update_wallet_type", { p_id: p.id, p_name: p.name, p_logo_path: p.logoPath }),
+    { touchesPublic: true },
+  );
+}
+
+/** Stop (active false) or bring back a wallet; never the last active one. */
+export async function setWalletTypeActive(input: { id: number; active: boolean }) {
+  return run(
+    s.setWalletTypeActiveSchema,
+    input,
+    (sb, p) => sb.rpc("set_wallet_type_active", { p_id: p.id, p_active: p.active }),
+    { touchesPublic: true },
+  );
+}
+
+/** An account (number, holder) of a wallet; returns its id. */
+export async function addWalletAccount(input: s.AddWalletAccountInput) {
+  return run(
+    s.addWalletAccountSchema,
+    input,
+    (sb, p) =>
+      sb.rpc("add_wallet_account", {
+        p_wallet_type_id: p.walletTypeId,
+        p_account_number: p.accountNumber,
+        p_holder_name: p.holderName,
+        p_note: p.note,
+        p_sort_order: p.sortOrder,
+      }),
+    { touchesPublic: true, result: (d) => d as string },
+  );
+}
+
+/** The opening balance of an account, set once («المسؤول»). */
+export async function setFundAccountOpening(input: { id: string; amount: number; on: string }) {
+  return run(
+    s.setFundAccountOpeningSchema,
+    input,
+    (sb, p) => sb.rpc("set_fund_account_opening", { p_id: p.id, p_amount: p.amount, p_on: p.on }),
+    { touchesPublic: true },
+  );
+}
+
+/** The opening of cash in hand, set once («المسؤول»). */
+export async function setCashOpening(input: { amount: number; on: string }) {
+  return run(
+    s.setCashOpeningSchema,
+    input,
+    (sb, p) => sb.rpc("set_cash_opening", { p_amount: p.amount, p_on: p.on }),
+    { touchesPublic: true },
+  );
+}
+
+/**
+ * Upload a wallet logo (FormData: file) for «المسؤول». The server checks the real type from the
+ * bytes (PNG, JPEG, WEBP; never SVG) and the size, and stores it by content in the public `logos`
+ * bucket with the secret key. Returns the path to pass to addWalletType / updateWalletType.
+ */
+export async function uploadWalletLogo(form: FormData): Promise<ActionResult<{ path: string }>> {
+  const session = await getCommitteeSession();
+  if (!session) return failure("not_committee");
+  if (session.role !== "admin") return failure("not_admin");
+  const file = form.get("file");
+  if (!(file instanceof Blob)) return failure("invalid_input");
+  if (file.size === 0 || file.size > LOGO_MAX_BYTES) return failure("proof_too_large");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const mime = sniffImage(bytes);
+  if (!mime) return failure("proof_not_image");
+  const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+  const path = `${(await sha256Hex(bytes)).slice(0, 16)}.${ext}`;
+  const admin = tryCreateAdminClient();
+  if (!admin) return failure("not_configured");
+  try {
+    const { error } = await admin.storage
+      .from("logos")
+      .upload(path, bytes, { contentType: mime, upsert: false, cacheControl: "31536000" });
+    // same bytes → same path: uploading the same logo again is fine
+    if (error && !/exists|duplicate/i.test(error.message)) return failure("unknown");
+    return { ok: true, data: { path } };
+  } catch {
+    return failure("network");
+  }
 }
 
 export async function cancelExpense(input: { id: string; reason: string }) {
