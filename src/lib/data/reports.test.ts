@@ -177,6 +177,11 @@ describe("member reports", () => {
       levies: [],
     });
     expect(late.members[1].levies).toEqual([{ title: "لوحة" }]);
+    // the paper grid: 12 cells, the same states as the months table
+    expect(late.members[0].months).toHaveLength(12);
+    expect(late.members[0].months[1]).toBe("late");
+    expect(late.members[0].months[2]).toBe("late");
+    expect(late.termLabel).toBeNull();
     expect(JSON.stringify(late)).not.toMatch(/amount/i);
   });
 

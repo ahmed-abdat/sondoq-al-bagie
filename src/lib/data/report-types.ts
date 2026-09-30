@@ -86,10 +86,14 @@ export type GridReport = {
 export type LateReport = {
   year: number;
   generatedAt: string;
+  /** the committee term the year's report falls in («الدورة 1»), or null */
+  termLabel: string | null;
   members: {
     memberRef: string;
     fullName: string;
     groupCode: string | null;
+    /** the paper grid: 12 cells, the same states as GridReport (paid / late / not owed …) */
+    months: ReportMonthState[];
     /** 'YYYY-MM' */
     lateMonths: string[];
     monthsCount: number;

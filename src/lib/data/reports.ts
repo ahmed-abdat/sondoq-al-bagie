@@ -216,11 +216,13 @@ async function levyShares(c: Client, filter: { campaignId?: string } = {}): Prom
 }
 
 export async function loadLate(c: Client, year: number, now = new Date()): Promise<LateReport> {
-  const [members, months, shares] = await Promise.all([
+  const [members, months, shares, report] = await Promise.all([
     read.members(c),
     read.memberMonths(c, year),
     levyShares(c),
+    loadReport(c, { year }, now),
   ]);
+  const grid = new Map(report.members.map((m) => [m.memberId, m.months]));
   const late = new Map<string, string[]>();
   for (const m of months) {
     if (m.state !== "late") continue;
@@ -234,6 +236,7 @@ export async function loadLate(c: Client, year: number, now = new Date()): Promi
   return {
     year,
     generatedAt: now.toISOString(),
+    termLabel: report.term?.title ?? null,
     members: members
       .filter((m) => m.status === "active" && (late.has(m.memberId) || levies.has(m.memberId)))
       .map((m) => {
@@ -242,6 +245,7 @@ export async function loadLate(c: Client, year: number, now = new Date()): Promi
           memberRef: m.memberRef,
           fullName: m.fullName,
           groupCode: m.groupCode,
+          months: grid.get(m.memberId) ?? [],
           lateMonths,
           monthsCount: lateMonths.length,
           levies: levies.get(m.memberId) ?? [],
