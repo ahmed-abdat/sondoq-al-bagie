@@ -129,10 +129,17 @@ export function buildAnnual(d: AnnualReport): ReportDoc {
     ...closingBlocks(d.closing, d.campaignsHeld, `رصيد آخر ${edge}`, `المجموع آخر ${edge}`),
   );
   if (yearly && d.months.length) {
+    // owner: a month's fees count in the month they pay for (مستحقات يناير in January, whatever
+    // day they were recorded); levies and donations by their date; expenses by their date
+    const due = d.incomeDue;
+    const notes: string[] = [];
+    if (due.feesForOtherMonths)
+      notes.push(`لا يظهر هنا ${amt(due.feesForOtherMonths)} دُفعت هذه السنة لمستحقات سنة أخرى.`);
+    if (due.feesPaidOutside)
+      notes.push(`ويظهر هنا ${amt(due.feesPaidOutside)} لمستحقات هذه السنة دُفعت في سنة أخرى.`);
     blocks.push(
-      { t: "heading", text: "المداخيل كل شهر" },
-      { t: "bars", values: monthlyValues(d.months, "income") },
-      { t: "heading", text: "شهرًا بشهر" },
+      { t: "heading", text: "المداخيل حسب الشهر المستحق", keep: true },
+      { t: "bars", values: monthlyValues(d.months, "dueIncome") },
       {
         t: "table",
         head: ["الشهر", "المداخيل", "المصاريف"],
@@ -140,24 +147,29 @@ export function buildAnnual(d: AnnualReport): ReportDoc {
         widths: [0.4, 0.3, 0.3],
         rows: d.months.map((m) => [
           monthName(m.month),
-          m.income ? fmt(m.income) : "",
+          m.dueIncome ? fmt(m.dueIncome) : "",
           m.spending ? fmt(m.spending) : "",
         ]),
-        foot: ["المجموع", fmt(d.income.total), fmt(d.spending.total)],
+        foot: ["المجموع", fmt(due.total), fmt(d.spending.total)],
       },
+      ...(notes.length ? [{ t: "note", text: notes.join(" ") } as Block] : []),
     );
   }
   return {
     kind: "annual",
     title: yearly ? "التقرير السنوي الكامل" : "التقرير الشهري الكامل",
     subtitle: periodLabel(d.period),
+    message: "تقرير الصندوق: المداخيل والمصاريف والرصيد. للسؤال تواصل مع اللجنة.",
     blocks,
     fileBase: `${yearly ? "التقرير-السنوي" : "التقرير-الشهري"}-${periodSlug(d.period)}`,
     hasAmounts: true,
   };
 }
 
-function monthlyValues(ms: AnnualReport["months"], k: "income" | "spending"): number[] {
+function monthlyValues(
+  ms: AnnualReport["months"],
+  k: "income" | "dueIncome" | "spending",
+): number[] {
   const v = Array<number>(12).fill(0);
   for (const m of ms) if (m.month >= 1 && m.month <= 12) v[m.month - 1] += m[k];
   return v;
@@ -175,6 +187,7 @@ export function buildSummary(d: SummaryReport): ReportDoc {
     kind: "summary",
     title: "الملخص",
     subtitle: periodLabel(d.period),
+    message: "ملخص الصندوق: المداخيل والمصاريف والرصيد. للسؤال تواصل مع اللجنة.",
     blocks: [
       {
         t: "rows",
@@ -227,6 +240,7 @@ export function buildGrid(d: GridReport): ReportDoc {
     kind: "grid",
     title: "جدول الأشهر",
     subtitle: `سنة ${d.year}`,
+    message: "الأشهر المدفوعة لكل عضو. إن رأيت خطأ في اسمك تواصل مع اللجنة.",
     blocks,
     fileBase: `جدول-الأشهر-${d.year}`,
     hasAmounts: Object.values(d.groupPrices).some(Boolean),
@@ -298,6 +312,7 @@ export function buildLate(d: LateReport): ReportDoc {
     kind: "late",
     title: "المتأخرات",
     subtitle: `سنة ${d.year}`,
+    message: "هذه الأسماء عليها متأخرات لم تُدفع بعد. للدفع أو السؤال تواصل مع اللجنة.",
     blocks,
     fileBase: `المتأخرات-${d.year}`,
     hasAmounts: false,
@@ -339,6 +354,7 @@ export function buildExpenses(d: ExpensesReport): ReportDoc {
     kind: "expenses",
     title: "المصاريف",
     subtitle: periodLabel(d.period),
+    message: "مصاريف الصندوق حسب النشاط وحسب الشهر. للسؤال تواصل مع اللجنة.",
     blocks,
     fileBase: `المصاريف-${periodSlug(d.period)}`,
     hasAmounts: true,
@@ -430,6 +446,10 @@ export function buildCampaign(d: CampaignReport, stats?: LevyStats | DonationSta
     kind: "campaign",
     title: d.kind === "levy" ? "تقرير لوحة" : "تقرير تبرع",
     subtitle: `${d.title} · ${since}`,
+    message:
+      d.kind === "levy"
+        ? "من دفع نصيبه ومن لم يدفع بعد. للدفع أو السؤال تواصل مع اللجنة."
+        : "ما جُمع ومن ساهم. شكرًا لكل من ساهم.",
     blocks,
     fileBase: `${what}-${slug(d.title)}`,
     hasAmounts: true,
@@ -584,6 +604,7 @@ export function buildStats(d: StatsReport): ReportDoc {
   return {
     kind: "stats",
     title: "الإحصاءات",
+    message: "أرقام بلا أسماء: من دفع المستحقات، واللوحات والتبرعات. للسؤال تواصل مع اللجنة.",
     subtitle: f.refMonth >= 12 ? `سنة ${f.year}` : `سنة ${f.year} · حتى ${monthName(f.refMonth)}`,
     blocks: [
       ...feeStatBlocks(f, d.previous),
@@ -665,6 +686,7 @@ export function buildStatement(d: MemberStatement): ReportDoc {
     kind: "member",
     title: "كشف عضو",
     subtitle: `${m.fullName} · سنة ${d.year}`,
+    message: "أشهره المدفوعة ودفعاته في هذه السنة. للسؤال تواصل مع اللجنة.",
     blocks,
     fileBase: `كشف-${slug(m.fullName)}-${d.year}`,
     hasAmounts: true,
@@ -729,6 +751,7 @@ export function buildHandover(d: HandoverReport): ReportDoc {
   return {
     kind: "handover",
     title: "تقرير التسليم",
+    message: "للجنة: ما تتسلّمه اللجنة الجديدة.",
     subtitle: `${name} · من ${day(t.startedOn)} ${t.endedOn ? `إلى ${day(t.endedOn)}` : "إلى اليوم"}`,
     blocks,
     fileBase: `التسليم-الدورة-${t.number}`,
@@ -780,6 +803,7 @@ export function buildWallets(d: WalletsReport): ReportDoc {
     kind: "wallets",
     title: "المبالغ حسب المحفظة",
     subtitle: periodLabel(d.period),
+    message: "للجنة: مداخيل كل محفظة وما خرج منها، لمطابقة رصيدها.",
     blocks: rows.length
       ? [
           {
@@ -848,6 +872,7 @@ export function buildWork(d: CommitteeWorkReport): ReportDoc {
     kind: "work",
     title: "عمل اللجنة",
     subtitle: periodLabel(d.period),
+    message: "للجنة: ما سجّله كل عضو في اللجنة وما ألغاه.",
     blocks,
     fileBase: `عمل-اللجنة-${periodSlug(d.period)}`,
     hasAmounts: true,

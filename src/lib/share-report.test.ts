@@ -13,7 +13,6 @@ import {
   reportFileName,
   reportSummary,
   reportShareText,
-  reportUrl,
   shareReportSummary,
   type ReportSummaryData,
 } from "./share-report";
@@ -39,9 +38,8 @@ const D: ReportSummaryData = {
   asOfLabel: "5 أكتوبر 2026",
 };
 
-it("paidLine / url / file name", () => {
+it("paidLine / file name", () => {
   expect(paidLine(D)).toBe(`38 من 70 دفعوا مستحقات شهر ${monthName(9)}`);
-  expect(reportUrl("https://x.app/")).toBe("https://x.app/report");
   expect(reportFileName(2026, 9)).toBe("ملخص-صندوق-الرابطة-2026-09.png");
   expect(reportFileBase("2026-09-28T10:25:00Z")).toBe("تقرير-صندوق-الرابطة-2026-09-28");
   expect(reminderFileBase("2026-09-28T10:25:00Z")).toBe("المتأخرات-2026-09");
@@ -61,13 +59,14 @@ describe("monthBars", () => {
   });
 });
 
-it("reportShareText has the numbers, the month line and the link", () => {
-  const t = reportShareText(D, "https://x.app/report");
+it("reportShareText has the numbers and the month line, never a link (owner)", () => {
+  const t = reportShareText(D);
   expect(t).toContain(`في الصندوق الآن: 290${THIN}500 أوقية`);
   expect(t).toContain(`المصاريف هذا العام: 1${THIN}500 أوقية`);
   expect(t).toContain(paidLine(D));
   expect(t).toContain("الدورة 2026");
-  expect(t).toContain("التفاصيل: https://x.app/report");
+  expect(t).toContain("للسؤال تواصل مع اللجنة.");
+  expect(t).not.toMatch(/http|vercel|baqie|التطبيق|التفاصيل/);
 });
 
 describe("drawReportSummary", () => {
@@ -99,7 +98,7 @@ describe("drawReportSummary", () => {
     return texts;
   };
 
-  it("card: balance, how it is made, paid per list, where to look yourself up", () => {
+  it("card: balance, how it is made, paid per list; never a link (owner)", () => {
     const texts = draw();
     expect(texts).toEqual(
       expect.arrayContaining([
@@ -109,12 +108,11 @@ describe("drawReportSummary", () => {
         `10${THIN}000`,
         paidLine(D),
         "المجموعة أ: 11 من 20",
-        "ابحث عن اسمك:",
-        "x.app/report",
         "صندوق الرابطة · حتى 5 أكتوبر 2026",
       ]),
     );
     expect(texts).not.toContain("12");
+    for (const t of texts) expect(t).not.toMatch(/http|x\.app|vercel|baqie|التطبيق|ابحث عن اسمك/);
   });
 
   it("cover: 12 month bars with the current month's amount", () => {
@@ -132,11 +130,13 @@ it("compactAmount", () => {
   expect(compactAmount(373000)).toBe(`373 ألف`);
 });
 
-it("shareReportSummary falls back to WhatsApp text with the link", async () => {
+it("shareReportSummary falls back to WhatsApp text, without any link", async () => {
   const open = vi.fn();
   const res = await shareReportSummary(D, "https://x.app/report", { nav: {} as never, open });
   expect(res).toBe("whatsapp");
-  expect(decodeURIComponent(open.mock.calls[0][0])).toContain("https://x.app/report");
+  const text = decodeURIComponent(open.mock.calls[0][0]).replace(/^https:\/\/wa\.me\/\?text=/, "");
+  expect(text).toContain("في الصندوق الآن");
+  expect(text).not.toMatch(/http|x\.app|vercel|baqie|التطبيق/);
 });
 
 describe("reportSummary (ReportData → card)", () => {
@@ -215,7 +215,7 @@ describe("reportSummary (ReportData → card)", () => {
   });
 
   it("the share text takes ReportData as is", () => {
-    expect(reportShareText(R(), "u")).toBe(reportShareText(reportSummary(R()), "u"));
+    expect(reportShareText(R())).toBe(reportShareText(reportSummary(R())));
   });
 
   it("uses the term title when present, December for a past year", () => {
@@ -242,15 +242,14 @@ describe("reportSummary (ReportData → card)", () => {
 });
 
 describe("reminderShareText", () => {
-  it("«المتأخرات» with the app link, no amounts and no payment numbers", () => {
-    const t = reminderShareText("https://baqie.vercel.app");
+  it("«المتأخرات»: short and warm, no link, no amounts", () => {
+    const t = reminderShareText(2026);
     expect(t).toBe(
       [
-        "*المتأخرات · صندوق الرابطة*",
-        "هذه الأسماء عليها متأخرات لم تُدفع بعد.",
-        "ابحث عن اسمك في التطبيق: https://baqie.vercel.app",
+        "*المتأخرات · سنة 2026*",
+        "هذه الأسماء عليها متأخرات لم تُدفع بعد. للدفع أو السؤال تواصل مع اللجنة.",
       ].join("\n"),
     );
-    expect(t).not.toMatch(/أوقية|ادفع عبر/);
+    expect(t).not.toMatch(/أوقية|ادفع عبر|http|vercel|baqie|التطبيق/);
   });
 });

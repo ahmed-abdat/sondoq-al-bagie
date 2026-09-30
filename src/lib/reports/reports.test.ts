@@ -24,6 +24,7 @@ import {
   paginate,
   percent,
   PHONE,
+  shareText,
   UNITS_NOTE,
   type Block,
   type ReportDoc,
@@ -176,6 +177,18 @@ describe("the 10 reports", () => {
     expect(noCampaigns).toContain("*رصيد آخر السنة: 300 000*");
     expect(noCampaigns).not.toContain("منها في الصندوق");
     expect(doc.blocks.some((b) => b.t === "bars" && b.values.length === 12)).toBe(true);
+    // owner: the chart and the table by the month the fees pay for, expenses by date
+    expect(text).toContain("*المداخيل حسب الشهر المستحق*");
+    const bars = doc.blocks.find((b) => b.t === "bars");
+    expect(bars?.t === "bars" && bars.values).toEqual(fx.fxAnnual.months.map((m) => m.dueIncome));
+    expect(text).toContain("*المجموع · 307 500 · 133 500*");
+    expect(text.replace(/[\u2066-\u2069]/g, "")).toContain(
+      "لا يظهر هنا 6 000 دُفعت هذه السنة لمستحقات سنة أخرى.",
+    );
+    // the chart adds up: by date − other years' months + this year's months paid in another year
+    const due = fx.fxAnnual.incomeDue;
+    expect(fx.fxAnnual.months.reduce((s, m) => s + m.dueIncome, 0)).toBe(due.total);
+    expect(due.total).toBe(fx.fxAnnual.income.total - due.feesForOtherMonths + due.feesPaidOutside);
     const months = doc.blocks.find((b) => b.t === "table");
     expect(months?.t === "table" && months.rows).toHaveLength(12);
   });
@@ -491,4 +504,25 @@ describe("the owner's words (docs/GLOSSARY.md)", () => {
       const text = txt(doc);
       for (const [re, use] of NEVER) expect(text, `use ${use}`).not.toMatch(re);
     });
+});
+
+describe("the WhatsApp group is public (owner): no app, no site, no link", () => {
+  const NEVER = /http|vercel|baqie|التطبيق|www\.|\.app\b/;
+  for (const [name, doc] of ALL)
+    it(`${name}: text, share message and every drawn page`, () => {
+      expect(txt(doc)).not.toMatch(NEVER);
+      expect(shareText(doc)).not.toMatch(NEVER);
+      for (const size of [PHONE, A4])
+        for (const t of drawn(doc, size)) expect(t).not.toMatch(NEVER);
+    });
+  it("each report says what it is and whom to ask, in one short line", () => {
+    for (const [, doc] of ALL) {
+      expect(doc.message.length).toBeGreaterThan(10);
+      expect(doc.message.length).toBeLessThan(90);
+      expect(shareText(doc).split("\n")).toEqual([`*${doc.title} · ${doc.subtitle}*`, doc.message]);
+    }
+    expect(shareText(buildLate(fx.fxLate))).toBe(
+      "*المتأخرات · سنة 2026*\nهذه الأسماء عليها متأخرات لم تُدفع بعد. للدفع أو السؤال تواصل مع اللجنة.",
+    );
+  });
 });

@@ -177,7 +177,7 @@ describe("money pages", () => {
       campaigns: [campaign("open", 0), campaign("closed", 0), campaign("closed", 500)],
     };
     const b = moneyBlocks(r);
-    expect(b.map((x) => x.t)).toEqual(["heading", "campaign", "campaign", "space", "cta"]);
+    expect(b.map((x) => x.t)).toEqual(["heading", "campaign", "campaign"]);
     const money = paginateReport(r).filter((p) => p.kind === "money");
     expect(money.map((p) => p.kind === "money" && p.title)).toEqual(["حملات التبرع"]);
     const withExp = paginateReport({ ...r, expenses: [expense(1)] }).find(
@@ -290,6 +290,8 @@ describe("what the «المتأخرات» pages draw", () => {
       no: 1,
       of: 1,
     });
+    // owner: shared pages never name the app or carry a link, even when given one
+    for (const t of texts) expect(t).not.toMatch(/http|vercel|baqie|التطبيق/);
     return texts;
   };
   const owing = (ref: string): ReportMember => ({

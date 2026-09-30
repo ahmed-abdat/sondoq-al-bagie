@@ -54,6 +54,7 @@ export const fxAnnual: AnnualReport = {
     fromCampaigns: 25_000,
     total: 133_500,
   },
+  incomeDue: { total: 307_500, feesForOtherMonths: 6_000, feesPaidOutside: 0 },
   adjustments: 0,
   closing: 300_000,
   campaignsHeld: 46_000,
@@ -61,6 +62,11 @@ export const fxAnnual: AnnualReport = {
     year: 2026,
     month: k + 1,
     income: k < 9 ? [41_000, 30_500, 28_000, 26_000, 24_500, 22_000, 21_500, 60_000, 60_000][k] : 0,
+    // the same fees by the month they pay for (6 000 of them for 2027 are not in this year)
+    dueIncome: [
+      30_000, 29_500, 29_000, 28_500, 28_000, 27_500, 27_000, 26_500, 26_000, 20_000, 18_000,
+      17_500,
+    ][k],
     spending: k < 9 ? [0, 15_000, 0, 30_000, 0, 18_500, 0, 45_000, 25_000][k] : 0,
   })),
 };

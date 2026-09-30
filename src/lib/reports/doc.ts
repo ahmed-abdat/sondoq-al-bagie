@@ -85,6 +85,11 @@ export type ReportDoc = {
   /** «سنة 2026», «الفئة أ · سنة 2026», «اختبار الدفع · سنة 2026» */
   subtitle: string;
   blocks: Block[];
+  /**
+   * One short, warm line for the WhatsApp group (owner): what this is and whom to ask. Never the
+   * app, the site or a link: the group is public, the app is the committee's.
+   */
+  message: string;
   /** file names: «التقرير-السنوي-2026» → .pdf / -1.png */
   fileBase: string;
   /** false for the reports without any amount (months grid, «المتأخرات»): no units note */
@@ -358,9 +363,14 @@ export function preparedLine(meta: DocMeta): string {
 
 const amount = (r: AmountRow) => `${r.sign ?? ""}${formatNumber(r.amount)}`;
 
+/** The message that goes with the images or the PDF: «*المتأخرات · سنة 2026*» and one line. */
+export function shareText(doc: ReportDoc): string {
+  return `*${doc.title} · ${doc.subtitle}*\n${doc.message}`;
+}
+
 /** The same report as plain text for WhatsApp: no link, no receipt, amounts in MRO. */
 export function docText(doc: ReportDoc, meta: DocMeta): string {
-  const out: string[] = [`*${doc.title}*`, doc.subtitle, ""];
+  const out: string[] = [`*${doc.title}*`, doc.subtitle, doc.message, ""];
   for (const b of doc.blocks) {
     switch (b.t) {
       case "heading":
