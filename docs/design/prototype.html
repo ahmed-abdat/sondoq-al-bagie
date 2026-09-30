@@ -367,13 +367,13 @@ function status(m){if(m.st!=='active'&&!owedMonths(m).length)return{c:'neutral',
 const byId=id=>members.find(m=>m.id===id);
 
 let expenses=[
- {act:'التدريس المحوري',amt:85000,date:'15 يوليو',note:'مكافآت المدرسين لشهر يوليو',src:'fund'},
+ {act:'التدريس المحظري',amt:85000,date:'15 يوليو',note:'مكافآت المدرسين لشهر يوليو',src:'fund'},
  {act:'تكريم الناجحين',amt:42000,date:'22 أغسطس',note:'جوائز الناجحين في الباكالوريا',src:'fund'},
  {act:'الفريق الرياضي',amt:30000,date:'5 سبتمبر',note:'تسجيل الفريق في دوري المقاطعة',src:'fund'},
  {act:'أخرى',amt:6500,date:'10 سبتمبر',note:'طباعة وأدوات',src:'fund'}
 ];
-const ACTS=['التدريس المحوري','تكريم الناجحين','الفريق الرياضي','أخرى'];
-const ACTCOL={'التدريس المحوري':'var(--primary)','تكريم الناجحين':'var(--gold-bright)','الفريق الرياضي':'#3E8FB0','أخرى':'var(--muted)'};
+const ACTS=['التدريس المحظري','تكريم الناجحين','الفريق الرياضي','أخرى'];
+const ACTCOL={'التدريس المحظري':'var(--primary)','تكريم الناجحين':'var(--gold-bright)','الفريق الرياضي':'#3E8FB0','أخرى':'var(--muted)'};
 
 let campaigns=[
  {id:1,title:'تجهيز الفريق الرياضي',purpose:'أقمصة وكرات ومصاريف التنقل لدوري المقاطعة',target:150000,mode:'per_group',amounts:{A:3000,B:1500},who:'all',deadline:'15 أكتوبر',status:'open',parts:[],extra:[{name:'محسن من القرية',amt:10000}]},
@@ -485,7 +485,7 @@ function moreScreen(){
   <section class="card"><h2>الاشتراك الشهري</h2><div class="kv" style="margin-top:10px"><div><small>الفئة A</small><b>${fmt(1000)}</b></div><div><small>الفئة B</small><b>${fmt(500)}</b></div></div><p class="muted small" style="margin:8px 0 0">بالأوقية القديمة. في تطبيق المحفظة تظهر بالجديدة: 100 و50.</p></section>
   <section class="card"><h2>ثبّت التطبيق على هاتفك</h2><p class="muted small" style="margin:6px 0 0">افتح قائمة المتصفح ثم اختر "إضافة إلى الشاشة الرئيسية". يفتح بعدها مثل أي تطبيق، ويعرض آخر البيانات حتى بدون إنترنت.</p></section>
   <section class="card"><h2>اللجنة المشرفة ${YEAR}</h2><ul class="feed" style="margin-top:6px">${[['الرئيس',I.flag],['أمين الصندوق',I.cash],['نائب أمين الصندوق',I.cash],['الأمين العام',I.receipt],['مشرف',I.users]].map(([r,i])=>`<li><span class="ic neutral">${i}</span><div class="tx">${r}<small>الاسم يُضاف من الإعدادات</small></div></li>`).join('')}</ul></section>
-  <section class="card" style="display:flex;gap:14px;align-items:center"><img src="logo.jpg" alt="" style="width:64px;height:64px;border-radius:50%;background:#fff;object-fit:contain"><div><b>رابطة شباب قرية البقيع</b><div class="small" style="color:var(--gold);font-weight:700">تعاون • نجاح • تميّز</div><div class="small muted">الصندوق يموّل التدريس المحوري وتكريم الناجحين والفريق الرياضي.</div></div></section>
+  <section class="card" style="display:flex;gap:14px;align-items:center"><img src="logo.jpg" alt="" style="width:64px;height:64px;border-radius:50%;background:#fff;object-fit:contain"><div><b>رابطة شباب قرية البقيع</b><div class="small" style="color:var(--gold);font-weight:700">تعاون • نجاح • تميّز</div><div class="small muted">الصندوق يموّل التدريس المحظري وتكريم الناجحين والفريق الرياضي.</div></div></section>
   <button class="btn s block" data-act="theme">${I.moon}تبديل الوضع الفاتح والداكن</button></div>`;
 }
 
@@ -728,7 +728,7 @@ document.addEventListener('click',e=>{
       S.sheet=null;
       if(g==='pay')S.flow={type:'pay',step:0,sel:[],months:{},meth:'بنكيلي',payer:'',img:null,q:'',don:{c:0,amt:''},shot:'',unit:'new',ref:''};
       if(g==='camp')S.flow={type:'camp',step:0,title:'',purpose:'',target:'',deadline:'',who:'all',grp:'A',pick:[],mode:'per_group',fixed:'2000',pg:{A:'2000',B:'1000'},announce:true};
-      if(g==='exp')S.flow={type:'exp',act:'التدريس المحوري',amt:'',src:'fund',note:'',img:null};
+      if(g==='exp')S.flow={type:'exp',act:'التدريس المحظري',amt:'',src:'fund',note:'',img:null};
       break;
     case 'flowfor':{const m=byId(+g);S.sheet=null;S.flow={type:'pay',step:1,sel:[m.id],months:{[m.id]:new Set(owedMonths(m))},meth:'بنكيلي',payer:m.name,img:null,q:'',don:{c:0,amt:''},shot:'',unit:'new',ref:''};break}
     case 'close':S.flow=null;break;

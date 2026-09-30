@@ -19,6 +19,7 @@ Simple everyday Arabic, correct grammar. Change a term here first, then everywhe
 | Recording money | «سجّل دفعة» · «سُجّلت الدفعة» · «تراجع» | أكّد، وصل |
 | Cancelling | «ألغِ» · «أُلغيت» + السبب | احذف |
 | Expense activity | **النشاط** (list managed by المسؤول) | المحور |
+| The teaching activity | «التدريس المحظري» | «التدريس المحوري» |
 | Units | «أوقية» (old ouguiya); the report note «المبالغ بالأوقية القديمة» once | |
 
 Monthly charts: income is shown **by the month it pays for** (مستحقات يناير in January, whatever

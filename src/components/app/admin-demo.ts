@@ -300,7 +300,7 @@ export function demoAdminData(): PData {
       id: "e-c3",
       at: "2026-09-05",
       category: "other",
-      activity: "التدريس المحوري",
+      activity: "التدريس المحظري",
       note: "60 حقيبة وأدوات",
       amount: 41000,
       campaign: "c3",

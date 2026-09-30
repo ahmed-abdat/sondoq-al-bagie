@@ -47,7 +47,7 @@ export const fxAnnual: AnnualReport = {
       { category: "honoring", label: "التكريم", amount: 25_000 },
     ],
     byActivity: [
-      { activityId: 1, name: "التدريس المحوري", amount: 90_000 },
+      { activityId: 1, name: "التدريس المحظري", amount: 90_000 },
       { activityId: 2, name: "تكريم الناجحين", amount: 25_000 },
       { activityId: 3, name: "الفريق الرياضي", amount: 18_500 },
     ],
@@ -226,9 +226,9 @@ export const fxExpenses: ExpensesReport = {
     {
       spentOn: "2026-08-20",
       category: "teaching",
-      label: "التدريس المحوري",
+      label: "التدريس المحظري",
       activityId: 1,
-      activity: "التدريس المحوري",
+      activity: "التدريس المحظري",
       note: "راتب المعلم",
       amount: 45_000,
       campaignTitle: null,
@@ -248,9 +248,9 @@ export const fxExpenses: ExpensesReport = {
     {
       spentOn: "2026-04-10",
       category: "teaching",
-      label: "التدريس المحوري",
+      label: "التدريس المحظري",
       activityId: 1,
-      activity: "التدريس المحوري",
+      activity: "التدريس المحظري",
       note: null,
       amount: 45_000,
       campaignTitle: null,
@@ -263,7 +263,7 @@ export const fxExpenses: ExpensesReport = {
     { category: "sports", label: "الرياضة", amount: 18_500 },
   ],
   byActivity: [
-    { activityId: 1, name: "التدريس المحوري", amount: 90_000 },
+    { activityId: 1, name: "التدريس المحظري", amount: 90_000 },
     { activityId: 2, name: "تكريم الناجحين", amount: 25_000 },
     { activityId: 3, name: "الفريق الرياضي", amount: 18_500 },
   ],

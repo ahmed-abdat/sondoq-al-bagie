@@ -398,6 +398,6 @@ Stats design pick: **a (numbers first)**.
 ## 13. Expense activities (owner, 2026-09-30)
 
 «لأي نشاط؟» is a list the «مسؤول» manages (add, rename, retire), not a fixed set. Existing
-expenses map to «التدريس المحوري», «تكريم الناجحين», «الفريق الرياضي», «أخرى». The owner sends the full list
+expenses map to «التدريس المحظري», «تكريم الناجحين», «الفريق الرياضي», «أخرى». The owner sends the full list
 of the association's activities to seed. Reports group spending by activity.
 Owner (later): the word is **«النشاط»**; the 4 existing activities are the defaults; «المسؤول» adds any others from the list screen (no seed list to wait for).

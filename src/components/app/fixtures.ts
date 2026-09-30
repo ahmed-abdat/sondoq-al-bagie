@@ -665,7 +665,7 @@ export const fxHandovers = (): Handover[] => [];
 
 /** «النشاط» (m38): the 4 defaults the existing expenses map to. */
 export const fxActivities = (): ExpenseActivity[] => [
-  { id: 1, name: "التدريس المحوري", sortOrder: 1, active: true },
+  { id: 1, name: "التدريس المحظري", sortOrder: 1, active: true },
   { id: 2, name: "تكريم الناجحين", sortOrder: 2, active: true },
   { id: 3, name: "الفريق الرياضي", sortOrder: 3, active: true },
   { id: 4, name: "أخرى", sortOrder: 99, active: true },

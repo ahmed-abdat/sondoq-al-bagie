@@ -95,7 +95,7 @@ test("«النشاط»: «المسؤول» adds, renames and stops one; the expe
   await page.getByRole("button", { name: /سجّل مصروفًا/ }).click();
   const sheet = page.getByRole("dialog", { name: "سجّل مصروفًا" });
   await expect(sheet.getByRole("radiogroup", { name: "النشاط" }).getByRole("radio")).toHaveText([
-    "التدريس المحوري",
+    "التدريس المحظري",
     "تكريم الناجحين",
     "الفريق الرياضي",
     "أخرى",
@@ -105,7 +105,7 @@ test("«النشاط»: «المسؤول» adds, renames and stops one; the expe
 test("«المصاريف»: each expense says its activity, wallet and who recorded it", async ({ page }) => {
   await page.goto("/committee/expenses");
   const first = page.locator(".pa-rows li").first();
-  await expect(first).toContainText(/التدريس المحوري|تكريم الناجحين|الفريق الرياضي|أخرى/);
+  await expect(first).toContainText(/التدريس المحظري|تكريم الناجحين|الفريق الرياضي|أخرى/);
   await expect(first).toContainText(/بنكيلي|مصرفي|نقدًا/);
   await expect(first).toContainText(/سجّله /);
 });
