@@ -86,7 +86,7 @@ export function monthsWords(ms: number[]): string {
 }
 /** One status phrase, like phone credit «صالح حتى» (UX-PATTERNS P1). */
 export function payStatus(m: PMember): string {
-  if (m.status === "exempt") return "معفى من الرسوم";
+  if (m.status === "exempt") return "معفى من المستحقات";
   if (m.status === "left") return "غادر الرابطة";
   if (m.paid.length === 12) return "دفع السنة كاملة";
   const start = m.notOwed.length ? Math.max(...m.notOwed) + 1 : 1;

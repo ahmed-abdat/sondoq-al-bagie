@@ -113,11 +113,11 @@ describe("member state", () => {
     expect(c("NNNNPPPPPPPP")).toBe("دفع السنة كاملة"); // joined in May, all paid
     expect(c("NNNNPPLLLUUU")).toBe("دفع حتى يونيو"); // joined in May
     expect(c("LLLLLLLLLUUU")).toBe("لم يدفع هذا العام");
-    expect(c("LLPPPPPPPUUU")).toBe("لم يدفع رسوم يناير"); // a gap, then later months
+    expect(c("LLPPPPPPPUUU")).toBe("لم يدفع مستحقات يناير"); // a gap, then later months
     expect(c("UUUUUUUUUUUU")).toBe("منتظم"); // nothing due yet
     expect(statusLabel({ ...m({}), months: "PPPPPPPLLUUU" }, 2026)).toBe("دفع حتى يوليو 2026");
     expect(c("PPPPPPPPPUUU", { pastLate: ["2025-11", "2025-12"] })).toBe(
-      "لم يدفع رسوم نوفمبر 2025",
+      "لم يدفع مستحقات نوفمبر 2025",
     );
     for (const code of ["PPPPPPPLLUUU", "LLLLLLLLLUUU", "LLPPPPPPPUUU"])
       expect(c(code)).not.toMatch(/متأخر|من \d|\d+ أشهر/);

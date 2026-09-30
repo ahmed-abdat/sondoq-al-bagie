@@ -80,7 +80,7 @@ export type PLevy = {
   title: string;
   purpose: string;
   perMember: number;
-  scope: string; // «كل الأعضاء» / «المجموعة أ» / «أعضاء مختارون»
+  scope: string; // «كل الأعضاء» / «الفئة أ» / «أعضاء مختارون»
   createdOn: string;
   createdBy: string;
   status: "open" | "closed";

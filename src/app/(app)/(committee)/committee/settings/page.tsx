@@ -14,7 +14,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/committ
     src.fundSettings(),
   ]);
   const admin = session.role === "admin";
-  // «الرسوم الشهرية» of the coming year from 1 December (or this year's when none is set);
+  // «المستحقات الشهرية» of the coming year from 1 December (or this year's when none is set);
   // demo: /committee/settings?prices=1 shows next year's card any day
   const t = src.today();
   const year = t.getUTCFullYear();

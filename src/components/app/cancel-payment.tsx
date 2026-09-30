@@ -34,7 +34,7 @@ export function PaymentDetails({ r }: { r: ReceiptView }) {
           <div key={i}>
             <dt>{c.name}</dt>
             <dd>
-              رسوم {monthsText(c.months)} <Num>{c.year}</Num>
+              مستحقات {monthsText(c.months)} <Num>{c.year}</Num>
             </dd>
           </div>
         ))}

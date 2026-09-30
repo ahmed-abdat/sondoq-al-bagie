@@ -70,7 +70,7 @@ export function CampaignFormBody({
     }
     if (!r.ok) return setErr(r.message);
     router.refresh();
-    onDone(campaign ? "حُفظت الحملة" : `فُتحت حملة «${title.trim()}»`);
+    onDone(campaign ? "حُفظ التبرع" : `فُتح تبرع «${title.trim()}»`);
   };
 
   if (campaign && closing)
@@ -84,21 +84,21 @@ export function CampaignFormBody({
     );
   return (
     <div className="bq-rec">
-      <h2>{campaign ? "تعديل الحملة" : "حملة جديدة"}</h2>
-      <p className="bq-rec-k">اسم الحملة</p>
+      <h2>{campaign ? "تعديل التبرع" : "تبرع جديد"}</h2>
+      <p className="bq-rec-k">اسم التبرع</p>
       <input
         className="bq-input"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="مثل: معدات فريق كرة القدم"
-        aria-label="اسم الحملة"
+        aria-label="اسم التبرع"
       />
       <p className="bq-rec-k">لماذا؟ (اختياري)</p>
       <input
         className="bq-input"
         value={purpose}
         onChange={(e) => setPurpose(e.target.value)}
-        aria-label="هدف الحملة"
+        aria-label="هدف التبرع"
       />
       <p className="bq-rec-k">المبلغ المطلوب بالأوقية (اختياري)</p>
       <input
@@ -110,9 +110,9 @@ export function CampaignFormBody({
         aria-label="المبلغ المطلوب"
       />
       <p className="bq-rec-k">آخر يوم (اختياري)</p>
-      <DateField value={deadline} onChange={setDeadline} label="آخر يوم للحملة" optional />
+      <DateField value={deadline} onChange={setDeadline} label="آخر يوم للتبرع" optional />
       <p className="bq-hint bq-small-top">
-        المساهمات تُحسب منفصلة عن الرسوم الشهرية، ويراها كل الأعضاء في «التبرعات».
+        المساهمات تُحسب منفصلة عن المستحقات الشهرية، ويراها كل الأعضاء في «التبرعات».
       </p>
       <div className="bq-rec-foot">
         {err && (
@@ -126,7 +126,7 @@ export function CampaignFormBody({
           disabled={!ok || busy || !online}
           onClick={() => void submit()}
         >
-          {busy ? "جارٍ الحفظ…" : campaign ? "احفظ التعديل" : "افتح الحملة"}
+          {busy ? "جارٍ الحفظ…" : campaign ? "احفظ التعديل" : "افتح التبرع"}
         </button>
         <OfflineWriteHint />
         {campaign && (
@@ -135,7 +135,7 @@ export function CampaignFormBody({
             className="bq-link bq-link-quiet bq-press"
             onClick={() => setClosing(true)}
           >
-            انتهت الحملة؟ إغلاقها
+            انتهى التبرع؟ أغلقه
           </button>
         )}
       </div>
@@ -161,7 +161,7 @@ export function CloseCampaignBody({
   const [err, setErr] = useState("");
   return (
     <div className="bq-rec">
-      <h2>إغلاق الحملة</h2>
+      <h2>إغلاق التبرع</h2>
       <p className="bq-lead">{campaign.title}</p>
       <dl className="bq-facts">
         <div>
@@ -171,13 +171,13 @@ export function CloseCampaignBody({
           </dd>
         </div>
         <div>
-          <dt>صُرف</dt>
+          <dt>المصاريف</dt>
           <dd>
             <Num>{fmt(campaign.spent)}</Num> أوقية
           </dd>
         </div>
         <div className="is-wide">
-          <dt>الباقي في حساب الحملة</dt>
+          <dt>الباقي في حساب التبرع</dt>
           <dd>
             <Num>{fmt(campaign.balance)}</Num> أوقية
           </dd>
@@ -194,7 +194,7 @@ export function CloseCampaignBody({
       {pendingCount > 0 && (
         <div className="bq-wait" role="status">
           <p>
-            للحملة {contributionCount(pendingCount)} بانتظار التأكيد. أكّدها أو ارفضها قبل الإغلاق.
+            للتبرع {contributionCount(pendingCount)} لم تُثبَّت بعد. ثبّتها أو ارفضها قبل الإغلاق.
           </p>
           <Link className="bq-link bq-link-s bq-press" href="/committee">
             افتح الدفعات {I.go(18)}
@@ -221,13 +221,11 @@ export function CloseCampaignBody({
             if (!r.ok) return setErr(r.message);
             router.refresh();
             onDone(
-              r.data > 0
-                ? `أُغلقت الحملة وحُوّل ${fmt(r.data)} أوقية إلى الصندوق`
-                : "أُغلقت الحملة",
+              r.data > 0 ? `أُغلق التبرع وحُوّل ${fmt(r.data)} أوقية إلى الصندوق` : "أُغلق التبرع",
             );
           }}
         >
-          أغلق الحملة
+          أغلق التبرع
         </button>
         {onBack && (
           <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={onBack}>
@@ -249,7 +247,7 @@ export function CampaignAdminList({
   onEdit: (c: CampaignProgress) => void;
 }) {
   if (!campaigns.length)
-    return <p className="bq-hint">لا توجد حملات بعد. اضغط «حملة جديدة» لتفتح أول حملة.</p>;
+    return <p className="bq-hint">لا تبرعات بعد. اضغط «تبرع جديد» لتفتح أول تبرع.</p>;
   return (
     <ul className="bq-list">
       {campaigns.map((c) => {

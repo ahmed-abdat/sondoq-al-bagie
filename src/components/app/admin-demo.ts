@@ -19,7 +19,7 @@ import type {
 
 // plan §8: one committee level; «مسؤول» only manages committee accounts
 const ROLE: Record<string, string> = {
-  admin: "مسؤول",
+  admin: "المسؤول",
   treasurer: "عضو اللجنة",
   deputy: "عضو اللجنة",
   committee: "عضو اللجنة",
@@ -242,7 +242,7 @@ export function demoAdminData(): PData {
         id: p.id,
         at: p.at,
         title: p.payer,
-        sub: "رسوم",
+        sub: "مستحقات",
         amount: p.amount,
       })),
     ...expenses.map((e): POp => ({
@@ -250,7 +250,7 @@ export function demoAdminData(): PData {
       id: e.id,
       at: `${e.at}T12:00:00Z`,
       title: e.note,
-      sub: e.campaign ? "مصروف حملة" : "مصروف",
+      sub: e.campaign ? "مصروف تبرع" : "مصروف",
       amount: e.amount,
     })),
     ...campaigns.flatMap((c) =>
@@ -298,7 +298,7 @@ export function demoAdminData(): PData {
       title: "تنظيف مقبرة القرية",
       purpose: "أجرة العمال والشاحنة.",
       perMember: 500,
-      scope: "المجموعة أ",
+      scope: "الفئة أ",
       createdOn: "2026-06-01",
       createdBy: "المختار",
       status: "closed",

@@ -299,7 +299,7 @@ export function memberState(m: StateInput): MState {
  * One status phrase, like phone credit «صالح حتى» (UX-PATTERNS P1): «دفع حتى أغسطس», the last
  * month of the unbroken paid run from the first owed month. No counting («X من Y», «متأخر 3»);
  * lateness is implicit. Nothing paid yet: «لم يدفع هذا العام»; every owed month paid: «دفع السنة
- * كاملة»; a gap before a later payment or an older year: «لم يدفع رسوم <شهر> [<سنة>]»;
+ * كاملة»; a gap before a later payment or an older year: «لم يدفع مستحقات <شهر> [<سنة>]»;
  * nothing due yet: «منتظم». `year` adds the year to month phrases (member sheet). Needs the
  * month code for exact words; without it, months are assumed paid from January.
  */
@@ -309,7 +309,7 @@ export function statusLabel(m: StatusInput, year?: number) {
   const y = year ? ` ${year}` : "";
   if (m.pastLate?.length) {
     const [py, pm] = m.pastLate[0].split("-").map(Number);
-    if (py && pm) return `لم يدفع رسوم ${MONTHS[pm - 1]} ${py}`;
+    if (py && pm) return `لم يدفع مستحقات ${MONTHS[pm - 1]} ${py}`;
   }
   if (!m.months) {
     if (m.monthsPaidThisYear >= 12) return "دفع السنة كاملة";
@@ -328,7 +328,7 @@ export function statusLabel(m: StatusInput, year?: number) {
   if (upTo >= 0) return `دفع حتى ${MONTHS[upTo]}${y}`;
   const firstLate = owed.find((i) => st[i] === "late");
   if (firstLate === undefined) return "منتظم";
-  return paid.length ? `لم يدفع رسوم ${MONTHS[firstLate]}${y}` : "لم يدفع هذا العام";
+  return paid.length ? `لم يدفع مستحقات ${MONTHS[firstLate]}${y}` : "لم يدفع هذا العام";
 }
 
 /** Committee late list: «لم يدفع منذ يوليو 2026» from the oldest late month ("YYYY-MM"). */
@@ -463,7 +463,7 @@ export function maskTxn(ref: string | null | undefined) {
 
 /** Two levels (plan §8/§9); the older roles read as «عضو اللجنة». */
 export const ROLE_LABEL = {
-  admin: "مسؤول",
+  admin: "المسؤول",
   treasurer: "عضو اللجنة",
   deputy: "عضو اللجنة",
   committee: "عضو اللجنة",

@@ -843,7 +843,7 @@ function DeleteAccount({
             onDeleted();
           }}
         >
-          {busy ? "جارٍ الحذف…" : "احذف الحساب"}
+          {busy ? "جارٍ الإلغاء…" : "ألغِ الحساب"}
         </button>
         <button type="button" className="bq-btn bq-btn-ghost bq-press" onClick={onBack}>
           رجوع

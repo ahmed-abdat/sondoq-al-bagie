@@ -125,8 +125,8 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
         />
       </label>
       <div className="pa-field">
-        <span>متى صُرف؟</span>
-        <DateField value={on} onChange={setOn} label="متى صُرف؟" noFuture />
+        <span>التاريخ</span>
+        <DateField value={on} onChange={setOn} label="تاريخ المصروف" noFuture />
       </div>
       <p className="pa-label">لأي نشاط؟</p>
       <Chips label="النشاط" value={kind} onChange={setKind} options={[...KINDS]} />

@@ -55,9 +55,9 @@ export function MoreMenu({ me }: { me: { name: string; role: string; admin: bool
     };
   }, []);
   const rows: { t: string; s: string; icon: keyof typeof X; to: string; admin?: boolean }[] = [
-    { t: "المصاريف", s: "سجّل مصروفًا، وكل ما صُرف", icon: "bag", to: href("expenses") },
+    { t: "المصاريف", s: "سجّل مصروفًا، وكل المصاريف", icon: "bag", to: href("expenses") },
     { t: "سجل العمليات", s: "من سجّل ماذا، ومتى", icon: "list", to: href("activity") },
-    { t: "المتأخرون", s: "من عليه رسوم أو نصيب لوحة", icon: "clock", to: href("late") },
+    { t: "المتأخرون", s: "من عليه متأخرات أو نصيب لوحة", icon: "clock", to: href("late") },
     ...(pending
       ? [
           {
@@ -77,7 +77,9 @@ export function MoreMenu({ me }: { me: { name: string; role: string; admin: bool
     },
     {
       t: "الإعدادات",
-      s: me.admin ? "أرقام الصندوق، الرسوم الشهرية، أعضاء اللجنة" : "أرقام الصندوق، الرسوم الشهرية",
+      s: me.admin
+        ? "أرقام الصندوق، المستحقات الشهرية، أعضاء اللجنة"
+        : "أرقام الصندوق، المستحقات الشهرية",
       icon: "gear",
       to: href("settings"),
     },

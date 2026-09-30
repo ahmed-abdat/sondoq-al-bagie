@@ -132,7 +132,7 @@ function Keypad<T extends Findable>({
   return (
     <div className="bq-pad">
       <h2>رقم العضو</h2>
-      <div className="bq-pad-letters" role="radiogroup" onKeyDown={radioKeys} aria-label="المجموعة">
+      <div className="bq-pad-letters" role="radiogroup" onKeyDown={radioKeys} aria-label="الفئة">
         {(["أ", "ب"] as const).map((l, i, all) => (
           <button
             key={l}

@@ -25,7 +25,7 @@ export function ExpensesScreen() {
         <h1>المصاريف</h1>
       </header>
       <p className="pa-lead">
-        صُرف من الصندوق هذا العام: <Money v={d.spentYear} />
+        مصاريف الصندوق هذا العام: <Money v={d.spentYear} />
       </p>
       <button
         type="button"

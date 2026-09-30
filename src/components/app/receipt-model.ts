@@ -78,7 +78,7 @@ export function fromPending(
       m.months.push({ year: a.year, month: a.month });
       members.set(a.memberId, m);
     } else if (a.kind === "campaign") {
-      campaigns.push(opts.campaignTitles?.[a.campaignId] ?? "حملة تبرعات");
+      campaigns.push(opts.campaignTitles?.[a.campaignId] ?? "تبرع");
     }
   }
   const actor = {

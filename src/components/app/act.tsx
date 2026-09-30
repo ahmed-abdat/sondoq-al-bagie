@@ -334,8 +334,8 @@ const demo = {
               status: "submitted",
               computedBalance: handoverBalance - 1000,
               submittedAt: now(),
-              startedByName: "أمين الصندوق السابق",
-              submittedByName: "أمين الصندوق السابق",
+              startedByName: "المسؤول السابق",
+              submittedByName: "المسؤول السابق",
             },
           }
         : s,

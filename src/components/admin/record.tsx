@@ -338,7 +338,7 @@ function RecordFlow({
             {
               k: "person" as const,
               l: "شخص آخر",
-              s: "رسوم عضو آخر في نفس التحويل",
+              s: "مستحقات عضو آخر في نفس التحويل",
               icon: "user" as const,
               on: true,
             },
@@ -476,7 +476,7 @@ function LineRow({ l, t }: { l: Line; t: T }) {
         <Avatar refs={m.ref} />
         <span className="pa-row-t">
           <b>{m.name}</b>
-          <small>{what ? `رسوم ${what}` : "لم تُختر أشهر"}</small>
+          <small>{what ? `مستحقات ${what}` : "لم تُختر أشهر"}</small>
         </span>
         <span className="r2-line-amt">
           <Money v={amount} unit={false} />
@@ -543,7 +543,7 @@ function LineRow({ l, t }: { l: Line; t: T }) {
 }
 function Remove({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" className="r2-x" onClick={onClick} aria-label="احذف من الدفعة">
+    <button type="button" className="r2-x" onClick={onClick} aria-label="أخرِجه من الدفعة">
       {X.x(20)}
     </button>
   );
@@ -577,7 +577,7 @@ function Relatives({ m, t }: { m: PMember; t: T }) {
   return (
     <div className="r2-rel">
       <p className="pa-hint">
-        {withHim.length ? "دُفع لهم معه سابقًا:" : "من عائلته، عليهم رسوم:"}
+        {withHim.length ? "دُفع لهم معه سابقًا:" : "من عائلته، عليهم متأخرات:"}
       </p>
       <div className="r2-rel-chips">
         {rel.map((x) => (
@@ -615,7 +615,7 @@ function PersonPicker({ t, onDone, autoFocus }: { t: T; onDone: () => void; auto
         : {
             list: act.filter((m) => isLate(m) && !inList.has(m.ref)).slice(0, 5),
             already: [],
-            hint: "عليهم رسوم",
+            hint: "عليهم متأخرات",
           };
     }
     const found = findMembers(act, q);
@@ -740,7 +740,7 @@ function GiftPicker({ t, onDone, outside }: { t: T; onDone: () => void; outside?
   return (
     <div className="r2-picker">
       <p className="pa-label">
-        {outside ? "تبرع من خارج الصندوق، في أي حملة؟" : "تبرع في أي حملة؟"}
+        {outside ? "تبرع من خارج الصندوق، في أي تبرع؟" : "تبرع في أي تبرع؟"}
       </p>
       <ul className="pa-rows">
         {d.campaigns

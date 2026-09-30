@@ -243,7 +243,7 @@ function PendingWait({ n, before }: { n: number; before: string }) {
   return (
     <div className="bq-wait" role="status">
       <p>
-        توجد {paymentCount(n)} بانتظار التأكيد. أكّدها أو ارفضها قبل {before}.
+        توجد {paymentCount(n)} لم تُثبَّت بعد. ثبّتها أو ارفضها قبل {before}.
       </p>
       <Link className="bq-link bq-link-s bq-press" href="/committee">
         افتح الدفعات {I.go(18)}
@@ -468,7 +468,7 @@ function Draft({
           onChange={(e) => setNote(e.target.value)}
           rows={3}
           aria-label="ملاحظة التسليم"
-          placeholder="مثل: 500 أوقية صُرفت نقدًا على الشاي يوم الاجتماع"
+          placeholder="مثل: 500 أوقية مصاريف نقدًا للشاي يوم الاجتماع"
         />
       </section>
 

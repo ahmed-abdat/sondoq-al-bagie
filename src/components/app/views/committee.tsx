@@ -355,11 +355,11 @@ export function CommitteeView({
                 <MenuRow
                   href="/committee/campaigns"
                   icon={I.heart(22)}
-                  title="حملات التبرع"
+                  title="التبرعات"
                   sub={
                     openCamps
-                      ? `${openCamps === 1 ? "حملة مفتوحة" : `${openCamps} حملات مفتوحة`}`
-                      : "لا توجد حملة مفتوحة"
+                      ? `${openCamps === 1 ? "تبرع مفتوح" : `${openCamps} تبرعات مفتوحة`}`
+                      : "لا يوجد تبرع مفتوح"
                   }
                 />
               )}
@@ -484,22 +484,22 @@ export function CampaignsPage({
   };
   return (
     <>
-      <SubHead title="حملات التبرع" lead="المساهمات تُحسب منفصلة عن الرسوم الشهرية." />
+      <SubHead title="التبرعات" lead="المساهمات تُحسب منفصلة عن المستحقات الشهرية." />
       <section className="bq-sec bq-sec-first">
         <button
           type="button"
           className="bq-btn bq-btn-primary bq-btn-lg bq-press"
           onClick={() => setSheet({})}
         >
-          {I.plus(20)} حملة جديدة
+          {I.plus(20)} تبرع جديد
         </button>
-        <h2 className="bq-h3">الحملات</h2>
+        <h2 className="bq-h3">التبرعات</h2>
         <CampaignAdminList campaigns={campaigns} onEdit={(c) => setSheet({ c })} />
       </section>
       {sheet && (
         <Sheet
           key={sheet.c?.campaignId ?? "new"}
-          label={sheet.c ? "الحملة" : "حملة جديدة"}
+          label={sheet.c ? "التبرع" : "تبرع جديد"}
           onDone={() => setSheet(null)}
         >
           <CampaignFormBody

@@ -42,7 +42,7 @@ const CATALOG: {
     g: "group",
     k: "summary",
     t: "الملخص",
-    s: "ما دخل وما صُرف وما بقي، لسنة أو لشهر",
+    s: "المداخيل والمصاريف والرصيد، لسنة أو لشهر",
     icon: "chart",
     scope: "yearOrMonth",
   },
@@ -98,7 +98,7 @@ const CATALOG: {
     g: "committee",
     k: "wallets",
     t: "المبالغ حسب المحفظة",
-    s: "ما دخل وما خرج من كل محفظة، لمطابقة رصيدها",
+    s: "المداخيل والمصاريف في كل محفظة، لمطابقة رصيدها",
     icon: "wallet",
     scope: "yearOrMonth",
   },
@@ -288,7 +288,7 @@ function Detail({
           ) : (
             <p className="r3-fixed">{t ? t.title : "لا دورة بعد"}</p>
           ))}
-        {item.scope === "none" && <p className="r3-fixed">من أول الحملة إلى اليوم</p>}
+        {item.scope === "none" && <p className="r3-fixed">من أول التبرع إلى اليوم</p>}
       </div>
 
       {req ? (

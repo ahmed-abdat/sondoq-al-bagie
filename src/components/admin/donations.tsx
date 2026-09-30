@@ -148,7 +148,7 @@ export function CampaignsScreen() {
         </>
       ) : (
         <>
-          <p className="pa-hint">مبلغ ثابت على كل عضو. من لم يدفع يبقى عليه دينًا.</p>
+          <p className="pa-hint">مبلغ ثابت على كل عضو. ما لم يدفعه يبقى من متأخراته.</p>
           {!d.levies.length && <p className="pa-empty">لا لوحات بعد.</p>}
           <ul className="pa-rows">
             {d.levies.map((l) => {
@@ -208,7 +208,7 @@ export function CampaignScreen({ id }: { id: string }) {
       <section className="pa-tonal pb-camp-sum">
         <div className="pa-kv3">
           <span>
-            <small>صُرف</small>
+            <small>المصاريف</small>
             <Money v={c.spent} />
           </span>
           <span>
@@ -290,7 +290,7 @@ export function CampaignScreen({ id }: { id: string }) {
             ))}
           </ul>
         ) : (
-          <p className="pa-quiet">لم يُصرف منه شيء بعد.</p>
+          <p className="pa-quiet">لا مصاريف منه بعد.</p>
         )}
       </section>
       {d.me.admin && (
@@ -379,7 +379,9 @@ function CloseSheet({
           />
         </>
       ) : (
-        <p className="pa-quiet">لا تُقبل بعدها أنصبة جديدة. ما بقي على الأعضاء يبقى دينًا عليهم.</p>
+        <p className="pa-quiet">
+          لا تُقبل بعدها أنصبة جديدة. ما بقي على الأعضاء يبقى من متأخراتهم.
+        </p>
       )}
     </Sheet>
   );
@@ -729,7 +731,7 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
     : !amount
       ? "اكتب المبلغ"
       : twoAmounts && !amountB
-        ? "اكتب مبلغ المجموعة ب"
+        ? "اكتب مبلغ الفئة ب"
         : !members.length
           ? "اختر الأعضاء"
           : null;
@@ -774,7 +776,7 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <p className="pa-hint">مبلغ ثابت على كل عضو لحاجة معيّنة. من لم يدفع يبقى عليه دينًا.</p>
+      <p className="pa-hint">مبلغ ثابت على كل عضو لحاجة معيّنة. ما لم يدفعه يبقى من متأخراته.</p>
       <label className="pa-field">
         <span>العنوان</span>
         <input
@@ -785,7 +787,7 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
         />
       </label>
       <label className="pa-field">
-        <span>{twoAmounts ? "المبلغ على عضو المجموعة أ" : "المبلغ على كل عضو"}</span>
+        <span>{twoAmounts ? "المبلغ على عضو الفئة أ" : "المبلغ على كل عضو"}</span>
         <input
           inputMode="numeric"
           dir="ltr"
@@ -800,11 +802,11 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
           checked={twoAmounts}
           onChange={(e) => setTwoAmounts(e.target.checked)}
         />
-        <span>مبلغ مختلف للمجموعة ب</span>
+        <span>مبلغ مختلف للفئة ب</span>
       </label>
       {twoAmounts && (
         <label className="pa-field">
-          <span>المبلغ على عضو المجموعة ب</span>
+          <span>المبلغ على عضو الفئة ب</span>
           <input
             inputMode="numeric"
             dir="ltr"
@@ -820,8 +822,8 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
         onChange={setWho}
         options={[
           { k: "all", l: "كل الأعضاء" },
-          { k: "A", l: "المجموعة أ" },
-          { k: "B", l: "المجموعة ب" },
+          { k: "A", l: "الفئة أ" },
+          { k: "B", l: "الفئة ب" },
           { k: "pick", l: "أختارهم" },
         ]}
       />

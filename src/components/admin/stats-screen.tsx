@@ -23,7 +23,7 @@ function Bar({ ok, all, thin }: { ok: number; all: number; thin?: boolean }) {
   );
 }
 
-/** «المجموعة أ   ████░░  60٪» — a label, a bar and its number on one line. */
+/** «الفئة أ   ████░░  60٪» — a label, a bar and its number on one line. */
 function Row({ label, ok, all }: { label: string; ok: number; all: number }) {
   return (
     <div className="st-row" role="group" aria-label={`${label}: ${pct(ok, all)}٪`}>
@@ -41,14 +41,14 @@ export function FeesCard() {
   const { d } = useP();
   const s = d.stats.fees;
   const groups = [
-    { k: "A", l: "المجموعة أ", ...s.A },
-    { k: "B", l: "المجموعة ب", ...s.B },
+    { k: "A", l: "الفئة أ", ...s.A },
+    { k: "B", l: "الفئة ب", ...s.B },
   ].filter((g) => g.total > 0);
   const top = Math.max(1, s.total);
   const behind = s.owe.one + s.owe.twoThree + s.owe.fourPlus;
   return (
     <section className="st-fees" aria-labelledby="st-fees-h">
-      <h2 id="st-fees-h">الرسوم الشهرية {d.year}</h2>
+      <h2 id="st-fees-h">المستحقات الشهرية {d.year}</h2>
       <p className="st-hero">
         <P v={s.pct} />
       </p>
@@ -98,7 +98,7 @@ export function FeesCard() {
 
       {behind > 0 && (
         <>
-          <h3>من بقيت عليه رسوم</h3>
+          <h3>من بقيت عليه متأخرات</h3>
           <ul className="st-owe">
             {[
               { l: "شهر واحد", n: s.owe.one },
@@ -129,8 +129,8 @@ export function LevyCard({ l, title }: { l: PLevy; title?: string }) {
   if (!s) return null;
   const owing = s.paid + s.notYet;
   const groups = [
-    { k: "A", l: "المجموعة أ", ...s.A },
-    { k: "B", l: "المجموعة ب", ...s.B },
+    { k: "A", l: "الفئة أ", ...s.A },
+    { k: "B", l: "الفئة ب", ...s.B },
   ].filter((g) => g.total > 0);
   return (
     <section className="st-block" aria-label={title ?? `لوحة ${l.title}`}>

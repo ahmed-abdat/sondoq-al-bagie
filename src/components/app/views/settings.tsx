@@ -247,7 +247,7 @@ export function SettingsView({
                       else router.refresh();
                     }}
                   >
-                    {removing === a.id ? "تأكيد الحذف" : "احذف"}
+                    {removing === a.id ? "تأكيد الإلغاء" : "ألغِ"}
                   </button>
                 )}
               </li>

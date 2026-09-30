@@ -49,7 +49,7 @@ export function PendingSlip({
   onDecided?: (decided: boolean) => void;
   /** the 5 s «تراجع» window closed and the decision is on its way (the hub moves to the next) */
   onSettled?: () => void;
-  /** campaign id → title, so a contribution names its campaign (not «حملة تبرعات») */
+  /** campaign id → title, so a contribution names its campaign (not «تبرع») */
   campaignTitles?: Record<string, string>;
 }) {
   const router = useRouter();
@@ -232,12 +232,12 @@ export function PendingSlip({
                   (<MemberNo m={{ memberRef: c.ref }} />)
                 </>
               )}
-              : رسوم {monthsInWords(c.months, c.year)}
+              : مستحقات {monthsInWords(c.months, c.year)}
             </>
           ) : (
             // payer = the member: no second name (audit C12)
             <>
-              عن: رسوم {monthsInWords(c.months, c.year)}
+              عن: مستحقات {monthsInWords(c.months, c.year)}
               {c.ref && (
                 <>
                   {" "}
@@ -273,7 +273,7 @@ export function PendingSlip({
                   disabled={!online || blocked}
                   onClick={() => decide("confirmed")}
                 >
-                  {I.check(20)} أكّد الاستلام
+                  {I.check(20)} ثبّت الدفعة
                 </button>
                 <button
                   type="button"
@@ -336,7 +336,7 @@ export function PendingSlip({
               disabled={!online || blocked}
               onClick={() => decide("confirmed")}
             >
-              {I.check(20)} أكّد الاستلام
+              {I.check(20)} ثبّت الدفعة
             </button>
             <button
               type="button"
@@ -431,8 +431,8 @@ export function PendingSlip({
           <p className="bq-slip-done">
             {I.check(18)}{" "}
             {st.by
-              ? `أكّدها ${st.by} قبلك`
-              : `أكّدها ${me.by}${me.role ? `، ${me.role}` : ""}، الآن`}
+              ? `ثبّتها ${st.by} قبلك`
+              : `ثبّتها ${me.by}${me.role ? `، ${me.role}` : ""}، الآن`}
           </p>
           {!st.sent && <p className="bq-hint">يُحفظ التثبيت بعد ثوانٍ.</p>}
           {!st.sent && (

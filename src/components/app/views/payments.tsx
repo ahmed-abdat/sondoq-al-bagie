@@ -84,11 +84,11 @@ function PaymentRow({ p, onOpen }: { p: PendingPayment; onOpen: () => void }) {
                   )}{" "}
                   ·{" "}
                   {people === 1 && months.length >= 12
-                    ? "رسوم السنة كاملة"
-                    : `رسوم ${monthCount(months.length, "obl")}`}
+                    ? "مستحقات السنة كاملة"
+                    : `مستحقات ${monthCount(months.length, "obl")}`}
                 </>
               ) : (
-                "مساهمة في حملة"
+                "مساهمة في تبرع"
               )}{" "}
               · {dayWords(p.paidOn)}
             </span>

@@ -30,13 +30,13 @@ test("the save button names the missing step, then saves; «تراجع» takes i
   await page.goto("/committee/record");
   // nothing chosen yet: no total bar; a new phone offers who owes
   await expect(page.locator(".r2-foot")).toHaveCount(0);
-  await expect(page.getByText("عليهم رسوم", { exact: true })).toBeVisible();
+  await expect(page.getByText("عليهم متأخرات", { exact: true })).toBeVisible();
 
   await page.getByLabel("ابحث عن العضو", { exact: true }).fill("أ 4");
   await page.locator(".pa-rows button.pa-row").first().click();
   // late months by default, the total in the footer before anything is saved
   const line = page.locator(".r2-line").first();
-  await expect(line).toContainText(/رسوم .*من يناير/);
+  await expect(line).toContainText(/مستحقات .*من يناير/);
   await expect(page.getByRole("radio", { name: "الأشهر المتأخرة" })).toHaveAttribute(
     "aria-checked",
     "true",
@@ -71,7 +71,7 @@ test("a transfer screenshot asks for the wallet, the months can be picked one by
     .getByRole("group", { name: /^أشهر \d{4}$/ })
     .getByRole("button", { name: /سبتمبر/ })
     .click();
-  await expect(page.locator(".r2-line").first()).toContainText("رسوم من يوليو إلى أغسطس");
+  await expect(page.locator(".r2-line").first()).toContainText("مستحقات من يوليو إلى أغسطس");
 
   await page
     .locator('.r2-how input[type="file"]')
@@ -91,11 +91,11 @@ test("several people in one transfer: a relative from the hint, each with his mo
   page,
 }) => {
   await startFor(page, "ب 12");
-  await expect(page.getByText("من عائلته، عليهم رسوم:")).toBeVisible();
+  await expect(page.getByText("من عائلته، عليهم متأخرات:")).toBeVisible();
   await page.locator(".r2-rel-chip").first().click();
   await expect(page.locator(".r2-line")).toHaveCount(2);
   await expect(page.getByText("شخصان في تحويل واحد")).toBeVisible();
   // the second person is removed again
-  await page.getByRole("button", { name: "احذف من الدفعة" }).nth(1).click();
+  await page.getByRole("button", { name: "أخرِجه من الدفعة" }).nth(1).click();
   await expect(page.locator(".r2-line")).toHaveCount(1);
 });
