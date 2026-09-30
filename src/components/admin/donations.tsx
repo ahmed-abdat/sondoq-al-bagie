@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useOnline } from "@/components/providers";
 import { useAct } from "@/components/app/act";
+import { DateField } from "@/components/app/date-field";
 import { sendOnce, useOnceId } from "@/components/app/once-id";
 import { failure } from "@/lib/data/errors";
 import { parseAmount, toWesternDigits } from "@/lib/money";
@@ -693,10 +694,10 @@ function NewGiftSheet({ onClose }: { onClose: () => void }) {
         <span>لماذا؟ (اختياري)</span>
         <input value={purpose} maxLength={500} onChange={(e) => setPurpose(e.target.value)} />
       </label>
-      <label className="pa-field">
+      <div className="pa-field">
         <span>آخر يوم (اختياري)</span>
-        <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-      </label>
+        <DateField value={deadline} onChange={setDeadline} label="آخر يوم" noPast optional />
+      </div>
     </Sheet>
   );
 }
@@ -870,10 +871,10 @@ function NewLevySheet({ onClose }: { onClose: () => void }) {
         <span>لماذا؟ (اختياري)</span>
         <input value={purpose} maxLength={500} onChange={(e) => setPurpose(e.target.value)} />
       </label>
-      <label className="pa-field">
+      <div className="pa-field">
         <span>آخر يوم (اختياري)</span>
-        <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-      </label>
+        <DateField value={deadline} onChange={setDeadline} label="آخر يوم" noPast optional />
+      </div>
     </Sheet>
   );
 }

@@ -45,7 +45,7 @@ test("the save button names the missing step, then saves; «تراجع» takes i
   await expect(saveBtn(page)).toHaveText("كيف دفع؟");
 
   await page.getByRole("button", { name: /نقدًا/ }).click();
-  await expect(page.getByText("نقدًا، اليوم")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^متى دفع؟: اليوم/ })).toBeVisible();
   await expect(saveBtn(page)).toHaveText(/سجّل/);
   await saveBtn(page).click();
 
@@ -59,7 +59,7 @@ test("the save button names the missing step, then saves; «تراجع» takes i
   // the form comes back filled, to correct and save again
   await page.getByRole("button", { name: "صحّحها وسجّل من جديد" }).click();
   await expect(page.locator(".r2-line").first()).toContainText("الشيخ ولد سيدي");
-  await expect(page.getByText("نقدًا، اليوم")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^متى دفع؟: اليوم/ })).toBeVisible();
 });
 
 test("a transfer screenshot asks for the wallet, the months can be picked one by one", async ({

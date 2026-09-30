@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useOnline } from "@/components/providers";
 import { useAct } from "@/components/app/act";
+import { DateField } from "@/components/app/date-field";
 import { sendOnce, useOnceId } from "@/components/app/once-id";
 import { failure } from "@/lib/data/errors";
 import { todayIso } from "@/lib/dates";
@@ -44,6 +45,7 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
   const [kind, setKind] = useState<Kind>("other");
   const [from, setFrom] = useState<string>(campaign ?? "");
   const [wallet, setWallet] = useState<string>("");
+  const [on, setOn] = useState(todayIso());
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const amount = Math.round(parseAmount(amt) ?? 0);
@@ -60,7 +62,7 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
       r = await sendOnce(once, (id) =>
         recordExpense({
           id,
-          spentOn: todayIso(),
+          spentOn: on || todayIso(),
           category: kind,
           amount,
           note: what.trim(),
@@ -122,6 +124,10 @@ function Body({ onClose, campaign }: { onClose: () => void; campaign?: string })
           placeholder="مثل: كرات وأقمصة للفريق"
         />
       </label>
+      <div className="pa-field">
+        <span>متى صُرف؟</span>
+        <DateField value={on} onChange={setOn} label="متى صُرف؟" noFuture />
+      </div>
       <p className="pa-label">لأي نشاط؟</p>
       <Chips label="النشاط" value={kind} onChange={setKind} options={[...KINDS]} />
       {open.length > 0 && (

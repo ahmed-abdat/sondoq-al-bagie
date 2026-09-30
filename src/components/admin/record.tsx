@@ -18,6 +18,7 @@ import { mroToMru, parseAmount, toWesternDigits } from "@/lib/money";
 import { readReceipt } from "@/lib/ocr";
 import { safeStorage } from "@/lib/safe-storage";
 import { imageOpenError, parseMemberRef } from "@/components/app/derive";
+import { DateField } from "@/components/app/date-field";
 import {
   Avatar,
   Back,
@@ -134,6 +135,8 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
   const [cash, setCash] = useState(!!start.cash);
   const [method, setMethod] = useState<Method | null>(start.cash ? "cash" : null);
   const [shot, setShot] = useState<Shot | null>(null);
+  // the day the money was sent: the picture's date when it has one, else today; can be changed
+  const [paidOn, setPaidOn] = useState(todayIso());
   const addPerson = (ref: string) => {
     const m = d.members.find((x) => x.ref === ref);
     if (!m || lines.some((l) => l.t === "fees" && l.ref === ref)) return;
@@ -218,6 +221,8 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
             },
         );
         if (r.method) setMethod(r.method as Method);
+        const seen = r.date && /^\d{4}-\d{2}-\d{2}/.test(r.date) ? r.date.slice(0, 10) : null;
+        if (seen && seen <= todayIso()) setPaidOn(seen);
       })
       .catch(() => k === readSeq.current && setShot((s) => s && { ...s, reading: false }));
     return null;
@@ -231,6 +236,8 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
     setMethod,
     shot,
     setShot,
+    paidOn,
+    setPaidOn,
     pickShot,
     addPerson,
     setMode,
@@ -817,7 +824,6 @@ function HowSec({ t }: { t: T }) {
       ) : t.cash ? (
         <div className="r2-paid">
           <Wallet method="cash" size={32} />
-          <span className="pa-sub">نقدًا، اليوم</span>
           <label className="pa-btn pa-btn-ghost pa-btn-sm">
             {X.image(18)} أضف صورة التحويل بدلًا من ذلك
             {input}
@@ -871,6 +877,12 @@ function HowSec({ t }: { t: T }) {
             options={wallets.map((a) => ({ k: a.method, l: METHOD_LABELS[a.method] }))}
           />
         </>
+      )}
+      {(t.cash || (t.shot && !t.shot.reading)) && (
+        <div className="pa-field">
+          <span>متى دفع؟</span>
+          <DateField value={t.paidOn} onChange={t.setPaidOn} label="متى دفع؟" noFuture />
+        </div>
       )}
       {err && (
         <p className="pa-alert" role="alert">
@@ -963,7 +975,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
           payerName: payer,
           method: t.cash ? "cash" : (t.method as Method),
           amount: t.total,
-          paidOn: (t.shot?.date && t.shot.date <= todayIso() ? t.shot.date : null) ?? todayIso(),
+          paidOn: t.paidOn || todayIso(),
           allocations,
           txnRef: t.cash ? undefined : (t.shot?.txn ?? undefined),
           proofPath: proof?.path,
