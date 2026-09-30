@@ -157,6 +157,7 @@ export async function loadSummary(
     generatedAt: now.toISOString(),
     opening: money.opening,
     income: money.income.total,
+    incomePaper: money.income.paper ?? 0,
     spending: money.spending.total,
     closing: money.closing,
     campaignsHeld: money.campaignsHeld,
