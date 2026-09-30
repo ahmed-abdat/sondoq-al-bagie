@@ -5,8 +5,8 @@
 -- Two levels (owner 2026-09-30). Every active committee member records payments (confirmed at once,
 -- receipt issued; no own-membership rule; paper included), expenses and credit use, edits member
 -- details, group prices, settings and fund accounts. «مسؤول» (role admin) only: committee accounts,
--- the handover, member status/group/join month and adding members, cancelling payments/expenses,
--- campaigns and levies (m30). Roles and data are unchanged.
+-- the handover (alone, start to accept), member status/group/join month and adding members,
+-- cancelling payments/expenses (the recorder may undo his own within 30 s), campaigns and levies (m30). Roles and data are unchanged.
 -- New reads for the committee: activity_log («سجل العمليات») and member_statement («كشف حساب»).
 -- Push: each subscription chooses the kinds of events it receives.
 -- Undo: supabase/rollback/m29_revert.sql.
@@ -249,8 +249,9 @@ begin
 end $function$
 ;
 
--- «مسؤول» only (owner 2026-09-30): cancelling a payment or an expense (also the 30-second undo),
--- campaigns (create/edit/close), the handover (start/count/submit/cancel; accept was already).
+-- «مسؤول» only (owner 2026-09-30): cancelling a payment or an expense (the recorder keeps the
+-- 30-second undo of his own record), campaigns (create/edit/close), the handover (start/count/
+-- submit/cancel; accept was already).
 -- Member status/group/join month, adding members and committee accounts stay «مسؤول» as before.
 -- Current bodies (pg_get_functiondef at m28) with the check replaced by require_admin.
 CREATE OR REPLACE FUNCTION app_private.require_money_keeper()
@@ -322,27 +323,48 @@ begin
 end $function$
 ;
 
-CREATE OR REPLACE FUNCTION app_private.undo_payment(p_payment_id uuid)
- RETURNS void
+-- «مسؤول» does the handover alone (owner: one head above the committee), so the "accepted by
+-- another admin" rule goes. Current body (pg_get_functiondef at m28) without that check.
+CREATE OR REPLACE FUNCTION app_private.accept_handover(p_id uuid, p_new_term_title text DEFAULT NULL::text)
+ RETURNS smallint
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
 declare
-  p public.payments;
+  h public.handovers;
+  cur public.terms;
+  me uuid := auth.uid();
+  diff integer;
+  next_no smallint;
 begin
   perform app_private.require_admin();
-  select * into p from public.payments where id = p_payment_id for update;
-  if p.id is null then perform app_private.fail('not_found'); end if;
-  if p.status = 'cancelled' then return; end if;
-  if p.created_by is distinct from auth.uid() or p.created_at < now() - interval '30 seconds' then
-    perform app_private.fail('undo_expired');
+  select * into h from public.handovers where id = p_id for update;
+  if h.id is null then perform app_private.fail('not_found'); end if;
+  if h.status = 'confirmed' then return h.to_term; end if;
+  if h.status <> 'submitted' then perform app_private.fail('handover_not_submitted'); end if;
+  select * into cur from public.terms where number = h.from_term for update;
+  if cur.ended_on is not null then perform app_private.fail('no_open_term'); end if;
+
+  perform app_private.set_action('accept_handover');
+  -- computed_balance was stored by submit_handover; recompute only for a row submitted without it
+  diff := h.counted_balance - coalesce(h.computed_balance, app_private.current_balance());
+  if diff <> 0 then
+    insert into public.balance_adjustments (term, handover_id, amount, reason, created_by)
+    values (cur.number, h.id, diff, 'فرق عند التسليم', me);
   end if;
-  if p.status = 'rejected' then perform app_private.fail('not_pending'); end if;
-  perform app_private.set_action('undo_payment');
-  update public.payments set status = 'cancelled', cancelled_at = now(), cancelled_by = auth.uid(), cancel_reason = 'undo'
-  where id = p.id;
-  update public.payment_months set released_at = now() where payment_id = p.id and released_at is null;
+  next_no := cur.number + 1;
+  update public.terms set ended_on = current_date where number = cur.number;
+  insert into public.terms (number, title, started_on, opening_balance, created_by)
+  values (next_no, coalesce(nullif(btrim(p_new_term_title), ''), 'الدورة ' || next_no), current_date,
+          app_private.current_balance(), me);
+  update public.handovers
+  set status = 'confirmed', accepted_at = now(), accepted_by = me, to_term = next_no,
+      computed_balance = coalesce(h.computed_balance, h.counted_balance - diff), difference = diff
+  where id = p_id;
+  update public.committee set active = false
+  where active and not (user_id = any (array_remove(h.carry_over || me, null)));
+  return next_no;
 end $function$
 ;
 

@@ -382,19 +382,17 @@ select tests.set('u1', tests.pay('u1', 1000, jsonb_build_array(tests.month('E', 
 select tests.ok((select allocations -> 0 ->> 'number' from public.payment_queue where id = tests.id('u1')) = '1001',
   'payment queue shows the member number in allocations');
 select tests.ok((select created_by_name from public.payment_queue where id = tests.id('u1')) = 'مشرف', 'queue shows who recorded it');
-select tests.throws($$select public.undo_payment(tests.id('u1'))$$, 'not_admin', 'the quick undo is «مسؤول» only (m29)');
+select public.undo_payment(tests.id('u1'));
+select tests.ok((select status from public.payments where id = tests.id('u1')) = 'cancelled', 'the recorder undoes his own payment');
+select tests.ok((select cancel_reason from public.payments where id = tests.id('u1')) = 'undo', 'undo reason recorded');
+select public.undo_payment(tests.id('u1'));   -- repeat is a no-op
 select tests.login('admin');
-select tests.throws($$select public.undo_payment(tests.id('u1'))$$, 'undo_expired', 'only the recorder can undo');
-select public.cancel_payment(tests.id('u1'), 'undo');
-select tests.ok((select status from public.payments where id = tests.id('u1')) = 'cancelled', 'a cancelled payment');
-select tests.ok((select cancel_reason from public.payments where id = tests.id('u1')) = 'undo', 'with its reason');
-select public.undo_payment(tests.id('u1'));   -- a cancelled payment: no-op
 select tests.set('u2', (public.record_payment(gen_random_uuid(), 'دافع', 'cash', 1000, current_date,
   jsonb_build_array(tests.month('E', 0, 1000))) ->> 'id'));
-select tests.ok((select status from public.payments where id = tests.id('u2')) = 'confirmed', 'admin payment confirmed');
+select tests.login('committee');
+select tests.throws($$select public.undo_payment(tests.id('u2'))$$, 'undo_expired', 'only the recorder can undo');
+select tests.login('admin');
 select public.undo_payment(tests.id('u2'));
-select tests.ok((select status = 'cancelled' and cancel_reason = 'undo' from public.payments where id = tests.id('u2')),
-  'the recorder («مسؤول») undoes his own payment at once');
 select tests.ok(not exists (select 1 from public.payment_months where payment_id = tests.id('u2') and released_at is null),
   'undo of a confirmed payment releases its months');
 select tests.login('server');
@@ -1187,7 +1185,6 @@ create temp table admin_only (sql text) on commit drop;
 insert into admin_only values
   ($$select public.cancel_payment(tests.id('m29p'), 'سبب')$$),
   ($$select public.cancel_expense(gen_random_uuid(), 'سبب')$$),
-  ($$select public.undo_payment(tests.id('m29p'))$$),
   ($$select public.create_campaign(gen_random_uuid(), 'حملة')$$),
   ($$select public.update_campaign(tests.id('c6'), 'x', null, null, null)$$),
   ($$select public.close_campaign(tests.id('c6'), 'to_fund')$$),
@@ -1279,12 +1276,7 @@ select tests.pay('hp', 1000, jsonb_build_array(jsonb_build_object('kind', 'credi
 select tests.login('deputy');
 select public.confirm_payment(tests.id('hp'));
 select tests.login('admin');
-select tests.throws($$select public.accept_handover(tests.id('h1'))$$, 'same_person', 'the «مسؤول» who started it cannot accept it');
--- m29: start/submit are «مسؤول» only too, so accepting needs a second «مسؤول» (the incoming one)
-select tests.login('server');
-select public.set_committee_member('00000000-0000-0000-0000-0000000000a2', 'الأمين', 'admin', tests.id('T'));
-select tests.login('treasurer');
-select tests.ok(public.accept_handover(tests.id('h1'), 'الدورة الثانية') = 2, 'the incoming «مسؤول» accepts: term 2 opens');
+select tests.ok(public.accept_handover(tests.id('h1'), 'الدورة الثانية') = 2, '«مسؤول» does the handover alone: term 2 opens');
 select tests.ok(public.accept_handover(tests.id('h1')) = 2, 'accepting twice is a no-op');
 select tests.login('public');
 select tests.login('server');
@@ -1300,14 +1292,13 @@ select tests.ok((select amount from public.activity_feed where kind = 'balance_a
 select tests.login('public');
 select tests.login('server');
 select tests.ok((select difference from public.handovers where id = tests.id('h1')) = -500, 'difference recorded');
-select tests.ok((select array_agg(display_name order by display_name) from public.committee where active) = array['الأمين', 'النائب'],
-  'only the carried-over deputy and the incoming «مسؤول» stay active');
+select tests.ok((select array_agg(display_name order by display_name) from public.committee where active) = array['المدير', 'النائب'],
+  'only the carried-over deputy and «مسؤول» stay active');
 
-select tests.login('treasurer');
+select tests.login('admin');
 select tests.set('h2', public.start_handover(gen_random_uuid()));
 select public.update_handover_draft(tests.id('h2'), '[{"label":"نقداً","amount":10}]'::jsonb);
 select public.submit_handover(tests.id('h2'));
-select tests.throws($$select public.accept_handover(tests.id('h2'))$$, 'same_person', 'the «مسؤول» who submitted cannot also accept');
 select public.cancel_handover(tests.id('h2'), 'خطأ');
 select tests.ok((select status from public.handovers where id = tests.id('h2')) = 'cancelled', 'a handover can be cancelled with a reason');
 
