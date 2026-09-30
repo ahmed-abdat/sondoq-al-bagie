@@ -1,5 +1,10 @@
 # Member access (personal link) · spec v1
 
+> **Retired (2026-09-30).** Member links, `/m`, `/me`, member push and the receipt check `/r` were
+> removed (m28, [COMMITTEE-ONLY-PLAN.md](COMMITTEE-ONLY-PLAN.md)). Members get information only
+> through what the committee shares on WhatsApp. `member_links` is kept for history (the one
+> active link was revoked, audited). Kept for history only; do not build on it.
+
 Owner-approved direction (2026-09-29). Goal: each member gets a private link that personalises the app
 and lets them send a payment with proof for the committee to confirm. Nothing public gets hidden.
 

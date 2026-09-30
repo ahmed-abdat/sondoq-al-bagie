@@ -1,5 +1,9 @@
 # Money privacy · spec v1 (owner decision 2026-09-29)
 
+> **Retired (2026-09-30).** The app is now for the committee only ([COMMITTEE-ONLY-PLAN.md](COMMITTEE-ONLY-PLAN.md)):
+> there are no public pages and no strangers to hide money from. m28 revoked every anonymous read
+> except `keepalive`. Kept for history only; do not build on it.
+
 Money figures are visible only to **the committee** (signed in) and **members with their personal link**
 (`bq_member` cookie, verified). Strangers (no session) still see the app's layout, member names, numbers and
 which months are paid, but every money figure is replaced by «•••». This is real protection: the server never

@@ -51,7 +51,7 @@ describe("proxy: the committee-only gate", () => {
   });
 
   it("the login (never stored), the first sign-in setup and the cron routes stay open", async () => {
-    for (const p of ["/login", "/committee/setup", "/api/keepalive", "/api/backup"]) {
+    for (const p of ["/login", "/committee/setup", "/api/keepalive", "/api/backup", "/api/audit"]) {
       const res = await proxy(req(p));
       expect(res.headers.get("location"), p).toBeNull();
       expect(res.status, p).toBe(200);

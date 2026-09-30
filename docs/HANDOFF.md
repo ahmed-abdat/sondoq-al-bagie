@@ -2,18 +2,39 @@
 
 Read this, then [DECISIONS.md](DECISIONS.md). Extending the app: [RECIPES.md](RECIPES.md).
 
-## Status (2026-09-29)
+## Status (2026-09-30)
 
-- **Live** at https://baqie.vercel.app with the fund's real data.
-- Built: public pages (home, members, accounts, donations, `/r/[code]` receipt check, `/report`),
-  committee (payments queue + record with on-device OCR, late members + WhatsApp reminders,
-  expenses, campaigns, members admin, handover, settings, account, push notifications), installable
-  offline-read PWA, daily keep-alive and weekly backup crons.
-- Database: migrations m1 through m13 applied to Supabase project `vhcdgxgwdlflmxmqnxzf`. Since
-  m13 every write RPC body lives in `app_private` (SECURITY DEFINER) behind a `public` SECURITY
-  INVOKER wrapper of the same name. See [supabase/README.md](../supabase/README.md).
-- UI port details: [UI-PORT-STATUS.md](UI-PORT-STATUS.md). Open review items:
-  [ARCHITECTURE-AUDIT.md](ARCHITECTURE-AUDIT.md) (read its "Lead corrections" first).
+- **Live** at https://baqie.vercel.app with the fund's real data (91 members).
+- **Committee-only app** (owner decision 2026-09-30, [COMMITTEE-ONLY-PLAN.md](COMMITTEE-ONLY-PLAN.md)):
+  visitors see only `/login`. No public pages, member links, `/me`, receipt check `/r` or member
+  push; members get information only from what the committee shares on WhatsApp (report
+  images/PDF, «المتأخرات» without amounts). [MONEY-PRIVACY.md](MONEY-PRIVACY.md) and
+  [MEMBER-ACCESS.md](MEMBER-ACCESS.md) are retired.
+- **Two levels.** Every active committee member records payments (confirmed at once, no review
+  queue), cash, paper, levy shares and contributions, expenses, credit, member details, settings,
+  fund accounts, reads every report, chooses his own push kinds, and may undo his own record
+  within 30 seconds. **«مسؤول»** (role `admin`) only: committee accounts, the handover (alone),
+  adding members and their status / group / join month, cancelling payments and expenses,
+  campaigns and levies («اللوحة»: create, add members, change a share, exempt), fee groups
+  («الفئات»: fees, moves, retire).
+- **No receipts.** After a payment: «سُجّلت الدفعة ✓» + «تراجع» for 30 s. Receipt numbers are still
+  stamped in the database (history) but never shown.
+- **Features:** home (balance, this month, recent), members with month grid and statement («كشف
+  حساب»), donations and levies («اللوحة»: mandatory shares, a debt until paid or exempted, a
+  closed levy still takes shares), expenses (each names its wallet), «سجل العمليات» (who did
+  what), reports (annual, summary, months table, «المتأخرات», expenses, campaign/levy, member
+  statement, handover, wallets, committee work), «الإحصاءات» (counts and percentages, never
+  names; last year compared at the same day a year ago), fee groups, committee push, on-device
+  OCR, handover, settings, installable PWA (no offline pages).
+- **Accuracy first** (owner priority #1): `accuracy_audit()` (m35) recomputes every figure from
+  the base tables (28 checks). It runs in `run.sh`, on the e2e stack after the flows (CI,
+  `supabase/tests/e2e/audit.sh`) and daily on production (`/api/audit`: `job_runs` + a push to
+  «مسؤول» on any failure). 28/28 on production 2026-09-30.
+- Database: migrations m1–m36 applied to project `vhcdgxgwdlflmxmqnxzf`.
+  Every write RPC body lives in `app_private` (SECURITY DEFINER) behind a `public` SECURITY INVOKER
+  wrapper; every migration since m28 has its own undo (`supabase/rollback/mNN_revert.sql`, proven
+  by a catalog diff). See [supabase/README.md](../supabase/README.md).
+- Crons (`vercel.json`): `/api/keepalive` daily, `/api/backup` weekly, `/api/audit` daily.
 
 ## People
 
@@ -54,17 +75,18 @@ Read this, then [DECISIONS.md](DECISIONS.md). Extending the app: [RECIPES.md](RE
   `useAct()` (`src/components/app/act.tsx`).
 - Demo mode: `SONDOQ_FIXTURES=1` on a non-production build serves fictional data and simulates
   committee writes in the browser (`src/components/app/demo.ts`; never on production).
-- Accounts: **no email flows**. Public sign-up is off; the admin creates committee accounts (email
+- Accounts: **no email flows**. Public sign-up is off; a «مسؤول» creates committee accounts (email
   or phone + generated password) and resets passwords in the app. First sign-in (or after a reset)
-  goes to `/committee/setup` (name, own membership, new password). Members need no account.
+  goes to `/committee/setup` (name, own membership, new password). Members have no access.
+- Money checks: a new report, stat or screen ships with cross-check tests (totals reconcile with
+  the fund, the grid, the statement) and, when it adds a figure, a check in `accuracy_audit()`.
 
 ## What's next
 
-- Guard-rail plans from the audit (SQL harness in CI, migration version guard, error-code drift
-  test, exhaustive demo stubs, one committee page guard).
+- Owner priorities: accuracy (every number verified end to end) and ease (fewest taps, 360px,
+  48px targets, simple Arabic). A UX pass with tap counts on every screen before sign-off.
 - Open questions for the committee: see [DECISIONS.md](DECISIONS.md) "Still open".
-- Idea only, **not approved**: member access to their own history through a personal link. Do not
-  build it without the owner's go-ahead.
+- Later, only with the owner's OK: drop `member_links` (1 revoked row) and the `payments` FK to it.
 
 ## Background
 
