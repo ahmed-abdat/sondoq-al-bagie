@@ -76,6 +76,7 @@ export const fxSummary: SummaryReport = {
   generatedAt: AT,
   opening: 265_000,
   income: 60_000,
+  incomePaper: 40_000,
   spending: 25_000,
   closing: 300_000,
   campaignsHeld: 46_000,
