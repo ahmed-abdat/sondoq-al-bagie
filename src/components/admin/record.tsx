@@ -35,13 +35,14 @@ import {
   Wallet,
   X,
 } from "./kit";
+import { feeAllocations, feesTotal, pastWords, payablePast, priceOf, ym } from "./fees";
 import { coPaidMembers } from "./report-action";
 import type { PData, PMember } from "./types";
 import "./record2.css";
 
 type Mode = "late" | "rest" | "pick";
 type Line =
-  | { id: number; t: "fees"; ref: string; mode: Mode; months: number[] }
+  | { id: number; t: "fees"; ref: string; mode: Mode; months: number[]; past: string[] }
   | { id: number; t: "levy"; ref: string; levyId: string }
   | { id: number; t: "gift"; campaignId: string; ref: string | null; name: string; amount: number };
 type Shot = {
@@ -69,23 +70,25 @@ const rememberRecent = (ids: string[]) =>
     JSON.stringify([...new Set([...ids, ...readRecent()])].slice(0, 4)),
   );
 
-const monthsFor = (m: PMember, mode: Mode, current: number[] = []): number[] =>
+/** Late months of earlier years are always part of «الأشهر المتأخرة» and «باقي السنة». */
+const monthsFor = (m: PMember, mode: Mode) =>
   mode === "late"
-    ? m.owed
-    : mode === "rest"
-      ? [...m.owed, ...upcoming(m)].sort((a, b) => a - b)
-      : current;
-const firstMode = (m: PMember): { mode: Mode; months: number[] } =>
-  m.owed.length
-    ? { mode: "late", months: m.owed }
-    : { mode: "pick", months: upcoming(m).slice(0, 1) };
+    ? { months: m.owed, past: payablePast(m) }
+    : { months: [...m.owed, ...upcoming(m)].sort((a, b) => a - b), past: payablePast(m) };
+const firstMode = (m: PMember): { mode: Mode; months: number[]; past: string[] } =>
+  m.owed.length || payablePast(m).length
+    ? { mode: "late", ...monthsFor(m, "late") }
+    : { mode: "pick", months: upcoming(m).slice(0, 1), past: [] };
 const familyName = (name: string) => {
   const i = name.indexOf("ولد ");
   return i >= 0 ? name.slice(i) : "";
 };
 
 function lineAmount(l: Line, d: PData): number {
-  if (l.t === "fees") return l.months.length * (d.members.find((m) => m.ref === l.ref)?.fee ?? 0);
+  if (l.t === "fees") {
+    const m = d.members.find((x) => x.ref === l.ref);
+    return m ? feesTotal(m, d.year, l.months, l.past) : 0;
+  }
   if (l.t === "levy") {
     const lv = d.levies.find((x) => x.id === l.levyId);
     return lv ? levyShare(lv, l.ref) : 0;
@@ -126,7 +129,7 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
       s.map((l) => {
         if (l.id !== id || l.t !== "fees") return l;
         const m = d.members.find((x) => x.ref === l.ref)!;
-        return { ...l, mode, months: mode === "pick" ? l.months : monthsFor(m, mode) };
+        return mode === "pick" ? { ...l, mode } : { ...l, mode, ...monthsFor(m, mode) };
       }),
     );
   const toggle = (id: number, k: number) =>
@@ -139,6 +142,20 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
               months: l.months.includes(k)
                 ? l.months.filter((x) => x !== k)
                 : [...l.months, k].sort((a, b) => a - b),
+            }
+          : l,
+      ),
+    );
+  const togglePast = (id: number, key: string) =>
+    setLines((s) =>
+      s.map((l) =>
+        l.id === id && l.t === "fees"
+          ? {
+              ...l,
+              mode: "pick",
+              past: l.past.includes(key)
+                ? l.past.filter((x) => x !== key)
+                : [...l.past, key].sort(),
             }
           : l,
       ),
@@ -203,6 +220,7 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
     addPerson,
     setMode,
     toggle,
+    togglePast,
     remove,
     addLevy,
     addGift,
@@ -212,16 +230,39 @@ function useTransfer(start: { ref?: string; levy?: string; c?: string; cash?: bo
 type T = ReturnType<typeof useTransfer>;
 
 /* ───────── the flow ───────── */
+/** «دفعة أخرى» starts a new, empty payment (a new round of the form, and the URL without ?m=). */
 export function RecordScreen() {
-  const { d, q } = useP();
-  const t = useTransfer({ ref: q.m, levy: q.levy, c: q.c, cash: q.cash === "1" });
+  const { q, href } = useP();
+  const [round, setRound] = useState(0);
+  return (
+    <RecordFlow
+      key={round}
+      start={round ? {} : { ref: q.m, levy: q.levy, c: q.c, cash: q.cash === "1" }}
+      onAgain={() => {
+        if (Object.values(q).some(Boolean)) window.history.replaceState(null, "", href("record"));
+        setRound((n) => n + 1);
+        window.scrollTo(0, 0);
+      }}
+    />
+  );
+}
+
+function RecordFlow({
+  start,
+  onAgain,
+}: {
+  start: Parameters<typeof useTransfer>[0];
+  onAgain: () => void;
+}) {
+  const { d } = useP();
+  const t = useTransfer(start);
   const [adding, setAdding] = useState<null | "person" | "levy" | "gift" | "outside">(null);
   const [saved, setSaved] = useState<{ id: string; text: string } | null>(null);
   const first = t.lines.find((l) => l.t !== "gift") as
     Extract<Line, { t: "fees" | "levy" }> | undefined;
   const firstMember = first ? d.members.find((m) => m.ref === first.ref) : undefined;
 
-  if (saved) return <Done id={saved.id} text={saved.text} />;
+  if (saved) return <Done id={saved.id} text={saved.text} onAgain={onAgain} />;
 
   return (
     <div className="pa-page r2">
@@ -368,8 +409,15 @@ function LineRow({ l, t }: { l: Line; t: T }) {
     );
   }
   const nothingPaid = m.paid.length === 0;
+  const past = payablePast(m);
+  const what = [
+    l.past.length ? pastWords(l.past) : "",
+    l.months.length ? `${monthsWords(l.months)}${l.past.length ? ` ${d.year}` : ""}` : "",
+  ]
+    .filter(Boolean)
+    .join("، و");
   const modes: { k: Mode; l: string }[] = [
-    ...(m.owed.length ? [{ k: "late" as Mode, l: "الأشهر المتأخرة" }] : []),
+    ...(m.owed.length || past.length ? [{ k: "late" as Mode, l: "الأشهر المتأخرة" }] : []),
     ...(upcoming(m).length || m.owed.length
       ? [{ k: "rest" as Mode, l: nothingPaid ? "السنة كاملة" : "باقي السنة" }]
       : []),
@@ -381,7 +429,7 @@ function LineRow({ l, t }: { l: Line; t: T }) {
         <Avatar refs={m.ref} />
         <span className="pa-row-t">
           <b>{m.name}</b>
-          <small>{l.months.length ? `رسوم ${monthsWords(l.months)}` : "لم تُختر أشهر"}</small>
+          <small>{what ? `رسوم ${what}` : "لم تُختر أشهر"}</small>
         </span>
         <span className="r2-line-amt">
           <Money v={amount} unit={false} />
@@ -394,12 +442,34 @@ function LineRow({ l, t }: { l: Line; t: T }) {
         onChange={(k) => t.setMode(l.id, k)}
         options={modes}
       />
+      {l.mode === "pick" && past.length > 0 && (
+        <div className="r2-months" role="group" aria-label="أشهر متأخرة من سنوات سابقة">
+          {past.map((key) => {
+            const on = l.past.includes(key);
+            const [y, mo] = key.split("-").map(Number);
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={on}
+                className={on ? "on" : ""}
+                onClick={() => t.togglePast(l.id, key)}
+              >
+                <span>
+                  {MONTHS_AR[mo - 1]} {y}
+                </span>
+                <b>{on ? "✓" : ""}</b>
+              </button>
+            );
+          })}
+        </div>
+      )}
       {l.mode === "pick" && (
-        <div className="r2-months" role="group" aria-label="الأشهر">
+        <div className="r2-months" role="group" aria-label={`أشهر ${d.year}`}>
           {MONTHS_AR.map((name, i) => {
             const k = i + 1;
             const paid = m.paid.includes(k);
-            const na = m.notOwed.includes(k);
+            const na = m.notOwed.includes(k) || priceOf(m, ym(d.year, k)) === null;
             const on = l.months.includes(k);
             return (
               <button
@@ -773,7 +843,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
   const diff = shotAmt === null ? 0 : t.total - shotAmt;
   const next = !t.lines.length
     ? "اختر العضو"
-    : t.lines.some((l) => l.t === "fees" && !l.months.length)
+    : t.lines.some((l) => l.t === "fees" && !l.months.length && !l.past.length)
       ? "اختر الأشهر"
       : t.lines.some((l) => l.t === "gift" && !l.amount)
         ? "اكتب مبلغ التبرع"
@@ -793,14 +863,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
     const byRef = new Map(d.members.map((m) => [m.ref, m]));
     const allocations = t.lines.flatMap((l): AllocationInput[] => {
       if (l.t === "fees") {
-        const m = byRef.get(l.ref)!;
-        return l.months.map((month) => ({
-          kind: "months" as const,
-          memberId: m.id,
-          year,
-          month,
-          amount: m.fee,
-        }));
+        return feeAllocations(byRef.get(l.ref)!, year, l.months, l.past);
       }
       if (l.t === "levy")
         return [
@@ -911,7 +974,7 @@ function Foot({ t, onSaved }: { t: T; onSaved: (id: string, text: string) => voi
 }
 
 /** Saved: no receipt (owner). «تراجع» for 30 seconds, then the next payment or home. */
-function Done({ id, text }: { id: string; text: string }) {
+function Done({ id, text, onAgain }: { id: string; text: string; onAgain: () => void }) {
   const { href, snack } = useP();
   const router = useRouter();
   const { undoPayment } = useAct();
@@ -946,9 +1009,13 @@ function Done({ id, text }: { id: string; text: string }) {
           {`تراجع (${left})`}
         </button>
       )}
-      <Link href={href("record")} className="pa-btn pa-btn-primary pa-btn-lg pa-btn-block">
+      <button
+        type="button"
+        className="pa-btn pa-btn-primary pa-btn-lg pa-btn-block"
+        onClick={onAgain}
+      >
         {X.plus(20)} دفعة أخرى
-      </Link>
+      </button>
       <Link href={href("")} className="pa-btn pa-btn-ghost pa-btn-block">
         إلى الرئيسية
       </Link>
